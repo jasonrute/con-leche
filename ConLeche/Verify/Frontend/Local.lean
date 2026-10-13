@@ -585,39 +585,6 @@ theorem naiveList_local (start : UInt8 → Bool) (hs : start 10 = false)
 theorem naiveNatList_local : LineLocal naiveNatList :=
   naiveList_local isDigit isDigit_nl naiveNat naiveNat_local
 
-theorem naivePw_local : LineLocal naivePw := by
-  intro l hl
-  cases l with
-  | nil => exact ⟨[], List.suffix_rfl, .inr ⟨.badPw, fun x => by unfold naivePw; rfl⟩⟩
-  | cons c l' =>
-    have hl' := not_mem_cons_tail hl
-    by_cases h91 : c = 91
-    · subst h91
-      obtain ⟨r, hr, h⟩ := naiveListLoop_local isDigit isDigit_nl naiveNat naiveNat_local
-        l'.length l' [] true (Nat.le_refl _) hl'
-      refine ⟨r, hr.trans (List.suffix_cons _ _), ?_⟩
-      rcases h with ⟨v, hv⟩ | ⟨t, ht⟩
-      · exact .inl ⟨.ifAllZero v, fun x => by
-          unfold naivePw; simp only [List.cons_append]
-          rw [show naiveListLoop _ _ (l' ++ 10 :: x) [] true = _ from hv x]; rfl⟩
-      · exact .inr ⟨t, fun x => by
-          unfold naivePw; simp only [List.cons_append]
-          rw [show naiveListLoop _ _ (l' ++ 10 :: x) [] true = _ from ht x]; rfl⟩
-    by_cases h34 : c = 34
-    · subst h34
-      rcases naiveLit_local "never\"" (by rw [lit_eq_toByteArray]; decide) l' hl' with h | ⟨r, hr, h⟩
-      · exact ⟨34 :: l', List.suffix_rfl, .inr ⟨.badPw, fun x => by
-          unfold naivePw; simp only [List.cons_append]; rw [h x]⟩⟩
-      · exact ⟨r, hr.trans (List.suffix_cons _ _), .inl ⟨.never, fun x => by
-          unfold naivePw; simp only [List.cons_append]; rw [h x]⟩⟩
-    · exact ⟨c :: l', List.suffix_rfl, .inr ⟨.badPw, fun x => by
-        unfold naivePw
-        simp only [List.cons_append]
-        split
-        · rename_i heq; simp only [List.cons.injEq] at heq; exact absurd heq.1 h91
-        · rename_i heq; simp only [List.cons.injEq] at heq; exact absurd heq.1 h34
-        · rfl⟩⟩
-
 theorem naiveHints_local : LineLocal naiveHints := by
   intro l hl
   cases l with
@@ -888,7 +855,7 @@ theorem Slot.drop_local {scan : List UInt8 → NRes α} (hscan : LineLocal scan)
 macro "slot_local" : tactic => `(tactic| first
   | exact Slot.of_local naiveNat_local _ _ _ | exact Slot.of_local naiveStr_local _ _ _
   | exact Slot.of_local naiveNatList_local _ _ _ | exact Slot.of_local naiveBool_local _ _ _
-  | exact Slot.of_local naivePw_local _ _ _ | exact Slot.of_local naiveHints_local _ _ _
+  | exact Slot.of_local naiveHints_local _ _ _
   | exact Slot.drop_local naiveBinderInfo_local _ _ | exact Slot.drop_local naiveNat_local _ _
   | exact Slot.drop_local naiveBool_local _ _ | exact Slot.drop_local naiveNatList_local _ _)
 

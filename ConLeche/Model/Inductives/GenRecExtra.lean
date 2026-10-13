@@ -41,10 +41,10 @@ import ConLeche.Model.Inductives.TargetClass
 public section
 
 /-!
-# The ι licence's facts at the generated recursors (task #342 L10)
+# The ι case split's facts at the generated recursors (task #342 L10)
 
 `RecRuleLaw` carries, besides the fired law, the facts the ι step's
-licence consumes (`RecRuleExtra`): the K law at any major, the
+case split consumes (`RecRuleExtra`): the K law at any major, the
 constructor's arity, (S) a family never `Prop` at the constructor's
 levels holds no point, (P) where the major's domain holds the point
 every fitting constructor application is the point, (U) at a fired
@@ -107,15 +107,15 @@ theorem lfpW_congr {envC : Env} (mpC : EnvModelM V μ envC) {D : LfpDatum V}
   have h := (mkPisAV_sort_inj (Option.some.inj h₁)).2
   exact h.symm
 
-/-- **The ι licence, unfolded.** -/
-theorem iotaCtorLicensed_inv {f : Name → Option ConstantInfo} {cvj : ConstantVal}
-    {usj : List Level} (h : ConLeche.iotaCtorLicensed f cvj usj = true) :
+/-- **The ι case split, unfolded.** -/
+theorem iotaCtorNeverProp_inv {f : Name → Option ConstantInfo} {cvj : ConstantVal}
+    {usj : List Level} (h : ConLeche.iotaCtorNeverProp f cvj usj = true) :
     ∃ (T : Name) (us₀ : List Level) (cvT : ConstantVal) (caps : ConLeche.IndCaps),
       (cvj.type.piResult).getAppFn = .const T us₀ ∧ f T = some (.indInfo cvT caps) ∧
       cvT.levelParams.length = usj.length ∧
       ConLeche.capsNeverZero cvT.levelParams usj caps = true := by
   revert h
-  unfold ConLeche.iotaCtorLicensed
+  unfold ConLeche.iotaCtorNeverProp
   match hpr : (cvj.type.piResult).getAppFn with
   | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
   | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => intro h; exact nomatch h
@@ -528,8 +528,8 @@ theorem genMem_ne_pt (hμ : μ.verifiedChecks = true)
   rw [heq]
   exact (mpC.lfp_ok _ G.hlfp).1.injNePt ψ hw t j' fs'
 
-/-- **The licence's sort fact at a member class**: where the member's
-sort is never zero at the constructor's levels (the licence reads the
+/-- **The case split's sort fact at a member class**: where the member's
+sort is never zero at the constructor's levels (the case split reads the
 member's record, `blockCapsAt`, which carries the block's sort
 zero-ness), the member is not `Prop` at the recursor's levels. -/
 theorem genMem_w_of_lic {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
@@ -538,9 +538,9 @@ theorem genMem_w_of_lic {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
     (hlv : ∀ q ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj q = ψ q)
     {f : Name → Option ConstantInfo}
     (hfm : f (d.memberName t) = some (.indInfo cvT (ConLeche.blockCapsAt pp.toBlockShape t isRec)))
-    (hlic : ConLeche.iotaCtorLicensed f cA.1 usj = true) :
+    (hlic : ConLeche.iotaCtorNeverProp f cA.1 usj = true) :
     d.w ψ ≠ 0 := by
-  obtain ⟨T, us₀, cvT', caps, hhead, hfT, -, hnz⟩ := iotaCtorLicensed_inv hlic
+  obtain ⟨T, us₀, cvT', caps, hhead, hfT, -, hnz⟩ := iotaCtorNeverProp_inv hlic
   -- the constructor's family is the member
   obtain ⟨cbs, es, hres, -⟩ := G.hcf.2.2.resid
   rw [piResult_getAppFn_of_stripPis _ hres] at hhead
@@ -558,7 +558,7 @@ theorem genMem_w_of_lic {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
       rw [G.hlpsT] at hq; exact hlv q hq)
   exact hc ▸ hne
 
-/-- **(S) at a member class**: where the licence holds, the member's
+/-- **(S) at a member class**: where the case split exempts the rule, the member's
 carrier at the recursor's parameters is strict (`genMem_w_of_lic`), so
 the major is not the point. -/
 theorem genMem_S (hμ : μ.verifiedChecks = true)
@@ -575,7 +575,7 @@ theorem genMem_S (hμ : μ.verifiedChecks = true)
     (hlv : ∀ q ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj q = ψ q)
     {f : Name → Option ConstantInfo}
     (hfm : f (d.memberName t) = some (.indInfo cvT (ConLeche.blockCapsAt pp.toBlockShape t isRec)))
-    (hlic : ConLeche.iotaCtorLicensed f cA.1 usj = true)
+    (hlic : ConLeche.iotaCtorNeverProp f cA.1 usj = true)
     (ρ : Nat → V) (xs : List Term) (a restR : Term)
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
@@ -1112,7 +1112,7 @@ theorem genMem_T (hμ : μ.verifiedChecks = true)
   exact ⟨restC', hfitW, by rw [hval, ← hinj, ← hvalj]⟩
 
 set_option maxHeartbeats 8000000 in
-/-- **The licence's facts at a member rule**, at the recursors' cons:
+/-- **The case split's facts at a member rule**, at the recursors' cons:
 the reading crossings (`blockRuleTVa_run`, `blockRecDenote_cross`), then
 the base-frame facts above. -/
 theorem genMemExtra (hμ : μ.verifiedChecks = true)
@@ -1497,7 +1497,7 @@ theorem genOut_caps {j : Nat} {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc
   refine ⟨caps₀, hf₀, hz, hk, bs, es, ?_⟩
   rw [Rd.hnpc, hst, Rd.hmem]
 
-/-- **(S) at an outside class**: the licence reads the container's
+/-- **(S) at an outside class**: the case split reads the container's
 recorded sort zero-ness (`LfpCaps`), which fails at the constructor's
 levels, so the class's sort is not zero at the recursor's, and the
 carrier holds no point. -/
@@ -1508,11 +1508,11 @@ theorem genOut_S {j : Nat} {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp
       f (tgtMajor out j).ind = some (.indInfo cvI caps))
     {φ : Name → Nat} {usj : List Level} {ψc : Name → Nat}
     (hlv : ∀ p ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj p = ψc p)
-    (hlic : ConLeche.iotaCtorLicensed f cA.1 usj = true) :
+    (hlic : ConLeche.iotaCtorNeverProp f cA.1 usj = true) :
     (tgtClsD d Dc out j).w ψc ≠ 0 := by
   obtain ⟨-, -, hlpC, -⟩ := Rd.hctor i cA hcAM
   obtain ⟨caps, hfc, hz, -, bs, es, hst⟩ := genOut_caps Rd hcAM
-  obtain ⟨T, us₀, cvT, caps', hhead, hfT, -, hnz⟩ := iotaCtorLicensed_inv hlic
+  obtain ⟨T, us₀, cvT, caps', hhead, hfT, -, hnz⟩ := iotaCtorNeverProp_inv hlic
   rw [piResult_getAppFn_of_stripPis _ hst] at hhead
   obtain ⟨rfl, -⟩ := ConLeche.Expr.const.inj hhead
   rw [hf caps hfc] at hfT
@@ -2559,7 +2559,7 @@ theorem genOut_Kwit (hμ : μ.verifiedChecks = true)
   exact ⟨restR', restC, hfitR', hfitC, heq, by rw [hval]; exact hC.injNePt _ hw _ _ _⟩
 
 set_option maxHeartbeats 16000000 in
-/-- **The licence's facts at an outside rule**, at the recursors' cons. -/
+/-- **The case split's facts at an outside rule**, at the recursors' cons. -/
 theorem genOutExtra (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC [])

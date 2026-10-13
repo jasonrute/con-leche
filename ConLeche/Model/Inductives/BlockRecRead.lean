@@ -90,19 +90,19 @@ it as the stream's `checkConstantVal` does.
 the check's INFERRED one, and it already accounts for the binders'
 levels. -/
 theorem constChecked_reads {env : Env} (hμ : μ.verifiedChecks = true)
-    (mp : EnvModelM V μ env) {F : Nat} {cv cvA : ConstantVal}
-    (h : ConLeche.ConstChecked μ F env cv cvA) :
+    (mp : EnvModelM V μ env) {F : Nat} {cv0 cv : ConstantVal}
+    (h : ConLeche.ConstChecked μ F env cv0 cv) :
     ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : Term,
-      denote mp.base2.acval env ψ 0 cvA.type = some ta ∧
+      denote mp.base2.acval env ψ 0 cv.type = some ta ∧
       (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
       ∀ ρ : Nat → V, interp V ρ ta ∈ˢ (univ (u.eval ψ) : V) := by
   obtain ⟨stype, u, hrun, hsort⟩ := h.sorted
   refine ⟨u, fun ψ => ?_⟩
   have htf' := h.noFvar
   have hbt' := h.bounded
-  have hwt : Expr.WScoped 0 cvA.type := Expr.WScoped.of_not_hasFvar htf'
-  have hnlt : cvA.type.fvarLeaves = [] := Expr.fvarLeaves_eq_nil_of_not_hasFvar htf'
-  have hLt : Expr.LeavesBounded cvA.type := fun l hl => by
+  have hwt : Expr.WScoped 0 cv.type := Expr.WScoped.of_not_hasFvar htf'
+  have hnlt : cv.type.fvarLeaves = [] := Expr.fvarLeaves_eq_nil_of_not_hasFvar htf'
+  have hLt : Expr.LeavesBounded cv.type := fun l hl => by
     rw [hnlt] at hl
     exact absurd hl (List.not_mem_nil)
   obtain ⟨ta, hta⟩ := acceptedReads_of mp.base2 ψ hrun hwt hbt' hLt

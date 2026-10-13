@@ -10,7 +10,7 @@ public section
 
 The `Expr`-level facts about the checker's telescope openers
 (`openPisAtFvars`, `instPisAt`, `instLamsAt`) that the iota bottoms'
-frame machinery consumes: `ctxInstAt`, leaf closure
+frame machinery consumes: leaf closure
 (`openPisAtFvars_leaves`, `instPisAt_leaves`, `instLamsAt_leaves`),
 loose-bvar bounds and scoping, lengths, and composition.  All V-free.
 -/

@@ -226,7 +226,7 @@ theorem take_getD_splitAK {as : List Term} {k : Nat}
 /-! ## The redex's own slots
 
 `wellDenoted_app_congr_argK` and `wellDenoted_mkAppN_snoc_congrK`:
-the subject's grading is about the ORIGINAL major slot and the licensed
+the subject's grading is about the ORIGINAL major slot and the arity-checked
 walk is handed the prepared one, so the last argument is exchanged
 along the reduction's own `interp` equation. -/
 
@@ -542,9 +542,9 @@ theorem mem_getD_index {α : Type _} [Inhabited α] {l : List α} {x : α}
   obtain ⟨j, hj, hx⟩ := List.getElem_of_mem h
   exact ⟨j, hj, by rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj, hx]; rfl⟩
 
-/-! ## The ι licence's kit (task #342 L10) -/
+/-! ## The ι case split's kit (task #342 L10) -/
 
-section Licence
+section IotaCase
 
 variable {V : Type w} [SetTheory V]
 
@@ -581,6 +581,6 @@ theorem zip_cond_getD {f : Term → V} :
         (fun p hp => h p (by simp only [List.map_cons, List.zip_cons_cons]; exact
           List.mem_cons_of_mem _ hp)) i (by simpa using hi) ha hb
 
-end Licence
+end IotaCase
 
 end ConLeche.Model.Rules

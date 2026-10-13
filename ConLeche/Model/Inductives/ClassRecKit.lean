@@ -67,14 +67,11 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-! ## 0. The graph producer over a STEP premise
 
-`graphRecPre_core` (`BlockRecGraph.lean`) types the kit's step through
-`BlockRuleCerts` — the per-part typing run of the OLD rule stage, which
-the generated stage does not run (it infers the generated rule WHOLE,
-`classRuleOk`).  At the generated family
-the step's typing is the minor premise's own type (a minor applied to
-the fields and the `ih` values lands in the motive at the constructor),
-so the producer is restated over the kit's step fact itself (`hstep`);
-`graphRecPre_core`'s `hcerts`/`hihF`/`hCaB` are one way to give it. -/
+The generated stage infers the generated rule WHOLE (`classRuleOk`).
+At the generated family the step's typing is the minor premise's own
+type (a minor applied to the fields and the `ih` values lands in the
+motive at the constructor), so the producer (`graphRecPre_coreR`) is
+stated over the kit's step fact itself (`hstep`). -/
 
 section CoreR
 
@@ -226,19 +223,6 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List Term} {mk : Nat → Nat
 
 end CoreR
 
-/-! ## 1. The classes, read off the generated family -/
-
-section Defs
-
-variable (K : Nat) (ρ : Nat → V) (rP : Nat → Nat)
-  (pre idxB : Nat → List Term) (majB : Nat → Nat × Nat × Term)
-  (uX : Nat → Nat)
-
-/-- The prefix domains. -/
-@[expose] def genPdoms (c : Nat) : List Term := (pre c)
-
-end Defs
-
 /-! ## 2. The rows, by construction -/
 
 section Rows
@@ -362,25 +346,25 @@ theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
     {ihd : Nat → Nat → List IhDatum}
     (hcal : ∀ c, c < K → ∀ j, j < nCt c → ∀ q ∈ ihd c j, q.1 < K)
     (hbelow : ∀ c, c < K → ∀ j, j < nCt c → ∀ q ∈ ihd c j,
-      IhDatumBelow ((genPdoms pre c).length + (fdoms c j).length) q) :
+      IhDatumBelow ((pre c).length + (fdoms c j).length) q) :
     ∀ c, c < K → ∀ j, j < nCt c → ∀ (xs fs : List V) (a a' : Nat → V),
-      xs.length = (genPdoms pre c).length →
-      SpineFit (chainFrame K a ρ) (genPdoms pre c ++ fdoms c j) (xs ++ fs) →
+      xs.length = (pre c).length →
+      SpineFit (chainFrame K a ρ) (pre c ++ fdoms c j) (xs ++ fs) →
       (∀ t is x, genIhCallAt ρ ihd xs c j fs t is x →
         (xs ++ (is ++ [x])).foldl SetTheory.app (a t)
           = (xs ++ (is ++ [x])).foldl SetTheory.app (a' t)) →
-      ((ihd c j).map (genIhAV K (genPdoms pre c).length
-          ((genPdoms pre c).length + (fdoms c j).length))).map
+      ((ihd c j).map (genIhAV K (pre c).length
+          ((pre c).length + (fdoms c j).length))).map
           (interp V (consList (xs ++ fs) (chainFrame K a ρ)))
-        = ((ihd c j).map (genIhAV K (genPdoms pre c).length
-          ((genPdoms pre c).length + (fdoms c j).length))).map
+        = ((ihd c j).map (genIhAV K (pre c).length
+          ((pre c).length + (fdoms c j).length))).map
           (interp V (consList (xs ++ fs) (chainFrame K a' ρ))) := by
   intro c hc j hj xs fs a a' hxl hsp hcall
   have hfl : fs.length = (fdoms c j).length := by
     have := hsp.length_eq
     simp only [List.length_append] at this
     omega
-  have hD : (genPdoms pre c).length + (fdoms c j).length = (xs ++ fs).length := by
+  have hD : (pre c).length + (fdoms c j).length = (xs ++ fs).length := by
     simp [hxl, hfl]
   simp only [List.map_map]
   refine List.map_congr_left fun q hq => ?_
@@ -418,8 +402,8 @@ theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
       rw [← consList_append, ← consList_append,
         consList_getD_of_lt _ _ _ (by simp [hbl]; omega),
         consList_getD_of_lt _ _ _ (by simp [hbl]; omega)]
-    have hpre : (prefVarsAV (genPdoms pre c).length
-          ((xs ++ fs).length - (genPdoms pre c).length + q.2.1.length)).map
+    have hpre : (prefVarsAV (pre c).length
+          ((xs ++ fs).length - (pre c).length + q.2.1.length)).map
           (interp V (consList bs (consList (xs ++ fs) (chainFrame K a ρ)))) = xs := by
       have h := interp_prefVarsAV (V := V) (xs := xs) (bs := fs ++ bs)
         (ρ := chainFrame K a ρ) hxl
@@ -430,8 +414,8 @@ theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
         (interp V (consList bs (consList (xs ++ fs) ρ)) q.2.2.2) :=
       ⟨q, hq, rfl, bs, hbsρ, rfl, rfl⟩
     have heq := hcall _ _ _ hcallq
-    have hargs : (prefVarsAV (genPdoms pre c).length
-          ((xs ++ fs).length - (genPdoms pre c).length + q.2.1.length) ++
+    have hargs : (prefVarsAV (pre c).length
+          ((xs ++ fs).length - (pre c).length + q.2.1.length) ++
           (q.2.2.1 ++ [q.2.2.2])).map
           (interp V (consList bs (consList (xs ++ fs) (chainFrame K a ρ))))
         = xs ++ (q.2.2.1.map (interp V (consList bs (consList (xs ++ fs) ρ)))

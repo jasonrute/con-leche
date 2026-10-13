@@ -2012,7 +2012,7 @@ theorem blockRecStaged_dataR {envC : Env} (hμ : μ.verifiedChecks = true)
     (hpins : AtStoredRules mpC R p rs s (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0) nPc
       fireOf fun m₃ φ j r _ _ _ rl =>
         RecRulePinsOk m₃ φ r.1 (p.toBlockShape.rulePrefixAt j) rl)
-    -- the ι licence's facts (task #342 L10)
+    -- the ι case split's facts (task #342 L10)
     (hextra : AtStoredRules mpC R p rs s (blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0) nPc
       fireOf fun m₃ φ j r _ _ _ rl =>
         RecRuleKWit m₃ φ r.1.name r.1 (p.toBlockShape.majorIdxAt j) (p.toBlockShape.rulePrefixAt j) rl ∧

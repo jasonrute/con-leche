@@ -839,7 +839,7 @@ variable {F : Nat} {envI envC : Env} {pp : BlockParts} {nestedBit : Bool} {posR 
 variable (pp out mpC d Dc mc cvc) in
 /-- **The class-side facts `GenPreHyps` still asks** once the run's fields
 are discharged: the class split both ways, the decoding both ways, the
-elimination licence, the generated `ih` calls' typing, the minor
+elimination guard, the generated `ih` calls' typing, the minor
 premise's typing at the rule frame, and the class induction. -/
 structure GenPreSem (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (ρ : Nat → V) : Prop where
   split : GenClsSplit pp out mpC d Dc mc cvc ψ ρ
@@ -880,7 +880,7 @@ structure GenPreSem (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (ρ : Na
 (`GenPreSem`): the run discharges the prefix, the positions, the callees,
 the `ih` data's bounds, the field counts, the index counts, the classes'
 clauses and components, the stored conclusion, and the elimination
-licence (`genRun_lic`). -/
+guard (`genRun_lic`). -/
 theorem genPreHyps_of_run (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv envI) envI (mkFEnv envC) pp.toBlockShape nestedBit posR cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g)

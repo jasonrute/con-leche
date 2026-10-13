@@ -195,7 +195,7 @@ theorem isProofFast_shiftFrom (find? : Name → Option ConstantInfo) {p : Nat}
 
 /-! ## Inversions — what a reader's answer says about the term
 
-The "yes" arm's licence (`prf_of_isProofFast`,
+The "yes" arm's justification (`prf_of_isProofFast`,
 `ConLeche/Model/Rules/DefEqSoundKit.lean`) consumes
 the readers through these. -/
 

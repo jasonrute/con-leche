@@ -165,8 +165,8 @@ theorem FvarList.reverse_idx {E : Nat} {as1 : List Expr} (h : FvarList E as1) :
 
 /-! ## The frame's CONTEXT, threaded with the walk
 
-`hfit`'s discharge runs through `certs_sound`, whose conclusion is
-`∀ ρ, Sat V Δa ρ → TeleFitPA …`: it needs a CONTEXT at the frame the
+The soundness facts the walk consumes are stated
+`∀ ρ, Sat V Δa ρ → …`: they need a CONTEXT at the frame the
 walk has reached — the check's `rP + nF + nR` block extended by the
 `d` binders the walk opened.  It is ONE predicate, threaded with the
 walk, because the residue's opening list
@@ -183,7 +183,7 @@ no block recursor (the abstraction replaced every guarded call by an
 /-- **The walk's context**: the residue frame's opening list `as2`,
 the context `Δa` its domains read to, and a valuation satisfying it.
 The last three conjuncts are the frame's HEREDITARY facts — the
-annotations are closed, bounded by `envT`, and draw their own leaves
+domains are closed, bounded by `envT`, and draw their own leaves
 from the frame — which is what makes `CtxOk` a projection
 (`WalkCtx.ctxOk`) rather than a construction at every node. -/
 @[expose] def WalkCtx (V : Type uv) [SetTheory V] {envT : Env} (mT : EnvModel V envT)

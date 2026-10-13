@@ -518,7 +518,7 @@ conditional claims. -/
       interp V ρ (cargsa.getD (cnP + i) default)
         = interp V ρ (xs.getD (rP + i) default)
 
-/-- **The ι licence's environment facts, one rule** (task #342 L10, S5c).
+/-- **The ι case split's environment facts, one rule** (task #342 L10, S5c).
 `RecRuleLaw`'s main clause takes the levels, parameters and index
 comparisons as equations; under the conditional claims the ι step has
 them only where neither side is the point, and at a K rule or a family
@@ -534,7 +534,7 @@ recursor's levels:
   syntactically, so a graded application of it that is not the point
   fits its telescope;
 * **(S) case 2**: where the family is never `Prop` at the comparand
-  levels (`iotaCtorLicensed`, the checker's test), the recursor's major
+  levels (`iotaCtorNeverProp`, the checker's test), the recursor's major
   domain holds no point;
 * **(T) case 2, the constructor's levels**: there a fired application
   that is not the point, at the constructor's own levels and spine, is
@@ -581,13 +581,13 @@ recursor's levels:
     (cvj.type.stripPis (RecRule.ctorParams rl + RecRule.nfields rl)).isSome = true ∧
     (RecRule.k rl = false →
     -- (S)
-    (ConLeche.iotaCtorLicensed env.find? cvj
+    (ConLeche.iotaCtorNeverProp env.find? cvj
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true →
       ∀ (ρ : Nat → V) (xs : List Term) (a restR : Term),
         xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
         interp V ρ a ≠ pt) ∧
     -- (T)
-    (ConLeche.iotaCtorLicensed env.find? cvj
+    (ConLeche.iotaCtorNeverProp env.find? cvj
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true →
       ∀ (usj : List Level), usj.length = cvj.levelParams.length →
       ∀ TVja : Term,
@@ -954,15 +954,10 @@ dummy binders carry the reading only; the law never reads them. -/
       -- (B) the iota law: the projection of a *graded* constructor
       -- application is the selected field, at every valuation under
       -- the guard (task #175 W6).  Two premises: the application's
-      -- grading (its slot chain — the graph regime's whole premise,
-      -- where every constructor binder is graph-regime and graph
-      -- rigidity pins the memberships), and the certified spine's fit
-      -- against the constructor's own type reading (`projCert`'s
-      -- arity check, `Certs.licensed_sound`) — the squash regime's
-      -- premise, where the application is the point and the fit pins
-      -- the selected field to a proposition's domain (its sort is `0`
-      -- there: the O5 bound at a non-`Prop` family, the guard at a
-      -- `Prop`-declared one).
+      -- grading (its slot chain), and the spine's fit against the
+      -- constructor's own type reading (`projCert`'s arity check,
+      -- `teleArity_sound`), which places the selected field in its
+      -- domain where the application is the point.
       (∃ TCa : Term,
         denote m.acval env φ 0
           (cvC.type.instantiateLevelParams cvC.levelParams us) = some TCa ∧

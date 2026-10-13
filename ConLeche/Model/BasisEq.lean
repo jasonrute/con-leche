@@ -835,7 +835,7 @@ theorem eqRecValT_congr {ψ₁ ψ₂ : Name → Nat} (hu : ψ₁ uN = ψ₂ uN)
     eqReflValT_congr hu]
 
 set_option maxHeartbeats 1000000 in
-/-- **`Eq.rec`'s licence facts.**  The rule is K (`Eq.refl` has no
+/-- **`Eq.rec`'s ι facts.**  The rule is K (`Eq.refl` has no
 fields): at ANY major in the major's domain `eqv a b` the recursor
 fires to the minor premise (`eqRecRaTower_app₆` against
 `eqRecRa_app₄`, which never look at the major's value), and the

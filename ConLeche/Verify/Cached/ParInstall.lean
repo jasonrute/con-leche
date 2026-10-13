@@ -87,7 +87,7 @@ guards on a theorem's value at the prefix view are the guards at the
 environment the view names. -/
 theorem installValueGuardsC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
     installValueGuardsC fe₁ = installValueGuardsC fe₂ := by
-  funext cvA value
+  funext cv value
   unfold installValueGuardsC
   simp only [constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 

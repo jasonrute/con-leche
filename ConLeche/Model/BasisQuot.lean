@@ -3,6 +3,7 @@ module
 public import ConLeche.Model.BasisBlocks
 import ConLeche.Semantics.BasisRules
 import ConLeche.Model.Cover
+import ConLeche.Verify.PropWhen
 
 public section
 
@@ -352,7 +353,7 @@ noncomputable def quotIndMinorSpace (V : Type w) [SetTheory V]
 `Quot A r` and `Quot.mk A r a` occur at four different de Bruijn
 depths across the block, so both are stated against an arbitrary
 environment through its slot values.  The `∃ w S F` witnesses are
-`bconst_app_dataAV`/`_data3` — nothing is chosen. -/
+`bconst_app_data2`/`_data3` — nothing is chosen. -/
 
 /-- The relation binder's domain is graded, unconditionally. -/
 theorem quotRelTy_wellDenoted (ρ : Nat → V) (hA : IsTy (ρ 0)) :
@@ -381,7 +382,7 @@ theorem quotApp_data {u i j : Nat} {ρ : Nat → V} {Aset R : V}
       have h := bconst_app_data V .quot [u] ρ (A := .sort u) rfl hA' (IsTy_univ u)
       rw [← hAi] at h
       exact h
-    · have h := bconst_app_dataAV V .quot [u] ρ
+    · have h := bconst_app_data2 V .quot [u] ρ
         (A := .sort u) (A2 := relAV (.bvar 0)) rfl hA' hR'
         (by rw [relAV_interp]; exact IsTy_relSpace _)
       rw [← hAi, ← hRj] at h
@@ -419,7 +420,7 @@ theorem quotMkApp_data {u i j k : Nat} {ρ : Nat → V} {Aset R a : V}
         have h := bconst_app_data V .quotMk [u] ρ (A := .sort u) rfl hA' (IsTy_univ u)
         rw [← hAi] at h
         exact h
-      · have h := bconst_app_dataAV V .quotMk [u] ρ
+      · have h := bconst_app_data2 V .quotMk [u] ρ
           (A := .sort u) (A2 := relAV (.bvar 0)) rfl hA' hR'
           (by rw [relAV_interp]; exact IsTy_relSpace _)
         rw [← hAi, ← hRj] at h
@@ -461,8 +462,7 @@ theorem quotIndMinorTy_interp {u : Nat} {Aset R M : V} (ρ : Nat → V)
 
 /-! ### The type reading -/
 
-/-- `Quot.ind`'s type reading, named: five binders, every numeral the
-literal `0`. -/
+/-- `Quot.ind`'s type reading, named: five binders. -/
 def quotIndTy (u : Nat) : Term :=
   .pi (.sort u)
     (.pi quotRelTy
@@ -712,19 +712,19 @@ theorem denote_quotInd_rhs (ψ : Name → Nat)
     quotIndMotiveTy, quotIndMinorTy, quotIndRa,
     hQc, hMc, Level.eval]
 
-/-! ### The licence facts, shared by both rows
+/-! ### The ι facts, shared by both rows
 
 Both recursors fire `Quot.mk`, whose family `Quot.{u} α r : Sort u` is
 `Prop` exactly at `u = 0`: the stored `Quot` records `zeronessOf u`,
-so a licensed constructor level is never zero and the major's domain,
+so a constructor level the case split exempts is never zero and the major's domain,
 `quotSet` above `Prop`, is strict; where the major is the point the
 level is `0`, and there `Quot.mk`'s value is the canonical proof. -/
 
-/-- **The ι licence at `Quot.mk`**: the constructor's level is not
+/-- **The ι case split at `Quot.mk`**: the constructor's level is not
 zero at any valuation (the stored `Quot`'s `sortZ` is `zeronessOf u`). -/
-theorem quotMk_licensed_ne_zero {find? : Name → Option ConstantInfo}
+theorem quotMk_neverProp_ne_zero {find? : Name → Option ConstantInfo}
     (hQ : find? quotName = some quotA) {usj : List Level}
-    (h : ConLeche.iotaCtorLicensed find? quotMkA.toConstantVal usj = true)
+    (h : ConLeche.iotaCtorNeverProp find? quotMkA.toConstantVal usj = true)
     (φ : Name → Nat) :
     Level.substFn φ quotMkA.toConstantVal.levelParams usj uN ≠ 0 := by
   obtain ⟨cvT, caps, hq, hlp, hz⟩ : ∃ cvT caps,
@@ -733,7 +733,7 @@ theorem quotMk_licensed_ne_zero {find? : Name → Option ConstantInfo}
   have hfn : (quotMkA.toConstantVal.type.piResult).getAppFn
       = .const quotName [.param uN] := by rfl
   rw [hq] at hQ
-  unfold ConLeche.iotaCtorLicensed at h
+  unfold ConLeche.iotaCtorNeverProp at h
   rw [hfn] at h
   simp only [hQ, Bool.and_eq_true] at h
   have hnv := h.2
@@ -758,7 +758,7 @@ theorem interp_quotMk_zero_spine (ρ : Nat → V) :
     rw [Term.mkAppN_cons]
     exact interp_quotMk_zero_spine ρ ys (by rw [interp_app, h, app_pt])
 
-/-- The licence facts of a `Quot.mk` rule, from the major's domain.
+/-- The ι facts of a `Quot.mk` rule, from the major's domain.
 `hmaj` reads the major of a fitting recursor spine into `quotSet` at
 the recursor's level `u`, which is the constructor's (`hulev`). -/
 theorem quotRuleExtra_of {find? : Name → Option ConstantInfo}
@@ -768,13 +768,13 @@ theorem quotRuleExtra_of {find? : Name → Option ConstantInfo}
     (hctor : acv = Term.const .quotMk [u])
     {P : (Nat → V) → Term → Prop}
     (hmaj : ∀ ρ a, P ρ a → ∃ Aset R : V, interp V ρ a ∈ˢ quotSet u Aset R) :
-    (ConLeche.iotaCtorLicensed find? quotMkA.toConstantVal usj = true →
+    (ConLeche.iotaCtorNeverProp find? quotMkA.toConstantVal usj = true →
       ∀ ρ a, P ρ a → interp V ρ a ≠ pt) ∧
     (∀ ρ a, P ρ a → interp V ρ a = pt →
       ∀ ys : List Term, interp V ρ (Term.mkAppN acv ys) = pt) := by
   refine ⟨fun hlic ρ a hP ha => ?_, fun ρ a hP ha ys => ?_⟩
   · obtain ⟨Aset, R, hm⟩ := hmaj ρ a hP
-    have hne := quotMk_licensed_ne_zero hQ hlic φ
+    have hne := quotMk_neverProp_ne_zero hQ hlic φ
     rw [hulev] at hne
     rw [ha] at hm
     exact (strict_quotSet hne Aset R).2 hm
@@ -837,7 +837,7 @@ theorem quotRuleT_of {u u' : Nat} (hu : u ≠ 0) {acvJ acvC : Term}
       ConLeche.Term.lv, List.getD_cons_zero]
     rw [quotMkV_app V f1 f2 hy3, hcls]
 
-/-- **`Quot.ind`'s licence facts**: not K; `Quot.mk`'s arity; (S)
+/-- **`Quot.ind`'s ι facts**: not K; `Quot.mk`'s arity; (S)
 and (P) from the major's domain (`quotRuleExtra_of`); (T) from the
 class's representative (`quotRuleT_of`); no indices, a `.plain` rule,
 so (U) is the trivial index pin. -/
@@ -942,7 +942,7 @@ theorem quotIndExtra {m : EnvModel V env}
   · -- (T): the fired `Quot.mk` at the recursor's level and parameters
     intro hlic usj _ TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hne
     have hu : ψ uN ≠ 0 := by
-      have := quotMk_licensed_ne_zero hQ' hlic φ
+      have := quotMk_neverProp_ne_zero hQ' hlic φ
       rwa [hulevOf _ rfl] at this
     obtain rfl : TVja = _ := (Option.some.inj ((hCtorRead usj).symm.trans hTVja)).symm
     obtain ⟨y1, y2, y3, rfl⟩ : ∃ p q r, ys = [p, q, r] := by
@@ -2101,7 +2101,7 @@ theorem quotLiftRa_app {E : Term} {u v : Nat}
 
 /-! ### The row -/
 
-/-- **`Quot.lift`'s licence facts**: as `quotIndExtra`, the major's
+/-- **`Quot.lift`'s ι facts**: as `quotIndExtra`, the major's
 domain read off the sixth binder. -/
 theorem quotLiftExtra {m : EnvModel V env}
     (m₂ : EnvModel V ⟨quotLiftA :: env.consts⟩)
@@ -2214,7 +2214,7 @@ theorem quotLiftExtra {m : EnvModel V env}
   · -- (T): the fired `Quot.mk` at the recursor's level and parameters
     intro hlic usj _ TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hne
     have hu : ψ uN ≠ 0 := by
-      have := quotMk_licensed_ne_zero hQ' hlic φ
+      have := quotMk_neverProp_ne_zero hQ' hlic φ
       rwa [hulevOf _ rfl] at this
     obtain rfl : TVja = _ := (Option.some.inj ((hCtorRead usj).symm.trans hTVja)).symm
     obtain ⟨y1, y2, y3, rfl⟩ : ∃ p q r, ys = [p, q, r] := by

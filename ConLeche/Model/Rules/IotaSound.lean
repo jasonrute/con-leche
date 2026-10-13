@@ -19,11 +19,11 @@ name.  The shared helpers live in `IotaSoundKit.lean`.
 **Conditional premises, unconditional conclusions** (task #342, L10).
 `Red.iota_sound`, `Red.rescueK_sound` and `Red.rescueAnd_sound` take
 their premises' CONDITIONAL claims (`RedSem`, `DefEqSem`,
-`DefEqListSem`, `CertsSem`, `CertsFSem`) and conclude the UNCONDITIONAL
+`DefEqListSem`, `TeleAritySem`, `CertsFSem`) and conclude the UNCONDITIONAL
 `RedSemU`: no step reads that the redex is not the point.  The
-induction of `Sound.lean` weakens the conclusion (`RedSemU.cond`).  The ι step's licence is read through the law's
+induction of `Sound.lean` weakens the conclusion (`RedSemU.cond`).  The ι step's case split is read through the law's
 `RecRuleExtra` (`Model/Env/Laws.lean`): the recursor's spine fits by
-its licensed certificate; a K rule fires by the law at the recursor's
+its certificate; a K rule fires by the law at the recursor's
 own parameters.  At case 2 (the family never `Prop` at the comparand
 levels; the step compared nothing) the major is not the point ((S)),
 so its reduction is an equation and the fired application, not the
@@ -65,8 +65,8 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env}
   {φ : Name → Nat}
 set_option linter.unusedVariables false in
 /-- **The ι row** (task #342 L10, S5c): the stored recursor's fired
-contract (`RecRuleLaw`) and its licence facts (`RecRuleExtra`), at the
-recursor's licensed telescope certificate over the redex's own spine,
+contract (`RecRuleLaw`) and its ι facts (`RecRuleExtra`), at the
+recursor's telescope arity check over the redex's own spine,
 the major prepared by a reduction, and — at case 3 only, decided at
 the comparand levels — the level and parameter comparisons, the
 constructor's full-grade certificate and the index comparison.  The
@@ -74,7 +74,7 @@ premises are the CONDITIONAL claims, the conclusion is the
 unconditional one: no step reads that the redex is not the point; the
 induction weakens it (`RedSemU.cond`).
 
-Per valuation: the recursor's telescope fits the spine (the licensed
+Per valuation: the recursor's telescope fits the spine (the arity-checked
 certificate).  At a K rule the law at the recursor's own parameters
 gives everything; the major is not read.  At case 2 the major's domain
 holds no point ((S)), so the major's reduction is an equation, the
@@ -110,7 +110,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
       DefEqListSem m φ d (major.getAppArgs.take rl.ctorParams)
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
           e.getAppArgs rP).2)
-    (hcertR : CertsSem m φ d (cv.type.instantiateLevelParams cv.levelParams us)
+    (hcertR : TeleAritySem m φ d (cv.type.instantiateLevelParams cv.levelParams us)
       e.getAppArgs)
     (hcertC : ConLeche.iotaCase3 env.find? rl cvj
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
@@ -136,7 +136,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     have := List.find?_some hrule
     simpa using this
   subst hrctor
-  -- **the law and its licence facts**, and the fired right-hand side's
+  -- **the law and its ι facts**, and the fired right-hand side's
   -- reading at every depth
   obtain ⟨hrPle, hlaw0, hextra⟩ := hin.rec_rules c cv mI rP rules hrec rl hrmem
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hus
@@ -174,11 +174,11 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   dsimp only [ConLeche.ConstantInfo.toConstantVal] at hTVjaD hmemJ hnfJ hbdJ
   obtain ⟨hfR, hCR⟩ := frame_of_not_hasFvar (m := m) (Δa := Δa) hnfR hbdR hC.1
   obtain ⟨hfJ, hCJ⟩ := frame_of_not_hasFvar (m := m) (Δa := Δa) hnfJ hbdJ hC.1
-  -- **the recursor's licensed fit**, over the redex's own spine
+  -- **the recursor's arity-checked fit**, over the redex's own spine
   obtain ⟨restR, hfitR⟩ :=
     hcertR (fa := m.acval c (Level.substFn φ cv.levelParams us))
       hfR hCR (hTVaD d) hfrE hspx
-  -- the licence facts at the recursor's levels
+  -- the ι facts at the recursor's levels
   obtain ⟨hK, hext⟩ := hextra us hus TVa (hTVaD 0)
   obtain ⟨hstrip, hextNK⟩ := hext cvj cnP cnF hctor
   have hlenYs : ys.length = rl.ctorParams + rl.nfields := by
@@ -254,11 +254,11 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
       (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams e.getAppArgs rP).1
       = false
   · ---------------------------------------------------------------- case 2
-    -- the licence at the comparand levels: the step compared nothing
-    have hlic : ConLeche.iotaCtorLicensed env.find? cvj
+    -- the case split at the comparand levels: the step compared nothing
+    have hlic : ConLeche.iotaCtorNeverProp env.find? cvj
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true := by
       rw [← hcmpE]
-      cases hl : ConLeche.iotaCtorLicensed env.find? cvj
+      cases hl : ConLeche.iotaCtorNeverProp env.find? cvj
           (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams e.getAppArgs rP).1
       · simp [ConLeche.iotaCase3, hk', hl] at h2
       · rfl

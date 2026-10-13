@@ -937,7 +937,7 @@ theorem genRow_hrule (hμ : μ.verifiedChecks = true)
 /-- **Row `huniq`**, from the classes' recorded clauses (`genUniq`): the
 class fit is the clause's hole fit at the carrier and the injection the
 clause's, definitionally; at `ℓ = 0` the conclusion's typing; at a
-`Prop`-valued class under a nonzero elimination level, the licence. -/
+`Prop`-valued class under a nonzero elimination level, the elimination guard. -/
 theorem genRow_huniq (hμ : μ.verifiedChecks = true)
     (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hB : GenClsBack pp out mpC d Dc mc cvc ψ ρ)
@@ -1079,16 +1079,12 @@ theorem genRow_hchain (hμ : μ.verifiedChecks = true)
     obtain ⟨q, hq, rfl, bs, hbs, rfl, rfl⟩ := hcall
     exact hcallTy c' hc' j' hj' xs fs hxl hbase q hq bs hbs
   -- `hihRead`, by construction
-  have hpre : ∀ c', (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c')
-      = genPdoms (fun c'' => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ
-          c'') c' := fun _ => rfl
   have hread := genIhs_hihRead (K := (tgtRs out).length) (ρ := ρ) (nCt := blockRecNCt (tgtRs out))
     (pre := fun c'' => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ
           c'')
     (fdoms := tgtFdomsK (tgtRs out).length mpC.base2.acval envC pp.toBlockShape out ψ)
     (ihd := fun c j => genIhdAV mpC.base2.acval envC g rd ψ c j) hcal
     (fun c' hc' j' hj' q hq => by
-      rw [← hpre c']
       simpa [tgtFdomsK, liftDomsK_length] using hbelow c' hc' j' hj' q hq)
   have H := genHchainG (K := (tgtRs out).length) (ρ := ρ) (rP := pp.toBlockShape.rulePrefixAt)
     (nCt := blockRecNCt (tgtRs out))
@@ -1109,9 +1105,7 @@ theorem genRow_hchain (hμ : μ.verifiedChecks = true)
       exact ⟨h1, h2⟩)
     hcallC
     (fun c' hc' j' hj' xs fs a a' hxl hsp hcall => by
-      have := hread c' hc' j' hj' xs fs a a' (by rw [hxl, hpre c']) (by rw [← hpre c']; exact hsp)
-        hcall
-      rwa [← hpre c'] at this)
+      exact hread c' hc' j' hj' xs fs a a' hxl hsp hcall)
     a xs r hr c hc j hj fs hxl hsp
   rw [genIhvT, hih c hc j hj]
   rw [genIhvT] at H
@@ -1433,7 +1427,7 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
 variable (pp out mpC d Dc mc cvc g rd) in
 /-- **What the candidate still asks**, at one level assignment and base
 frame: the class facts (split both ways, decoding both ways), the
-classes' recorded clauses, the elimination licence, the generated `ih`s'
+classes' recorded clauses, the elimination guard, the generated `ih`s'
 data (callees, bounds, calls' typing), the stored conclusion as the
 motive applied, the minor premise's typing at the rule frame, the
 prefix positions, and the class induction (lane B2's interface). -/

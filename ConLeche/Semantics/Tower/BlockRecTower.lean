@@ -1152,16 +1152,6 @@ very spine the check abstracted.  At the chain frame that call's head
 is class `c'`'s component, so the tower is spellable here, and its
 FOLD along a fitting telescope spine is the call's value. -/
 
-/-! ## Two named obligations: one elimination level (D-d) and the residue (G1) -/
-
-/-- **D-d, stated** (DESIGN v2 §3.2): the family eliminates at ONE
-level.  The leaf is a Σ'-chain at a single `s` and the candidate is a
-λ-tower at a single bit, so every class's binder data must carry the
-SAME zeroness — which is what a common elimination level gives (the
-kernel's elimination-level pin, `checkBlockRecElimPin`). -/
-def OneElimLevel (ℓ K : Nat) (rds : Nat → List (Nat × Nat × Term)) : Prop :=
-  ∀ c, c < K → ∀ d ∈ rds c, (ℓ = 0 ↔ d.2.1 = 0)
-
 /-! ## The premise's two halves, in the form their owners prove them -/
 
 section Assemble

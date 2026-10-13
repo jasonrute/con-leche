@@ -151,9 +151,9 @@ recomposition] puts them together, claim by claim: bridge the run,
 apply the soundness, and hand the result to the declaration fold.
 
 *The statement over `Denotes`.* The main theorem is not stated over the
-intermediate language and `interp` but over #src("ConLeche/Denotes.lean", 121, 124)[`Denotes`], a relation on the checker's
+intermediate language and `interp` but over #src("ConLeche/Denotes.lean", 124, 127)[`Denotes`], a relation on the checker's
 own terms with no intermediate language, one rule per syntax form,
-written to be read in one sitting; and over the structure #src("ConLeche/Denotes.lean", 266, 286)[`Model`] built on it. #src("ConLeche/Model/Denotes.lean", 192, 198)[A theorem]
+written to be read in one sitting; and over the structure #src("ConLeche/Denotes.lean", 269, 289)[`Model`] built on it. #src("ConLeche/Model/Denotes.lean", 192, 198)[A theorem]
 connects the two: wherever the reading `denote` exists, its
 interpretation is a `Denotes`-denotation of the term. The paper's theorem is
 the model side directly.

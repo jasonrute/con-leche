@@ -77,12 +77,12 @@
 # `PUnit.rec _ 1 u ≡ 1` at a neutral `u` — the official kernel's
 # structure rescue covers 0-field structures, and so does ours: the
 # stream's `PUnit` is an ordinary installed structure (η, no fields),
-# rescued by the generic η certificate; dependency-closure slice of the
+# rescued through the family's η law; dependency-closure slice of the
 # Init export through `Unit.sizeOf`.
 0 unit_sizeof_rescue.ndjson
-# Frontend zeta-expands rec-rule right-hand sides (task #60): the
-# export carries a `let` in `Std.Packages.PreorderOfLEArgs`'s
-# recursor rule; install annotates the rhs and must not see `letE`.
+# A `let` in a recursor rule's right-hand side (task #60): the export
+# carries one in `Std.Packages.PreorderOfLEArgs`'s recursor rule, and
+# the recursor's install must accept it.
 # Init-export slice through the block (committed gzipped).
 0 let_rec_rhs.ndjson
 
@@ -137,7 +137,7 @@
 
 # str_lit.ndjson (tests/e2e/src/str_lit.lean): a definition with a
 # string-literal value and an Eq.refl theorem `strA ≡ "ab"` — the
-# annotate/infer literal rule (type String, guarded by strLitSupported)
+# inference's literal rule (type String, guarded by strLitSupported)
 # and the literal-literal defeq fast path, over the stream-installed
 # String/Char/List support declarations.
 0 str_lit.ndjson
@@ -187,19 +187,14 @@
 # `.proj String 0 ""` (the `String.utf8ByteSize_empty` shape:
 # `utf8ByteSize` is `ByteArray.size ∘ toByteArray` and `toByteArray`'s
 # value is `fun s => .proj String 0 s`).  Covers the references' proj
-# expansion site (task #52).  NOTE: on annotated input the literal is
-# in fact forced through the *rec-major* expansion (annotate rewrites
-# template-entry projections into the installed projection recursor,
-# so `.proj` nodes with a String scrutinee never survive annotation);
-# the whnf proj-site expansion itself is reference-mirroring but
-# unreachable for annotated input — see DESIGN.md "String literals".
+# expansion site (task #52).
 0 str_proj.ndjson
 # str_proj_declined.ndjson: the same stream with Char.ofNat perturbed
 # to carry a (unused, unreferenced — the stream stays valid) level
 # parameter, so `strLitSupported` fails.  The literal in the theorem
-# statement is then a positively detected unsupported feature at
-# annotate: decline (2) — the guard front-door fires before any
-# reduction, so the stuck-proj behavior never becomes a verdict.
+# statement is then a positively detected unsupported feature when it
+# is inferred: decline (2) — the guard fires before any reduction, so
+# the stuck-proj behavior never becomes a verdict.
 2 str_proj_declined.ndjson
 
 # Pin-certified GMP Nat operations (task #54): per operation, a
@@ -775,11 +770,10 @@
 # stream is accepted (0).  The escape is therefore not confined to
 # reject-vs-accept — a decline can be lost the same way.
 # Task #161 P5: the certified verdict moved from 2 to 1.  The annotate
-# pass infers each binder's codomain sort to write its datum, so the
+# pass of the time inferred each binder's codomain sort, so the
 # per-argument type error in this purpose-built defective stream
-# ("function expected", theorem PProd'._model.eta) is now found before
-# annotate reaches the unsupported projection shape that used to
-# decline first.  An ordering change on DEFECTIVE input only — a valid
+# ("function expected", theorem PProd'._model.eta) was found before it
+# reached the unsupported projection shape that used to decline first.  An ordering change on DEFECTIVE input only — a valid
 # stream has no such error — and it makes the certified lane agree with
 # the --trusted lane on this fixture (its override is gone).  The
 # class-B property the fixture pins is unchanged: the defect lives in
@@ -1044,8 +1038,10 @@
 #                 definition `Bool.true : BoolAlias := Bool.tt` (with
 #                 `BoolAlias := Bool`) at the front
 #                 (scripts/mk_natop_booltrue_alias.py).  The official
-#                 kernel should accept it (not run), and so did the
-#                 checker until task #342 L8: DECLINE (exit 2) at `Nat.ble`, because
+#                 kernel REJECTS it (exit 1, "unknown constant
+#                 'Bool.true'" while replaying `bleEx`).  The checker
+#                 accepted it until task #342 L8; now it DECLINES (exit
+#                 2) at `Nat.ble`, because
 #                 `natOpGuard` now pins the `Bool` constructors at the
 #                 type `Bool` itself (the comparison recurrences relate
 #                 two members of one type; `divModEnvGuard` already
@@ -1281,8 +1277,8 @@
 2 tower_axiom_pin.ndjson
 # tower_axiom_nonstd: the same tower under a NON-pinned axiom name ->
 # the positive "non-standard axiom" decline, on the name alone.  No pin
-# comparison is reached; what this one gates is the annotation pass,
-# which does check the tower type.
+# comparison is reached; what this one gates is the header check, which
+# infers the tower type before the name decides.
 2 tower_axiom_nonstd.ndjson
 # tower_usedlater (task #233): a THREE-field structure whose last
 # field's type is a depth-60 tower built over the FIRST field's
@@ -2569,7 +2565,7 @@
 # `scripts/mk_rec_kbad.py`).  Official 1, TARGET 1 for all three.
 # k7: `Color.rec_1`, a copy of `Color.rec` whose major reaches `Color`
 # through a `let`: the recogniser files it as an auxiliary recursor,
-# the annotated type's major is the member — K7 fires ("the recursor
+# the stored type's major is the member — K7 fires ("the recursor
 # record's member is not its major's").  Official generates no
 # auxiliary recursor on a non-nested block.
 1 corner_rec_k7_let_major_bad.ndjson
@@ -2836,12 +2832,11 @@
 # (impredicative Prop + propext + K-like `Eq.rec`; sources
 # `tests/e2e/src/omega_kloop.lean`, `omega_demo2.lean`).
 # omega_kloop: `demo` never needs `Ω` reduced and the official kernel
-# accepts it at once.  The verified β-redex argument certificate compares
-# `Ω = Ω` with the binder domain `Ω = ι`, so `Ω ≟ ι`; before task #333
-# the defeq body head-normalized both sides before proof irrelevance (the
-# official order) and never returned (exit 3 on fuel before task #330, a
-# stack overflow since).  Proof irrelevance now runs on the unreduced
-# pair, before any `whnfCore`: accept, in both lanes.
+# accepts it at once.  Before task #333 a comparison `Ω ≟ ι` (then
+# made by the β-redex argument certificate, since deleted) head-normalized
+# both sides before proof irrelevance (the official order) and never
+# returned.  Proof irrelevance runs on the unreduced pair, before any
+# `whnfCore`: accept, in both modes.
 0 omega_kloop.ndjson
 # omega_demo2: `theorem demo2 (h : Ω = Ω) : Ω = ι := h` makes the
 # official kernel itself compare `Ω ≟ ι`: "(kernel) deep recursion
@@ -2909,3 +2904,55 @@
 # way; today's official kernel unfolds it, accepts `proposition` and
 # rejects `observe`).  Target: reject.
 1 proj_of_subst_prop.ndjson
+# --- the openai/math completeness run (2026-10-10; parked by task #348,
+# see DESIGN.md "TASK #348"): two of its three exit-3 causes, pinned at
+# today's verdict, to be looked into later (after the checker rewrite).
+# spine_arg_order.ndjson (cause A): `2*(x+5000000)+1+1 = 2*(x+5000000)+2`
+# by rfl.  From the challenges RandomizedMeanPayoff
+# (`OAI.MeanPayoff.DetRealizer.total_formula`) and UniformFourier
+# (`OAI.PowerSaving.Cluster.certificate`).  The lazy-delta same-head
+# shortcut `defeqSpine` compares the arguments first to last; official
+# `is_def_eq_args` compares them last to first, fails `1 =?= 2` at once
+# and unfolds.  con-leche first decides `M+1 =?= M` by unary succ descent
+# and exhausts checkFuel (exit 3).  Official accepts.  Today 3, TARGET 0.
+3 spine_arg_order.ndjson
+# natmul_deep_major.ndjson (cause B): `st 0 1 = st (W*200033) 1` by rfl.
+# From the challenges PeriodicGroup (`OAI.SourceBurnside.RawNumberPrep.
+# seed_run`) and LogspaceEquality (`OAI.ExactDerandomization.Vessel.
+# Basket.Sack.Ground.advances._proof_1_2`; MatchingFPRAS's
+# `OAI.MatchingFPRAS.ExecutableEstimator.upperRealizer` has the same
+# cause).  ι on `List.replicate (W*200033) false` whnfs its major, a
+# 200033-deep whnf/reduceNat first-argument recursion; official performs
+# it on its native stack and accepts, con-leche's checkFuel (100000 knot
+# levels) is exhausted (exit 3).  A larger checkFuel alone accepts it but
+# overflows the native stack on spine_arg_order: the fix needs a stack
+# policy.  Today 3, TARGET 0.
+3 natmul_deep_major.ndjson
+# --- the let ζ-fold (task #348; the mechanism of the openai/math
+# SquareDifference blow-up, `source_ordered_contraction`): a `let`
+# bound to a closed Nat that is expensive to head-normalise (`bits 14 0`,
+# 2^14 calls), whose variable meets the lazy-delta Nat-literal fold.
+# The official kernel checks the body with the let-fvar, so its fold
+# guard (no free variables) does not fire and the value is never
+# evaluated; con-leche's inference substitutes the `let` value (it has
+# no let-variables), the comparison is closed, and the fold evaluates
+# it.  The harness pins verdicts only; the cost is the point
+# (instructions:u at n = 14, con-leche / official: letfold_let 6.8e9 /
+# 3.5e8, letfold_pair_let 6.8e9 / 3.5e8, letfold_inline 6.8e9 / 3.4e9;
+# the scaling is in DESIGN.md "TASK #348").  All accept today, at 0.2 GB.  TARGET: the
+# same verdicts on official's path: no fold under a let-variable
+# (letfold_let and letfold_pair_let then cost what official does).
+0 letfold_let.ndjson
+0 letfold_pair_let.ndjson
+# letfold_inline: the control, the closed term written inline (no
+# `let`).  Both checkers fold here, as they should (official pays
+# 3.4e9 instructions too).  Accept, today and as the target.
+0 letfold_inline.ndjson
+# binder_pw_field (task #342): the legacy binder field `pw` is no
+# longer part of the format; a stream carrying it is malformed
+# (unknown key, the same recogniser error as any other key outside the
+# dialect) -- exit 3 (bad usage, malformed input, or an internal
+# failure of unclear cause; `ConLeche.CheckError.exitCode`,
+# `ConLeche/Driver/Run.lean`), not a REJECT (exit 1 is reserved for a
+# well-formed stream whose declaration is invalid).
+3 binder_pw_field.ndjson

@@ -1,6 +1,7 @@
 module
 public import Lean
 public meta import ConLeche.Kernel.Expr
+public meta import ConLeche.Kernel.PropWhen
 public meta import ConLeche.PinGen.Dump
 
 /-!

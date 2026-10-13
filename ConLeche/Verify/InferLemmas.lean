@@ -730,7 +730,7 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
       env.find? cj = some (.ctorInfo cvj cnP cnF) ∧
       rules.find? (fun r' => r'.ctor == cj) = some r ∧
       major.getAppArgs.length = r.ctorParams + r.nfields ∧
-      (iotaCase3 env.find? r cvj
+      (mode.verifiedChecks = true → iotaCase3 env.find? r cvj
           (recFireComparands r cv.levelParams us cvj.levelParams
             e.getAppArgs rP).1 = true →
         Level.isEquivList usj
@@ -825,6 +825,18 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
   case neg => rw [ite_eq_right hml] at h; exact nomatch h
   rw [ite_eq_left hml] at h
   try simp only [Bind.bind, Except.bind] at h
+  -- Task #342 (r1): the case-3 decision is a certificate family, gated
+  -- off at the trusted mode — one `mode.verifiedChecks` split outside
+  -- the `iotaCase3` one.
+  by_cases hμ : mode.verifiedChecks = true
+  case neg =>
+    rw [ite_eq_right hμ] at h
+    simp only [pure, Except.pure, ↓reduceIte, Except.ok.injEq,
+      Option.some.injEq] at h
+    exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
+      cnF, r, rfl, hfc, hlen.1, hlen.2.1, hprep, hmfn, hfj, hrule,
+      hml, fun hμ' => absurd hμ' hμ, h.symm⟩
+  rw [ite_eq_left hμ] at h
   generalize hcmp : recFireComparands r cv.levelParams us cvj.levelParams
     e.getAppArgs rP = cmp at h
   by_cases h3 : iotaCase3 env.find? r cvj cmp.1 = true
@@ -879,13 +891,13 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
       Option.some.injEq] at h
     exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
       cnF, r, rfl, hfc, hlen.1, hlen.2.1, hprep, hmfn, hfj, hrule,
-      hml, fun _ => by rw [hcmp]; exact ⟨hlev, hpeq, hmcerts, hidx⟩, h.symm⟩
+      hml, fun _ _ => by rw [hcmp]; exact ⟨hlev, hpeq, hmcerts, hidx⟩, h.symm⟩
   · rw [ite_eq_right h3] at h
     simp only [pure, Except.pure, ↓reduceIte, Except.ok.injEq,
       Option.some.injEq] at h
     exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
       cnF, r, rfl, hfc, hlen.1, hlen.2.1, hprep, hmfn, hfj, hrule,
-      hml, fun h3' => absurd (hcmp ▸ h3') h3, h.symm⟩
+      hml, fun _ h3' => absurd (hcmp ▸ h3') h3, h.symm⟩
 
 /-- Inversion of the canonical-index comparison where the recursor has
 indices: the constructor telescope's residual exists and its index
@@ -929,7 +941,8 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
            (tmaj.getAppArgs.take cnP) ∧
          (∃ tfab, inferTypeIO mode env fuel d major' = .ok tfab ∧
            isDefEqCore mode env fuel d tmaj tfab = .ok true) ∧
-         proofIrrelFueled mode env fuel d major' major = .ok true) ∨
+         (mode.verifiedChecks = true →
+           proofIrrelFueled mode env fuel d major' major = .ok true)) ∨
         (rl.eta = true ∧
          capsNeverZero cvT.levelParams ust caps = true ∧
          tmaj.getAppArgs.length = caps.etaParams ∧
@@ -947,7 +960,8 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
            (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major]) ∧
          (∃ tfab, inferTypeIO mode env fuel d major' = .ok tfab ∧
            isDefEqCore mode env fuel d tmaj tfab = .ok true) ∧
-         proofIrrelFueled mode env fuel d major' major = .ok true))) := by
+         (mode.verifiedChecks = true →
+           proofIrrelFueled mode env fuel d major' major = .ok true)))) := by
   dsimp only [majorToCtorFueled] at h
   simp only [majorToCtor, Bind.bind, Except.bind] at h
   simp only [inferTypeIO_def, whnf_def, defeq_def, proofIrrel_fold] at h
@@ -1114,6 +1128,21 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
     | true =>
     simp only [↓reduceIte] at h
     try simp only [Bind.bind, Except.bind] at h
+    -- Task #342 (r1): proof irrelevance here is a certificate family,
+    -- gated off at the trusted mode (`certAtI mode (proofIrrelI ...)`
+    -- in the cached twin).
+    by_cases hμ : mode.verifiedChecks = true
+    case neg =>
+      rw [ite_eq_right hμ] at h
+      simp only [pure, Except.pure, ↓reduceIte, Except.ok.injEq] at h
+      subst h
+      simp only [Bool.and_eq_true] at hguard
+      exact Or.inr ⟨hguard.1.1, hguard.1.2, hguard.2,
+        rl, cvj, cnP, cnF, tmaj₀, tmaj, T', us₀, ust, cvT, caps,
+        rfl, hfj, hpr, hfT, rfl, htw, hth,
+        Or.inl ⟨hK, hlvl, harK1, rfl,
+          ⟨tfab, htf, hdeq⟩, fun hμ' => absurd hμ' hμ⟩⟩
+    rw [ite_eq_left hμ] at h
     cases hpi : proofIrrelFueled mode env fuel d
         (Expr.mkAppN (.const rl.ctor ust)
           (tmaj.getAppArgs.take cnP)) major with
@@ -1134,7 +1163,7 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
       rl, cvj, cnP, cnF, tmaj₀, tmaj, T', us₀, ust, cvT, caps,
       rfl, hfj, hpr, hfT, rfl, htw, hth,
       Or.inl ⟨hK, hlvl, harK1, rfl,
-        ⟨tfab, htf, hdeq⟩, hpi⟩⟩
+        ⟨tfab, htf, hdeq⟩, fun _ => hpi⟩⟩
   · rw [ite_eq_right hK] at h
     by_cases hE : rl.eta = true
     case neg =>
@@ -1241,6 +1270,20 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
       | true =>
       simp only [↓reduceIte] at h
       try simp only [Bind.bind, Except.bind] at h
+      -- Task #342 (r1): proof irrelevance here, as in the K branch, is
+      -- a certificate family — gated off at the trusted mode.
+      by_cases hμ : mode.verifiedChecks = true
+      case neg =>
+        rw [ite_eq_right hμ] at h
+        simp only [pure, Except.pure, ↓reduceIte, Except.ok.injEq] at h
+        subst h
+        simp only [Bool.and_eq_true] at hguard
+        exact Or.inr ⟨hguard.1.1, hguard.1.2, hguard.2,
+          rl, cvj, cnP, cnF, tmaj₀, tmaj, T', us₀, ust, cvT, caps,
+          rfl, hfj, hpr, hfT, rfl, htw, hth,
+          Or.inr (Or.inr ⟨hA, hplen, hlvl, hslots, rfl,
+            ⟨tfab, htf, hdeq⟩, fun hμ' => absurd hμ' hμ⟩)⟩
+      rw [ite_eq_left hμ] at h
       cases hpi : proofIrrelFueled mode env fuel d (Expr.mkAppN (.const rl.ctor ust)
             (tmaj.getAppArgs ++ [.proj T' 0 major, .proj T' 1 major])) major with
       | error err => rw [hpi] at h; exact nomatch h
@@ -1260,7 +1303,7 @@ theorem majorToCtor_inv {env : Env} {fuel d : Nat} {recName : Name}
         rl, cvj, cnP, cnF, tmaj₀, tmaj, T', us₀, ust, cvT, caps,
         rfl, hfj, hpr, hfT, rfl, htw, hth,
         Or.inr (Or.inr ⟨hA, hplen, hlvl, hslots, rfl,
-          ⟨tfab, htf, hdeq⟩, hpi⟩)⟩
+          ⟨tfab, htf, hdeq⟩, fun _ => hpi⟩)⟩
     rw [ite_eq_left hE] at h
     try simp only [Bind.bind, Except.bind] at h
     cases hti : inferTypeIO mode env fuel d major with

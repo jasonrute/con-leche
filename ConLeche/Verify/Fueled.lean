@@ -260,8 +260,8 @@ theorem structEtaCert_atF (d : Nat) (a b : Expr) (F : Nat) :
 -- body outgrew the split-driven macro.
 set_option maxHeartbeats 800000 in
 theorem majorToCtor_atF (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) (F : Nat) :
-    (majorToCtor (fueledFns mode env) env d c rules e).val F =
-      majorToCtor (pureFns mode env F) env d c rules e := by
+    (majorToCtor mode (fueledFns mode env) env d c rules e).val F =
+      majorToCtor mode (pureFns mode env F) env d c rules e := by
   unfold majorToCtor
   by_cases hca : isCtorApp env e = true
   · rw [ite_eq_left hca, ite_eq_left hca]; rfl
@@ -306,8 +306,8 @@ theorem litMajorToCtor_atF (d : Nat) (e : Expr) (F : Nat) :
 
 theorem prepareMajor_atF (d : Nat) (c : Name) (rules : List RecRule) (e : Expr)
     (F : Nat) :
-    (prepareMajor (fueledFns mode env) env d c rules e).val F =
-      prepareMajor (pureFns mode env F) env d c rules e := by
+    (prepareMajor mode (fueledFns mode env) env d c rules e).val F =
+      prepareMajor mode (pureFns mode env F) env d c rules e := by
   unfold prepareMajor
   split
   · repeat (first
@@ -365,8 +365,8 @@ theorem stuckIrrel_atF (d : Nat) (a b : Expr) (F : Nat) :
   atF_tac3
 
 theorem iotaRec_atF (d : Nat) (e : Expr) (F : Nat) :
-    (iotaRec (fueledFns mode env) env d e).val F =
-      iotaRec (pureFns mode env F) env d e := by
+    (iotaRec mode (fueledFns mode env) env d e).val F =
+      iotaRec mode (pureFns mode env F) env d e := by
   unfold iotaRec
   atF_tac3
 

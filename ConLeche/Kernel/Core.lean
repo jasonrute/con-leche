@@ -329,7 +329,7 @@ arm's obligation is *agreement* with the slow path, recorded by the
 landing census (DESIGN.md, task #168: 0 disagreements in 7.5 M calls).
 The **"yes" arm** (`isProofFast` on both sides → `true`) is
 justified by the squash regime, stage 3 of the same design
-(`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`), which the
+(`prf_of_isProofFast`, `ConLeche/Model/Rules/ProofFastSound.lean`), which the
 verified mode's `DefEq.proofFast` rule consumes; the trusted mode is unverified and
 inherits the arm without a row, as it inherits every other body. -/
 def propIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
@@ -339,7 +339,7 @@ def propIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
   else if isProofFast env.find? a && isProofFast env.find? b then
     -- the yes arm (task #168 stage 3): both heads' data say
     -- "a proposition at every valuation" — justified by the squash
-    -- regime (`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`)
+    -- regime (`prf_of_isProofFast`, `ConLeche/Model/Rules/ProofFastSound.lean`)
     pure true
   else
   -- task #172 B4: every inference here is at the io grade
@@ -495,15 +495,21 @@ def stuckIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
 in the official kernel): a recursor's major premise that does not whnf
 to a constructor application may still be *replaced* by one.  For a
 K-flagged inductive proposition the parameters-only application of the
-single constructor is fabricated from the major's type and certified by
-proof irrelevance (in the model both are the proof point); for an
-eta-capable structure the constructor of the major's projections is
-fabricated and certified by the structure-eta certificate (in the model
-both are the tuple of the major's components); for `And` —
-a proposition, which official never η-rescues — the constructor of the
-major's projections is fabricated and certified by proof irrelevance
-(the `And` branch below).  An uncertified major stays put — sound, the
-reduction simply stays stuck. -/
+single constructor is fabricated from the major's type; its io type is
+compared with the major's (official's check, unconditional) and, at the
+verified mode, proof irrelevance compares it with the major (in the
+model both are the proof point) — a certificate family, off at the
+trusted mode (`mode.verifiedChecks`), as its cached twin gates it
+through `certAtI` (`ConLeche/Cached/CoreC.lean`).
+For an eta-capable structure the constructor applied to the major's
+projections is fabricated with no check: the major is that application
+by the family's η law (in the model both are the tuple of the major's
+components).  For `And` — a proposition, which official never
+η-rescues — the constructor applied to the major's projections is
+fabricated and checked as in the K branch (the `And` branch below),
+proof irrelevance likewise off at the trusted mode.  A
+major that fails a check stays put — sound, the reduction simply stays
+stuck. -/
 def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
     (_recName : Name) (rules : List RecRule) (major : Expr) : m Expr := do
   -- cheap syntactic gates before any inference: a rescue needs a
@@ -544,7 +550,13 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
                     -- without it).  `proofIrrel` makes the major a
                     -- proof (in the model both sides are the point).
                     if ← r.defeq depth tmaj (← r.inferIO depth fab) then
-                      if ← proofIrrel r depth fab major then
+                      -- Task #342 (r1): the K check's proof-irrelevance half
+                      -- is a certificate family (official stops at the type
+                      -- check above) — gated off at the trusted mode, as
+                      -- `certAtI mode (proofIrrelI ...)` gates its cached twin
+                      -- (`ConLeche/Cached/CoreC.lean`).
+                      if ← (if mode.verifiedChecks then proofIrrel r depth fab major
+                          else pure true) then
                         pure fab
                       else pure major
                     else pure major
@@ -624,7 +636,12 @@ def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
                   -- the fabrication's type against the major's, then
                   -- proof irrelevance, as in the K branch
                   if ← r.defeq depth tmaj (← r.inferIO depth fab) then
-                    if ← proofIrrel r depth fab major then
+                    -- Task #342 (r1): proof irrelevance here, as in the K
+                    -- branch, is a certificate family — gated off at the
+                    -- trusted mode (`certAtI mode (proofIrrelI ...)` in the
+                    -- cached twin).
+                    if ← (if mode.verifiedChecks then proofIrrel r depth fab major
+                        else pure true) then
                       pure fab
                     else pure major
                   else pure major
@@ -734,20 +751,20 @@ official order fabricates `Eq.refl` from the type (`a ≡ b` by the
 def prepareMajor (r : CoreFns m) (env : Env) (depth : Nat)
     (recName : Name) (rules : List RecRule) (major : Expr) : m Expr := do
   if recRuleK rules then
-    let majorK ← majorToCtor r env depth recName rules major
+    let majorK ← majorToCtor mode r env depth recName rules major
     if isCtorApp env majorK then
       litMajorToCtor r env depth majorK
     else
       pure majorK
   else
     let majorE ← if major.isStrLit then pure major
-      else majorToCtor r env depth recName rules major
+      else majorToCtor mode r env depth recName rules major
     if isCtorApp env majorE then
       pure majorE
     else
       let major₀ ← r.whnf depth majorE
       let major₁ ← litMajorToCtor r env depth major₀
-      majorToCtor r env depth recName rules major₁
+      majorToCtor mode r env depth recName rules major₁
 
 /-- One iota step: the expression is a stored recursor applied to
 exactly its telescope (params, motives, minors, indices, major), the
@@ -755,10 +772,10 @@ major premise whnfs to a fully applied constructor with a matching
 rule (a literal major converts to constructor form — see
 `litMajorToCtor` —, a
 stuck major may be rescued — see `majorToCtor`), and the recursor's
-stored type has the redex's arity.  The constructor side follows **the ι licence** (task #342
-L10, S5c), decided at the rule's comparand levels (`recFireComparands`):
+stored type has the redex's arity.  The constructor side follows **the
+ι case split** (task #342 L10, S5c), decided at the rule's comparand levels (`recFireComparands`):
 a K rule, and a rule whose constructor's family is never `Prop` there
-(`iotaCtorLicensed`), fire with no check of the constructor application
+(`iotaCtorNeverProp`), fire with no check of the constructor application
 — official's `inductive_reduce_rec` checks nothing of it either; every
 other rule (case 3, `iotaCase3`) compares the constructor's levels and
 parameters with the rule's comparands, certifies the constructor
@@ -783,12 +800,12 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
       -- level parameter the subject never had.  Ungated: the reference has it
       -- unconditionally, so a mode gate would break parity.
       -- task #342 L18: the stored type's syntactic arity, which the
-      -- uncertified (licensed) recursor spine is read against
+      -- uncertified recursor spine is read against
       if args.length = mI + 1 ∧ us.length = cv.levelParams.length ∧
           (Expr.peelPis (mI + 1) cv.type).isSome = true then
         -- the major's preparation (K rescue / whnf / literal / eta) in
         -- the official order — `prepareMajor`'s docstring
-        let major ← prepareMajor r env depth c rules
+        let major ← prepareMajor mode r env depth c rules
           (args.getD mI (.bvar 0))
         match major.getAppFn with
         | .const cj usj =>
@@ -812,26 +829,31 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
                 -- major-domain instantiations), from the firing mode
                 -- computed once at install (`sumRules` / `auxRuleFire`)
                 let cmp := recFireComparands rl cv.levelParams us cvj.levelParams args rP
-                -- **the ι licence** (task #342 L10, #349, S5c), decided at
+                -- **the ι case split** (task #342 L10, #349, S5c), decided at
                 -- the comparand levels: a K rule, or a family never `Prop`
-                -- there (`iotaCtorLicensed`), fires with no check, as
+                -- there (`iotaCtorNeverProp`), fires with no check, as
                 -- official's `inductive_reduce_rec` (it compares nothing
                 -- of the major's constructor); case 3 compares the
                 -- constructor's levels and parameters with the comparands,
                 -- certifies the constructor telescope at the full grade and
-                -- compares the indices (`iotaIndexOk`)
-                if ← (if iotaCase3 env.find? rl cvj cmp.1 then do
-                    if ← liftFueled "level comparison" (Level.isEquivList usj cmp.1) then
-                      if ← defEqList r env depth (margs.take rl.ctorParams) cmp.2 then
-                        if ← iotaCertsFull r env depth
-                            (cvj.type.instantiateLevelParams cvj.levelParams usj)
-                            margs then
-                          iotaIndexOk r env depth mI rP rl.ctorParams
-                            (cvj.type.instantiateLevelParams cvj.levelParams usj)
-                            margs ((args.take mI).drop rP)
+                -- compares the indices (`iotaIndexOk`) — a certificate
+                -- family (task #342 (r1)), off at the trusted mode as its
+                -- cached twin gates the whole case-3 decision through
+                -- `certAtI mode (do ...)` (`ConLeche/Cached/CoreC.lean`)
+                if ← (if mode.verifiedChecks then
+                    (if iotaCase3 env.find? rl cvj cmp.1 then do
+                      if ← liftFueled "level comparison" (Level.isEquivList usj cmp.1) then
+                        if ← defEqList r env depth (margs.take rl.ctorParams) cmp.2 then
+                          if ← iotaCertsFull r env depth
+                              (cvj.type.instantiateLevelParams cvj.levelParams usj)
+                              margs then
+                            iotaIndexOk r env depth mI rP rl.ctorParams
+                              (cvj.type.instantiateLevelParams cvj.levelParams usj)
+                              margs ((args.take mI).drop rP)
+                          else pure false
                         else pure false
                       else pure false
-                    else pure false
+                    else pure true)
                   else pure true) then
                   pure (some (Expr.mkAppN
                     (rl.rhs.instantiateLevelParams cv.levelParams us)
@@ -929,7 +951,7 @@ def whnfCoreBody (r : CoreFns m) (env : Env) : Bool → Nat → Expr → m Expr 
         -- Task #342 S0: uniform β, no certificate
         r.whnfCore cheap depth (body.instantiate1 a)
       | f' => do
-        match ← iotaRec r env depth (.app f' a) with
+        match ← iotaRec mode r env depth (.app f' a) with
         | some e'' => r.whnfCore cheap depth e''
         | none => pure (.app f' a)
     | .proj sn i pe => do

@@ -226,7 +226,7 @@ theorem whnfAppIotaC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
         | none =>
           whnfAppI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d fa rest)
       (do
-        match ← iotaRec (fueledFns mode env) env d (.app vx xa) with
+        match ← iotaRec mode (fueledFns mode env) env d (.app vx xa) with
         | some e'' => pure (.cont (Expr.mkAppN e'' xs))
         | none => whnfAppW mode (fueledFns mode env) env d (.app vx xa) xs) := by
     simp only [iotaArityOk_guard]

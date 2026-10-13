@@ -8,37 +8,11 @@ public import ConLeche.Verify.Denote.VClosed
 /-!
 # The `interp` lemma kit (task #151, tier B)
 
-Two halves.
-
 **The substitution stack** — `interp_liftN` and `interp_inst`, the
 layer's *entire* substitution metatheory: `interp` is structural, so
 two lemmas suffice.  (lean4lean needs ~123 syntactic lemmas at
 this spot because its metatheory is syntactic; soundness against a
 model needs two semantic ones.)
-
-**The regime lemmas** — what the two-regime design is *for*:
-
-* `interp_mem_pi_pos` — the graph-regime inversion.  A member of
-  `⟦(x : A) → B⟧` with the codomain sort nonzero **is** a graph, with
-  domain exactly `⟦A⟧`, pointwise-fibred, non-`pt`, and canonical `∅`
-  off the domain.  By definition, not by dispatch.
-* `interp_beta_pos` / `interp_app_graph` — on-domain application
-  computes, with no typing premise at all.
-* `interp_pi_zero_subsingleton`, `interp_proof_irrel` — the squash
-  regime is subsingleton-valued.
-* `interp_pi_zero_small` — **impredicativity**: a function space landing in
-  `Prop` is a truth value, for an arbitrary domain.
-* `interp_not_pt_mem_pi_pos`, `interp_app_off_dom` — junk-freeness:
-  the proof point never inhabits a graph-regime function space, and off-domain
-  application is the canonical `∅`, never a point a consumer must
-  dispatch on.
-
-On `pt`: the only occurrences in this file are in *conclusions about
-the squash regime* (`interp V ρ .prf = pt` and the `v = 0`
-subsingleton facts) and in the *negative* junk-freeness statements.  No
-lemma here has a `pt` hypothesis, no proof does a case split on whether
-a value is `pt`, and the graph regime never mentions it except to deny
-it.
 -/
 
 namespace ConLeche.Semantics
@@ -224,42 +198,5 @@ theorem interp_mkAppN (ρ : Nat → V) :
     simp only [Term.mkAppN_cons, List.foldl_cons]
     rw [interp_mkAppN ρ as (.app f a)]
     rfl
-
-/-! ## The value-read binders at the interpretation -/
-
-/-- **The graph-regime inversion.**  A member of a Π-type's reading that
-is not the point is a function graph: the graph of its own application
-over `⟦A⟧`, its applications in the fibres, canonical junk `∅` off the
-domain. -/
-theorem interp_mem_pi_ne_pt {ρ : Nat → V} {A B : Term} {f : V}
-    (hf : f ∈ˢ interp V ρ (.pi A B)) (hn : f ≠ pt) :
-    graph (fun x => SetTheory.app f x) (interp V ρ A) = f ∧
-    (∀ x, x ∈ˢ interp V ρ A →
-      SetTheory.app f x ∈ˢ interp V (cons x ρ) B) ∧
-    (∀ a, ¬ a ∈ˢ interp V ρ A → SetTheory.app f a = empty) := by
-  rw [interp_pi] at hf
-  have hs := mem_piSet_of_mem_piV hf hn
-  exact ⟨eq_graph_app_of_mem_piSet hs, fun x hx => app_mem_of_mem_piSet hs hx,
-    fun a ha => app_off_dom_of_mem_piSet hs ha⟩
-
-/-- **β**, with no premise beyond the argument inhabiting the domain. -/
-theorem interp_beta (ρ : Nat → V) (A b a : Term)
-    (ha : interp V ρ a ∈ˢ interp V ρ A) :
-    interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) := by
-  rw [interp_app, interp_lam, interp_inst0, app_lamV ha]
-
-/-- Elimination at a Π-type's reading. -/
-theorem interp_app_mem_pi {ρ : Nat → V} {A B : Term} {f a : V}
-    (hf : f ∈ˢ interp V ρ (.pi A B)) (ha : a ∈ˢ interp V ρ A) :
-    SetTheory.app f a ∈ˢ interp V (cons a ρ) B := by
-  rw [interp_pi] at hf; exact app_mem_piV hf ha
-
-/-- Proof irrelevance, in the form consumers use it: members of a
-proposition — anything the interpretation places in `univ 0` — are all
-equal, and all equal to the canonical proof `⟦prf⟧`. -/
-theorem interp_proof_irrel {ρ : Nat → V} {T : Term} {x y : V}
-    (hT : interp V ρ T ∈ˢ (univ 0 : V)) (hx : x ∈ˢ interp V ρ T)
-    (hy : y ∈ˢ interp V ρ T) : x = y :=
-  subsingleton_of_mem_univZero (univ_zero (V := V) ▸ hT) hx hy
 
 end ConLeche.Semantics

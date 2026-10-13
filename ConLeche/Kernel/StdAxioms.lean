@@ -182,8 +182,8 @@ alongside the type, and `Iff.intro` (resp. `Nonempty.intro`) with it,
 because the recursor's minor premise is stated at the constructor.
 Only the recursors' *types* are used — never their reduction rules
 (DESIGN.md, task #209).  This is the reason the pins are right. -/
-def stdAxiomOk (env : Env) (cvA : ConstantVal) : Bool :=
-  if cvA.name = propextName then
+def stdAxiomOk (env : Env) (cv : ConstantVal) : Bool :=
+  if cv.name = propextName then
     decide (env.find? eqName = some eqA) &&
     (match env.find? iffName with
      | some (.indInfo cvI _) => ConstantVal.matchesPin cvI iffA.toConstantVal
@@ -196,8 +196,8 @@ def stdAxiomOk (env : Env) (cvA : ConstantVal) : Bool :=
      | some (.recInfo cvIr 4 4 _) =>
        ConstantVal.matchesPin cvIr iffRecA.toConstantVal
      | _ => false) &&
-    ConstantVal.matchesPin cvA propextA
-  else if cvA.name = choiceName then
+    ConstantVal.matchesPin cv propextA
+  else if cv.name = choiceName then
     (match env.find? nonemptyName with
      | some (.indInfo cvN _) =>
        ConstantVal.matchesPin cvN nonemptyA.toConstantVal
@@ -210,7 +210,7 @@ def stdAxiomOk (env : Env) (cvA : ConstantVal) : Bool :=
      | some (.recInfo cvNr 3 3 _) =>
        ConstantVal.matchesPin cvNr nonemptyRecA.toConstantVal
      | _ => false) &&
-    ConstantVal.matchesPin cvA choiceA
+    ConstantVal.matchesPin cv choiceA
   else false
 
 end ConLeche

@@ -111,7 +111,7 @@ structure RulesInputs (V : Type w) [SetTheory V] {env : Env}
   caps_ok : CapsOk m
   /-- iota tier: the stored families' fibres — truth values where the
   stored sort is `0`, strict elsewhere (task #342 L7; the case-2 ι
-  licence's input) -/
+  case split's input) -/
   ind_fib : IndFibLaw m φ
   /-- literal tier: successor packing -/
   nat_succ : NatSuccRow m φ

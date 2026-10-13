@@ -437,10 +437,10 @@ theorem Red.natOp_sound (hin : RulesInputs V m φ) {d : Nat} {c : Name}
   rw [interp_app, interp_app, heqa, heqb, ← interp_app, ← interp_app]
   exact heqra
 
-/-- The tower law's iota clause at the licensed spine
+/-- The tower law's iota clause at the arity-checked spine
 (`teleFit_of_teleFitPA`): conditional on the point — a projection that
 is not the point has a scrutinee that is not (`projS_pt`), whose spine
-the licensed walk then fits ("not pt" source (2)). -/
+the arity-checked walk then fits ("not pt" source (2)). -/
 theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat}
     {e : Expr} {entry : ProjEntry} {us : List Level} {cvC : ConstantVal}
     {nP nF : Nat}
@@ -451,7 +451,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
     (hus : us.length = entry.levelParams.length)
     (hfire : entry.fireOk us = true)
     (hctor : env.find? entry.ctor = some (.ctorInfo cvC nP nF))
-    (hcerts : CertsSem m φ d
+    (hcerts : TeleAritySem m φ d
       (cvC.type.instantiateLevelParams cvC.levelParams us) e.getAppArgs) :
     RedSem m φ d (.proj sn i e)
       (e.getAppArgs.getD (entry.numParams + i) (.bvar 0)) := by
@@ -525,7 +525,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
     exact piChain_of_stripPis (entry.numParams + entry.numFields)
       (ConLeche.Expr.stripPis_instantiateLevelParams_isSome cvC₀.levelParams us _
         hstrip) hTCd
-  -- the licensed walk, read outside the valuation
+  -- the arity-checked walk, read outside the valuation
   obtain ⟨resta, hfitA⟩ :=
     hcerts (fa := m.acval entry.ctor (Level.substFn φ entry.levelParams us))
       ⟨ConLeche.Expr.WScoped.of_not_hasFvar hnfC, hbdC,

@@ -23,8 +23,8 @@ namespace ConLeche.Verify
 variable {mode : CheckMode}
 
 /-- The pinned `Iff` family, extracted. -/
-theorem iff_shapes {env : Env} {cvA : ConstantVal}
-    (h : stdAxiomOk env cvA = true) (hp : cvA.name = propextName) :
+theorem iff_shapes {env : Env} {cv : ConstantVal}
+    (h : stdAxiomOk env cv = true) (hp : cv.name = propextName) :
     env.find? eqName = some eqA ∧
     (∃ cvI caps, env.find? iffName = some (.indInfo cvI caps) ∧
       cvI.levelParams = [] ∧
@@ -36,7 +36,7 @@ theorem iff_shapes {env : Env} {cvA : ConstantVal}
       env.find? iffRecName = some (.recInfo cvIr mI rP rules) ∧
       cvIr.levelParams = iffRecA.toConstantVal.levelParams ∧
       cvIr.type = iffRecA.toConstantVal.type) ∧
-    ConstantVal.matchesPin cvA propextA = true := by
+    ConstantVal.matchesPin cv propextA = true := by
   rw [stdAxiomOk, ite_eq_left hp] at h
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨⟨⟨⟨hEq, hI⟩, hIi⟩, hIr⟩, hA⟩ := h
@@ -81,8 +81,8 @@ theorem iff_shapes {env : Env} {cvA : ConstantVal}
       | _ => exact nomatch hIr
 
 /-- The pinned `Nonempty` family, extracted. -/
-theorem nonempty_shapes {env : Env} {cvA : ConstantVal}
-    (h : stdAxiomOk env cvA = true) (hc : cvA.name = choiceName) :
+theorem nonempty_shapes {env : Env} {cv : ConstantVal}
+    (h : stdAxiomOk env cv = true) (hc : cv.name = choiceName) :
     (∃ cvN caps, env.find? nonemptyName = some (.indInfo cvN caps) ∧
       cvN.levelParams = nonemptyA.toConstantVal.levelParams ∧
       cvN.type = nonemptyA.toConstantVal.type) ∧
@@ -93,7 +93,7 @@ theorem nonempty_shapes {env : Env} {cvA : ConstantVal}
       env.find? nonemptyRecName = some (.recInfo cvNr mI rP rules) ∧
       cvNr.levelParams = nonemptyRecA.toConstantVal.levelParams ∧
       cvNr.type = nonemptyRecA.toConstantVal.type) ∧
-    ConstantVal.matchesPin cvA choiceA = true := by
+    ConstantVal.matchesPin cv choiceA = true := by
   rw [stdAxiomOk, ite_eq_right (by rw [hc]; decide), ite_eq_left hc] at h
   simp only [Bool.and_eq_true] at h
   obtain ⟨⟨⟨hN, hNi⟩, hNr⟩, hA⟩ := h

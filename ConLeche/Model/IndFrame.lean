@@ -149,15 +149,14 @@ theorem interp_instSeq :
 
 /-! ## The telescope, substituted
 
-These are V-free — pure `Term` bookkeeping — and they are what lets the
-fit's induction step speak about the tail tower after one argument goes
-in. -/
+These are V-free — pure `Term`
+bookkeeping — and they are what lets the fit's induction step speak
+about the tail tower after one argument goes in. -/
 
 /-- A context's entries, instantiated after a variable *below* all of
 them is substituted: the entry `i` places above the substituted slot is
 instantiated at cut `j + i` (`j` counts binders below the substituted
-slot that remain); the entry adjacent to the slot — the list's last —
-gets cut `j`. -/
+slot that remain). -/
 @[expose] def ctxInstAtAV (v : Term) (j : Nat) : List Term → List Term
   | [] => []
   | B :: Γ => B.inst v (j + Γ.length) :: ctxInstAtAV v j Γ

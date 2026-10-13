@@ -296,16 +296,16 @@ value is `eq_law`'s (the field, at the pin's own level instantiation
 
 /-- **`propext` inhabits its stored type's reading.** -/
 theorem propext_mem (mp : EnvModelM V μ env)
-    {cvA : ConstantVal} (hok : ConLeche.stdAxiomOk env cvA = true)
-    (hn : cvA.name = propextName)
+    {cv : ConstantVal} (hok : ConLeche.stdAxiomOk env cv = true)
+    (hn : cv.name = propextName)
     (ψ : Name → Nat) (ta : Term)
-    (hta : denote mp.base2.acval env ψ 0 cvA.type = some ta)
+    (hta : denote mp.base2.acval env ψ 0 cv.type = some ta)
     (ρ : Nat → V) :
     interp V ρ (.const .propext []) ∈ˢ interp V ρ ta := by
   obtain ⟨hEq, ⟨cvI, caps, hfI, hlpI, htyI⟩, ⟨cvIi, hfIi, hlpIi, htyIi⟩,
     ⟨cvIr, mI, rP, rules, hfIr, hlpIr, htyIr⟩, hApin⟩ :=
     iff_shapes hok hn
-  have hApinT : cvA.type
+  have hApinT : cv.type
       = propextA.type := by
     simp only [ConstantVal.matchesPin, Bool.and_eq_true,
       beq_iff_eq] at hApin
@@ -633,16 +633,16 @@ leaf is the layer's own `choice` constant; `dneg_eq_nonempty`
 identifies the witness's double-negation domain with the checker's
 stored `Nonempty`. -/
 theorem choice_mem (mp : EnvModelM V μ env)
-    {cvA : ConstantVal} (hok : ConLeche.stdAxiomOk env cvA = true)
-    (hn : cvA.name = choiceName)
+    {cv : ConstantVal} (hok : ConLeche.stdAxiomOk env cv = true)
+    (hn : cv.name = choiceName)
     (ψ : Name → Nat) (ta : Term)
-    (hta : denote mp.base2.acval env ψ 0 cvA.type = some ta)
+    (hta : denote mp.base2.acval env ψ 0 cv.type = some ta)
     (ρ : Nat → V) :
     interp V ρ (.const .choice [ψ uN]) ∈ˢ interp V ρ ta := by
   obtain ⟨⟨cvN, capsN, hfN, hlpN, htyN⟩, ⟨cvNi, hfNi, hlpNi, htyNi⟩,
     ⟨cvNr, mI, rP, rulesN, hfNr, hlpNr, htyNr⟩, hApin⟩ :=
     nonempty_shapes hok hn
-  have hApinT : cvA.type
+  have hApinT : cv.type
       = choiceA.type := by
     simp only [ConstantVal.matchesPin, Bool.and_eq_true,
       beq_iff_eq] at hApin

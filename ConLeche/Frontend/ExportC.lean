@@ -148,10 +148,9 @@ resolved. -/
     let ls ← us.mapM lv
     pure (Expr.mkConst nm ls)
   | .app f a => do pure (Expr.mkApp (← ex f) (← ex a))
-  -- a legacy binder's optional `pw` field is scanned and not read
-  | .lam ty bd _ => do
+  | .lam ty bd => do
     pure (Expr.mkLam (← ex ty) (← ex bd))
-  | .forallE ty bd _ => do
+  | .forallE ty bd => do
     pure (Expr.mkForallE (← ex ty) (← ex bd))
   | .letE ty vl bd => do
     pure (Expr.mkLetE (← ex ty) (← ex vl) (← ex bd))

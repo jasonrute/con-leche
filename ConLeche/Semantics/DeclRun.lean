@@ -172,19 +172,19 @@ def DeclAxiomRun (μ : CheckMode) (F : Nat) (env : Env)
   (cv.name = quotSoundName ∧ env₂ = env) ∨
   ∃ type',
     ConstantValRun μ F env cv type' ∧
-    (let cvA : ConstantVal := ⟨cv.name, cv.levelParams, type'⟩
-     (stdAxiomOk env cvA = true ∧
-        env₂ = ⟨.axiomInfo cvA :: env.consts⟩) ∨
-     (cvA.name = trustCompilerName ∧ trustCompilerOk env cvA = true ∧
-        env₂ = ⟨.axiomInfo cvA :: env.consts⟩) ∨
-     ((cvA.name = ofReduceNatName ∨ cvA.name = ofReduceBoolName) ∧
-        ofReduceAxOk env cvA = true ∧
-        env₂ = ⟨.axiomInfo cvA :: env.consts⟩) ∨
-     (stdAxiomOk env cvA = false ∧
-        cvA.name ≠ trustCompilerName ∧
-        cvA.name ≠ ofReduceNatName ∧ cvA.name ≠ ofReduceBoolName ∧
-        cvA.name ≠ propextName ∧ cvA.name ≠ choiceName ∧
-        cvA.name = sorryAxName ∧
+    (let cv : ConstantVal := ⟨cv.name, cv.levelParams, type'⟩
+     (stdAxiomOk env cv = true ∧
+        env₂ = ⟨.axiomInfo cv :: env.consts⟩) ∨
+     (cv.name = trustCompilerName ∧ trustCompilerOk env cv = true ∧
+        env₂ = ⟨.axiomInfo cv :: env.consts⟩) ∨
+     ((cv.name = ofReduceNatName ∨ cv.name = ofReduceBoolName) ∧
+        ofReduceAxOk env cv = true ∧
+        env₂ = ⟨.axiomInfo cv :: env.consts⟩) ∨
+     (stdAxiomOk env cv = false ∧
+        cv.name ≠ trustCompilerName ∧
+        cv.name ≠ ofReduceNatName ∧ cv.name ≠ ofReduceBoolName ∧
+        cv.name ≠ propextName ∧ cv.name ≠ choiceName ∧
+        cv.name = sorryAxName ∧
         env₂ = env))
 
 /-! ## The assembly -/

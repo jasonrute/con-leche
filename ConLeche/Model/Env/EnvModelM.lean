@@ -159,7 +159,7 @@ and each constructor's stored type concludes, past its parameters and
 fields, in its member at its own level parameters applied to the
 parameter variables and then the index expressions (official's
 `check_constructors`: the result's parameters are the parameters).  The
-ι licence's facts at an outside class read them: a container's
+ι case split's facts at an outside class read them: a container's
 capabilities decide its sort's zero-ness and its K rule, and its
 constructor's residual is the former at the constructor's parameters. -/
 @[expose] def LfpCaps {V : Type w} [SetTheory V] (env : Env) (D : LfpDatum V) : Prop :=
