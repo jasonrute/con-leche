@@ -711,7 +711,7 @@ theorem piTeleAV_graded :
           simp only [Nat.sub_zero, Nat.add_sub_cancel, List.getD]
           rw [List.getElem?_append_right (by omega), hlen, Nat.sub_self]
           rfl]
-        exact WellDenotedTy_pi_dom (hT ρ hρ)
+        exact ⟨WellDenoted_pi_dom (hT ρ hρ), (cast (WellDenoted_pi V ρ _ _) (hT ρ hρ)).2.1⟩
       | succ i =>
         rw [show k + 1 - (i + 1) = k - i from by omega,
           List.drop_append_of_le_length (by omega), List.append_assoc,

@@ -1046,18 +1046,6 @@ theorem FieldsOkB_append_idxEq {w : Nat} {eqs : List (Term × Term)} :
     have := hE (a :: bs) ⟨ha, hsp⟩
     rwa [consList_cons] at this
 
-/-- A fit of an appended chain splits (the `SpineFit` twin of the
-Model tier's `spineFit_append_inv`, restated here below it). -/
-theorem spineFit_append_split :
-    ∀ {Ds₁ Ds₂ : List Term} {ρ : Nat → V} {as : List V},
-      SpineFit ρ (Ds₁ ++ Ds₂) as →
-      ∃ as₁ as₂, as = as₁ ++ as₂ ∧ SpineFit ρ Ds₁ as₁ ∧ SpineFit (consList as₁ ρ) Ds₂ as₂
-  | [], _, ρ, as, h => ⟨[], as, rfl, trivial, h⟩
-  | _ :: _, _, _, [], h => h.elim
-  | D :: Ds₁, Ds₂, ρ, a :: as, h => by
-    obtain ⟨as₁, as₂, rfl, h1, h2⟩ := spineFit_append_split (Ds₁ := Ds₁) h.2
-    exact ⟨a :: as₁, as₂, rfl, ⟨h.1, h1⟩, by rw [consList_cons]; exact h2⟩
-
 /-- A spine fits the restricted chain exactly when it is a fitting
 field spine followed by the point, with every equation holding at the
 fields. -/
@@ -1067,7 +1055,7 @@ theorem spineFit_append_idxEq {Fs : List Term} {eqs : List (Term × Term)}
       ∃ bs, as = bs ++ [pt] ∧ SpineFit ρ Fs bs ∧ EqAll (consList bs ρ) eqs := by
   constructor
   · intro h
-    obtain ⟨bs, cs, rfl, hsp, hE⟩ := spineFit_append_split h
+    obtain ⟨bs, cs, rfl, hsp, hE⟩ := spineFit_append_inv h
     match cs, hE with
     | [], hE => exact hE.elim
     | [c], hE =>
@@ -1209,6 +1197,15 @@ theorem rChains_getElem? (d nIdx : Nat) (Fss Ess : List (List Term)) (j : Nat) :
 index first. -/
 def frameIdx (nIdx : Nat) (σ : Nat → V) : List V :=
   (List.range nIdx).map fun l => σ (nIdx - 1 - l)
+
+omit [SetTheory V] in
+theorem frameIdx_eq_reverse_map (n : Nat) (σ : Nat → V) :
+    frameIdx n σ = (List.range n).reverse.map σ := by
+  apply List.ext_getElem
+  · simp [frameIdx]
+  · intro l h1 h2
+    simp only [frameIdx, List.getElem_map, List.getElem_reverse, List.getElem_range]
+    simp only [List.length_range]
 
 /-- A constructor's index tuple at a field spine, read at the
 parameter frame. -/
@@ -1527,7 +1524,7 @@ theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : Term} :
         ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b := by
       rw [hfib]
-      refine mkTower_mem_teleOfFields hw (spineFit_append_split_mpr hsp.2 ?_)
+      refine mkTower_mem_teleOfFields hw (spineFit_append_inv_mpr hsp.2 ?_)
       show SpineFit (consList bs (cons b ρp)) [E] [pt]
       exact ⟨hpt, trivial⟩
     show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app
@@ -1555,7 +1552,7 @@ theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : Term} :
       show Nat.max w w = w from Nat.max_self w, ite_eq_right hw]
     rfl
 where
-  spineFit_append_split_mpr {ρ : Nat → V} {Fs Gs : List Term} {as bs : List V}
+  spineFit_append_inv_mpr {ρ : Nat → V} {Fs Gs : List Term} {as bs : List V}
       (h1 : SpineFit ρ Fs as) (h2 : SpineFit (consList as ρ) Gs bs) :
       SpineFit ρ (Fs ++ Gs) (as ++ bs) := h1.append h2
 

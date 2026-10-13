@@ -294,7 +294,7 @@ theorem spineFit_prefix {ρ : Nat → V} {Ds : List Term} {as bs : List V}
   have hlen : (as ++ bs).length = Ds.length := h.length_eq
   have hsplit : Ds = Ds.take as.length ++ Ds.drop as.length := (List.take_append_drop _ _).symm
   rw [hsplit] at h
-  obtain ⟨as₁, as₂, heq, h1, -⟩ := spineFit_append_split h
+  obtain ⟨as₁, as₂, heq, h1, -⟩ := spineFit_append_inv h
   have hl₁ : as₁.length = as.length := by
     rw [h1.length_eq, List.length_take]
     rw [List.length_append] at hlen

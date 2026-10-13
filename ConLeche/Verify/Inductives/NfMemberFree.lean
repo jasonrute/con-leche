@@ -1181,7 +1181,7 @@ theorem nestCrest_occDeep {names : List Name} {us : List Level} {ds holes : List
 
 /-! ## Part 3: the formers' environment -/
 
-theorem piResult_of_stripPis_sort' :
+theorem piResult_of_stripPis_sort :
     ∀ (n : Nat) {e : Expr} {bs : List Expr} {s : Level},
       e.stripPis n = some (bs, .sort s) → e.piResult = .sort s
   | 0, e, bs, s, h => by
@@ -1195,7 +1195,7 @@ theorem piResult_of_stripPis_sort' :
       simp only [Prod.mk.injEq] at heq
       obtain ⟨-, rfl⟩ := heq
       show b.piResult = _
-      exact piResult_of_stripPis_sort' n hr
+      exact piResult_of_stripPis_sort n hr
     | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _
     | .letE _ _ _ | .proj _ _ _ => exact absurd h (by simp [Expr.stripPis])
 
@@ -1311,7 +1311,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     intro n hn
     obtain ⟨cvTb, hcv, rfl⟩ := (hnames n).mp hn
     obtain ⟨⟨caps, hf⟩, k, bs, s, hs⟩ := hfindM cvTb hcv
-    exact ⟨cvTb, caps, s, hf, piResult_of_stripPis_sort' k hs, hfresh cvTb hcv⟩
+    exact ⟨cvTb, caps, s, hf, piResult_of_stripPis_sort k hs, hfresh cvTb hcv⟩
   have hmemE : ∀ n ∈ names, env.find? n = none := fun n hn => by
     obtain ⟨-, -, -, -, -, h⟩ := hmem n hn
     exact h

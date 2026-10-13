@@ -2,6 +2,7 @@ module
 
 public import ConLeche.Verify.Fueled
 public import ConLeche.Kernel.CheckDecl
+import ConLeche.Verify.Extend.Inversions
 
 public section
 
@@ -76,14 +77,6 @@ variable {pins : List NatOpPinSet}
       match x.val F with
       | .ok true => pure ()
       | _ => (k none).val F := rfl
-
-/-- `fueledOps`' combinator, by definition (restated here for the
-`atF` battery; `ConLeche/Verify/Extend/Inversions.lean` has the same
-statement for its consumers). -/
-theorem fueledOps_orElse' (F : Nat) (x : CheckM Bool)
-    (k : Option CheckError → CheckM Unit) :
-    (fueledOps mode F).orElse x k =
-      match x with | .ok true => pure () | _ => k none := rfl
 
 /-! ## The WF-conditional fueled comparand
 
@@ -1029,7 +1022,7 @@ theorem checkDivModPinLoop_datF (env : Env) (c : Name) (value' : Expr)
   | ps :: rest, tried => by
     unfold checkDivModPinLoop
     split
-    · rw [fueledOpsM_orElse_atF, fueledOps_orElse', checkDivModPinAt_datF]
+    · rw [fueledOpsM_orElse_atF, fueledOps_orElse, checkDivModPinAt_datF]
       cases checkDivModPinAt (fueledOps mode F) env c value' ps with
       | ok b =>
         cases b with

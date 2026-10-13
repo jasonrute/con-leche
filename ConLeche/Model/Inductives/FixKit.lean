@@ -545,14 +545,6 @@ theorem mkAppN_wellDenoted_of_pt :
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps InductiveShape)
 
 
-omit [SetTheory V] in
-theorem frameIdx_eq_reverse_map (n : Nat) (σ : Nat → V) :
-    frameIdx n σ = (List.range n).reverse.map σ := by
-  apply List.ext_getElem
-  · simp [frameIdx]
-  · intro l h1 h2
-    simp only [frameIdx, List.getElem_map, List.getElem_reverse, List.getElem_range]
-    simp only [List.length_range]
 
 
 

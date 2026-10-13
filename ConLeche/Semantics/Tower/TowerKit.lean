@@ -134,6 +134,17 @@ theorem SpineFit.append :
   | _ :: Fs₁, _a :: as₁, _, _, _, h₁, h₂ =>
     ⟨h₁.1, SpineFit.append (Fs₁ := Fs₁) (as₁ := as₁) h₁.2 h₂⟩
 
+/-- A fit of an appended chain splits. -/
+theorem spineFit_append_inv :
+    ∀ {Ds₁ Ds₂ : List Term} {ρ : Nat → V} {as : List V},
+      SpineFit ρ (Ds₁ ++ Ds₂) as →
+      ∃ as₁ as₂, as = as₁ ++ as₂ ∧ SpineFit ρ Ds₁ as₁ ∧ SpineFit (consList as₁ ρ) Ds₂ as₂
+  | [], _, ρ, as, h => ⟨[], as, rfl, trivial, h⟩
+  | _ :: _, _, _, [], h => h.elim
+  | D :: Ds₁, Ds₂, ρ, a :: as, h => by
+    obtain ⟨as₁, as₂, rfl, h1, h2⟩ := spineFit_append_inv (Ds₁ := Ds₁) h.2
+    exact ⟨a :: as₁, as₂, rfl, ⟨h.1, h1⟩, by rw [consList_cons]; exact h2⟩
+
 theorem SpineFit.length_eq :
     ∀ {Fs : List Term} {ρ : Nat → V} {as : List V},
       SpineFit ρ Fs as → as.length = Fs.length

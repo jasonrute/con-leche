@@ -20,6 +20,7 @@ public import ConLeche.Verify.Denote.Inst
 import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Verify.Inductives.DirectGen
 import ConLeche.Verify.Denote.TeleOpen
+import ConLeche.Verify.Inductives.NfMemberFree
 
 public section
 
@@ -156,24 +157,6 @@ theorem Expr.readsAt_of_nestOcc {names : List Name} {lo hi : Nat} {env : Env}
       obtain ⟨h1, h2, h3, h4, h5⟩ := hstr hs
       exact ⟨h1, h2, h3, h4, h5, (hnat hn).1, (hnat hn).2⟩
   | _ => intro _; trivial
-
-theorem piResult_of_stripPis_sort :
-    ∀ (n : Nat) {e : Expr} {bs : List Expr} {s : Level},
-      e.stripPis n = some (bs, .sort s) → e.piResult = .sort s
-  | 0, e, bs, s, h => by
-    simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
-    rw [h.2]; rfl
-  | n + 1, e, bs, s, h => by
-    match e with
-    | .forallE ty b =>
-      simp only [Expr.stripPis, Option.map_eq_some_iff] at h
-      obtain ⟨⟨bs', r⟩, hr, heq⟩ := h
-      simp only [Prod.mk.injEq] at heq
-      obtain ⟨-, rfl⟩ := heq
-      show b.piResult = _
-      exact piResult_of_stripPis_sort n hr
-    | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _
-    | .letE _ _ _ | .proj _ _ _ => exact absurd h (by simp [Expr.stripPis])
 
 /-- **No literal-support constant a reading consults is a block member**
 (see the section docstring): the members are `indInfo`s of the block's

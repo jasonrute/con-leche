@@ -177,22 +177,13 @@ theorem IsTy_body_of_mkPisAV {R : Term} :
     rw [consList_cons]
     exact IsTy_body_of_mkPisAV (hok'.2.2.1 v hsp.1) (hok'.2.2.2 v hsp.1) hsp.2
 
-omit [SetTheory V] in
-private theorem frameIdx_eq_range_reverse (n : Nat) (σ : Nat → V) :
-    frameIdx n σ = (List.range n).reverse.map σ := by
-  apply List.ext_getElem
-  · simp [frameIdx]
-  · intro l h1 h2
-    simp only [frameIdx, List.getElem_map, List.getElem_reverse, List.getElem_range]
-    simp only [List.length_range]
-
 /-- The body of a closed graded Π-type is a type under every valuation
 satisfying the type's telescope. -/
 theorem IsTy_body_of_sat {R : Term} {ds : List Term} {σ : Nat → V}
     (hT : ∀ ρ : Nat → V, WellDenotedTy V ρ (mkPisAV ds R))
     (hsat : Sat V ((ds).reverse) σ) : IsTy (interp V σ R) := by
   have hsp := spineFit_of_sat (Ds := ds) (Δ₀ := []) (by simpa using hsat)
-  rw [← frameIdx_eq_range_reverse] at hsp
+  rw [← frameIdx_eq_reverse_map] at hsp
   have h := IsTy_body_of_mkPisAV (hT _).1 (hT _).2 hsp
   rwa [show (fun j => σ (j + (ds).length)) = shiftE (ds).length 0 σ from by
       funext j; simp [shiftE], consList_frameIdx] at h
