@@ -11,7 +11,6 @@ public import ConLeche.Semantics.LitParams
 public import ConLeche.Semantics.Sat
 public import ConLeche.Semantics.DefEqStep
 public import ConLeche.Semantics.LitStep
-public import ConLeche.Verify.Denote.ConstsBound
 public import ConLeche.Semantics.BasisType
 public import ConLeche.Semantics.Univ
 public import ConLeche.Semantics.BasisOk

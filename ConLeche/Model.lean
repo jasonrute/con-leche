@@ -139,16 +139,9 @@ public import ConLeche.Model.InstallRun
 public import ConLeche.Model.StreamConsts
 public import ConLeche.Semantics.Tower.TowerKit
 public import ConLeche.Verify.Denote
-public import ConLeche.Verify.Denote.Lemmas
-public import ConLeche.Verify.Denote.Depth
-public import ConLeche.Verify.Denote.Inst
-public import ConLeche.Verify.Denote.Closed
-public import ConLeche.Verify.Denote.AcvalCongr
-public import ConLeche.Verify.Denote.EnvExtend
 public import ConLeche.Model.Reading.Levels
 public import ConLeche.Model.Reading.LpDefF
 -- Modules named here so `lake build ConLecheModel` roots the whole tree.
-public import ConLeche.Verify.Denote.ErasedEq
 public import ConLeche.Model.AxiomMem
 public import ConLeche.Model.AxiomReduce
 public import ConLeche.Model.RecRulesCons

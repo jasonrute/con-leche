@@ -30,5 +30,13 @@ public import ConLeche.Verify.Inductives.GenRecRun
 public import ConLeche.Verify.Inductives.GenRecScoped
 public import ConLeche.Verify.Frontend.Dense
 public import ConLeche.Verify.Frontend.Rounds
+public import ConLeche.Verify.Denote.Lemmas
+public import ConLeche.Verify.Denote.Depth
+public import ConLeche.Verify.Denote.Inst
+public import ConLeche.Verify.Denote.Closed
+public import ConLeche.Verify.Denote.AcvalCongr
+public import ConLeche.Verify.Denote.EnvExtend
+public import ConLeche.Verify.Denote.ErasedEq
+public import ConLeche.Verify.Denote.ConstsBound
 
 @[expose] public section
