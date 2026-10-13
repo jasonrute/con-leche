@@ -5,7 +5,7 @@ public import ConLeche.Verify.Inductives.ReplaceApps
 public import ConLeche.Verify.Inductives.DirectGen
 import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Semantics.Tower.TowerKit
-public import ConLeche.Verify.Denote
+import ConLeche.Verify.Denote
 public section
 
 /-!

@@ -1,6 +1,5 @@
 module
 
-public import ConLeche.Term.Subst
 public import ConLeche.SetModel.Value
 
 @[expose] public section

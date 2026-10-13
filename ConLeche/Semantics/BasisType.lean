@@ -1,7 +1,5 @@
 module
 
-public import ConLeche.Term.Subst
-public import ConLeche.Term.Const
 public import ConLeche.Verify.Denote
 
 @[expose] public section

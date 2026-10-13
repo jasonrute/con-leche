@@ -1,6 +1,5 @@
 module
 
-import ConLeche.Semantics.Tower.TowerKit
 public import ConLeche.Semantics.Tower.TowerKit
 public import ConLeche.Verify.Denote.Shift
 public import ConLeche.SetModel.TaggedSum

@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Semantics.Tower.TowerKit
-public import ConLeche.Verify.Denote
+import ConLeche.Verify.Denote
 
 public section
 

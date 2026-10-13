@@ -1,8 +1,7 @@
 module
 
 import ConLeche.Verify.InstLevels
-public import ConLeche.Semantics.Tower.TowerKit
-public import ConLeche.Verify.Denote
+import ConLeche.Verify.Denote
 public import ConLeche.Model.Env.EnvModel
 
 public section

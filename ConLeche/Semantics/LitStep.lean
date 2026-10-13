@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Semantics.Tower.TowerKit
+public import ConLeche.Semantics.WellDenoted
 public import ConLeche.Verify.Denote
 
 @[expose] public section

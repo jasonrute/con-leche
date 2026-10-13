@@ -1,7 +1,6 @@
 module
 
 public import ConLeche.Semantics.Tower.TowerKit
-public import ConLeche.Verify.Denote
 public import ConLeche.Model.Env.EnvModel
 public import ConLeche.Semantics.Sat
 public import ConLeche.Verify.Shift

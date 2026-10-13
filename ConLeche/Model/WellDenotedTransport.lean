@@ -1,8 +1,6 @@
 module
 
 public import ConLeche.Model.Currency
-import ConLeche.Semantics.Tower.TowerKit
-import ConLeche.Verify.Denote.Shift
 public section
 
 /-!
