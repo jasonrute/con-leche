@@ -19,9 +19,8 @@ The congruence lemmas for the four syntactic *scope* predicates of
   those constants (at every level instantiation) give the same
   reading;
 * the level parameters it uses — `Expr.lparamsIn ps`: every
-  parameter in a sort, a constant's instantiation or a binder's
-  annotation is one of `ps`, so two valuations agreeing on `ps` give
-  the same reading;
+  parameter in a sort or a constant's instantiation is one of `ps`, so
+  two valuations agreeing on `ps` give the same reading;
 * the variables it uses — `Expr.usesVar i`, finer than the depth:
   two environments agreeing at every variable the term uses give the
   same reading.
@@ -71,24 +70,6 @@ theorem eval_congr {ps : List Name} {φ φ' : Name → Nat} (h : ∀ n ∈ ps, �
 
 end Level
 
-namespace PropWhen
-
-@[simp] theorem paramsIn_never (ps : List Name) : paramsIn ps never = true := rfl
-@[simp] theorem paramsIn_whenZero (ps : List Name) (qs : ParamSet) :
-    paramsIn ps (whenZero qs) = qs.list.all ps.contains := rfl
-
-/-- A datum's readout depends only on the valuation at its parameters. -/
-theorem holds_congr {ps : List Name} {φ φ' : Name → Nat} (h : ∀ n ∈ ps, φ n = φ' n) :
-    ∀ {pw : PropWhen}, paramsIn ps pw = true → holds pw φ = holds pw φ'
-  | never, _ => rfl
-  | whenZero qs, hq => by
-    simp only [paramsIn_whenZero, List.all_eq_true, List.contains_iff_mem] at hq
-    apply Bool.eq_iff_iff.mpr
-    simp only [holds, List.all_eq_true]
-    exact forall_congr' fun n => forall_congr' fun hn => by rw [h n (hq n hn)]
-
-end PropWhen
-
 namespace Expr
 
 /-! ## The four scope predicates -/
@@ -99,19 +80,23 @@ namespace Expr
     closedAt k (const c ls) = true := rfl
 @[simp] theorem closedAt_app (k : Nat) (f a : Expr) :
     closedAt k (app f a) = (closedAt k f && closedAt k a) := rfl
-@[simp] theorem closedAt_lam (k : Nat) (A : Expr) (pw : PropWhen) (b : Expr) :
-    closedAt k (lam A pw b) = (closedAt k A && closedAt (k + 1) b) := rfl
-@[simp] theorem closedAt_pi (k : Nat) (A : Expr) (pw : PropWhen) (B : Expr) :
-    closedAt k (pi A pw B) = (closedAt k A && closedAt (k + 1) B) := rfl
+@[simp] theorem closedAt_lam (k : Nat) (A : Expr) (b : Expr) :
+    closedAt k (lam A b) = (closedAt k A && closedAt (k + 1) b) := rfl
+@[simp] theorem closedAt_pi (k : Nat) (A : Expr) (B : Expr) :
+    closedAt k (pi A B) = (closedAt k A && closedAt (k + 1) B) := rfl
+@[simp] theorem closedAt_letE (k : Nat) (T v b : Expr) :
+    closedAt k (letE T v b) = (closedAt k T && closedAt k v && closedAt (k + 1) b) := rfl
 
 @[simp] theorem consts_bvar (i : Nat) : consts (bvar i) = [] := rfl
 @[simp] theorem consts_sort (u : Level) : consts (sort u) = [] := rfl
 @[simp] theorem consts_const (c : Name) (ls : List Level) : consts (const c ls) = [c] := rfl
 @[simp] theorem consts_app (f a : Expr) : consts (app f a) = consts f ++ consts a := rfl
-@[simp] theorem consts_lam (A : Expr) (pw : PropWhen) (b : Expr) :
-    consts (lam A pw b) = consts A ++ consts b := rfl
-@[simp] theorem consts_pi (A : Expr) (pw : PropWhen) (B : Expr) :
-    consts (pi A pw B) = consts A ++ consts B := rfl
+@[simp] theorem consts_lam (A : Expr) (b : Expr) :
+    consts (lam A b) = consts A ++ consts b := rfl
+@[simp] theorem consts_pi (A : Expr) (B : Expr) :
+    consts (pi A B) = consts A ++ consts B := rfl
+@[simp] theorem consts_letE (T v b : Expr) :
+    consts (letE T v b) = consts T ++ consts v ++ consts b := rfl
 
 @[simp] theorem lparamsIn_bvar (ps : List Name) (i : Nat) : lparamsIn ps (bvar i) = true := rfl
 @[simp] theorem lparamsIn_sort (ps : List Name) (u : Level) :
@@ -120,10 +105,12 @@ namespace Expr
     lparamsIn ps (const c ls) = ls.all (Level.paramsIn ps) := rfl
 @[simp] theorem lparamsIn_app (ps : List Name) (f a : Expr) :
     lparamsIn ps (app f a) = (lparamsIn ps f && lparamsIn ps a) := rfl
-@[simp] theorem lparamsIn_lam (ps : List Name) (A : Expr) (pw : PropWhen) (b : Expr) :
-    lparamsIn ps (lam A pw b) = (lparamsIn ps A && pw.paramsIn ps && lparamsIn ps b) := rfl
-@[simp] theorem lparamsIn_pi (ps : List Name) (A : Expr) (pw : PropWhen) (B : Expr) :
-    lparamsIn ps (pi A pw B) = (lparamsIn ps A && pw.paramsIn ps && lparamsIn ps B) := rfl
+@[simp] theorem lparamsIn_lam (ps : List Name) (A : Expr) (b : Expr) :
+    lparamsIn ps (lam A b) = (lparamsIn ps A && lparamsIn ps b) := rfl
+@[simp] theorem lparamsIn_pi (ps : List Name) (A : Expr) (B : Expr) :
+    lparamsIn ps (pi A B) = (lparamsIn ps A && lparamsIn ps B) := rfl
+@[simp] theorem lparamsIn_letE (ps : List Name) (T v b : Expr) :
+    lparamsIn ps (letE T v b) = (lparamsIn ps T && lparamsIn ps v && lparamsIn ps b) := rfl
 
 @[simp] theorem usesVar_bvar (i j : Nat) : usesVar i (bvar j) = decide (j = i) := rfl
 @[simp] theorem usesVar_sort (i : Nat) (u : Level) : usesVar i (sort u) = false := rfl
@@ -131,10 +118,12 @@ namespace Expr
     usesVar i (const c ls) = false := rfl
 @[simp] theorem usesVar_app (i : Nat) (f a : Expr) :
     usesVar i (app f a) = (usesVar i f || usesVar i a) := rfl
-@[simp] theorem usesVar_lam (i : Nat) (A : Expr) (pw : PropWhen) (b : Expr) :
-    usesVar i (lam A pw b) = (usesVar i A || usesVar (i + 1) b) := rfl
-@[simp] theorem usesVar_pi (i : Nat) (A : Expr) (pw : PropWhen) (B : Expr) :
-    usesVar i (pi A pw B) = (usesVar i A || usesVar (i + 1) B) := rfl
+@[simp] theorem usesVar_lam (i : Nat) (A : Expr) (b : Expr) :
+    usesVar i (lam A b) = (usesVar i A || usesVar (i + 1) b) := rfl
+@[simp] theorem usesVar_pi (i : Nat) (A : Expr) (B : Expr) :
+    usesVar i (pi A B) = (usesVar i A || usesVar (i + 1) B) := rfl
+@[simp] theorem usesVar_letE (i : Nat) (T v b : Expr) :
+    usesVar i (letE T v b) = (usesVar i T || usesVar i v || usesVar (i + 1) b) := rfl
 
 /-! ## Closure
 
@@ -152,12 +141,16 @@ theorem closedAt_mono {j k : Nat} (h : j ≤ k) :
   | app f a, he => by
     simp only [closedAt_app, Bool.and_eq_true] at he ⊢
     exact ⟨closedAt_mono h he.1, closedAt_mono h he.2⟩
-  | lam A _ b, he => by
+  | lam A b, he => by
     simp only [closedAt_lam, Bool.and_eq_true] at he ⊢
     exact ⟨closedAt_mono h he.1, closedAt_mono (Nat.succ_le_succ h) he.2⟩
-  | pi A _ B, he => by
+  | pi A B, he => by
     simp only [closedAt_pi, Bool.and_eq_true] at he ⊢
     exact ⟨closedAt_mono h he.1, closedAt_mono (Nat.succ_le_succ h) he.2⟩
+  | letE T v b, he => by
+    simp only [closedAt_letE, Bool.and_eq_true] at he ⊢
+    exact ⟨⟨closedAt_mono h he.1.1, closedAt_mono h he.1.2⟩,
+      closedAt_mono (Nat.succ_le_succ h) he.2⟩
 
 /-- Lifting by `n` (at any cut `k`) keeps a term closed, `n` binders
 higher. -/
@@ -171,14 +164,19 @@ theorem closedAt_liftN {n : Nat} :
   | app f a, k, j, he => by
     simp only [closedAt_app, Bool.and_eq_true, liftN_app] at he ⊢
     exact ⟨closedAt_liftN he.1, closedAt_liftN he.2⟩
-  | lam A _ b, k, j, he => by
+  | lam A b, k, j, he => by
     simp only [closedAt_lam, Bool.and_eq_true, liftN_lam] at he ⊢
     refine ⟨closedAt_liftN he.1, ?_⟩
     rw [Nat.add_right_comm]
     exact closedAt_liftN he.2
-  | pi A _ B, k, j, he => by
+  | pi A B, k, j, he => by
     simp only [closedAt_pi, Bool.and_eq_true, liftN_pi] at he ⊢
     refine ⟨closedAt_liftN he.1, ?_⟩
+    rw [Nat.add_right_comm]
+    exact closedAt_liftN he.2
+  | letE T v b, k, j, he => by
+    simp only [closedAt_letE, Bool.and_eq_true, liftN_letE] at he ⊢
+    refine ⟨⟨closedAt_liftN he.1.1, closedAt_liftN he.1.2⟩, ?_⟩
     rw [Nat.add_right_comm]
     exact closedAt_liftN he.2
 
@@ -189,8 +187,9 @@ theorem closedAt_instL {ps : List Name} {ls : List Level} :
   | _, sort _ => rfl
   | _, const _ _ => rfl
   | _, app _ _ => by simp only [instL_app, closedAt_app, closedAt_instL]
-  | _, lam _ _ _ => by simp only [instL_lam, closedAt_lam, closedAt_instL]
-  | _, pi _ _ _ => by simp only [instL_pi, closedAt_pi, closedAt_instL]
+  | _, lam _ _ => by simp only [instL_lam, closedAt_lam, closedAt_instL]
+  | _, pi _ _ => by simp only [instL_pi, closedAt_pi, closedAt_instL]
+  | _, letE _ _ _ => by simp only [instL_letE, closedAt_letE, closedAt_instL]
 
 /-- Lifting mentions the same constants. -/
 theorem consts_liftN (n : Nat) : ∀ (k : Nat) (e : Expr), consts (liftN n e k) = consts e
@@ -198,10 +197,12 @@ theorem consts_liftN (n : Nat) : ∀ (k : Nat) (e : Expr), consts (liftN n e k) 
   | _, sort _ => rfl
   | _, const _ _ => rfl
   | k, app f a => by simp only [liftN_app, consts_app, consts_liftN n k]
-  | k, lam A _ b => by
+  | k, lam A b => by
     simp only [liftN_lam, consts_lam, consts_liftN n k, consts_liftN n (k + 1)]
-  | k, pi A _ B => by
+  | k, pi A B => by
     simp only [liftN_pi, consts_pi, consts_liftN n k, consts_liftN n (k + 1)]
+  | k, letE T v b => by
+    simp only [liftN_letE, consts_letE, consts_liftN n k, consts_liftN n (k + 1)]
 
 /-- Level instantiation mentions the same constants. -/
 theorem consts_instL (ps : List Name) (ls : List Level) :
@@ -210,8 +211,9 @@ theorem consts_instL (ps : List Name) (ls : List Level) :
   | sort _ => rfl
   | const _ _ => rfl
   | app _ _ => by simp only [instL_app, consts_app, consts_instL ps ls]
-  | lam _ _ _ => by simp only [instL_lam, consts_lam, consts_instL ps ls]
-  | pi _ _ _ => by simp only [instL_pi, consts_pi, consts_instL ps ls]
+  | lam _ _ => by simp only [instL_lam, consts_lam, consts_instL ps ls]
+  | pi _ _ => by simp only [instL_pi, consts_pi, consts_instL ps ls]
+  | letE _ _ _ => by simp only [instL_letE, consts_letE, consts_instL ps ls]
 
 /-- An instance mentions only the constants of the term and of the
 substituted argument. -/
@@ -239,7 +241,7 @@ theorem consts_inst {a : Expr} :
     · rcases consts_inst hc with h | h
       · exact Or.inl (Or.inr h)
       · exact Or.inr h
-  | lam A _ b, k, c, hc => by
+  | lam A b, k, c, hc => by
     rw [inst_lam, consts_lam, List.mem_append] at hc
     rw [consts_lam, List.mem_append]
     rcases hc with hc | hc
@@ -249,7 +251,7 @@ theorem consts_inst {a : Expr} :
     · rcases consts_inst hc with h | h
       · exact Or.inl (Or.inr h)
       · exact Or.inr h
-  | pi A _ B, k, c, hc => by
+  | pi A B, k, c, hc => by
     rw [inst_pi, consts_pi, List.mem_append] at hc
     rw [consts_pi, List.mem_append]
     rcases hc with hc | hc
@@ -259,6 +261,69 @@ theorem consts_inst {a : Expr} :
     · rcases consts_inst hc with h | h
       · exact Or.inl (Or.inr h)
       · exact Or.inr h
+  | letE T v b, k, c, hc => by
+    rw [inst_letE, consts_letE, List.mem_append, List.mem_append] at hc
+    rw [consts_letE, List.mem_append, List.mem_append]
+    rcases hc with (hc | hc) | hc
+    · rcases consts_inst hc with h | h
+      · exact Or.inl (Or.inl (Or.inl h))
+      · exact Or.inr h
+    · rcases consts_inst hc with h | h
+      · exact Or.inl (Or.inl (Or.inr h))
+      · exact Or.inr h
+    · rcases consts_inst hc with h | h
+      · exact Or.inl (Or.inr h)
+      · exact Or.inr h
+
+/-- Instantiation keeps every constant of the term (task #342, F4: a
+`let` typed through its instantiated body mentions the body's). -/
+theorem consts_of_inst {a : Expr} :
+    ∀ {e : Expr} {k : Nat} {c : Name}, c ∈ consts e → c ∈ consts (inst e a k)
+  | bvar _, _, _, hc => by simp at hc
+  | sort _, _, _, hc => by simp at hc
+  | const _ _, _, _, hc => hc
+  | app f b, k, c, hc => by
+    simp only [consts_app, inst_app, List.mem_append] at hc ⊢
+    exact hc.imp consts_of_inst consts_of_inst
+  | lam A b, k, c, hc => by
+    simp only [consts_lam, inst_lam, List.mem_append] at hc ⊢
+    exact hc.imp consts_of_inst consts_of_inst
+  | pi A B, k, c, hc => by
+    simp only [consts_pi, inst_pi, List.mem_append] at hc ⊢
+    exact hc.imp consts_of_inst consts_of_inst
+  | letE T v b, k, c, hc => by
+    simp only [consts_letE, inst_letE, List.mem_append] at hc ⊢
+    exact hc.imp (fun h => h.imp consts_of_inst consts_of_inst) consts_of_inst
+
+/-- An instance closed below `n` at a cut `k ≤ n` comes from a term
+closed below `n + 1` (task #342, F4). -/
+theorem closedAt_of_inst {a : Expr} :
+    ∀ {e : Expr} {k n : Nat}, k ≤ n → closedAt n (inst e a k) = true →
+      closedAt (n + 1) e = true
+  | bvar i, k, n, hk, he => by
+    simp only [inst_bvar] at he
+    simp only [closedAt_bvar, decide_eq_true_eq]
+    by_cases h1 : i < k
+    · omega
+    · by_cases h2 : i = k
+      · omega
+      · rw [ite_eq_right h1, ite_eq_right h2, closedAt_bvar, decide_eq_true_eq] at he
+        omega
+  | sort _, _, _, _, _ => rfl
+  | const _ _, _, _, _, _ => rfl
+  | app f b, k, n, hk, he => by
+    simp only [inst_app, closedAt_app, Bool.and_eq_true] at he ⊢
+    exact ⟨closedAt_of_inst hk he.1, closedAt_of_inst hk he.2⟩
+  | lam A b, k, n, hk, he => by
+    simp only [inst_lam, closedAt_lam, Bool.and_eq_true] at he ⊢
+    exact ⟨closedAt_of_inst hk he.1, closedAt_of_inst (Nat.succ_le_succ hk) he.2⟩
+  | pi A B, k, n, hk, he => by
+    simp only [inst_pi, closedAt_pi, Bool.and_eq_true] at he ⊢
+    exact ⟨closedAt_of_inst hk he.1, closedAt_of_inst (Nat.succ_le_succ hk) he.2⟩
+  | letE T v b, k, n, hk, he => by
+    simp only [inst_letE, closedAt_letE, Bool.and_eq_true] at he ⊢
+    exact ⟨⟨closedAt_of_inst hk he.1.1, closedAt_of_inst hk he.1.2⟩,
+      closedAt_of_inst (Nat.succ_le_succ hk) he.2⟩
 
 /-- Lifting uses the same level parameters. -/
 theorem lparamsIn_liftN {ps : List Name} {n : Nat} :
@@ -267,8 +332,9 @@ theorem lparamsIn_liftN {ps : List Name} {n : Nat} :
   | _, sort _ => rfl
   | _, const _ _ => rfl
   | _, app _ _ => by simp only [liftN_app, lparamsIn_app, lparamsIn_liftN]
-  | _, lam _ _ _ => by simp only [liftN_lam, lparamsIn_lam, lparamsIn_liftN]
-  | _, pi _ _ _ => by simp only [liftN_pi, lparamsIn_pi, lparamsIn_liftN]
+  | _, lam _ _ => by simp only [liftN_lam, lparamsIn_lam, lparamsIn_liftN]
+  | _, pi _ _ => by simp only [liftN_pi, lparamsIn_pi, lparamsIn_liftN]
+  | _, letE _ _ _ => by simp only [liftN_letE, lparamsIn_letE, lparamsIn_liftN]
 
 /-- A lifted term uses a variable either below the cut, where the
 term used it as is, or above the cut and the shift, where the term
@@ -290,7 +356,7 @@ theorem usesVar_liftN {n : Nat} :
     · rcases usesVar_liftN h with ⟨hi, h⟩ | ⟨hi, h⟩
       · exact Or.inl ⟨hi, Or.inr h⟩
       · exact Or.inr ⟨hi, Or.inr h⟩
-  | lam A _ b, i, k, h => by
+  | lam A b, i, k, h => by
     simp only [liftN_lam, usesVar_lam, Bool.or_eq_true] at h ⊢
     rcases h with h | h
     · rcases usesVar_liftN h with ⟨hi, h⟩ | ⟨hi, h⟩
@@ -300,12 +366,25 @@ theorem usesVar_liftN {n : Nat} :
       · exact Or.inl ⟨by omega, Or.inr h⟩
       · rw [show i + 1 - n = i - n + 1 by omega] at h
         exact Or.inr ⟨by omega, Or.inr h⟩
-  | pi A _ B, i, k, h => by
+  | pi A B, i, k, h => by
     simp only [liftN_pi, usesVar_pi, Bool.or_eq_true] at h ⊢
     rcases h with h | h
     · rcases usesVar_liftN h with ⟨hi, h⟩ | ⟨hi, h⟩
       · exact Or.inl ⟨hi, Or.inl h⟩
       · exact Or.inr ⟨hi, Or.inl h⟩
+    · rcases usesVar_liftN h with ⟨hi, h⟩ | ⟨hi, h⟩
+      · exact Or.inl ⟨by omega, Or.inr h⟩
+      · rw [show i + 1 - n = i - n + 1 by omega] at h
+        exact Or.inr ⟨by omega, Or.inr h⟩
+  | letE T v b, i, k, h => by
+    simp only [liftN_letE, usesVar_letE, Bool.or_eq_true] at h ⊢
+    rcases h with (h | h) | h
+    · rcases usesVar_liftN h with ⟨hi, h⟩ | ⟨hi, h⟩
+      · exact Or.inl ⟨hi, Or.inl (Or.inl h)⟩
+      · exact Or.inr ⟨hi, Or.inl (Or.inl h)⟩
+    · rcases usesVar_liftN h with ⟨hi, h⟩ | ⟨hi, h⟩
+      · exact Or.inl ⟨hi, Or.inl (Or.inr h)⟩
+      · exact Or.inr ⟨hi, Or.inl (Or.inr h)⟩
     · rcases usesVar_liftN h with ⟨hi, h⟩ | ⟨hi, h⟩
       · exact Or.inl ⟨by omega, Or.inr h⟩
       · rw [show i + 1 - n = i - n + 1 by omega] at h
@@ -395,18 +474,22 @@ theorem interp_closedAt {k : Nat} {e : Expr} (he : e.closedAt k = true) {ρ ρ' 
   | app f a ihf iha =>
     simp only [Expr.closedAt_app, Bool.and_eq_true] at he
     simp only [interp_app, ihf he.1 h, iha he.2 h]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     simp only [Expr.closedAt_lam, Bool.and_eq_true] at he
     simp only [interp_lam, ihA he.1 h]
     congr 1
     funext x
     exact ihb he.2 (cons_congr_lt h x)
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     simp only [Expr.closedAt_pi, Bool.and_eq_true] at he
     simp only [interp_pi, ihA he.1 h]
     congr 1
     funext x
     exact ihB he.2 (cons_congr_lt h x)
+  | letE T v b _ ihv ihb =>
+    simp only [Expr.closedAt_letE, Bool.and_eq_true] at he
+    simp only [interp_letE, ihv he.1.2 h]
+    exact ihb he.2 (cons_congr_lt h _)
 
 /-- **Variables.**  The invariant of a term closed below `k` reads the
 environment below `k` only. -/
@@ -420,23 +503,27 @@ theorem WellDenoted_closedAt {k : Nat} {e : Expr} (he : e.closedAt k = true) {ρ
     simp only [Expr.closedAt_app, Bool.and_eq_true] at he
     rw [WellDenoted_app, WellDenoted_app, ihf he.1 h, iha he.2 h,
       interp_closedAt he.1 h, interp_closedAt he.2 h]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     simp only [Expr.closedAt_lam, Bool.and_eq_true] at he
     rw [WellDenoted_lam, WellDenoted_lam, ihA he.1 h, interp_closedAt he.1 h]
-    refine and_congr Iff.rfl (and_congr
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
       (exists_congr fun B => and_congr
-        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl))
+        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     · exact ihb he.2 (cons_congr_lt h x)
     · rw [interp_closedAt he.2 (cons_congr_lt h x)]
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     simp only [Expr.closedAt_pi, Bool.and_eq_true] at he
     rw [WellDenoted_pi, WellDenoted_pi, ihA he.1 h, interp_closedAt he.1 h]
-    refine and_congr Iff.rfl (and_congr
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
-      (imp_congr Iff.rfl (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+      (forall_congr' fun x => imp_congr Iff.rfl ?_)))
     · exact ihB he.2 (cons_congr_lt h x)
     · rw [interp_closedAt he.2 (cons_congr_lt h x)]
+  | letE T v b _ ihv ihb =>
+    simp only [Expr.closedAt_letE, Bool.and_eq_true] at he
+    rw [WellDenoted_letE, WellDenoted_letE, ihv he.1.2 h, interp_closedAt he.1.2 h,
+      ihb he.2 (cons_congr_lt h _)]
 
 /-- **Used variables.**  The interpretation reads the environment at
 the variables the term uses only. -/
@@ -449,18 +536,22 @@ theorem interp_usesVar {e : Expr} {ρ ρ' : Nat → V} (h : ∀ i, e.usesVar i =
   | app f a ihf iha =>
     simp only [Expr.usesVar_app, Bool.or_eq_true, or_imp, forall_and] at h
     simp only [interp_app, ihf h.1, iha h.2]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     simp only [Expr.usesVar_lam, Bool.or_eq_true, or_imp, forall_and] at h
     simp only [interp_lam, ihA h.1]
     congr 1
     funext x
     exact ihb (cons_congr_succ h.2 x)
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     simp only [Expr.usesVar_pi, Bool.or_eq_true, or_imp, forall_and] at h
     simp only [interp_pi, ihA h.1]
     congr 1
     funext x
     exact ihB (cons_congr_succ h.2 x)
+  | letE T v b _ ihv ihb =>
+    simp only [Expr.usesVar_letE, Bool.or_eq_true, or_imp, forall_and] at h
+    simp only [interp_letE, ihv h.1.2]
+    exact ihb (cons_congr_succ h.2 _)
 
 /-- **Used variables.**  The invariant reads the environment at the
 variables the term uses only. -/
@@ -475,23 +566,27 @@ theorem WellDenoted_usesVar {e : Expr} {ρ ρ' : Nat → V}
     simp only [Expr.usesVar_app, Bool.or_eq_true, or_imp, forall_and] at h
     rw [WellDenoted_app, WellDenoted_app, ihf h.1, iha h.2,
       interp_usesVar h.1, interp_usesVar h.2]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     simp only [Expr.usesVar_lam, Bool.or_eq_true, or_imp, forall_and] at h
     rw [WellDenoted_lam, WellDenoted_lam, ihA h.1, interp_usesVar h.1]
-    refine and_congr Iff.rfl (and_congr
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
       (exists_congr fun B => and_congr
-        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl))
+        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     · exact ihb (cons_congr_succ h.2 x)
     · rw [interp_usesVar (cons_congr_succ h.2 x)]
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     simp only [Expr.usesVar_pi, Bool.or_eq_true, or_imp, forall_and] at h
     rw [WellDenoted_pi, WellDenoted_pi, ihA h.1, interp_usesVar h.1]
-    refine and_congr Iff.rfl (and_congr
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
-      (imp_congr Iff.rfl (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+      (forall_congr' fun x => imp_congr Iff.rfl ?_)))
     · exact ihB (cons_congr_succ h.2 x)
     · rw [interp_usesVar (cons_congr_succ h.2 x)]
+  | letE T v b _ ihv ihb =>
+    simp only [Expr.usesVar_letE, Bool.or_eq_true, or_imp, forall_and] at h
+    rw [WellDenoted_letE, WellDenoted_letE, ihv h.1.2, interp_usesVar h.1.2,
+      ihb (cons_congr_succ h.2 _)]
 
 /-- **Constants.**  The interpretation reads the model at the
 constants the term mentions only. -/
@@ -506,18 +601,22 @@ theorem interp_consts {e : Expr} (h : ∀ c ∈ e.consts, ∀ ls, M c ls = M' c 
   | app f a ihf iha =>
     simp only [Expr.consts_app, List.mem_append, or_imp, forall_and] at h
     simp only [interp_app, ihf h.1, iha h.2]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     simp only [Expr.consts_lam, List.mem_append, or_imp, forall_and] at h
     simp only [interp_lam, ihA h.1]
     congr 1
     funext x
     exact ihb h.2
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     simp only [Expr.consts_pi, List.mem_append, or_imp, forall_and] at h
     simp only [interp_pi, ihA h.1]
     congr 1
     funext x
     exact ihB h.2
+  | letE T v b _ ihv ihb =>
+    simp only [Expr.consts_letE, List.mem_append, or_imp, forall_and] at h
+    simp only [interp_letE, ihv h.1.2]
+    exact ihb h.2
 
 /-- **Constants.**  The invariant reads the model at the constants the
 term mentions only. -/
@@ -531,23 +630,26 @@ theorem WellDenoted_consts {e : Expr} (h : ∀ c ∈ e.consts, ∀ ls, M c ls = 
     simp only [Expr.consts_app, List.mem_append, or_imp, forall_and] at h
     rw [WellDenoted_app, WellDenoted_app, ihf h.1, iha h.2,
       interp_consts h.1, interp_consts h.2]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     simp only [Expr.consts_lam, List.mem_append, or_imp, forall_and] at h
     rw [WellDenoted_lam, WellDenoted_lam, ihA h.1, interp_consts h.1]
-    refine and_congr Iff.rfl (and_congr
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
       (exists_congr fun B => and_congr
-        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl))
+        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     · exact ihb h.2
     · rw [interp_consts h.2]
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     simp only [Expr.consts_pi, List.mem_append, or_imp, forall_and] at h
     rw [WellDenoted_pi, WellDenoted_pi, ihA h.1, interp_consts h.1]
-    refine and_congr Iff.rfl (and_congr
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
-      (imp_congr Iff.rfl (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+      (forall_congr' fun x => imp_congr Iff.rfl ?_)))
     · exact ihB h.2
     · rw [interp_consts h.2]
+  | letE T v b _ ihv ihb =>
+    simp only [Expr.consts_letE, List.mem_append, or_imp, forall_and] at h
+    rw [WellDenoted_letE, WellDenoted_letE, ihv h.1.2, interp_consts h.1.2, ihb h.2]
 
 /-- **Level parameters.**  The interpretation reads the valuation at
 the parameters the term uses only. -/
@@ -566,18 +668,22 @@ theorem interp_lparams {ps : List Name} {e : Expr} (he : e.lparamsIn ps = true)
   | app f a ihf iha =>
     simp only [Expr.lparamsIn_app, Bool.and_eq_true] at he
     simp only [interp_app, ihf he.1, iha he.2]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     simp only [Expr.lparamsIn_lam, Bool.and_eq_true] at he
-    simp only [interp_lam, ihA he.1.1, PropWhen.holds_congr h he.1.2]
+    simp only [interp_lam, ihA he.1]
     congr 1
     funext x
     exact ihb he.2
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     simp only [Expr.lparamsIn_pi, Bool.and_eq_true] at he
-    simp only [interp_pi, ihA he.1.1, PropWhen.holds_congr h he.1.2]
+    simp only [interp_pi, ihA he.1]
     congr 1
     funext x
     exact ihB he.2
+  | letE T v b _ ihv ihb =>
+    simp only [Expr.lparamsIn_letE, Bool.and_eq_true] at he
+    simp only [interp_letE, ihv he.1.2]
+    exact ihb he.2
 
 /-- **Level parameters.**  The invariant reads the valuation at the
 parameters the term uses only. -/
@@ -592,24 +698,25 @@ theorem WellDenoted_lparams {ps : List Name} {e : Expr} (he : e.lparamsIn ps = t
     simp only [Expr.lparamsIn_app, Bool.and_eq_true] at he
     rw [WellDenoted_app, WellDenoted_app, ihf he.1, iha he.2,
       interp_lparams he.1 h, interp_lparams he.2 h]
-  | lam A pw b ihA ihb =>
+  | lam A b ihA ihb =>
     simp only [Expr.lparamsIn_lam, Bool.and_eq_true] at he
-    rw [WellDenoted_lam, WellDenoted_lam, ihA he.1.1, interp_lparams he.1.1 h,
-      PropWhen.holds_congr h he.1.2]
-    refine and_congr Iff.rfl (and_congr
+    rw [WellDenoted_lam, WellDenoted_lam, ihA he.1, interp_lparams he.1 h]
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
       (exists_congr fun B => and_congr
-        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl))
+        (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
     · exact ihb he.2
     · rw [interp_lparams he.2 h]
-  | pi A pw B ihA ihB =>
+  | pi A B ihA ihB =>
     simp only [Expr.lparamsIn_pi, Bool.and_eq_true] at he
-    rw [WellDenoted_pi, WellDenoted_pi, ihA he.1.1, interp_lparams he.1.1 h,
-      PropWhen.holds_congr h he.1.2]
-    refine and_congr Iff.rfl (and_congr
+    rw [WellDenoted_pi, WellDenoted_pi, ihA he.1, interp_lparams he.1 h]
+    refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
-      (imp_congr Iff.rfl (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+      (forall_congr' fun x => imp_congr Iff.rfl ?_)))
     · exact ihB he.2
     · rw [interp_lparams he.2 h]
+  | letE T v b _ ihv ihb =>
+    simp only [Expr.lparamsIn_letE, Bool.and_eq_true] at he
+    rw [WellDenoted_letE, WellDenoted_letE, ihv he.1.2, interp_lparams he.1.2 h, ihb he.2]
 
 end Fragment

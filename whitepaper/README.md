@@ -17,8 +17,8 @@ Output: `whitepaper/_build/con-leche-proof-idea.pdf` and `whitepaper/_build/con-
 
 ## Writing
 
-Read the usage comment at the top of [`lib.typ`](./lib.typ): `#ann[...]`
-for the one annotation colour (also inside math), `#rule(...)`,
+Read the usage comment at the top of [`lib.typ`](./lib.typ): `#tax[...]`
+for the one highlight colour, the checks other checkers skip (also inside math), `#rule(...)`,
 `#theorem[...]`/`#lemma[...]`/`#definition[...]`/`#proof[...]`,
 `#src("path", a, b)[the phrase]` for a source link — the phrase itself,
 dotted-underlined, is the link (label required; in HTML it shows the

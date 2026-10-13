@@ -23,7 +23,11 @@ The bridges between the **term-level** certificates the rules carry
   well-denoted when its values form a well-formed application chain
   (`WellDenoted_mkAppN_of_spineOk`), and a fit of values to a
   well-denoted telescope the head inhabits gives such a chain
-  (`spineOk_of_teleFitV`).
+  (`spineOk_of_teleFitV`);
+* walking a telescope along fitting values: the head applied to the
+  prefix lies in the residual (`mem_piBodyV`), the residual is
+  well-denoted (`WellDenoted_piBodyV`), and the last value meets the
+  residual's first binder (`teleFitV_snoc`).
 
 Environments built from value lists (`consList`) and the spine
 projections (`Expr.getAppFn`/`getAppArgs`) are the small vocabulary
@@ -198,7 +202,7 @@ omit [SetLib V] in
 theorem piBodyV_env : ∀ {ρ ρ' : Nat → V} {T B : Expr} {vs : List V},
     piBodyV ρ T vs = some (B, ρ') → ρ' = consList vs.reverse ρ
   | _, _, _, _, [], h => by simp [piBodyV] at h; exact h.2.symm
-  | ρ, ρ', .pi _ _ B₀, B, v :: vs, h => by
+  | ρ, ρ', .pi _ B₀, B, v :: vs, h => by
     simp only [piBodyV] at h
     rw [piBodyV_env h]
     simp [consList_append]
@@ -206,7 +210,7 @@ theorem piBodyV_env : ∀ {ρ ρ' : Nat → V} {T B : Expr} {vs : List V},
   | _, _, .sort _, _, _ :: _, h => by simp [piBodyV] at h
   | _, _, .const _ _, _, _ :: _, h => by simp [piBodyV] at h
   | _, _, .app _ _, _, _ :: _, h => by simp [piBodyV] at h
-  | _, _, .lam _ _ _, _, _ :: _, h => by simp [piBodyV] at h
+  | _, _, .lam _ _, _, _ :: _, h => by simp [piBodyV] at h
 
 /-- When the telescope walked under the instantiated environment
 leaves a body, the substituted telescope walked under the original
@@ -218,7 +222,7 @@ theorem piBodyV_inst (a : Expr) : ∀ (vs : List V) (e : Expr) (k : Nat) (ρ : N
   | [], e, k, ρ, B', ρ', h => by
     simp [piBodyV] at h
     exact ⟨ρ, by simp [piBodyV, h.1]⟩
-  | v :: vs, .pi A pw B, k, ρ, B', ρ', h => by
+  | v :: vs, .pi A B, k, ρ, B', ρ', h => by
     simp only [piBodyV] at h
     have h' : piBodyV (instE (k + 1) (interp M φ (shiftE (k + 1) 0 (cons v ρ)) a) (cons v ρ))
         B vs = some (B', ρ') := by
@@ -232,7 +236,7 @@ theorem piBodyV_inst (a : Expr) : ∀ (vs : List V) (e : Expr) (k : Nat) (ρ : N
   | _ :: _, .sort _, _, _, _, _, h => by simp [piBodyV] at h
   | _ :: _, .const _ _, _, _, _, _, h => by simp [piBodyV] at h
   | _ :: _, .app _ _, _, _, _, _, h => by simp [piBodyV] at h
-  | _ :: _, .lam _ _ _, _, _, _, _, h => by simp [piBodyV] at h
+  | _ :: _, .lam _ _, _, _, _, _, h => by simp [piBodyV] at h
 
 /-- **The residual is the substitution chain of the body**: walking a
 telescope along terms leaves the body the values leave, with the terms
@@ -246,7 +250,7 @@ theorem piResidual_of_piBodyV (ρ : Nat → V) :
     simp only [Expr.piResidual_nil, Option.some.injEq] at h1
     simp only [Option.some.injEq, Prod.mk.injEq] at h2
     rw [← h1, h2.1]; rfl
-  | a :: as, .pi A pw B₀, R, B, ρ', h1, h2 => by
+  | a :: as, .pi A B₀, R, B, ρ', h1, h2 => by
     rw [Expr.piResidual_pi_cons] at h1
     simp only [List.map_cons, piBodyV] at h2
     -- transport the value walk under `cons ⟦a⟧ ρ` to a walk of the substituted body under `ρ`
@@ -259,7 +263,7 @@ theorem piResidual_of_piBodyV (ρ : Nat → V) :
   | _ :: _, .sort _, _, _, _, h, _ => by simp [Expr.piResidual] at h
   | _ :: _, .const _ _, _, _, _, h, _ => by simp [Expr.piResidual] at h
   | _ :: _, .app _ _, _, _, _, h, _ => by simp [Expr.piResidual] at h
-  | _ :: _, .lam _ _ _, _, _, _, h, _ => by simp [Expr.piResidual] at h
+  | _ :: _, .lam _ _, _, _, _, h, _ => by simp [Expr.piResidual] at h
 
 /-! ## Fits -/
 
@@ -273,7 +277,7 @@ theorem teleFitV_inst (a : Expr) : ∀ (vs : List V) (e : Expr) (k : Nat) (ρ : 
     (TeleFitV M φ ρ (e.inst a k) vs ↔
       TeleFitV M φ (instE k (interp M φ (shiftE k 0 ρ) a) ρ) e vs)
   | [], _, _, _, _ => ⟨fun _ => TeleFitV_nil M φ _ _, fun _ => TeleFitV_nil M φ _ _⟩
-  | v :: vs, .pi A pw B, k, ρ, h => by
+  | v :: vs, .pi A B, k, ρ, h => by
     simp only [Expr.inst_pi, TeleFitV]
     rw [interp_inst, teleFitV_inst a vs B (k + 1) (cons v ρ) (by simpa using h),
       shiftE_succ_cons, cons_instE]
@@ -281,7 +285,7 @@ theorem teleFitV_inst (a : Expr) : ∀ (vs : List V) (e : Expr) (k : Nat) (ρ : 
   | _ :: _, .sort _, _, _, h => by simp [Expr.hasPis] at h
   | _ :: _, .const _ _, _, _, h => by simp [Expr.hasPis] at h
   | _ :: _, .app _ _, _, _, h => by simp [Expr.hasPis] at h
-  | _ :: _, .lam _ _ _, _, _, h => by simp [Expr.hasPis] at h
+  | _ :: _, .lam _ _, _, _, h => by simp [Expr.hasPis] at h
 
 /-- **Terms fit when their values do**, on a telescope with the
 spine's length of syntactic binders. -/
@@ -289,7 +293,7 @@ theorem teleFitV_of_teleFit (ρ : Nat → V) :
     ∀ {as : List Expr} {T : Expr}, T.hasPis as.length = true →
       TeleFit M φ ρ T as → TeleFitV M φ ρ T (as.map (interp M φ ρ))
   | [], _, _, _ => TeleFitV_nil M φ _ _
-  | a :: as, .pi A pw B, hp, h => by
+  | a :: as, .pi A B, hp, h => by
     obtain ⟨hmem, hfit⟩ := h
     refine ⟨hmem, ?_⟩
     have hp' : B.hasPis as.length = true := by simpa using hp
@@ -300,9 +304,25 @@ theorem teleFitV_of_teleFit (ρ : Nat → V) :
   | _ :: _, .sort _, _, h => h.elim
   | _ :: _, .const _ _, _, h => h.elim
   | _ :: _, .app _ _, _, h => h.elim
-  | _ :: _, .lam _ _ _, _, h => h.elim
+  | _ :: _, .lam _ _, _, h => h.elim
 
 /-! ## Application chains -/
+
+/-- The invariant of a spine gives the invariant of its head and of
+every argument. -/
+theorem WellDenoted_mkAppN {ρ : Nat → V} :
+    ∀ {f : Expr} {args : List Expr}, WellDenoted M φ ρ (Expr.mkAppN f args) →
+      WellDenoted M φ ρ f ∧ ∀ a ∈ args, WellDenoted M φ ρ a
+  | _, [], h => ⟨h, by simp⟩
+  | f, a :: args, h => by
+    rw [Expr.mkAppN_cons] at h
+    obtain ⟨h1, h2⟩ := WellDenoted_mkAppN h
+    rw [WellDenoted_app] at h1
+    refine ⟨h1.1, fun b hb => ?_⟩
+    rcases List.mem_cons.mp hb with rfl | hb
+    · exact h1.2.1
+    · exact h2 b hb
+
 
 /-- A spine is well-denoted when its head and arguments are and their
 values form a well-formed application chain. -/
@@ -311,11 +331,11 @@ theorem WellDenoted_mkAppN_of_spineOk (ρ : Nat → V) :
       SpineOk (interp M φ ρ f) (args.map (interp M φ ρ)) → WellDenoted M φ ρ (Expr.mkAppN f args)
   | _, [], hf, _, _ => hf
   | f, a :: args, hf, has, hok => by
-    obtain ⟨⟨p, A, B, hslot, hmem, hB⟩, hrest⟩ := hok
+    obtain ⟨⟨p, A, B, hslot, hmem, hB, hT⟩, hrest⟩ := hok
     rw [Expr.mkAppN_cons]
     refine WellDenoted_mkAppN_of_spineOk ρ ?_ (fun b hb => has b (List.mem_cons_of_mem a hb)) hrest
     rw [WellDenoted_app]
-    exact ⟨hf, has a List.mem_cons_self, p, A, B, hslot, hmem, hB⟩
+    exact ⟨hf, has a List.mem_cons_self, p, A, B, hslot, hmem, hB, hT⟩
 
 /-- Values fitting a well-denoted telescope the head inhabits form a
 well-formed application chain. -/
@@ -323,16 +343,83 @@ theorem spineOk_of_teleFitV :
     ∀ {vs : List V} {T : Expr} {ρ : Nat → V} {f : V}, WellDenoted M φ ρ T →
       f ∈ˢ interp M φ ρ T → TeleFitV M φ ρ T vs → SpineOk f vs
   | [], _, _, _, _, _, _ => by exact trivial
-  | v :: vs, .pi A pw B, ρ, f, hT, hf, hfit => by
+  | v :: vs, .pi A B, ρ, f, hT, hf, hfit => by
     obtain ⟨hmem, hfit'⟩ := hfit
     rw [WellDenoted_pi] at hT
     rw [interp_pi] at hf
-    refine ⟨⟨pw.holds φ, _, _, hf, hmem, hT.2.2⟩, ?_⟩
-    exact spineOk_of_teleFitV (hT.2.1 v hmem) (app_mem_piR hf hmem) hfit'
+    exact ⟨⟨_, _, _, hf, hmem, fun hp => propB_eq_true.mp hp, fun _ => hT.2.1⟩,
+      spineOk_of_teleFitV (hT.2.2.1 v hmem) (app_mem_piV hf hmem) hfit'⟩
   | _ :: _, .bvar _, _, _, _, _, h => h.elim
   | _ :: _, .sort _, _, _, _, _, h => h.elim
   | _ :: _, .const _ _, _, _, _, _, h => h.elim
   | _ :: _, .app _ _, _, _, _, _, h => h.elim
-  | _ :: _, .lam _ _ _, _, _, _, _, h => h.elim
+  | _ :: _, .lam _ _, _, _, _, _, h => h.elim
+
+/-! ## Walking a telescope along values -/
+
+/-- The head applied to a fitting prefix lies in the residual. -/
+theorem mem_piBodyV :
+    ∀ {vs : List V} {T B : Expr} {ρ ρ' : Nat → V} {f : V},
+      f ∈ˢ interp M φ ρ T → TeleFitV M φ ρ T vs → piBodyV ρ T vs = some (B, ρ') →
+      appList f vs ∈ˢ interp M φ ρ' B
+  | [], T, B, ρ, ρ', f, hf, _, h => by
+    simp only [piBodyV_nil, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact hf
+  | v :: vs, .pi A B₀, B, ρ, ρ', f, hf, hfit, h => by
+    obtain ⟨hv, hfit'⟩ := hfit
+    simp only [piBodyV] at h
+    rw [interp_pi] at hf
+    rw [appList_cons]
+    exact mem_piBodyV (app_mem_piV hf hv) hfit' h
+  | _ :: _, .bvar _, _, _, _, _, _, h, _ => h.elim
+  | _ :: _, .sort _, _, _, _, _, _, h, _ => h.elim
+  | _ :: _, .const _ _, _, _, _, _, _, h, _ => h.elim
+  | _ :: _, .app _ _, _, _, _, _, _, h, _ => h.elim
+  | _ :: _, .lam _ _, _, _, _, _, _, h, _ => h.elim
+
+/-- The residual of a well-denoted telescope walked along fitting values
+is well-denoted. -/
+theorem WellDenoted_piBodyV :
+    ∀ {vs : List V} {T B : Expr} {ρ ρ' : Nat → V},
+      WellDenoted M φ ρ T → TeleFitV M φ ρ T vs → piBodyV ρ T vs = some (B, ρ') → WellDenoted M φ ρ' B
+  | [], T, B, ρ, ρ', hT, _, h => by
+    simp only [piBodyV_nil, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact hT
+  | v :: vs, .pi A B₀, B, ρ, ρ', hT, hfit, h => by
+    obtain ⟨hv, hfit'⟩ := hfit
+    simp only [piBodyV] at h
+    rw [WellDenoted_pi] at hT
+    exact WellDenoted_piBodyV (hT.2.2.1 v hv) hfit' h
+  | _ :: _, .bvar _, _, _, _, _, h, _ => h.elim
+  | _ :: _, .sort _, _, _, _, _, h, _ => h.elim
+  | _ :: _, .const _ _, _, _, _, _, h, _ => h.elim
+  | _ :: _, .app _ _, _, _, _, _, h, _ => h.elim
+  | _ :: _, .lam _ _, _, _, _, _, h, _ => h.elim
+
+/-- A fit of a prefix and one more value: the prefix leaves a binder,
+whose domain the last value meets. -/
+theorem teleFitV_snoc :
+    ∀ {vs : List V} {v : V} {T : Expr} {ρ : Nat → V},
+      TeleFitV M φ ρ T (vs ++ [v]) →
+      ∃ (A : Expr) (B : Expr) (ρ' : Nat → V),
+        piBodyV ρ T vs = some (.pi A B, ρ') ∧ TeleFitV M φ ρ T vs ∧
+          v ∈ˢ interp M φ ρ' A
+  | [], v, .pi A B, ρ, h => ⟨A, B, ρ, by simp [piBodyV], TeleFitV_nil M φ _ _, h.1⟩
+  | w :: vs, v, .pi A₀ B₀, ρ, h => by
+    obtain ⟨hw, h'⟩ := h
+    obtain ⟨A, B, ρ', hb, hfit, hv⟩ := teleFitV_snoc h'
+    exact ⟨A, B, ρ', by simpa [piBodyV] using hb, ⟨hw, hfit⟩, hv⟩
+  | [], _, .bvar _, _, h => h.elim
+  | [], _, .sort _, _, h => h.elim
+  | [], _, .const _ _, _, h => h.elim
+  | [], _, .app _ _, _, h => h.elim
+  | [], _, .lam _ _, _, h => h.elim
+  | _ :: _, _, .bvar _, _, h => h.elim
+  | _ :: _, _, .sort _, _, h => h.elim
+  | _ :: _, _, .const _ _, _, h => h.elim
+  | _ :: _, _, .app _ _, _, h => h.elim
+  | _ :: _, _, .lam _ _, _, h => h.elim
 
 end Fragment

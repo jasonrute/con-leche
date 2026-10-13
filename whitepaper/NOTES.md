@@ -150,7 +150,7 @@ comment block at the top of `lib.typ`.
     a λ's domain only ever enters as the set its denotation is a graph
     over. The real proof already drops the premise at the io grade,
     so the full grade could too if Lean conformance were checked
-    elsewhere. The ∀ rule does read its sort premise: the product's
+    elsewhere. The ∀ rule does read its sort premise: the Π-type's
     level depends on it. (Fragment lane, stages 1–3; §2b lane.)
 
 11. **One `Sat` clause instead of a context predicate.** Defining
@@ -535,7 +535,7 @@ comment block at the top of `lib.typ`.
     container's set in the model at the class's arguments with that
     fibre in the nested position).  Monotonicity and accessibility
     of the operator then ask of that clause exactly what they ask of a
-    reflexive field's product: it grows with the fibre, and a value
+    reflexive field's function space: it grows with the fibre, and a value
     in it has a support in the fibre coded inside one set
     (`ContClause`: `mono`, `acc`; plus `mem_univ` for the operator to
     stay in the universe, and `inhab_one`, item 35).  The installation
@@ -641,3 +641,253 @@ comment block at the top of `lib.typ`.
     frame monotonicity (`HoleMono.lean`, `posD_mono`, `frameIter`)
     remains, as it serves the recursor.  (2026-10-03, updated
     2026-10-04.)
+
+38. **Uniform β is a model choice.**  A β that fires at every binder,
+    with no certificate and no comparison of the binder's annotation
+    with anything, is unsound in the fragment's model
+    (`Fragment/UniformBeta.lean`, `uniform_beta_unsound`): the stored
+    `c : Sort 1 := (λ (h : ∀ P : Prop, P). h) Prop` is ill-typed, but
+    its value denotes the point, a member of `Sort 1`, so `c` satisfies
+    the semantic environment invariant, and the typed, never
+    propositional `c` reduces by δ and a datum-blind β to `Prop`.  The
+    hypotheses hold for any choice of the point in a well-founded model
+    with transitive universes.  Interpreting `Sort (n+1)` by the strict
+    members of the universe (not the point, not containing it) excludes
+    `c` (`Uniform.badEnv_no_model`), and with an invariant that records
+    which sets are types (`WDU`) and claims conditional on the point, β
+    at every binder is sound (`Fragment/Uniform/`, `soundnessU`).  An
+    intermediate design (task #338) kept the annotation comparison and
+    passed a datum from the equality test to the head normaliser; it
+    is not pursued.  (2026-10-11.)
+
+39. **Uniform β with inductive types: the rules, not yet the
+    installation.**  `RedU` has the fragment's ι and nested ι, and they
+    are sound against value-level ι laws (`RecRuleLawU`,
+    `RecRuleLawNU`) whose comparisons are conditional on the point.
+    The major needs no β certificate even on a recursion over proofs
+    (`major_eq`): its binder domain is a type, so the major and its
+    reduct are both the point or neither is.  Not done: constructing
+    the models (`install_def`, `install_ind`, the nested installation)
+    in the restricted universes.  The mathematics found no obstacle —
+    a carrier's fibre is strict given one more law (the point's member
+    is not a constructor value), and the conditional comparisons become
+    equalities because the recursor's and the constructor's telescopes
+    are generated from one context, so both sides of each comparison
+    lie in one type.  The obstacle is the shape of the fragment: its
+    whole environment side reads terms by `interp`, whose sorts are the
+    universes, and produces `WellDenoted` and the unconditional
+    claims, so the restricted model needs either a parallel copy of it
+    or a fragment parametric in the sorts' denotation and in the typed
+    part of the invariant.  (2026-10-11.)
+
+40. **The fragment switched to the restricted model (task #340).**
+    Items 38–39 are now the fragment's only design, with no `Uniform/`
+    package: `interp` reads `Sort n` as `typeU n` (`Lib.lean`, with the
+    point's three laws and closure under separation in `SetLib`),
+    `WellDenoted` is the typed invariant (a definition by recursion,
+    the old inductive's constructors gone), `Sat` and `EnvModel.type_ok`
+    record that types are types, `Red` has one β rule with no premise,
+    the claims are conditional on the point (`Motive.lean`), and the ι
+    laws compare conditionally and are asked only off the point
+    (`RecRuleLaw`, `RecRuleLawN`).  `UniformBeta.lean` keeps the witness
+    `c` and proves it has no model (`badEnv_no_model`); the old
+    counterexample (`uniform_beta_unsound`, a model of `c` where
+    `Sort 1` is `univ 1`) cannot be stated without the old model and is
+    described in the file's prose and in item 38.  What the
+    installation needed beyond item 39's sketch:
+    * **One more law of the tagged values**: no tagged value is a member
+      of the point (`IndLib.tag_not_mem_pt`), so a set of tagged values
+      is strict and a fibre is a type (`Fam_mem_typeU`).
+    * **The one-fibre set is strict above a proposition**
+      (`oneSet`: `{pt}` at a proposition, `{tag 0 ∅}` above it), since a
+      model of the restricted universes can only let the former denote
+      a family of types.  The universe bound on the fields is read off
+      the checker's typing in the model whose former denotes the
+      one-fibre family, and transported to every family by the
+      replacement of item 32 (`toFam`, `domsBounded_of_fam`).
+    * **The class reads the container at admissible sets only**
+      (`adm`: at a proposition the set, above it the members neither the
+      point nor in it — a type, equal to the set on a set of tagged
+      values).  The container's set is a graph over its parameters,
+      whose nested domain is `Sort u`: applied outside it the graph says
+      nothing.  `classSet` applies it to the admissible part, the
+      class's parameter field ranges over it, readers record that their
+      family's fibres are admissible (`Reader.adm`), and the container's
+      universe bound at a non-admissible parameter set — which the
+      generic accessibility still quantifies over — follows from the
+      bound at the one-fibre set by positivity (`NestFacts.domsBoundedK`).
+    * **The class's arguments fit the container's parameters** are read
+      off the class's typing in the one-fibre model (`argsFit_of`),
+      not the final one: the final model's former needs its fibres to
+      be types, which needs the container's clause, which needs the
+      arguments to fit.
+    * **The conditional comparisons become equalities** by
+      `FitsVals_eq_of_cond`: the recursor's and the constructor's
+      parameters fit the same parameter context of types (the former's
+      typing), and the index values the same index context.
+    * **The minors' types are types**: the spine of a minor applied to
+      fields and hypotheses needs its binders' domains to be types,
+      read off the recursor's type (`wd_minorsFrom`, `wd_ctxFrom`).
+    The text (§2, §4, §7) still presents the certified design and its
+    line anchors into `Rules`, `WellDenoted`, `Univ`, `UniformBeta` and
+    `Uniform/` are stale; it needs: the model with `typeU` and the
+    point's laws, the typed invariant, one β rule and the conditional
+    claims as THE design in §2; in §4 the strict fibres, the one-fibre
+    set, `adm` and the cycle `argsFit`/`mIndN`; §7's uniform-β
+    paragraph turned into "why the universes are restricted"; and a
+    marked statement that con-leche's checker and its `Semantics` still
+    use the universes and the certified β until the port.  (2026-10-11.)
+
+41. **The annotations are not ghost data; two of the four reads go
+    (task #341).**  The checker's decisions that read a binder's
+    annotation are inference's check (`Infer.pi`, `Infer.lam`), and the
+    comparisons in `∀`-congruence, λ-congruence and η.  The λ and η
+    comparisons are gone: a λ whose annotation holds is the point, and
+    the claims are conditional on it (`DefEq.lam_sound`,
+    `DefEq.eta_sound`).  The `∀` comparison stays: over an empty domain
+    the two regimes are `{pt}` and a one-graph function space, and
+    `(h : ∀ P : Prop, P) → Prop` is well-denoted under both annotations
+    in every model (`Fragment/Ghost.lean`, `pi_datum_needed`,
+    `pi_congr_without_datum`).  A λ's annotation is not fixed by the
+    semantics either, only by its type (`lam_datum_free`,
+    `lam_datum_from_type`), so inference's check stays.  Ghost
+    annotations would need the two sides of a `∀`-congruence to have
+    bodies of the same sort, a syntactic theorem the semantic proof
+    does not need while the checker compares the data.  The text, if
+    it mentions the λ/η comparisons, should say they are not needed.
+    (2026-10-11.)
+
+42. **`∀`-congruence compares the two sides' types, not their
+    annotations (task #343).**  `DefEq.pi` no longer reads a binder
+    annotation: besides the domains and the bodies it infers both
+    sides' types, asks the left one to reduce to a sort and the right
+    one to be definitionally equal to it (`Fragment/Rules.lean`).  It is
+    sound because inside one sort the two regimes agree
+    (`SetLib.piR_eq_of_mem_typeU`): where the regimes differ the fibres
+    are both truth values and strict, hence empty; over an inhabited
+    domain both function spaces are then empty; over an empty domain the
+    propositional function space `{pt}` is in no `Sort (n+1)` and the function
+    space, which holds a graph, is in no `Sort 0`
+    (`pi_over_false_sorts`).  The only remaining reads of an annotation
+    are inference's honesty checks.  The sharp negative half
+    (`Fragment/Ghost.lean`): every claim under a context that binds a
+    proof of `∀ P : Prop, P` holds vacuously (`codomain_claims_vacuous`),
+    so no premise about the bodies — not even a comparison of the
+    codomains' inferred sorts — can stand in for the annotations; the
+    information has to come from a claim about the `∀`s themselves at
+    the outer context, and their type is the natural one.  For the
+    text: the rule is "typed conversion at `∀`", a check every
+    checker could make, and the annotation, where con-leche keeps it,
+    is a cache of the sort zero-ness that this check would read.
+    (2026-10-11.)
+
+43. **Terms carry no binder annotations; the model reads the regime
+    off the values (task #344).**  `PropWhen` is gone from the
+    fragment (`Syntax.lean`), and no rule reads or checks a binder
+    datum.  The interpretation (`Interp.lean`, `SetLib.piV`/`lamV`)
+    takes a function space to be propositional exactly when every fibre over
+    its domain is a truth value, and an abstraction to be the point
+    exactly when every body value is.  Over a nonempty domain this is
+    what an honest annotation said; over an EMPTY domain the values say
+    nothing, and the reading is fixed: the function space is `{pt}`, the
+    abstraction the point, whatever the body's sort.  Two consequences,
+    both forced (`Unannot.lean`):
+    * **`Sort (n+1)` holds the truth values** (`typeU (n+1)` is the
+      members of `univ (n+1)` that are types, `IsTy`): `False → Nat`
+      denotes `{pt}` (`piV_empty_not_strict`), so a term whose type
+      has a nonzero sort may now be the point (`fun h => h.elim`).
+      Item 40's "a member of a type of positive sort is never the point"
+      is lost; what the proof uses instead is what it used everywhere
+      else already: an inferred type is a type, whose members are all
+      the point or none (`IsTy.eq_of_ne_pt`), and the claims say
+      nothing of the point.  β never used the lost fact (a redex that is
+      not the point has a λ that is not, a graph); `∀`-congruence needs
+      only that domains and fibres are types, never the point; the
+      uniform-β witness `c : Sort 1` still has no model, because the
+      point is no type (`badEnv_no_model`).
+    * **λ-congruence and η compare their bodies' types**: the lost fact
+      was what made two λs' bodies agree on being the point at every
+      value of the variable (#341); a body may now be a proof at some
+      values and not at others (a large elimination into a family
+      whose fibres are `{pt}` at some indices), and without a common
+      type the rule is unsound (`lam_congr_untyped_unsound`: both
+      premises are checker derivations, the two λs well-denoted, not
+      the point, and different).  `∀`-congruence, in exchange, needs
+      no type premise (#343's is gone).
+    A different value reading would not avoid the first consequence:
+    over an empty domain the body is evaluated nowhere, so whether the
+    codomain is a proposition is a fact about the syntax (the inferred
+    sort), i.e. the annotation or a derivation; and reading an empty
+    Π-type as a function space by default makes `False → False : Prop`
+    denote `{empty graph}`, after which `∀ n : Nat, False → False` must
+    be either a truth value (then `app pt 3 = pt` is no member of the
+    fibre) or a set of graphs inside `Prop` (no impredicative `Prop`).
+    The derivation-driven reading (approach A) and the annotate-pass
+    simulation (approach B) both need the regime of a binder inside a
+    reduct to be the one a derivation of the reduct gives — subject
+    reduction for a β that checks nothing; the semantic proof needs
+    none of that.  The environment side followed with local changes:
+    a reflexive field ranges over the admissible part of the family's
+    fibre under its telescope (`reflBody`), the recursor into `Prop` is
+    the point, the readings of the former's applications ask them not
+    to be the point (types are not), and the constructor and class
+    checks ask a sort, which the real checker does.  (2026-10-11.)
+
+44. **ι's soundness as three laws of the environment, not a
+    certificate walk.**  In the fragment the recursor's spine needs no
+    certificate at all: a redex that is not the point fits the
+    recursor's telescope by the semantic invariant's application slots
+    and domain uniqueness (`Sound.lean`, `teleFit_of_ne_pt`).  What is
+    left is stated once, as fields of the environment's model, and
+    proved where the constants are created: the fibre law
+    (`EnvModel.ind_fib`, a stored family's fibres are truth values or
+    strict sets as its stored sort says), the slot law
+    (`rec_rules_slot`) and the K law (`rec_rules_k`).  The real proof's
+    ι soundness (`Model/Rules/IotaSound.lean`, `CertsSound.lean`) reads
+    a `Certs` walk over the whole spine; with the three laws in the
+    real carrier invariant (`EnvModelM`) the walk
+    shrinks to the constructor's arguments in one case, and the
+    per-redex case split becomes a level test on the stored sort.
+    (2026-10-12.)
+
+45. **The K law needs neither `Prop` nor the elimination level.**  The
+    installer's proof of the K law (`InstallIota.lean`,
+    `rec_rule_lawK`) is inversion of the least fixed point at the
+    recursor's own parameters, and holds for every block with one
+    constructor and no fields.  The real proof can state K's law for
+    that shape and keep "is `Prop`" as the checker's flag only, for
+    fidelity with Lean; the K rule's soundness then reads no sort.
+    And for a structure without fields the step through the
+    projections and K's step have the same reduct
+    (`EtaIota.lean`, `iotaEta_noFields`, `recRuleLawK_of_eta`), so
+    one law can serve both.  (2026-10-12.)
+
+46. **λ-telescopes as their own relation.**  `DefEqLams`
+    (`Rules.lean`) compares two λ-telescopes level by level and types
+    only the innermost bodies; its claim is unconditional
+    (`LamsSem`), which is why the outer levels need no type
+    (`Sound.lean`, `DefEqLams.outer_sound`).  The real relation's
+    λ rule (`Rules/Rel.lean`) works per λ; a telescope relation of
+    this shape would make the checker's "skip when both bodies are
+    λs" a rule instead of a bridge lemma, and its soundness two cases.
+    (2026-10-12.)
+
+47. **`let` by substitution: the value's checks are verdicts, not
+    proof obligations.**  With the body inferred at the value itself
+    (`Infer.letE`), the soundness of `let` is the substituted body's
+    claim plus `interp_zeta`; the checks of the value against its type
+    are not consumed (`Infer.letE_sound`), and the cheaper grade skips
+    them (`InferIO.letE`).  The real proof's `let` rules can likewise
+    carry the value premises as checker facts the soundness induction
+    ignores, and its contexts need no entries bound to values.
+    (2026-10-12.)
+
+48. **The cheaper grade as a separate relation.**  The fragment states
+    the cheaper grade as its own relation `InferIO` with its own claim
+    (`IOGrade.lean`: the hereditary `IORel`, keyed on the type's
+    syntax), and its consumers as separate theorems.  The real proof
+    carries a grade index on one inference relation, so every
+    soundness case is stated for both grades.  Splitting the grades
+    would let the full grade's claim stay the plain membership of
+    `InferSem` and keep the hereditary claim to the rules that use it.
+    (2026-10-12.)

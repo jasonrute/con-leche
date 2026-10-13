@@ -1,7 +1,6 @@
 module
 
 public import Fragment.Level
-public import Fragment.PropWhen
 public import Fragment.Syntax
 public import Fragment.Spec
 public import Fragment.Env
@@ -45,5 +44,11 @@ public import Fragment.NestIota
 public import Fragment.NestInstall
 public import Fragment.Motive
 public import Fragment.Sound
+public import Fragment.UniformBeta
+public import Fragment.Unannot
+public import Fragment.Probe
+public import Fragment.EtaIota
+public import Fragment.IOGrade
+public import Fragment.IOWitness
 public import Fragment.Consistency
 public import Fragment.Axioms

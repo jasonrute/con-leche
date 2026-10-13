@@ -94,8 +94,8 @@ theorem length_ruleCtxN (N : NestInfo) (c : CtorSpec) :
 
 /-- An entry of the inductive hypotheses' context under `o` binders is
 a hypothesis' type at a recursive position. -/
-theorem mem_ihCtxAt {c : CtorSpec} {o : Nat} {A : Expr} (h : A ∈ S.ihCtxAt c o) :
-    ∃ kf ∈ c.recFields, ∃ l, A = S.ihTy c.fields.length kf.1 l o kf.2 := by
+theorem mem_ihCtxAt {c : CtorSpec} {o : Nat} {A : Expr} (h : A ∈ IndSpec.ihCtxAt c o) :
+    ∃ kf ∈ c.recFields, ∃ l, A = IndSpec.ihTy c.fields.length kf.1 l o kf.2 := by
   rw [ihCtxAt, List.mem_reverse, List.mem_mapIdx] at h
   obtain ⟨l, hl, rfl⟩ := h
   exact ⟨_, List.getElem_mem hl, l, rfl⟩
@@ -124,7 +124,7 @@ theorem mem_minorsCtxK (N : NestInfo) {A : Expr} (h : A ∈ S.minorsCtxK N) :
 
 /-- A rule of `T.rec` is one of the block's constructors'. -/
 theorem mem_rulesN (N : NestInfo) {rl : RecRule} (h : rl ∈ S.rulesN N) :
-    ∃ j c, S.ctors[j]? = some c ∧ rl = ⟨c.name, c.fields.length, S.ruleRhsN N c j, none⟩ := by
+    ∃ j c, S.ctors[j]? = some c ∧ rl = ⟨c.name, c.fields.length, S.ruleRhsN N c j, none, false⟩ := by
   rw [rulesN, List.mem_map] at h
   obtain ⟨j, hj, rfl⟩ := h
   rw [List.mem_range] at hj
@@ -136,7 +136,7 @@ theorem mem_rulesN (N : NestInfo) {rl : RecRule} (h : rl ∈ S.rulesN N) :
 its stored instantiation. -/
 theorem mem_rules1 (N : NestInfo) {rl : RecRule} (h : rl ∈ S.rules1 N) :
     ∃ j c, N.K.ctors[j]? = some c ∧
-      rl = ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0)⟩ := by
+      rl = ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0), false⟩ := by
   rw [rules1, List.mem_map] at h
   obtain ⟨j, hj, rfl⟩ := h
   rw [List.mem_range] at hj
@@ -250,9 +250,9 @@ theorem lparamsIn_fieldCtxAt_classCtor (hS : S.Scoped env) {N : NestInfo} (hN : 
 recursor's level parameters, when the recursive positions are in
 scope. -/
 theorem lparamsIn_ihCtxAt {c : CtorSpec} (hrf : ∀ kf ∈ c.recFields, S.fieldScoped env kf.1 kf.2)
-    (o : Nat) : ∀ A ∈ S.ihCtxAt c o, A.lparamsIn S.recLparams = true := by
+    (o : Nat) : ∀ A ∈ IndSpec.ihCtxAt c o, A.lparamsIn S.recLparams = true := by
   intro A hA
-  obtain ⟨kf, hkf, l, rfl⟩ := S.mem_ihCtxAt hA
+  obtain ⟨kf, hkf, l, rfl⟩ := IndSpec.mem_ihCtxAt hA
   exact S.lparamsIn_ihTy (hrf kf hkf) _ _ _ _
 
 /-- A minor premise of one of the block's constructors (nested block)
@@ -261,7 +261,7 @@ theorem lparamsIn_minorTyN (hS : S.Scoped env) {c : CtorSpec} (hc : c ∈ S.ctor
     (S.minorTyN c j).lparamsIn S.recLparams = true := by
   have hR := S.lparams_sub_recLparams
   simp only [minorTyN]
-  refine Expr.lparamsIn_mkPis S.q_paramsIn (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · rcases List.mem_append.mp hA with hA | hA
     · exact S.lparamsIn_ihCtxAt (fun kf hkf => (S.fieldScoped_of_mem_recFields hS hc hkf).1) _ A hA
     · exact Expr.lparamsIn_mono hR (S.lparamsIn_fieldCtxAt hS hc _ A hA)
@@ -288,7 +288,7 @@ theorem lparamsIn_minorTyK (hS : S.Scoped env) {N : NestInfo} (hN : S.nest = som
   have hR := S.lparams_sub_recLparams
   have hNS := hS.2.2.2.2.2.2 N hN
   simp only [minorTyK]
-  refine Expr.lparamsIn_mkPis S.q_paramsIn (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · rcases List.mem_append.mp hA with hA | hA
     · exact S.lparamsIn_ihCtxAt (fun kf hkf => (S.classCtor_recField_scoped hS hN hc hkf).1) _ A hA
     · exact Expr.lparamsIn_mono hR (S.lparamsIn_fieldCtxAt_classCtor hS hN hc _ A hA)
@@ -306,7 +306,7 @@ theorem lparamsIn_minorTyK (hS : S.Scoped env) {N : NestInfo} (hN : S.nest = som
 theorem lparamsIn_motiveTy1 (hS : S.Scoped env) {N : NestInfo} (hN : S.nest = some N) :
     (S.motiveTy1 N).lparamsIn S.recLparams = true := by
   unfold motiveTy1
-  refine Expr.lparamsIn_mkPis rfl (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · rw [List.mem_singleton] at hA
     subst hA
     exact Expr.lparamsIn_mono S.lparams_sub_recLparams (S.lparamsIn_classTy hS hN 1)
@@ -331,7 +331,7 @@ theorem lparamsIn_recTypeN (hS : S.Scoped env) {N : NestInfo} (hN : S.nest = som
     (S.recTypeN N).lparamsIn S.recLparams = true := by
   have hR := S.lparams_sub_recLparams
   unfold recTypeN recCtxN
-  refine Expr.lparamsIn_mkPis S.q_paramsIn (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · simp only [List.mem_cons, List.mem_append] at hA
     rcases hA with ((rfl | hA) | hA) | hA
     · exact Expr.lparamsIn_mono hR (S.lparamsIn_famVars _)
@@ -350,7 +350,7 @@ theorem lparamsIn_rec1Type (hS : S.Scoped env) {N : NestInfo} (hN : S.nest = som
     (S.rec1Type N).lparamsIn S.recLparams = true := by
   have hR := S.lparams_sub_recLparams
   unfold rec1Type rec1Ctx
-  refine Expr.lparamsIn_mkPis S.q_paramsIn (fun A hA => ?_) ?_
+  refine Expr.lparamsIn_mkPis (fun A hA => ?_) ?_
   · simp only [List.mem_cons, List.mem_append] at hA
     rcases hA with (rfl | hA) | hA
     · exact Expr.lparamsIn_mono hR (S.lparamsIn_classTy hS hN _)
@@ -391,7 +391,7 @@ theorem lparamsIn_ihValN (N : NestInfo) {k : Nat} {f : Field} (hf : S.fieldScope
     · rfl
   | reflexive tele es =>
     simp only [ihValN]
-    refine Expr.lparamsIn_mkLams S.q_paramsIn (fun T hT => ?_) ?_
+    refine Expr.lparamsIn_mkLams (fun T hT => ?_) ?_
     · obtain ⟨t, T', ht, rfl⟩ := Expr.mem_liftCtx hT
       rw [Expr.lparamsIn_atCtx]
       exact Expr.lparamsIn_mono hR (hf.1 t T' ht).2.2
@@ -411,11 +411,11 @@ theorem lparamsIn_ruleLamN (hS : S.Scoped env) {N : NestInfo} (hN : S.nest = som
     {c : CtorSpec} (i : Nat)
     (hfc : ∀ A ∈ S.fieldCtxAt c (S.oN N), A.lparamsIn S.lparams = true)
     (hrf : ∀ kf ∈ c.recFields, S.fieldScoped env kf.1 kf.2) :
-    (Expr.mkLams S.q (S.ruleCtxN N c)
+    (Expr.mkLams (S.ruleCtxN N c)
       (Expr.mkAppN (.bvar i) (Expr.varsAt 0 c.fields.length ++
         c.recFields.map fun kf => S.ihValN N c.fields.length kf.1 kf.2))).lparamsIn
       S.recLparams = true := by
-  refine Expr.lparamsIn_mkLams S.q_paramsIn (S.lparamsIn_ruleCtxN hS hN hfc) ?_
+  refine Expr.lparamsIn_mkLams (S.lparamsIn_ruleCtxN hS hN hfc) ?_
   refine Expr.lparamsIn_mkAppN rfl fun a ha => ?_
   rcases List.mem_append.mp ha with ha | ha
   · exact Expr.lparamsIn_varsAt _ _ _ a ha
@@ -482,7 +482,7 @@ theorem closedAt_ihValN (N : NestInfo) {k : Nat} {f : Field} (hf : S.fieldScoped
 /-- A nested rule type's context is closed, the type having been
 inferred in the empty context. -/
 theorem ctxClosedAt_ruleCtxN [LevelOracle] {env' : Env} {N : NestInfo} {c : CtorSpec} {b T : Expr}
-    (hT : Infer env' [] (Expr.mkPis S.q (S.ruleCtxN N c) b) T) :
+    (hT : Infer env' [] (Expr.mkPis (S.ruleCtxN N c) b) T) :
     Expr.CtxClosedAt 0 (S.ruleCtxN N c) :=
   (Expr.closedAt_mkPis_iff.mp (Infer.closedAt hT)).1
 
@@ -493,7 +493,7 @@ theorem closedAt_ruleLamN (N : NestInfo) {c : CtorSpec} {i : Nat}
     (hi : i < c.fields.length + S.oN N + S.nP)
     (hrf : ∀ kf ∈ c.recFields, S.fieldScoped env kf.1 kf.2 ∧ kf.1 < c.fields.length)
     (hctx : Expr.CtxClosedAt 0 (S.ruleCtxN N c)) :
-    (Expr.mkLams S.q (S.ruleCtxN N c)
+    (Expr.mkLams (S.ruleCtxN N c)
       (Expr.mkAppN (.bvar i) (Expr.varsAt 0 c.fields.length ++
         c.recFields.map fun kf => S.ihValN N c.fields.length kf.1 kf.2))).closedAt 0 = true := by
   refine Expr.closedAt_mkLams hctx ?_
@@ -571,7 +571,7 @@ theorem consts_ihValN (N : NestInfo) (env : Env)
   | reflexive tele es =>
     intro d hd
     simp only [ihValN] at hd
-    rcases Expr.consts_mkLams _ _ _ d hd with hd | ⟨T, hT, hd⟩
+    rcases Expr.consts_mkLams _ _ d hd with hd | ⟨T, hT, hd⟩
     · rw [Expr.consts_mkAppN, List.mem_append, List.mem_flatMap] at hd
       rcases hd with hd | ⟨a, ha, hd⟩
       · exact hrec d hd
@@ -596,13 +596,13 @@ the specification's. -/
 theorem consts_ruleLamN [LevelOracle] (N : NestInfo) (env : Env)
     (hfresh : ∀ m ∈ S.name :: S.recName :: N.aux :: S.ctors.map (·.name), env.find? m = none)
     {c : CtorSpec} (i : Nat) (hrf : ∀ kf ∈ c.recFields, S.fieldScoped env kf.1 kf.2)
-    {b T : Expr} (hT : Infer (S.envCtors env) [] (Expr.mkPis S.q (S.ruleCtxN N c) b) T) :
-    ∀ d ∈ (Expr.mkLams S.q (S.ruleCtxN N c)
+    {b T : Expr} (hT : Infer (S.envCtors env) [] (Expr.mkPis (S.ruleCtxN N c) b) T) :
+    ∀ d ∈ (Expr.mkLams (S.ruleCtxN N c)
       (Expr.mkAppN (.bvar i) (Expr.varsAt 0 c.fields.length ++
         c.recFields.map fun kf => S.ihValN N c.fields.length kf.1 kf.2))).consts,
       ((S.installN N env).find? d).isSome := by
   intro d hd
-  rcases Expr.consts_mkLams _ _ _ d hd with hd | ⟨A, hA, hd⟩
+  rcases Expr.consts_mkLams _ _ d hd with hd | ⟨A, hA, hd⟩
   · rw [Expr.consts_mkAppN, List.mem_append, List.mem_flatMap] at hd
     rcases hd with hd | ⟨a, ha, hd⟩
     · simp at hd
@@ -610,7 +610,7 @@ theorem consts_ruleLamN [LevelOracle] (N : NestInfo) (env : Env)
       · rw [Expr.consts_varsAt _ _ a ha] at hd; simp at hd
       · obtain ⟨kf, hkf, rfl⟩ := List.mem_map.mp ha
         exact S.consts_ihValN N env hfresh (hrf kf hkf) _ _ d hd
-  · exact S.isSome_find?_installN N env (Infer.consts hT d (Expr.consts_mkPis_of _ _ _ hA hd))
+  · exact S.isSome_find?_installN N env (Infer.consts hT d (Expr.consts_mkPis_of _ _ hA hd))
 
 /-- **A `T.rec` rule's right-hand side mentions only stored
 constants.** -/
@@ -674,7 +674,7 @@ theorem _root_.Fragment.Env.Scoped.installN [LevelOracle] {env : Env} {S : IndSp
         rw [← h]
         exact List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_map_of_mem hc)))
     · intro c hc
-      obtain ⟨T, hT⟩ := (hctors c hc).1
+      obtain ⟨T, -, hT, -⟩ := (hctors c hc).1
       exact ⟨Infer.closedAt hT, Infer.consts hT, S.lparamsIn_ctorType hS hc⟩
   -- The two recursors' types, in scope of the installed environment.
   have hty_rec : Expr.Scoped (S.installN N env) S.recLparams 0 (S.recTypeN N) :=

@@ -12,15 +12,17 @@
 // itself: in the PDF after the note, in the HTML as a sticky sidebar
 // (`style.css` `.page`/`.toc`, `toc.js`); main.typ has no `#outline`.
 //
-//   #ann[...]          THE annotation colour (blue-violet `ann-color`,
-//                      #5b3fd6 — chosen to stay a legible dark grey on a
-//                      greyscale printer; the HTML lightens it in dark
-//                      mode).  Works in prose (`#ann[a proposition]`),
-//                      inside math (`$lambda x : ann(p w). b$`), in rule
-//                      premises and in grammars, and with a nested
-//                      equation as the body (`ann(PW)` for `PW = $…$`).
-//                      Colour is the ONLY change: a reader who ignores it
-//                      sees Lean as it is.
+//   #tax[...]          THE certification-tax colour (blue-violet
+//                      `tax-color`, #5b3fd6 — chosen to stay a legible
+//                      dark grey on a greyscale printer; the HTML lightens
+//                      it in dark mode).  It marks the checks con-leche
+//                      makes that the official kernel does not (the
+//                      paper's "certification tax").  Works in prose
+//                      (`#tax[a check]`), inside math (`$tax(x equiv y)$`),
+//                      as a rule premise (`rule(tax($…$), …)`), and with a
+//                      nested equation as the body.  Colour is the ONLY
+//                      change: a reader who ignores it sees the official
+//                      kernel's rule.
 //
 //   #rule(name: "β", $premise 1$, $premise 2$, $conclusion$)
 //                      an inference rule.  The LAST positional argument is
@@ -36,7 +38,7 @@
 //                                with a tombstone.  `@lbl` renders
 //                                "Theorem 3", "Lemma 4", ….
 //
-//   #src("ConLeche/Kernel/PropWhen.lean", 12, 40)[the datum]
+//   #src("ConLeche/Kernel/Level.lean", 12, 40)[the levels]
 //                      a source link.  The LABEL IS THE LINK (required,
 //                      non-empty: the natural phrase of the sentence, or
 //                      the definition's name), marked by a muted dotted
@@ -75,7 +77,7 @@
 //                      (PLAN.md, 2026-10-02): a paragraph the reader can
 //                      skip at a glance — thin rule on the left, the
 //                      label in small caps, body slightly smaller, all in
-//                      the muted colour (never the annotation colour), no
+//                      the muted colour (never the tax colour), no
 //                      background.  `#real(label: "…")[...]`
 //                      overrides the default label "In con-leche".
 //
@@ -87,16 +89,16 @@
 //
 //   * Typst 0.15's HTML export silently DROPS `text(fill: …)`, in prose
 //     and in math, while emitting native MathML for everything else.
-//     Hence `ann` emits a <span class="ann"> in prose and an <mstyle
+//     Hence `tax` emits a <span class="tax"> in prose and an <mstyle
 //     mathcolor> inside <math>, told apart by the `in-math` depth
 //     counter below.
 //   * The same export drops a rule name typeset with `h(…)`/`stack`;
 //     hence `rule` is a flex box in HTML and a measured stack in the PDF.
-//   * A nested equation as `ann`'s body inside math (`ann(PW)` with
-//     `PW = $…$`) must be unwrapped: <math> inside <math> is invalid
+//   * A nested equation as `tax`'s body inside math (`tax(X)` with
+//     `X = $…$`) must be unwrapped: <math> inside <math> is invalid
 //     MathML, and the extra equation element made the export's
 //     introspection loop fail to converge ("number of equation
-//     elements did not stabilize").  `ann` unwraps it.
+//     elements did not stabilize").  `tax` unwraps it.
 //   * In markup, a `;` directly after a `#src(...)` call is swallowed
 //     as the call's terminator; write `\;`.
 //   * The inlined scripts (`src-tip.js`, `toc.js`) are emitted verbatim
@@ -104,7 +106,7 @@
 //     escaped (checked 2026-10-03 with a one-line probe); an earlier
 //     note here said otherwise.
 
-#let ann-color = rgb("#5b3fd6")
+#let tax-color = rgb("#5b3fd6")
 #let repo = "https://github.com/leanprover/con-leche/blob/master/"
 
 // --- is this macro being expanded inside math? ---------------------------
@@ -113,26 +115,26 @@
 // leaving every equation — a counter, not a flag, because a nested
 // equation (a `$…$` bound to a name and used inside another) would
 // otherwise reset it to "outside" when it ends.  `in-math.get() > 0` is
-// true exactly inside math; it decides whether `ann` emits an `<mstyle>`
+// true exactly inside math; it decides whether `tax` emits an `<mstyle>`
 // (valid inside `<math>`) or a `<span>`.
 #let in-math = state("in-math", 0)
 
 #let is-html() = target() == "html"
 
-// --- the annotation ---------------------------------------------------------
-#let ann(body) = context {
+// --- the certification tax ---------------------------------------------------
+#let tax(body) = context {
   if is-html() {
     if in-math.get() > 0 {
-      // A nested equation as the body (`ann(PW)` with `PW = $…$`) is
+      // A nested equation as the body (`tax(X)` with `X = $…$`) is
       // unwrapped: a <math> inside <math> is invalid MathML, and the
       // extra equation element is what kept the export from converging.
       let inner = if body.func() == math.equation { body.body } else { body }
-      html.elem("mstyle", attrs: (class: "ann", mathcolor: ann-color.to-hex()), inner)
+      html.elem("mstyle", attrs: (class: "tax", mathcolor: tax-color.to-hex()), inner)
     } else {
-      html.elem("span", attrs: (class: "ann"), body)
+      html.elem("span", attrs: (class: "tax"), body)
     }
   } else {
-    text(fill: ann-color, body)
+    text(fill: tax-color, body)
   }
 }
 

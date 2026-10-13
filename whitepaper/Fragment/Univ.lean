@@ -124,11 +124,6 @@ theorem mem_univ_of_sub {n : Nat} {A B : V} (hA : A ∈ˢ univ n) (h : B ⊆ˢ A
     exact univ_trans (Nat.succ_ne_zero n) (power_mem_univ (Nat.succ_ne_zero n) hA)
       (mem_power.mpr h)
 
-/-- A separated part of a member of a universe is a member.
-Con-leche: `univ_sep_mem`, `ConLeche/SetTheory/Derive/Lfp.lean`. -/
-theorem sep_mem_univ {n : Nat} {A : V} {P : V → Prop} (hA : A ∈ˢ univ n) :
-    sep A P ∈ˢ (univ n : V) := mem_univ_of_sub hA sep_sub
-
 /-- `{pt}` is a member of every universe. -/
 theorem one_mem_univ (n : Nat) : (one : V) ∈ˢ univ n := univ_mono (Nat.zero_le n) one_mem_univ_zero
 

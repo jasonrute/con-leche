@@ -1,7 +1,6 @@
 #import "../lib.typ": *
 
 // Notation local to this file, matching §4.
-#let never = $sans("never")$
 #let Sort = $sans("Sort")$
 #let Nat = $sans("Nat")$
 #let red = sym.arrow.r.squiggly
@@ -37,7 +36,7 @@ sketches how the construction and the proofs of @sec:ind-model extend
 to them; the details are in the linked con-leche proof. A
 restricted case — one container instantiation, at depth one, not under
 a binder — is verified in the paper's Lean fragment:
-#src("whitepaper/Fragment/NestInstall.lean", 197, 201)[installing such a block keeps a model of the environment].
+#src("whitepaper/Fragment/NestInstall.lean", 258, 262)[installing such a block keeps a model of the environment].
 
 == Nested blocks <sec:nest-what>
 
@@ -242,20 +241,20 @@ field's $forall$s, read off the walk's recorded type
 
 #example(name: [$Tree$'s recursors])[
   With $C$ the motive for $Tree thick alpha$ and $C_1$ the motive for
-  $List thick (Tree thick alpha)$, and $ann(q)$ as in @ex:nat, the
+  $List thick (Tree thick alpha)$, the
   shared prefix is the parameter, the two motives, a minor premise for
   $TreeNode$ and one for each of $List$'s constructors at the
   instantiation:
 
   $
-    TreeRec.\{ell\} : & forall (alpha : Sort 1) thin ann(q). thin forall (C : forall (t : Tree thick alpha) thin ann(never). thin Sort ell) thin ann(q). \
-    & forall (C_1 : forall (ts : List thick (Tree thick alpha)) thin ann(never). thin Sort ell) thin ann(q). \
-    & forall (s : forall (a : alpha) thin ann(q). thin forall (ts : List thick (Tree thick alpha)) thin ann(q). thin forall (h : C_1 thick ts) thin ann(q). thin C thick (TreeNode thick a thick ts)) thin ann(q). \
-    & forall (n : C_1 thick ListNil) thin ann(q). \
-    & forall (c : forall (t : Tree thick alpha) thin ann(q). thin forall (ts : List thick (Tree thick alpha)) thin ann(q). \
-    & quad quad forall (h : C thick t) thin ann(q). thin forall (h_1 : C_1 thick ts) thin ann(q). thin C_1 thick (ListCons thick t thick ts)) thin ann(q). \
-    & forall (t : Tree thick alpha) thin ann(q). thin C thick t \
-    TreeRec1.\{ell\} : & dots.c thin forall (ts : List thick (Tree thick alpha)) thin ann(q). thin C_1 thick ts
+    TreeRec.\{ell\} : & forall (alpha : Sort 1). thin forall (C : forall (t : Tree thick alpha). thin Sort ell). \
+    & forall (C_1 : forall (ts : List thick (Tree thick alpha)). thin Sort ell). \
+    & forall (s : forall (a : alpha). thin forall (ts : List thick (Tree thick alpha)). thin forall (h : C_1 thick ts). thin C thick (TreeNode thick a thick ts)). \
+    & forall (n : C_1 thick ListNil). \
+    & forall (c : forall (t : Tree thick alpha). thin forall (ts : List thick (Tree thick alpha)). \
+    & quad quad forall (h : C thick t). thin forall (h_1 : C_1 thick ts). thin C_1 thick (ListCons thick t thick ts)). \
+    & forall (t : Tree thick alpha). thin C thick t \
+    TreeRec1.\{ell\} : & dots.c thin forall (ts : List thick (Tree thick alpha)). thin C_1 thick ts
   $
 
   (the $dots.c$ is the same prefix; the constructors' own parameter
@@ -274,7 +273,7 @@ field's $forall$s, read off the walk's recorded type
 
 A nested field under binders gets its hypothesis under the same
 binders: for $PMk : (Nat -> List thick P) -> P$ the minor premise is
-$ forall (f : Nat -> List thick P) thin ann(q). thin forall (h : forall (n : Nat) thin ann(q). thin C_1 thick (f thick n)) thin ann(q). thin C thick (PMk thick f). $
+$ forall (f : Nat -> List thick P). thin forall (h : forall (n : Nat). thin C_1 thick (f thick n)). thin C thick (PMk thick f). $
 
 *Where a rule of $T.sans("rec")_1$ fires.* A rule of @sec:ind-model
 takes the constructor's levels and parameters to be the recursor's
@@ -346,9 +345,9 @@ operator of two arguments — the approximant and the container's own
 family — the container's operator at the instantiation is accessible
 by
 #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 45, 52)[the same case-by-case argument as §4's],
-#src("ConLeche/Model/Inductives/ContAcc.lean", 15, 33)[run on the frame];
+#src("ConLeche/Model/Inductives/ContAcc.lean", 15, 35)[run on the frame];
 and
-#src("ConLeche/SetModel/Access.lean", 530, 540)[the least fixed point of such an operator is accessible in its first argument],
+#src("ConLeche/SetModel/Access.lean", 529, 539)[the least fixed point of such an operator is accessible in its first argument],
 the supports of an element's sub-values collected along paths into
 one support. Monotonicity follows from accessibility as in §4; the
 recursor's frames in con-leche still compare case by case, the container's row

@@ -33,7 +33,7 @@ blocks, the content of the paper's nested section:
   `ContClause.mono`): the support in the smaller set is in the larger
   — no separate monotonicity proof;
 * the class at the one-fibre set is inhabited when the class is
-  inhabited at all (`Fam_psK_inhab_one`): by induction over the
+  inhabited at all (`Fam_psK_inhab`): by induction over the
   container's family, every constructor instance has a counterpart
   at `{pt}` — the parameter fields replaced by the point, the recursive
   fields by the counterparts the induction supplies, the ordinary
@@ -83,27 +83,6 @@ theorem consList_append_cons_ne {l₁ : List V} {x y : V} {l₂ : List V} {ρ : 
     cases i with
     | zero => rfl
     | succ j => exact ih fun e => h (by simp [e])
-
-section Beta
-
-variable (M : Name → List Nat → V) (φ : Name → Nat)
-
-/-- β over a context in the graph regime needs no bound on the body
-(`Read.lean` proves it again as `appList_lamCtx_false`; it comes
-later in the import order). -/
-theorem appList_lamCtx_false_fits :
-    ∀ {Γ : List Expr} {ρ : Nat → V} {F : (Nat → V) → V} {vs : List V},
-      FitsVals M φ ρ Γ vs → appList (lamCtx M φ false ρ Γ F) vs.reverse = F (consList vs ρ)
-  | [], _, _, [], _ => rfl
-  | [], _, _, _ :: _, h => h.elim
-  | _ :: _, _, _, [], h => h.elim
-  | A :: Γ, ρ, F, v :: vs, h => by
-    rw [FitsVals_cons] at h
-    simp only [lamCtx_cons, List.reverse_cons, appList_append, appList_cons, appList_nil]
-    rw [appList_lamCtx_false_fits h.1, app_lamR_false h.2]
-    rfl
-
-end Beta
 
 namespace NestInfo
 
@@ -165,8 +144,9 @@ theorem isMember_eq_false_of_usesVar {k : Nat} {A : Expr} (h : A.usesVar (N.memb
   | sort _ => rfl
   | const _ _ => rfl
   | app _ _ => rfl
-  | lam _ _ _ => rfl
-  | pi _ _ _ => rfl
+  | lam _ _ => rfl
+  | pi _ _ => rfl
+  | letE _ _ _ => rfl
 
 /-- A positive container has no container field. -/
 theorem noCont_of_positive (hpos : N.Positive) : N.KS.NoCont := by
@@ -192,9 +172,9 @@ it: its set in the model is its family's graph (its installation's
 law), it is positive in the nested position, no field reads an
 earlier recursive field, the universe bound on its fields holds at
 every fitting parameter list (its own checks), the class's arguments
-fit its parameters at every parameter set in the result universe (the
-nested block's check), and its result universe at the instantiation
-is the block's (N3). -/
+fit its parameters at every parameter set that is a type of the result
+universe (the nested block's check), and its result universe at the
+instantiation is the block's (N3). -/
 structure NestFacts : Prop where
   /-- The container's set is its family's graph. -/
   fam : ∀ ls', M N.K.name ls' = N.KS.famSet M ls'
@@ -207,8 +187,9 @@ structure NestFacts : Prop where
   domsBounded : ∀ ps', FitsVals M (N.KS.ψ (S.lsK ls N)) base N.KS.params ps' →
     N.KS.DomsBounded M (S.lsK ls N) ps'
   /-- The class's arguments fit the container's parameters at every
-  parameter set in the result universe. -/
-  argsFit : ∀ ps, FitsVals M (S.ψ ls) base S.params ps → ∀ X, X ∈ˢ (univ (S.u₀ ls) : V) →
+  parameter set that is a type of the result universe (the nested
+  parameter's domain is `Sort u`). -/
+  argsFit : ∀ ps, FitsVals M (S.ψ ls) base S.params ps → ∀ X, X ∈ˢ (typeU (S.u₀ ls) : V) →
     FitsVals M (N.KS.ψ (S.lsK ls N)) base N.KS.params (S.psK M ls N ps X)
   /-- The container's result universe at the instantiation is the
   block's. -/
@@ -229,13 +210,6 @@ plain). -/
 theorem NestFacts.contOkK (_hf : S.NestFacts M ls N) (ps' : List V) :
     N.KS.ContOk M (S.lsK ls N) ps' :=
   N.KS.contOk_of_plain M _ N.KS_nest ps'
-
-/-- The universe bound on the container's fields at the instantiation
-with a parameter set of the universe. -/
-theorem NestFacts.domsBoundedK (hf : S.NestFacts M ls N) {ps : List V}
-    (hp : FitsVals M (S.ψ ls) base S.params ps) {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V)) :
-    N.KS.DomsBounded M (S.lsK ls N) (S.psK M ls N ps X) :=
-  hf.domsBounded _ (hf.argsFit ps hp X hX)
 
 /-! ## The nested position among the container's parameter values -/
 
@@ -303,17 +277,20 @@ theorem interp_psK_env_congr (hf : S.NestFacts M ls N) (φ : Name → Nat) {ps :
 
 /-! ## The class is the container's family -/
 
-/-- **The class is the container's family** at the instantiation
-(the container's set applied by β to fitting parameter values). -/
+/-- **The class is the container's family** at the instantiation, at
+the admissible part of the parameter set (the container's set applied
+by β to fitting parameter values: the admissible part is a type of the
+result universe, a member of the nested parameter's domain). -/
 theorem classSet_eq_Fam (hf : S.NestFacts M ls N) {ps : List V}
     (hp : FitsVals M (S.ψ ls) base S.params ps) {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V)) :
-    S.classSet M ls N ps X = N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X) [] := by
-  have hfit := hf.argsFit ps hp X hX
+    S.classSet M ls N ps X = N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps (S.adm ls X)) [] := by
+  have hfit := hf.argsFit ps hp _ (S.adm_mem_typeU ls hX)
   have hI : N.KS.indices = [] := hf.positive.1
-  have hlen : (S.psK M ls N ps X).length = N.KS.nP := FitsVals_length M _ hfit
+  have hlen : (S.psK M ls N ps (S.adm ls X)).length = N.KS.nP := FitsVals_length M _ hfit
   rw [classSet, hf.fam, famSet, famSetF, hI, List.nil_append,
-    show S.classArgsV M ls N ps X = (S.psK M ls N ps X).reverse by simp [psK],
-    appList_lamCtx_false_fits M _ hfit]
+    show S.classArgsV M ls N ps (S.adm ls X) = (S.psK M ls N ps (S.adm ls X)).reverse by
+      simp [psK],
+    appList_lamCtx M _ hfit]
   simp only [nI, hI, List.length_nil, shiftE_zero_zero, readEnv_consList hlen, readEnv_zero]
 
 /-! ## Fitting the container's fields, parameter-field and recursive values replaced
@@ -438,7 +415,7 @@ theorem FitsFields_psK_repl (hf : S.NestFacts M ls N) {X Y : V} {W W' : List V �
       obtain ⟨rfl, rfl⟩ := hFP
       have hnm : N.isMember rest.length (.reflexive [] []) = false := rfl
       simp only [hnm, Field.isRec, Bool.false_eq_true, ite_false, ite_true] at hv'
-      simp only [fieldSet, piCtx_nil, idxVals, List.map_nil, List.reverse_nil]
+      simp only [fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals, List.map_nil, List.reverse_nil]
       exact hv'
     | container => exact hFP.elim
   | [], [], _ :: _, _, _, _, h => h.elim
@@ -459,6 +436,104 @@ indices). -/
 theorem KS_idxVals (hf : S.NestFacts M ls N) {c : CtorSpec} (hc : c ∈ N.K.ctors) (ρ : Nat → V) :
     N.KS.idxVals M (S.lsK ls N) ρ c.idx = [] := by
   rw [(hf.positive.2.2.2.2 c hc).1]; rfl
+
+omit [IndLib V] in
+/-- Positivity's clause passes to every suffix of the field list. -/
+theorem _root_.Fragment.NestInfo.FieldPos_drop (N : NestInfo) :
+    ∀ (n : Nat) {fields : List Field}, (∀ i f, fields[i]? = some f → N.FieldPos fields i f) →
+      ∀ i f, (fields.drop n)[i]? = some f → N.FieldPos (fields.drop n) i f
+  | 0, _, h => by simpa using h
+  | _ + 1, [], _ => by simp
+  | n + 1, f :: rest, h => by
+    rw [List.drop_succ_cons]
+    exact N.FieldPos_drop n (N.FieldPos_tail h)
+
+/-- **A replacement exists**: a fitting list keeps its ordinary and
+recursive values, its parameter fields take the member `y` of `Y`. -/
+theorem Repl_exists {X Y y : V} {W : List V → V} {ps : List V} (hy : y ∈ˢ Y) :
+    ∀ {fields : List Field} {fs : List V},
+      (∀ i f, fields[i]? = some f → N.FieldPos fields i f) →
+      N.KS.FitsFields M (S.lsK ls N) W (S.psK M ls N ps X) fields fs →
+      ∃ fs', Repl N Y W fields fs fs'
+  | [], [], _, _ => ⟨[], trivial⟩
+  | f :: rest, v :: vs, hpos, hfit => by
+    obtain ⟨vs', hvs'⟩ := Repl_exists hy (N.FieldPos_tail hpos) hfit.1
+    have hFP := hpos 0 f rfl
+    cases f with
+    | ordinary A =>
+      simp only [NestInfo.FieldPos, List.length_cons, Nat.add_sub_cancel, Nat.sub_zero] at hFP
+      rcases hFP with hA | ⟨hA, -⟩
+      · subst hA
+        exact ⟨y :: vs', hvs', by simp [N.isMember_self, hy]⟩
+      · exact ⟨v :: vs', hvs', by simp [N.isMember_eq_false_of_usesVar hA, Field.isRec]⟩
+    | reflexive tele es =>
+      obtain ⟨rfl, rfl⟩ := hFP
+      have hfv := hfit.2
+      simp only [fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals, List.map_nil, List.reverse_nil] at hfv
+      have hnm : N.isMember rest.length (.reflexive [] []) = false := rfl
+      exact ⟨v :: vs', hvs', by simp [hnm, Field.isRec, hfv]⟩
+    | container => exact hFP.elim
+  | [], _ :: _, _, hfit => hfit.elim
+  | _ :: _, [], _, hfit => hfit.elim
+
+/-- **The universe bound on the container's fields at every parameter
+set of the universe**, by positivity from the bound at the one-fibre
+set (a type, where the class's arguments fit the container's
+parameters): the parameter field's set is the parameter set itself, an
+ordinary field reads neither the nested parameter nor an earlier
+parameter field, and a recursive field has no telescope. -/
+theorem NestFacts.domsBoundedK (hf : S.NestFacts M ls N) {ps : List V}
+    (hp : FitsVals M (S.ψ ls) base S.params ps) {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V)) :
+    N.KS.DomsBounded M (S.lsK ls N) (S.psK M ls N ps X) := by
+  have hb₀ := hf.domsBounded _ (hf.argsFit ps hp (S.oneSet ls) (S.oneSet_mem_typeU ls))
+  intro hz W hW c hc k f hpos hk fs hfs
+  obtain ⟨hFP, -⟩ := S.fieldPos_of hf hc
+  have hFPL := N.FieldPos_drop (c.fields.length - k) hFP
+  have hnrL := N.KS.noRecDep_drop hf.noRecDep hc (c.fields.length - k)
+  obtain ⟨fs', hrepl⟩ := S.Repl_exists (S.oneVal_mem ls) hFPL hfs
+  have hfs' := S.FitsFields_psK_repl hf hFPL hnrL hfs hrepl
+  have hb := hb₀ hz W hW c hc k f hpos hk fs' hfs'
+  have hlenL : (c.fields.drop (c.fields.length - k)).length = k := by simp; omega
+  obtain ⟨hl, hl'⟩ := Repl_length hrepl
+  rw [hlenL] at hl hl'
+  have hF := hFP _ f hpos
+  cases f with
+  | ordinary A =>
+    simp only [NestInfo.FieldPos, show c.fields.length - 1 - (c.fields.length - 1 - k) = k by omega] at hF
+    simp only at hb ⊢
+    rcases hF with hA | ⟨hA, hA'⟩
+    · subst hA
+      rw [S.interp_memberVar hf _ hl, hf.u₀_eq]
+      exact hX
+    · rw [S.interp_psK_env_congr hf _ X (S.oneSet ls) A hl hl' hA]
+      · exact hb
+      · intro i hi hu
+        obtain ⟨f', hf'⟩ : ∃ f', (c.fields.drop (c.fields.length - k))[i]? = some f' :=
+          ⟨_, List.getElem?_eq_getElem (by rw [hlenL]; exact hi)⟩
+        refine Repl_consList_eq hrepl i f' hf' ?_ ?_
+        · cases hm : N.isMember ((c.fields.drop (c.fields.length - k)).length - 1 - i) f'
+          · rfl
+          · exfalso
+            rw [List.getElem?_drop] at hf'
+            have := hA' (c.fields.length - k + i) f' hf' (by omega)
+              (by rw [hlenL] at hm; rw [show c.fields.length - 1 - (c.fields.length - k + i)
+                = k - 1 - i by omega]; exact hm)
+            rw [show c.fields.length - k + i - (c.fields.length - 1 - k) - 1 = i by omega] at this
+            rw [this] at hu
+            exact Bool.false_ne_true hu
+        · cases hr : f'.isRec
+          · rfl
+          · exfalso
+            have hnrf := hf.noRecDep c hc _ _ hpos
+            rw [show c.fields.length - 1 - k + 1 = c.fields.length - k by omega] at hnrf
+            have := hnrf i f' hf' hr
+            rw [this] at hu
+            exact Bool.false_ne_true hu
+  | reflexive tele es =>
+    obtain ⟨rfl, -⟩ := hF
+    intro t T hT
+    simp at hT
+  | container => exact hF.elim
 
 /-! ## The class is accessible in the parameter set: positivity plus the nested case -/
 
@@ -529,7 +604,7 @@ theorem jointOp_acc (hf : S.NestFacts M ls N) (ps : List V) :
     | reflexive tele es =>
       obtain ⟨rfl, rfl⟩ := hFP
       simp only [NestInfo.isMember, Bool.false_eq_true, ite_false]
-      simp only [fieldSet, piCtx_nil, idxVals, List.map_nil, List.reverse_nil] at hget
+      simp only [fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals, List.map_nil, List.reverse_nil] at hget
       exact hget
     | container => exact hFP.elim
   · intro Z' hZ' hsupp
@@ -670,33 +745,35 @@ theorem Fam_psK_mono (hf : S.NestFacts M ls N) (hN : S.nest = some N) {ps : List
 
 /-! ## The class at the one-fibre set -/
 
-/-- **The container's family at the one-fibre set is inhabited when
-the family at any parameter set of the universe is**: by induction over
-the family, every constructor instance has a counterpart at `{pt}`
-— the parameter fields replaced by the point, the recursive fields by
-the counterparts the induction supplies, the ordinary fields kept. -/
-theorem Fam_psK_inhab_one (hf : S.NestFacts M ls N) {ps : List V}
-    (hp : FitsVals M (S.ψ ls) base S.params ps) {X : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V))
+/-- **The container's family at an inhabited parameter set is
+inhabited when the family at any parameter set of the universe is**:
+by induction over the family, every constructor instance has a
+counterpart at `Y` — the parameter fields replaced by a member of `Y`,
+the recursive fields by the counterparts the induction supplies, the
+ordinary fields kept. -/
+theorem Fam_psK_inhab (hf : S.NestFacts M ls N) {ps : List V}
+    (hp : FitsVals M (S.ψ ls) base S.params ps) {X Y y : V} (hX : X ∈ˢ (univ (S.u₀ ls) : V))
+    (hY : Y ∈ˢ (univ (S.u₀ ls) : V)) (hy : y ∈ˢ Y)
     (hex : ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X) []) :
-    ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps one) [] := by
+    ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps Y) [] := by
   obtain ⟨v, hv⟩ := hex
   have hbX := hf.domsBoundedK hp hX
-  have hb1 := hf.domsBoundedK hp (one_mem_univ _)
-  have hco1 := hf.contOkK (S.psK M ls N ps one)
+  have hb1 := hf.domsBoundedK hp hY
+  have hco1 := hf.contOkK (S.psK M ls N ps Y)
   refine N.KS.Fam_induction M _ hf.noRecDep hbX (hf.contOkK _)
-    (fun _ _ => ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps one) []) ?_ [] v hv
+    (fun _ _ => ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps Y) []) ?_ [] v hv
   intro is x hs
   obtain ⟨j, c, fs, hc, hfit, -, rfl⟩ := hs
   have hcm := List.mem_of_getElem? hc
   obtain ⟨hpos, hnr⟩ := S.fieldPos_of hf hcm
   classical
   -- the counterpart's fields: the point at the parameter fields, a counterpart at the recursive ones
-  let W₁ : List V → V := N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps one)
+  let W₁ : List V → V := N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps Y)
   suffices key : ∀ (L : List Field) (vs : List V),
       (∀ i f, L[i]? = some f → N.FieldPos L i f) →
       N.KS.FitsFields M (S.lsK ls N) (fun is' => sep (N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X) is')
-        fun _ => ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps one) []) (S.psK M ls N ps X) L vs →
-      ∃ vs', Repl N one W₁ L vs vs' by
+        fun _ => ∃ v, v ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps Y) []) (S.psK M ls N ps X) L vs →
+      ∃ vs', Repl N Y W₁ L vs vs' by
     obtain ⟨fs', hrepl⟩ := key c.fields fs hpos hfit
     have hfit' := S.FitsFields_psK_repl hf hpos hnr hfit hrepl
     refine ⟨N.KS.ctorVal (S.lsK ls N) j fs', ?_⟩
@@ -722,11 +799,11 @@ theorem Fam_psK_inhab_one (hf : S.NestFacts M ls N) {ps : List V}
         simp only [NestInfo.FieldPos, List.length_cons, Nat.add_sub_cancel, Nat.sub_zero] at hFP
         rcases hFP with hA | ⟨hA, -⟩
         · subst hA
-          exact ⟨pt :: vs', hvs', by simp [N.isMember_self, mem_one]⟩
+          exact ⟨y :: vs', hvs', by simp [N.isMember_self, hy]⟩
         · exact ⟨v :: vs', hvs', by simp [N.isMember_eq_false_of_usesVar hA, Field.isRec]⟩
       | reflexive tele es =>
         obtain ⟨rfl, rfl⟩ := hFP
-        simp only [fieldSet, piCtx_nil, idxVals, List.map_nil, List.reverse_nil, mem_sep] at hfv
+        simp only [fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals, List.map_nil, List.reverse_nil, mem_sep] at hfv
         obtain ⟨w, hw⟩ := hfv.2
         have hnm : N.isMember L.length (.reflexive [] []) = false := rfl
         exact ⟨w :: vs', hvs', by simp [hnm, Field.isRec, W₁, hw]⟩
@@ -739,7 +816,7 @@ theorem Fam_psK_inhab_one (hf : S.NestFacts M ls N) {ps : List V}
 instantiation (`classSet_eq_Fam`), which lies in the result universe
 (`Fam_mem_univ`, N3), is accessible with the class's bound
 (`Fam_psK_acc`, in both regimes), and is inhabited at the one-fibre
-set when inhabited at all (`Fam_psK_inhab_one`).  That it grows with
+set when inhabited at all (`Fam_psK_inhab`).  That it grows with
 the parameter set follows (`ContClause.mono`). -/
 theorem contClause_of (hf : S.NestFacts M ls N) (hN : S.nest = some N) {ps : List V}
     (hp : FitsVals M (S.ψ ls) base S.params ps) : S.ContClause M ls N ps where
@@ -748,14 +825,17 @@ theorem contClause_of (hf : S.NestFacts M ls N) (hN : S.nest = some N) {ps : Lis
     exact N.KS.Fam_mem_univ M _ _ _
   acc := fun X hX v hv => by
     rw [S.classSet_eq_Fam hf hp hX] at hv
-    obtain ⟨B, g, hB, hg, hs⟩ := S.Fam_psK_acc hf hN hp hX hv
-    refine ⟨B, g, hB, hg, fun X' hX' h' => ?_⟩
+    obtain ⟨B, g, hB, hg, hs⟩ := S.Fam_psK_acc hf hN hp (S.adm_mem_univ ls hX) hv
+    -- the support lies in the admissible part, and stays admissible
+    refine ⟨B, g, hB, fun b hb => S.adm_sub ls _ _ (hg b hb), fun X' hX' h' => ?_⟩
     rw [S.classSet_eq_Fam hf hp hX']
-    exact hs X' hX' h'
-  inhab_one := fun X hX hex => by
+    refine hs _ (S.adm_mem_univ ls hX') fun b hb => ?_
+    have := (S.mem_adm ls).mp (hg b hb)
+    exact (S.mem_adm ls).mpr ⟨h' b hb, this.2⟩
+  inhab := fun X Y hX hY ⟨y, hy⟩ hex => by
     rw [S.classSet_eq_Fam hf hp hX] at hex
-    rw [S.classSet_eq_Fam hf hp (one_mem_univ _)]
-    exact S.Fam_psK_inhab_one hf hp hX hex
+    rw [S.classSet_eq_Fam hf hp hY]
+    exact S.Fam_psK_inhab hf hp (S.adm_mem_univ ls hX) (S.adm_mem_univ ls hY) hy hex
 
 /-- **The container's clause holds** for a nested block, at every
 fitting parameter list. -/
