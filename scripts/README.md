@@ -5,7 +5,10 @@ census and slicing tools (`dead-census.*`, `slice-cone.py`,
 `stream-census.py`), the perf-table renderer, `selfcheck.sh`, and the
 pin-prefix recipe (`extract_natop_prefix.py`,
 `diagnose_natop_prefix.py`, `natop_prefix.json`) and the pin-drift
-probe (`natop-matrix.sh`).  Nothing here is on the build's critical
+probe (`natop-matrix.sh`), and the line statistics (`code-stats.py`:
+code, proof, comment and blank lines per area — kernel, cached core,
+frontend, driver, proofs, the whitepaper fragment — at one or more
+revisions, with the change between the first and the last).  Nothing here is on the build's critical
 path; each file's header says who consumes it.
 
 ## `natop-matrix.sh` — the pin-drift probe (task #274)
