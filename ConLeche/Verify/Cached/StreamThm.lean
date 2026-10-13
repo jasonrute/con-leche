@@ -20,8 +20,8 @@ survives to the end of the run.
 Three ingredients, one per step of the walk:
 
 * **the header is stored as declared.**  Phase A's header install
-  (`installHeaderC`) runs guards only and returns the declared
-  header: `installHeaderC_const`.
+  (`installHeaderC`) runs guards only; the stored header is the
+  declared one, used directly.
 * **a theorem record is never dropped.**  `installStepC`'s `thmDecl` arm
   either throws or pushes `.thmInfo ⟨cv.name, cv.levelParams, jty⟩`
   with the declared type `jty`: `installStepC_thm_consts`.
@@ -45,42 +45,6 @@ variable {pins : List NatOpPinSet}
 
 /-! ## Phase A's header install keeps the declared type -/
 
-/-- Phase A's header install returns the header with the declared type
-unchanged; at a bare constant type, that constant. -/
-theorem installHeaderC_const {fe : FEnv}
-    {cv cvA : ConstantVal} {n : Name} {ls : List Level}
-    {s₀ s' : CState} (hty : cv.type = .const n ls)
-    (h : installHeaderC fe cv s₀ = .ok (cvA, s')) :
-    cvA = ⟨cv.name, cv.levelParams, .const n ls⟩ := by
-  unfold installHeaderC at h
-  by_cases h1 : (fe.find? cv.name).isSome = true
-  · rw [ite_eq_left h1] at h; exact absurd h throwC_bind_ok
-  rw [ite_eq_right h1] at h
-  by_cases h2 : reservedBasisNames.contains cv.name = true
-  · rw [ite_eq_left h2] at h; exact absurd h throwC_bind_ok
-  rw [ite_eq_right h2] at h
-  by_cases h3 : cv.name.isProjFnShape = true
-  · rw [ite_eq_left h3] at h; exact absurd h throwC_bind_ok
-  rw [ite_eq_right h3] at h
-  by_cases h4 : Name.nodup cv.levelParams = true
-  case neg => rw [ite_eq_right h4] at h; exact absurd h throwC_bind_ok
-  rw [ite_eq_left h4] at h
-  by_cases h5 : Expr.looseBVarsBounded 0 cv.type = true
-  case neg => rw [ite_eq_right h5] at h; exact absurd h throwC_bind_ok
-  rw [ite_eq_left h5] at h
-  by_cases h6 : Expr.hasFvar cv.type = true
-  · rw [ite_eq_left h6] at h; exact absurd h throwC_bind_ok
-  rw [ite_eq_right h6] at h
-  try dsimp only at h
-  by_cases h7 : Expr.allLevelParamsDefinedC cv.levelParams cv.type = true
-  case neg => rw [ite_eq_right h7] at h; exact absurd h throwC_bind_ok
-  rw [ite_eq_left h7] at h
-  by_cases h8 : constsResolveFC fe cv.type = true
-  case neg => rw [ite_eq_right h8] at h; exact absurd h throwC_bind_ok
-  rw [ite_eq_left h8] at h
-  obtain ⟨rfl, _⟩ := pureC_ok h
-  rw [← hty]
-
 /-! ## A theorem record is installed, with its declared type -/
 
 /-- Phase A's step at a `thmDecl` record with a bare declared type:
@@ -99,10 +63,10 @@ theorem installStepC_thm_consts {mode : CheckMode} {i : Nat} {fe : FEnv}
   rw [show (flushC : CheckCM Unit) s₀ = .ok ((), s₀.flushed) from rfl] at hfl
   have hs₁ : s₀.flushed = s₁ := congrArg Prod.snd (Except.ok.inj hfl)
   subst hs₁
-  obtain ⟨cvA, s₂, hcv, h'⟩ := bindC_ok h
-  obtain rfl := installHeaderC_const hty hcv
+  obtain ⟨_, s₂, _hcv, h'⟩ := bindC_ok h
   obtain ⟨hv, _⟩ := pureC_ok h'
   obtain ⟨rfl, _⟩ := Prod.mk.injEq .. ▸ hv
+  rw [← hty]
   rfl
 
 /-! ## The constant survives to the end of phase A -/

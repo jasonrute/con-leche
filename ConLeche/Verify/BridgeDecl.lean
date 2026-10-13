@@ -1203,7 +1203,7 @@ theorem checkDecl_datF (env : Env) (d : Declaration) (F : Nat) :
       | rfl
       | (simp only [FueledM.atF_pure, FueledM.atF_throw]))
   | thmDecl cv value =>
-    show ((checkConstantVal (fueledOpsM mode) env cv >>= fun cv =>
+    show ((checkConstantVal (fueledOpsM mode) env cv >>= fun _ =>
       checkThmVal (fueledOpsM mode) env cv value : FueledM _)).val F = _
     rw [FueledM.atF_bind, checkConstantVal_datF]
     congr 1

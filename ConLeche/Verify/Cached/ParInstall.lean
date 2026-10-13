@@ -421,16 +421,16 @@ def valueStep (W : FEnv) : Declaration →
   | .defnDecl cv value hint =>
     if natOpNames.contains cv.name || natDivModNames.contains cv.name then none
     else some (match installGuardsC W cv value {} with
-      | .ok (r, _) => .ok (.defnInfo r.1 r.2 hint, ⟨.defn, r.1, r.2⟩)
+      | .ok (_, _) => .ok (.defnInfo cv value hint, ⟨.defn, cv, value⟩)
       | .error e => .error e)
   | .thmDecl cv value =>
     some (match installHeaderC W cv ({} : CState).flushed with
-      | .ok (r, _) => .ok (.thmInfo r, ⟨.thm, r, value⟩)
+      | .ok (_, _) => .ok (.thmInfo cv, ⟨.thm, cv, value⟩)
       | .error e => .error e)
   | .opaqueDecl cv value =>
     if reduceOpNames.contains cv.name then none
     else some (match installGuardsC W cv value {} with
-      | .ok (r, _) => .ok (.axiomInfo r.1, ⟨.opaque, r.1, r.2⟩)
+      | .ok (_, _) => .ok (.axiomInfo cv, ⟨.opaque, cv, value⟩)
       | .error e => .error e)
   | _ => none
 

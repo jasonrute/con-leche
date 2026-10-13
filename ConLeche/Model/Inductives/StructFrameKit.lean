@@ -1545,18 +1545,18 @@ pre-block environment and the annotated telescope shape. -/
 theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     {F : Nat} {cvT cvTa : ConstantVal} {nP : Nat} {resSort : Level}
     {bs : List Expr}
-    (hccv : ConLeche.checkConstantVal (ConLeche.fueledOps μ F) env cvT = .ok cvTa)
+    (hccv : cvTa = cvT ∧
+      ConLeche.checkConstantVal (ConLeche.fueledOps μ F) env cvT = .ok ())
     (hstrip : cvTa.type.stripPis nP = some (bs, .sort resSort)) :
     ∃ pps : (Name → Nat) → List ITerm,
       FormerData mp.base2 cvTa nP resSort pps := by
-  obtain ⟨-, -, -, -, hlbt, hitf, type', stype, u, hann', htp', htr', hst,
-    hens, rfl⟩ := ConLeche.checkConstantVal_inv_stored hccv
-  obtain ⟨htf', hbt'⟩ := stored_syntax hann' hitf hlbt
-  simp only at htf' hbt' htp' htr' hst hens hstrip
-  have hw : Expr.WScoped 0 type' := Expr.WScoped.of_not_hasFvar htf'
-  have hL : Expr.LeavesBounded type' := Expr.LeavesBounded.of_not_hasFvar htf'
-  have hnil : type'.fvarLeaves = [] :=
-    Expr.fvarLeaves_eq_nil_of_not_hasFvar htf'
+  obtain ⟨rfl, hccv⟩ := hccv
+  obtain ⟨-, -, -, -, hlbt, hitf, stype, u, htp', htr', hst, hens⟩ :=
+    ConLeche.checkConstantVal_inv hccv
+  have hw : Expr.WScoped 0 cvTa.type := Expr.WScoped.of_not_hasFvar hitf
+  have hL : Expr.LeavesBounded cvTa.type := Expr.LeavesBounded.of_not_hasFvar hitf
+  have hnil : cvTa.type.fvarLeaves = [] :=
+    Expr.fvarLeaves_eq_nil_of_not_hasFvar hitf
   obtain ⟨fvs, hop⟩ := openPisAtFvars_of_stripPis_sort nP 0 hstrip
   -- the opened body is `Sort resSort`, of sort `succ resSort`
   obtain ⟨F', tb, vb, hib, hensb, -⟩ :=
@@ -1565,18 +1565,18 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   obtain rfl := ensureSortCore_sort_eq hensb
   -- per assignment: the reading, its peel, its grading
   have hper : ∀ ψ : Name → Nat, ∃ pps : List ITerm,
-      denoteMeta mp.base2.acval env ψ 0 type'
+      denoteMeta mp.base2.acval env ψ 0 cvTa.type
         = some (mkPisAV pps (.sort (resSort.eval ψ))) ∧
       pps.length = nP ∧
       (∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps (.sort (resSort.eval ψ)))) ∧
       DomsBelow 0 pps := by
     intro ψ
     have hc := claimsAt_of hμ mp ψ F
-    obtain ⟨Ta, hTa⟩ := acceptedReads_of mp.base2 ψ hst hw hbt' hL
-    obtain ⟨-, -, hokT, -, -⟩ := hc.inferRow hst hw hbt' hL (CtxOk.nil hnil) hTa
+    obtain ⟨Ta, hTa⟩ := acceptedReads_of mp.base2 ψ hst hw hlbt hL
+    obtain ⟨-, -, hokT, -, -⟩ := hc.inferRow hst hw hlbt hL (CtxOk.nil hnil) hTa
     have hokT' : ∀ ρ : Nat → V, WellDenoted V ρ Ta := fun ρ =>
       hokT ρ (Sat_nil V ρ)
-    obtain ⟨Γ, R, htele, hop'⟩ := opened_of hop htf' hbt' hTa hokT'
+    obtain ⟨Γ, R, htele, hop'⟩ := opened_of hop hitf hlbt hTa hokT'
     have hR : R = .sort (resSort.eval ψ) := by
       have := hop'.body
       rw [denoteMeta_sort] at this
@@ -1586,7 +1586,7 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     obtain ⟨hTeq, hlen⟩ := stripPisAV_eq_mkPis hst'
     subst hTeq
     refine ⟨pps, hTa, hlen, hokT', ?_⟩
-    exact (stripPisAV_below hst' (bvarsBelow_of_reading hw hbt' hTa)).1
+    exact (stripPisAV_below hst' (bvarsBelow_of_reading hw hlbt hTa)).1
   refine ⟨fun ψ => Classical.choose (hper ψ), ?_, ?_, ?_, ?_, ?_, ⟨bs, resSort, hstrip⟩⟩
   · exact fun ψ => (Classical.choose_spec (hper ψ)).1
   · exact fun ψ => (Classical.choose_spec (hper ψ)).2.1
@@ -1594,10 +1594,10 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   · exact fun ψ => (Classical.choose_spec (hper ψ)).2.2.2
   · intro ψ₁ ψ₂ hφ
     have h2 := (Classical.choose_spec (hper ψ₂)).1
-    have h1 : denoteMeta mp.base2.acval env ψ₂ 0 type'
+    have h1 : denoteMeta mp.base2.acval env ψ₂ 0 cvTa.type
         = some (mkPisAV (Classical.choose (hper ψ₁))
           (.sort (resSort.eval ψ₁))) := by
-      rw [← denoteMeta_params_ext mp.base2 hφ 0 type' htp']
+      rw [← denoteMeta_params_ext mp.base2 hφ 0 cvTa.type htp']
       exact (Classical.choose_spec (hper ψ₁)).1
     obtain ⟨hp, hb⟩ := mkPisAV_inj
       (by rw [(Classical.choose_spec (hper ψ₁)).2.1,

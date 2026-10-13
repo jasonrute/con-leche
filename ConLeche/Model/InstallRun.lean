@@ -130,20 +130,20 @@ theorem installStepC_model (hμ : μ.verifiedChecks = true)
       split at hstepC
       · exact ordinary _ hstepC
       · rename_i hnat
-        obtain ⟨r, s₁', hval, hp⟩ := bindC_ok hstepC
-        obtain ⟨cvA, jv⟩ := r
+        obtain ⟨u, s₁', hval, hp⟩ := bindC_ok hstepC
+        cases u
         obtain ⟨hv, rfl⟩ := pureC_ok hp
         simp only [Prod.mk.injEq] at hv
         obtain ⟨rfl, rfl⟩ := hv
         rw [hfe] at hval
-        obtain ⟨hres₁, rfl, rfl, hwty, hwv, hI, hV⟩ := installGuardsC_run hresA hval
-        refine value .defn (fun cvA jv => .defnInfo cvA jv hint)
-          (.defnDecl cvA jv hint) cvA jv rfl
+        obtain ⟨hres₁, hwty, hwv, hI, hV⟩ := installGuardsC_run hresA hval
+        refine value .defn (fun cv val => .defnInfo cv val hint)
+          (.defnDecl cv val hint) cv val rfl
           hres₁ rfl rfl hwty (fun _ => hwv) ?_
         intro F hC
-        have hnat' : (natOpNames.contains cvA.name || natDivModNames.contains cvA.name) = false :=
+        have hnat' : (natOpNames.contains cv.name || natDivModNames.contains cv.name) = false :=
           Bool.not_eq_true _ ▸ hnat
-        exact ⟨F, checkDecl_of_split_defn hnat' rfl hI hV hC⟩
+        exact ⟨F, checkDecl_of_split_defn hnat' rfl rfl rfl hI hV hC⟩
     | thmDecl cv val =>
       -- phase A installed the header alone: the flush, the header's
       -- install half, the push of the RAW value
@@ -153,37 +153,38 @@ theorem installStepC_model (hμ : μ.verifiedChecks = true)
       rw [flushC_run] at hflush
       injection hflush with hflush
       obtain rfl : s.flushed = s₁' := congrArg Prod.snd hflush
-      obtain ⟨cvA, s₂, hcv, h'⟩ := bindC_ok h
+      obtain ⟨u₁, s₂, hcv, h'⟩ := bindC_ok h
+      cases u₁
       rw [hfe] at hcv
-      obtain ⟨hs₂, rfl, hwty, hI⟩ :=
+      obtain ⟨hs₂, hwty, hI⟩ :=
         installHeaderC_run (μ := μ) (flushC_csok hresA) hcv
       obtain ⟨hv, rfl⟩ := pureC_ok h'
       simp only [Prod.mk.injEq] at hv
       obtain ⟨rfl, rfl⟩ := hv
-      refine value .thm (fun cvA _ => .thmInfo cvA) (.thmDecl cvA val) cvA val
+      refine value .thm (fun cv _ => .thmInfo cv) (.thmDecl cv val) cv val
         rfl
         hs₂.residue rfl rfl hwty (fun h => absurd rfl h) ?_
       intro F hC
-      exact ⟨F, checkDecl_of_split_thm rfl hI rfl hC⟩
+      exact ⟨F, checkDecl_of_split_thm rfl rfl rfl hI hC⟩
     | opaqueDecl cv val =>
       unfold installStepC at hstepC
       simp only [] at hstepC
       split at hstepC
       · exact ordinary _ hstepC
       · rename_i hred
-        obtain ⟨r, s₁', hval, hp⟩ := bindC_ok hstepC
-        obtain ⟨cvA, jv⟩ := r
+        obtain ⟨u, s₁', hval, hp⟩ := bindC_ok hstepC
+        cases u
         obtain ⟨hv, rfl⟩ := pureC_ok hp
         simp only [Prod.mk.injEq] at hv
         obtain ⟨rfl, rfl⟩ := hv
         rw [hfe] at hval
-        obtain ⟨hres₁, rfl, rfl, hwty, hwv, hI, hV⟩ := installGuardsC_run hresA hval
-        refine value .opaque (fun cvA _ => .axiomInfo cvA) (.opaqueDecl cvA jv)
-          cvA jv rfl
+        obtain ⟨hres₁, hwty, hwv, hI, hV⟩ := installGuardsC_run hresA hval
+        refine value .opaque (fun cv _ => .axiomInfo cv) (.opaqueDecl cv val)
+          cv val rfl
           hres₁ rfl rfl hwty (fun _ => hwv) ?_
         intro F hC
-        have hred' : reduceOpNames.contains cvA.name = false := Bool.not_eq_true _ ▸ hred
-        exact ⟨F, checkDecl_of_split_opaque hred' rfl hI hV hC⟩
+        have hred' : reduceOpNames.contains cv.name = false := Bool.not_eq_true _ ▸ hred
+        exact ⟨F, checkDecl_of_split_opaque hred' rfl rfl rfl hI hV hC⟩
     | axiomDecl cv => unfold installStepC at hstepC; exact ordinary _ hstepC
     | basisDecl kind => unfold installStepC at hstepC; exact ordinary _ hstepC
     | quotDecl k cv => unfold installStepC at hstepC; exact ordinary _ hstepC

@@ -34,7 +34,7 @@ variable {env : Env} {s₀ : CState}
 fueled instantiation; the returned constant's type is well-scoped. -/
 theorem checkConstantValS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
     (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun v w => v = w ∧ Expr.WScoped 0 v.type)
+    SimC mode env s₀ (fun _ _ => Expr.WScoped 0 cv.type)
       (checkConstantVal (sharedOpsC mode (mkFEnv env)) env cv)
       (checkConstantVal (fueledOpsM mode) env cv) := by
   unfold checkConstantVal
@@ -82,7 +82,7 @@ theorem checkConstantValS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF e
   obtain ⟨rfl, hwsty⟩ := hP₂
   refine SimC.bind (opS_sim hμ henv hs₂ hwsty)
     (fun s₃ u u' hs₃ hP₃ => ?_)
-  exact SimC.pure hs₃ ⟨rfl, hwty⟩
+  exact SimC.pure hs₃ hwty
 
 /-- `checkReducePin` at the cached shared operations. -/
 theorem checkReducePinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env} {c : Name}

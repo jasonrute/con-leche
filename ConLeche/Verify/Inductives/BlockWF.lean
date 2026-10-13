@@ -126,8 +126,9 @@ theorem direct_block_inds_wf {env envI : Env} (henv : EnvWF env)
         cvTa.type.looseBVarsBounded 0 = true ∧
         (cvTa.type.stripPis (p.toBlockShape.withSort s0).nP).isSome = true := by
       intro ms s hte
-      obtain ⟨cvT, -, -, hccv, bs, hstrip⟩ := checkBlockTele_shape hte
+      obtain ⟨cvT, -, -, heq, hccv, bs, hstrip⟩ := checkBlockTele_shape hte
       obtain ⟨g1, g2, g3, g4⟩ := checkConstantVal_typeWF hccv
+      rw [← heq] at g1 g2 g3 g4
       refine ⟨g1, g2, g3, g4, ?_⟩
       refine stripPis_isSome_of_le (n := p.nP + ms.nIdx) (Nat.le_add_right _ _) ?_
       rw [hstrip]; rfl
@@ -211,14 +212,6 @@ local macro_rules
             exact fun hh => nomatch hh)
         | exact absurd $h
             (by simp [bind, Except.bind, throw, throwThe, MonadExceptOf.throw]))
-
-/-- A checked constant keeps the record's name and level parameters
-(it is the record itself). -/
-theorem checkConstantVal_lps {env : Env} {cv cvA : ConstantVal} {F : Nat}
-    (h : checkConstantVal (fueledOps mode F) env cv = .ok cvA) :
-    cvA.name = cv.name ∧ cvA.levelParams = cv.levelParams := by
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, rfl⟩ := checkConstantVal_inv h
-  exact ⟨rfl, rfl⟩
 
 /-! ## The k recursors consed with their rules, SIMULTANEOUSLY -/
 

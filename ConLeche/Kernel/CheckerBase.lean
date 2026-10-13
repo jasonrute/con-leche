@@ -110,11 +110,9 @@ partial def Expr.hasStrLitGo (memo : Std.HashSet Expr) : Expr → Bool × Std.Ha
     | .proj _ _ x => Expr.hasStrLitGo memo x
     | _ => (false, memo)
 
-/-- Task #342 S0: `unresolvedConstsError` with the annotate pass's
-literal guard ahead of it (the pass ran before the constant-resolution
-guard, and declined on a string literal without the String support
-declarations; the guard now sits in inference, after this one, so the
-install's error path re-asks it). -/
+/-- `unresolvedConstsError` with a string-literal guard ahead of it: a
+string literal is declined here, before resolution, when the String
+support declarations are not yet present. -/
 def unresolvedConstsErrorL (strOk : Bool) (where_ : String) (e : Expr) : CheckError :=
   if !strOk && (Expr.hasStrLitGo {} e).1 then
     .notImplemented "string literals before the String support declarations"
@@ -124,8 +122,8 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- Checks common to all declarations: fresh name, well-formed universe
 parameters, and a type that is a type and mentions only declared
-parameters.  Returns the constant. -/
-def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m ConstantVal := do
+parameters. -/
+def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m Unit := do
   if (env.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -144,7 +142,6 @@ def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m Con
     throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" cv.type)
   let stype ← ops.inferType env 0 cv.type
   let _u ← ops.ensureSort env 0 stype
-  pure cv
 
 /-- Open the first `n` `∀`-binders at fresh free variables `0..n-1`
 (each fvar's type is the binder domain, instantiated with the earlier

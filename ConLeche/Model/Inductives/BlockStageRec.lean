@@ -72,41 +72,18 @@ theorem mem_bareOf {rs : List RecDatum} {x : ConstantVal × Nat} (h : x ∈ bare
   obtain ⟨r, hr, rfl⟩ := List.mem_map.mp h
   exact ⟨r, hr, rfl⟩
 
-/-! ## `CapsOk` at a rule-less recursor cons
+/-! ## The `k` rule-less conses
 
 A block recursor is not an `indInfo`, so it is no family's former, and
 not a `ctorInfo`, so it is no family's capability constructor; the
-whole capability row therefore crosses with nothing supplied.  It is
-`capsOk_cons_native` at `T := c₀.name`, whose two branches are then
-both refuted by the head's KIND. -/
-theorem capsOk_cons_recFresh {env : Env} (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
-    {cvR : ConstantVal} {mI rP : Nat} {rules : List RecRule}
-    (hfresh : env.find? c₀.name = none)
-    (hkind : c₀ = .recInfo cvR mI rP rules)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
-    (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A) :
-    CapsOk m₂ := by
-  refine capsOk_cons_native (T := c₀.name) mp hfresh
-    (ConsCrossEnv.ofNtc (fun tbl h => by rw [hkind] at h; exact nomatch h))
-    (Or.inr (fun cv caps h => by rw [hkind] at h; exact nomatch h))
-    ?_ m₂ hac ?_
-  · -- no stored family's capability constructor is this recursor
-    intro T' cvT' caps' hf hne hres hcape hfam hh
-    obtain ⟨-, ⟨cvC, hfC⟩, -⟩ := hfam
-    rw [hh, ConLeche.Env.find?_cons_self, hkind] at hfC
-    exact nomatch hfC
-  · -- the head is not an `indInfo`, so it is no family's former
-    intro cvT caps hf _
-    rw [ConLeche.Env.find?_cons_self, hkind] at hf
-    exact nomatch hf
-
-/-! ## The `k` rule-less conses -/
+whole capability row therefore crosses with nothing supplied
+(`capsOk_cons_fresh`, its head-kind premises refuted directly by the
+recursor shape). -/
 
 /-- **The `k` RULE-LESS recursors' cons, P tier.**  Each head is a
 `recInfo` with NO rules, so the whole `EnvModelM` bill is the ordinary
 one (`declStep_preserves_of_ind_rec_cons`) with `caps_ok` free
-(`capsOk_cons_recFresh`) and `rec_rules` free (`recRules_cons_fresh`
+(`capsOk_cons_fresh`) and `rec_rules` free (`recRules_cons_fresh`
 at an empty rule list); the chain is then an induction over the
 recursor list.
 
@@ -192,8 +169,9 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
           obtain rfl := Option.some.inj (hta'.symm.trans hta)
           exact hmemta ρ)
         (fun m₂ hac =>
-          capsOk_cons_recFresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
-            mp hfresh rfl m₂ hac)
+          capsOk_cons_fresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
+            mp mp.caps_ok hfresh (ConsCrossEnv.ofNtc (fun _ h => nomatch h))
+            (fun _ _ h => nomatch h) (fun _ _ _ h => nomatch h) m₂ hac)
         (fun m₂ hac φ =>
           recRules_cons_fresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
             mp hfresh (ConsCrossEnv.ofNtc (fun _ h => nomatch h))

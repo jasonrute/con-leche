@@ -144,8 +144,7 @@ theorem classStreamRecsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF en
   | rc :: rcs, _, hs => by
     unfold classStreamRecs
     simp only [checkConstantValF_eq]
-    refine SimC.bind (checkConstantValS_sim hμ henv hs) (fun s₁ cv cv' hs₁ hC => ?_)
-    obtain ⟨rfl, hw⟩ := hC
+    refine SimC.bind (checkConstantValS_sim hμ henv hs) (fun s₁ _ _ hs₁ hw => ?_)
     refine SimC.bind (classStreamRecsS_sim hμ henv rcs hs₁) (fun s₂ cvs cvs' hs₂ hCs => ?_)
     obtain ⟨rfl, hws⟩ := hCs
     refine SimC.pure hs₂ ⟨rfl, fun x hx => ?_⟩

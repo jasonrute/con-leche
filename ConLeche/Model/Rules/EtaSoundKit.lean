@@ -118,7 +118,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List ITerm}
         (ConLeche.etaProjs T b caps.etaFields) ps ∧
       (∀ x ∈ ConLeche.etaProjs T b caps.etaFields,
         Frame d x ∧ CtxOkS m φ d Δa x ∧
-          ∀ l ∈ x.fvarLeaves, l ∈ b.fvarLeaves ∨ ∃ y ∈ targs, l ∈ y.fvarLeaves) ∧
+          ∀ l ∈ x.fvarLeaves, l ∈ b.fvarLeaves) ∧
       ∃ TCa : ITerm,
         denoteMeta m.acval env φ 0
           (cvC.type.instantiateLevelParams cvC.levelParams us') = some TCa ∧
@@ -178,7 +178,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List ITerm}
           by simpa [Expr.looseBVarsBounded] using hfb.2.1,
           fun l hl => hfb.2.2 l (by simpa [Expr.fvarLeaves] using hl)⟩,
         ⟨hCb.1, fun l hl => hCb.2 l (by simpa [Expr.fvarLeaves] using hl)⟩,
-        fun l hl => .inl (by simpa [Expr.fvarLeaves] using hl)⟩
+        fun l hl => by simpa [Expr.fvarLeaves] using hl⟩
     · obtain ⟨rest, hfit⟩ := formerFit hin hind hlv hstrip htlen hspt hTVa ρ hokW hneW
       have hmemFam : interp V ρ ba
           ∈ˢ (tsa.map (interp V ρ)).foldl SetTheory.app

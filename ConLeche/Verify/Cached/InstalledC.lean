@@ -51,10 +51,10 @@ invariant state at `mkFEnv env`, a successful run returns the header
 as declared, its type well scoped, and `installHeader` succeeds on
 it. -/
 theorem installHeaderC_run {env : Env}
-    {cv cvA : ConstantVal} {s₀ s' : CState} (hs : CSOK μ env s₀)
-    (h : installHeaderC (mkFEnv env) cv s₀ = .ok (cvA, s')) :
-    CSOK μ env s' ∧ cvA = cv ∧ Expr.WScoped 0 cv.type ∧
-    installHeader (m := CheckM) env cv = .ok cv := by
+    {cv : ConstantVal} {s₀ s' : CState} (hs : CSOK μ env s₀)
+    (h : installHeaderC (mkFEnv env) cv s₀ = .ok ((), s')) :
+    CSOK μ env s' ∧ Expr.WScoped 0 cv.type ∧
+    installHeader (m := CheckM) env cv = .ok () := by
   unfold installHeaderC at h
   simp only [mkFEnv_find?] at h
   by_cases h1 : (env.find? cv.name).isSome = true
@@ -83,20 +83,20 @@ theorem installHeaderC_run {env : Env}
   rw [ite_eq_left h7] at h
   rw [constsResolveFC_spec, constsResolveF_eq] at h
   by_cases h8 : Expr.constsResolve env cv.type = true
-  case neg => rw [ite_eq_right h8] at h; exact absurd h throwC_bind_ok
+  case neg => rw [ite_eq_right h8] at h; exact absurd h throwC_ok
   rw [ite_eq_left h8] at h
-  obtain ⟨rfl, rfl⟩ := pureC_ok h
-  refine ⟨hs, rfl, Expr.WScoped.of_not_hasFvar (by simpa using h6), ?_⟩
+  obtain ⟨-, rfl⟩ := pureC_ok h
+  refine ⟨hs, Expr.WScoped.of_not_hasFvar (by simpa using h6), ?_⟩
   exact installHeader_of_facts (Option.not_isSome_iff_eq_none.mp h1)
     (by simpa using h2) (by simpa using h3) h4 h5 (by simpa using h6) h7 h8
 
 /-- Phase A's value install is the pure install half. -/
 theorem installValueGuardsC_run {env : Env}
-    {cvA : ConstantVal} {value jv : Expr} {s₀ s' : CState}
+    {cvA : ConstantVal} {value : Expr} {s₀ s' : CState}
     (hs : CSOK μ env s₀)
-    (h : installValueGuardsC (mkFEnv env) cvA value s₀ = .ok (jv, s')) :
-    CSOK μ env s' ∧ jv = value ∧ Expr.WScoped 0 value ∧
-    installValueGuards (m := CheckM) env cvA value = .ok value := by
+    (h : installValueGuardsC (mkFEnv env) cvA value s₀ = .ok ((), s')) :
+    CSOK μ env s' ∧ Expr.WScoped 0 value ∧
+    installValueGuards (m := CheckM) env cvA value = .ok () := by
   unfold installValueGuardsC at h
   by_cases h1 : Expr.looseBVarsBounded 0 value = true
   case neg => rw [ite_eq_right h1] at h; exact absurd h throwC_bind_ok
@@ -112,10 +112,10 @@ theorem installValueGuardsC_run {env : Env}
   rw [ite_eq_left h3] at h
   rw [constsResolveFC_spec, constsResolveF_eq] at h
   by_cases h4 : Expr.constsResolve env value = true
-  case neg => rw [ite_eq_right h4] at h; exact absurd h throwC_bind_ok
+  case neg => rw [ite_eq_right h4] at h; exact absurd h throwC_ok
   rw [ite_eq_left h4] at h
-  obtain ⟨rfl, rfl⟩ := pureC_ok h
-  exact ⟨hs, rfl, Expr.WScoped.of_not_hasFvar (by simpa using h2),
+  obtain ⟨-, rfl⟩ := pureC_ok h
+  exact ⟨hs, Expr.WScoped.of_not_hasFvar (by simpa using h2),
     installValueGuards_of_facts h1 (by simpa using h2) h3 h4⟩
 
 /-! ## The two-phase driver: phase B's check at the prefix view -/
@@ -192,51 +192,47 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
       exact absurd h throwC_bind_ok
     | true =>
     simp only [↓reduceIte] at h
-    obtain ⟨jv, s₅, hval, h⟩ := bindC_ok h
-    obtain ⟨hs₅, rfl, hwjv, hV⟩ := installValueGuardsC_run hs₄ hval
+    obtain ⟨_jv, s₅, hval, h⟩ := bindC_ok h
+    obtain ⟨hs₅, hwjv, hV⟩ := installValueGuardsC_run hs₄ hval
     obtain ⟨hres', F₅, jvt, hvt, hde⟩ := tail _ hs₅ hwjv h
     refine ⟨hres', max (max F₁ F₂) F₅, ?_⟩
-    exact checkValueGroup_of_facts (jv := pc.vg.jv)
+    exact checkValueGroup_of_facts
       (inferTypeCore_mono (by omega) hF₁)
       (ensureSortCore_mono (by omega) hF₂)
       (fun _ => heqv) (fun _ => hV)
-      (fun hk' => absurd hk hk')
       (inferTypeCore_mono (by omega) hvt)
       (isDefEqCore_mono (by omega) hde)
   · rw [ite_eq_right hk] at h
     obtain ⟨hres', F₅, jvt, hvt, hde⟩ := tail _ hs₃ (hwv hk) h
     refine ⟨hres', max (max F₁ F₂) F₅, ?_⟩
-    exact checkValueGroup_of_facts (jv := pc.vg.jv)
+    exact checkValueGroup_of_facts
       (inferTypeCore_mono (Nat.le_trans (Nat.le_max_left _ _) (Nat.le_max_left _ _)) hF₁)
       (ensureSortCore_mono (Nat.le_trans (Nat.le_max_right _ _) (Nat.le_max_left _ _)) hF₂)
-      (fun hk' => absurd hk' hk) (fun hk' => absurd hk' hk) (fun _ => rfl)
+      (fun hk' => absurd hk' hk) (fun hk' => absurd hk' hk)
       (inferTypeCore_mono (Nat.le_max_right _ _) hvt)
       (isDefEqCore_mono (Nat.le_max_right _ _) hde)
 
 /-- Phase A's value install, run: the two install halves, the header
 and the value as declared and well scoped, the residue kept. -/
 theorem installGuardsC_run {env : Env}
-    {cv cvA : ConstantVal} {value jv : Expr} {s₀ s' : CState}
+    {cv : ConstantVal} {value : Expr} {s₀ s' : CState}
     (hres : CSOKF s₀)
-    (h : installGuardsC (mkFEnv env) cv value s₀ = .ok ((cvA, jv), s')) :
-    CSOKF s' ∧ cvA = cv ∧ jv = value ∧
+    (h : installGuardsC (mkFEnv env) cv value s₀ = .ok ((), s')) :
+    CSOKF s' ∧
     Expr.WScoped 0 cv.type ∧ Expr.WScoped 0 value ∧
-    installHeader (m := CheckM) env cv = .ok cv ∧
-    installValueGuards (m := CheckM) env cv value = .ok value := by
+    installHeader (m := CheckM) env cv = .ok () ∧
+    installValueGuards (m := CheckM) env cv value = .ok () := by
   unfold installGuardsC at h
   obtain ⟨u₀, s₁, hflush, h⟩ := bindC_ok h
   rw [flushC_run] at hflush
   injection hflush with hflush
   obtain rfl : s₀.flushed = s₁ := congrArg Prod.snd hflush
-  obtain ⟨cvA', s₂, hcv, h₂⟩ := bindC_ok h
-  obtain ⟨hs₂, rfl, hwty, hI⟩ :=
+  obtain ⟨u₁, s₂, hcv, h₂⟩ := bindC_ok h
+  cases u₁
+  obtain ⟨hs₂, hwty, hI⟩ :=
     installHeaderC_run (μ := .verified) (env := env) (flushC_csok hres) hcv
-  obtain ⟨jv', s₃, hv, h₃⟩ := bindC_ok h₂
-  obtain ⟨hs₃, rfl, hwv, hV⟩ := installValueGuardsC_run (μ := .verified) hs₂ hv
-  obtain ⟨hv', rfl⟩ := pureC_ok h₃
-  simp only [Prod.mk.injEq] at hv'
-  obtain ⟨rfl, rfl⟩ := hv'
-  exact ⟨hs₃.residue, rfl, rfl, hwty, hwv, hI, hV⟩
+  obtain ⟨hs₃, hwv, hV⟩ := installValueGuardsC_run (μ := .verified) hs₂ h₂
+  exact ⟨hs₃.residue, hwty, hwv, hI, hV⟩
 
 /-- The lookup at the prefix view of a canonical, name-unique index whose
 environment extends `env` by exactly the constants above `env`'s

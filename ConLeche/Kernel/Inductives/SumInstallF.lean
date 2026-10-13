@@ -26,7 +26,8 @@ def checkSumTeleF (ops : CheckerOps m) (fe : FEnv) (cv : ConstantVal) (n : Nat)
   | some (_, .sort s) => pure (cvTa₀, s)
   | _ => do
     let (bs, s) ← whnfTelescope ops fe.env 0 n cvTa₀.type
-    let cvTa ← checkConstantValF ops fe { cv with type := closeTelescope bs 0 (.sort s) }
+    let cvTa := { cv with type := closeTelescope bs 0 (.sort s) }
+    checkConstantValF ops fe cvTa
     pure (cvTa, s)
 
 /-- `checkStructFieldSortsI` through the index. -/
@@ -71,7 +72,8 @@ def checkStructFieldSortsIFA (ops : CheckerOps m) (fe : FEnv) (isProp large : Bo
 def checkSumCtorF (ops : CheckerOps m) (fe₀ fe : FEnv) (T : Name)
     (lps : List Name) (nP nIdx : Nat) (resSort : Level) (isProp large : Bool)
     (cvC : ConstantVal) (nF : Nat) (cvTa : ConstantVal) : m (ConstantVal × List Level) := do
-  let cvCa ← checkConstantValF ops fe cvC
+  checkConstantValF ops fe cvC
+  let cvCa := cvC
   let (_, cbody) ← unwrapOr (cvCa.type.stripPis (nP + nF))
     (.notImplemented "direct sum: constructor telescope")
   -- official's `is_valid_ind_app` on the constructor's result

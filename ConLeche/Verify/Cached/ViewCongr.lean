@@ -338,15 +338,15 @@ theorem checkConstantValC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.
 
 /-- A definition's value check reads its index only through `find?`. -/
 theorem checkDefnValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
-    (jty value : Expr) (hint : ReducibilityHint) :
-    checkDefnValCI mode fe₁ cvA jty value hint = checkDefnValCI mode fe₂ cvA jty value hint := by
+    (value : Expr) (hint : ReducibilityHint) :
+    checkDefnValCI mode fe₁ cvA value hint = checkDefnValCI mode fe₂ cvA value hint := by
   unfold checkDefnValCI
   simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 
 /-- An opaque's value check reads its index only through `find?`. -/
 theorem checkOpaqueValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
-    (jty value : Expr) :
-    checkOpaqueValCI mode fe₁ cvA jty value = checkOpaqueValCI mode fe₂ cvA jty value := by
+    (value : Expr) :
+    checkOpaqueValCI mode fe₁ cvA value = checkOpaqueValCI mode fe₂ cvA value := by
   unfold checkOpaqueValCI
   simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 
@@ -1136,9 +1136,7 @@ theorem checkDeclC_twin (pins : List NatOpPinSet) {fe₁ fe₂ : FEnv} (ht : Twi
   | defnDecl cv value hint =>
     unfold checkDeclC
     simp only [checkConstantValC_congr hfe]
-    refine RelRun.bind_same fun r => ?_
-    obtain ⟨cvA, jty⟩ := r
-    simp only []
+    refine RelRun.bind_same fun _ => ?_
     split
     · -- the pinned arm: the same record on both sides, certified against
       -- overlays that answer as the twin pushes do, pushed last
@@ -1160,9 +1158,7 @@ theorem checkDeclC_twin (pins : List NatOpPinSet) {fe₁ fe₂ : FEnv} (ht : Twi
   | opaqueDecl cv value =>
     unfold checkDeclC
     simp only [checkConstantValC_congr hfe]
-    refine RelRun.bind_same fun r => ?_
-    obtain ⟨cvA, jty⟩ := r
-    simp only []
+    refine RelRun.bind_same fun _ => ?_
     split
     · -- the pinned arm, as the definitions'
       rw [checkOpaqueValCI_congr hfe]

@@ -59,7 +59,7 @@ structure RecTyEntry (mode : CheckMode) (F : Nat) (env : Env) (p : BlockShape)
   sty : Expr
   hms : p.members[p.recTgtAt ri]? = some ms
   hcvTa : cvTas[p.recTgtAt ri]? = some cvTa
-  hcv : checkConstantVal (fueledOps mode F) env rc.cvR = .ok cvRi
+  hcv : cvRi = rc.cvR ∧ checkConstantVal (fueledOps mode F) env rc.cvR = .ok ()
   hnIdx : nIdx = ms.nIdx
   /-- the prefix starts with the block's parameters (nothing is counted
   after them: a motive is a parameter like any other) -/
