@@ -18,7 +18,6 @@ public import ConLeche.Verify.EnvWF
 public import ConLeche.Verify.InferLemmas
 public import ConLeche.Verify.InferIOLemmas
 public import ConLeche.Verify.InferIOLeaves
-public import ConLeche.Verify.ProjVerdict
 public import ConLeche.SetTheory.Basic
 public import ConLeche.SetTheory.Core
 public import ConLeche.Verify.Mono
@@ -31,5 +30,13 @@ public import ConLeche.Verify.Inductives.GenRecRun
 public import ConLeche.Verify.Inductives.GenRecScoped
 public import ConLeche.Verify.Frontend.Dense
 public import ConLeche.Verify.Frontend.Rounds
+public import ConLeche.Verify.Denote.Lemmas
+public import ConLeche.Verify.Denote.Depth
+public import ConLeche.Verify.Denote.Inst
+public import ConLeche.Verify.Denote.Closed
+public import ConLeche.Verify.Denote.AcvalCongr
+public import ConLeche.Verify.Denote.EnvExtend
+public import ConLeche.Verify.Denote.ErasedEq
+public import ConLeche.Verify.Denote.ConstsBound
 
 @[expose] public section

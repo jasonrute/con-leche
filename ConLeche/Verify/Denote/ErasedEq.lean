@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Reading.Lemmas
+public import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Verify.Subst
 
 public section
@@ -15,9 +15,7 @@ recursive step goes through `Expr.ErasedEq.instantiate1` at two
 `fvar`s with the same index.
 -/
 
-namespace ConLeche.Model
-open ConLeche.Semantics
-open ConLeche.SetModel
+namespace ConLeche.Verify
 
 open ConLeche.Term ConLeche.Verify
 
@@ -96,4 +94,4 @@ decreasing_by
   | (rw [Expr.sizeB_instantiate1 _ rfl]; simp [Expr.sizeB]; omega)
   | (simp [Expr.sizeB])
 
-end ConLeche.Model
+end ConLeche.Verify

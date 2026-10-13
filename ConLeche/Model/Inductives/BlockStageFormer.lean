@@ -261,8 +261,6 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
     (ConsHead.ofFresh hwfI hAbelow hnresI
       (fun _ h => nomatch h)
       (fun _ _ _ _ h => nomatch h))
-    (fun ψ kk => Term.liftN_eq_self
-      (Term.bvarsBelow.mono (Nat.zero_le kk) (hAbelow ψ)) 1)
     hAparams hAok (fun ψ => ⟨_, hreadI ψ⟩) ?_ ?_ ?_
     (hind := indStrictHead_cons hreadI fun ψ hn ρ vs hsp =>
       ((mem_strictU_pos hn).mp (hAstrict ψ ρ vs hsp)).2)

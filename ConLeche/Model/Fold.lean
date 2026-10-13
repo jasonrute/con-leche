@@ -10,7 +10,7 @@ public import ConLeche.Model.Inductives.DeclBlockStep
 import ConLeche.Kernel.Checker
 import ConLeche.Kernel.CheckerBase
 import ConLeche.Model.Reading.Levels
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Capstone
 import ConLeche.Model.IndCons
 import ConLeche.Model.BasisEq
@@ -223,14 +223,6 @@ theorem checkDeclsPure_sound_of (hμ : μ.verifiedChecks = true)
     (h : checkDeclsPure μ (fueledOps μ F) pins ds = .ok env') :
     Nonempty (EnvModelM V μ env') :=
   (foldPM hμ ds Env.empty EnvModelOk.empty h).nonempty
-
-/-- **Coverage at the end of the P fold**: every stored
-inductive but `Quot` is a member of a recorded lfp block. -/
-theorem checkDeclsPure_cover (hμ : μ.verifiedChecks = true)
-    {F : Nat} {ds : List Declaration} {env' : Env}
-    (h : checkDeclsPure μ (fueledOps μ F) pins ds = .ok env') :
-    ∃ mp : EnvModelM V μ env', LfpCover mp [] :=
-  (foldPM hμ ds Env.empty EnvModelOk.empty h).1
 
 /-- **The capstone, carrier form**: no proof of `Empty` is ever
 accepted. -/

@@ -1313,7 +1313,7 @@ theorem genRecEqs_wd (hμ : μ.verifiedChecks = true)
   · rw [hfdK]
     exact fieldsOkB_zero_of_spineGrading _ (fun l hl' ys hys =>
       hframe c hc j hj l hl' (consList as ρ) ys hys)
-  obtain ⟨xs, fs, rfl, hxs, hfs⟩ := spineFit_append_split hys
+  obtain ⟨xs, fs, rfl, hxs, hfs⟩ := spineFit_append_inv hys
   have hxl := hxs.length_eq
   have hsp : SpineFit (chainFrame (tgtRs out).length (fun c => as.getD c pt) ρ)
       (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c

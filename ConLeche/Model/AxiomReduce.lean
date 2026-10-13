@@ -196,9 +196,9 @@ theorem ofReduce_mem (mp : EnvModelM V μ env)
   have hEmem : interp V ρ (mp.base2.acval
       (ConLeche.reduceElemName (ConLeche.ofReduceOp cv.name)) ψ)
       ∈ˢ (univ 1 : V) := by
-    have h := mp.mem_type ciE (ConLeche.Semantics.Env.find?_mem hfE) ψ
+    have h := mp.mem_type ciE (ConLeche.Env.find?_mem hfE) ψ
       (.sort 1) (by rw [htyE, denote_sort]; rfl) ρ
-    rwa [ConLeche.Semantics.Env.find?_name hfE, interp_sort] at h
+    rwa [ConLeche.Env.find?_name hfE, interp_sort] at h
   -- the `Eq` spine at two elements is their equality's truth value
   have hQ : ∀ x y, x ∈ˢ interp V ρ (mp.base2.acval
         (ConLeche.reduceElemName (ConLeche.ofReduceOp cv.name)) ψ) →
@@ -273,7 +273,7 @@ theorem axiomOfReduce (hμ : μ.verifiedChecks = true)
     · intro cv2 caps heq; exact nomatch heq
   refine harvestAxiom (V := V) hμ mp hcv
     (A := fun _ => Term.prf) (fun _ => trivial)
-    (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ => by simp) ?_
+    (fun _ _ _ => rfl) (fun _ _ => by simp) ?_
     (by rcases hor with h | h <;> rw [h] <;> decide)
   intro ψ ta hta ρ
   exact ofReduce_mem mp hok hor ψ ta hta ρ

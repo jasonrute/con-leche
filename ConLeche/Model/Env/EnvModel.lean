@@ -50,9 +50,6 @@ structure EnvModel (env : Env) where
   /-- every stored recursor rule's constructor is stored (V-free,
   shared) -/
   rec_ctors : RecCtorsStored env
-  /-- every leaf is closed, as a lifting equation -/
-  acval_closed : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
-    (acval n ψ).liftN 1 k = acval n ψ
   /-- a leaf reads only its own level parameters -/
   acval_params : ∀ (n : Name) (ci : ConstantInfo),
     env.find? n = some ci →
@@ -68,13 +65,18 @@ variable {V}
 /-- **A pinned constant's leaf is its direct pin**: `basis_pinned`'s
 second component. -/
 theorem EnvModel.acval_pinned {env : Env} (m : EnvModel V env)
-    {n : Name} (hres : ConLeche.reservedBasisNames.contains n = true)
-    (hst : (env.find? n).isSome = true) (ψ : Name → Nat) {t : Term}
+    {n : Name} {ci : ConstantInfo} (hf : env.find? n = some ci)
+    (hres : ConLeche.reservedBasisNames.contains n = true)
+    {ψ : Name → Nat} {t : Term}
     (hpin : ConLeche.Verify.pinnedStructT n ψ = some t) :
-    m.acval n ψ = t := by
-  cases hf : env.find? n with
-  | none => rw [hf] at hst; exact nomatch hst
-  | some ci => exact (m.basis_pinned n ci hf hres).2 t ψ hpin
+    m.acval n ψ = t :=
+  (m.basis_pinned n ci hf hres).2 t ψ hpin
+
+/-- **Every leaf is lift-invariant**: `cval_closed` at every cut. -/
+theorem EnvModel.acval_closed {env : Env} (m : EnvModel V env)
+    (n : Name) (ψ : Name → Nat) (k : Nat) :
+    (m.acval n ψ).liftN 1 k = m.acval n ψ :=
+  Term.liftN_eq_self (Term.bvarsBelow.mono (Nat.zero_le k) (m.cval_closed n ψ)) 1
 
 /-- The empty environment's core: the leaf is the bare `.const .empty
 [0]` at every name, and every syntactic field is vacuous over `env.consts = []`. -/
@@ -85,22 +87,7 @@ theorem EnvModel.acval_pinned {env : Env} (m : EnvModel V env)
   basis_pinned := BasisPinnedTT.empty _
   proj_ok := ProjOkT.empty
   rec_ctors := RecCtorsStored.empty
-  acval_closed := fun _ _ _ => rfl
   acval_params := fun _ _ _ _ _ _ => rfl
   acval_wellDenoted := fun _ _ _ => by simp
-
-/-! ### Level-insensitivity of the leaf valuation -/
-
-/-- **Residue 8**: the leaf valuation is level-insensitive. -/
-@[expose] def AcvalParams {env : Env} (m : EnvModel V env) : Prop :=
-  ∀ n ci, env.find? n = some ci →
-    ∀ ψ₁ ψ₂ : Name → Nat,
-      (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
-      m.acval n ψ₁ = m.acval n ψ₂
-
-/-- **Residue 8 is discharged** — it is the `acval_params` field. -/
-theorem acvalParams {env : Env} (m : EnvModel V env) :
-    AcvalParams m :=
-  m.acval_params
 
 end ConLeche.Model

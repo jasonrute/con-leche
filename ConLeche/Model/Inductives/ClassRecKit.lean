@@ -236,7 +236,7 @@ length splits there. -/
 theorem spineFit_append_at {Ds₁ Ds₂ : List Term} {σ : Nat → V} {xs fs : List V}
     (hl : xs.length = Ds₁.length) (h : SpineFit σ (Ds₁ ++ Ds₂) (xs ++ fs)) :
     SpineFit σ Ds₁ xs ∧ SpineFit (consList xs σ) Ds₂ fs := by
-  obtain ⟨as₁, as₂, heq, h1, h2⟩ := spineFit_append_split h
+  obtain ⟨as₁, as₂, heq, h1, h2⟩ := spineFit_append_inv h
   have hl1 : as₁.length = xs.length := by rw [h1.length_eq, hl]
   obtain ⟨rfl, rfl⟩ := List.append_inj heq.symm hl1
   exact ⟨h1, h2⟩

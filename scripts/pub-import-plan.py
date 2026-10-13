@@ -487,8 +487,8 @@ FALLBACK = {
     # and reaches only through this re-export.
     ('ConLeche.Model.Inductives.FixKit',
      'ConLeche.Model.Inductives.FixWitness'),
-    ('ConLeche.Model.Install',        'ConLeche.Model.Reading.EnvExtend'),
-    ('ConLeche.Model.Install',        'ConLeche.Semantics.ConstsBound'),
+    ('ConLeche.Model.Install',        'ConLeche.Verify.Denote.EnvExtend'),
+    ('ConLeche.Model.Install',        'ConLeche.Verify.Denote.ConstsBound'),
     ('ConLeche.Model.Install',        'ConLeche.Verify.Extend.Sibs'),
     ('ConLeche.Semantics.IndRecsCore','ConLeche.Verify.Denote.EnvExt'),
     ('ConLeche.Semantics.IndRecsCore','ConLeche.Verify.Denote.Levels'),
@@ -510,7 +510,7 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.BlockStageRec',
      'ConLeche.Model.Env.EnvModelM'),
     ('ConLeche.Model.Inductives.BlockStageRec',
-     'ConLeche.Model.Reading.ConsCross'),
+     'ConLeche.Verify.Denote.ConsCross'),
     ('ConLeche.Model.Inductives.BlockStageRec',
      'ConLeche.Semantics.IndBlockFacts'),
     # task #315 (M5, O-1's file): `Model/Inductives/BlockRecRule.lean`
@@ -563,8 +563,8 @@ FALLBACK = {
     # task #305 closing: `FixRecRead`'s public signatures resolve
     # `SetTheory`, `ITerm`, `denoteMeta`, `EnvModel` and `openFvars`
     # only through `FixRecReadDefs`'s re-export; the model calls the edge
-    # demotable once the file's two new plain imports (`Reading/Inst`,
-    # `Reading/ErasedEq`, needed after `Model/Steps/*`'s re-exports went)
+    # demotable once the file's two new plain imports (`Verify/Denote/Inst`,
+    # `Verify/Denote/ErasedEq`, needed after `Model/Steps/*`'s re-exports went)
     # cover the constants, but a plain import is invisible to a public
     # statement (the #290 class) — the build says so for every substitute
     # tried.
@@ -709,7 +709,7 @@ FALLBACK = {
     # `nestHoleImg_lt_nP`, `NestNfScope.lean:230`).
     ('ConLeche.Verify.Inductives.ReplaceApps', 'ConLeche.Kernel.Inductives.Positivity'),
     ('ConLeche.Model.Env.CanonCrest', 'ConLeche.Model.Env.EnvModelM'),
-    ('ConLeche.Model.Env.CanonCrest', 'ConLeche.Model.Reading.ConsCross'),
+    ('ConLeche.Model.Env.CanonCrest', 'ConLeche.Verify.Denote.ConsCross'),
     ('ConLeche.Verify.Inductives.HoleBack', 'ConLeche.Verify.SubstFvars'),
     ('ConLeche.Model.Inductives.BlockHoleGrade', 'ConLeche.Verify.Inductives.NfMemberFree'),
     ('ConLeche.Model.Inductives.BlockHoleRead', 'ConLeche.Verify.Inductives.ReplaceApps'),
@@ -726,7 +726,7 @@ FALLBACK = {
     # `DenoteMetaSpine` directly; MEASURED by demoting it alone (unknown
     # identifier `DenoteMetaSpine`, `Motive.lean:240`, `:261`, `:281`,
     # `:282`, `:296`, `:297`).
-    ('ConLeche.Model.Rules.Motive', 'ConLeche.Model.Reading.Lemmas'),
+    ('ConLeche.Model.Rules.Motive', 'ConLeche.Verify.Denote.Lemmas'),
     # task #342 (s4-shake): `CertsSound`'s and `ProofFastSound`'s own public
     # statements name `SetTheory` directly, reached only through `Inputs`'
     # public re-export of `SetTheory.Core`; MEASURED by demoting it alone

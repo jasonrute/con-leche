@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.IndTele
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 public import ConLeche.Verify.Denote.TeleOpen
 public section
 

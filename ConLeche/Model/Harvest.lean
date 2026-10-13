@@ -311,7 +311,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
       (fun ψ => denote_closed mp.base2.cval_closed hvf' hbv'
         (hA ψ))
       hnres (fun _ heq => nomatch heq)
-      (fun _ _ _ _ heq => nomatch heq)) hAclosed
+      (fun _ _ _ _ heq => nomatch heq))
     hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
@@ -605,10 +605,6 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
     exact ⟨sta, hsta, ihi hst hwt hbt' hLt (CtxOk.nil hnlt)
       (hTa ψ) hsta⟩
   -- the leaf laws
-  have hAclosed : ∀ (ψ : Name → Nat) (k : Nat),
-      (A ψ).liftN 1 k = A ψ := fun ψ k =>
-    denote_liftN_eq_self mp.base2.cval_closed
-      hvf' hbv' (hA ψ) 1 k
   have hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ cv.levelParams, ψ₁ p = ψ₂ p) → A ψ₁ = A ψ₂ := by
     intro ψ₁ ψ₂ hψ
@@ -686,7 +682,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
       (fun ψ => denote_closed mp.base2.cval_closed hvf' hbv'
         (hA ψ))
       hnres (fun _ heq => nomatch heq)
-      (fun _ _ _ _ heq => nomatch heq)) hAclosed
+      (fun _ _ _ _ heq => nomatch heq))
     hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
@@ -767,7 +763,7 @@ theorem harvestThm (hμ : μ.verifiedChecks = true)
 /-! ## The `axiom` kind
 
 **An axiom has no value**, so the leaf is not a reading of anything the
-harvest can see: the leaf and its facts (`hAclosed`, `hAparams`,
+harvest can see: the leaf and its facts (`hAvclosed`, `hAparams`,
 `hAok`, the interp membership `hmemA`) arrive as
 **premises**, discharged by the pin tier (`Model/AxiomPin.lean`,
 `Model/AxiomReduce.lean`).
@@ -787,7 +783,6 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
     {cv : ConstantVal} {type' : Expr} {A : (Name → Nat) → Term}
     (hcv : ConstantValRun μ F env cv type')
     (hAvclosed : ∀ ψ : Name → Nat, Term.Closed (A ψ))
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ cv.levelParams, ψ₁ p = ψ₂ p) → A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
@@ -873,7 +868,6 @@ theorem harvestAxiom (hμ : μ.verifiedChecks = true)
       (fun _ _ heq => nomatch heq)⟩)
       hAvclosed hnres (fun _ heq => nomatch heq)
       (fun _ _ _ _ heq => nomatch heq))
-    hAclosed
     hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ
@@ -1128,7 +1122,6 @@ theorem harvestOpaque (hμ : μ.verifiedChecks = true)
         (hA ψ))
       hnres (fun _ heq => nomatch heq)
       (fun _ _ _ _ heq => nomatch heq))
-    hAclosed
     hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
     intro ψ

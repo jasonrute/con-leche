@@ -123,11 +123,6 @@ recurrence is the compiler's (the census row above). -/
 @[simp] theorem mkFVar_eq (idx : Nat) (ty : Expr) :
     mkFVar idx ty = .fvar idx ty := rfl
 
-@[simp] theorem mkSort_eq (u : Level) : mkSort u = .sort u := rfl
-
-@[simp] theorem mkConst_eq (n : Name) (us : List Level) :
-    mkConst n us = .const n us := rfl
-
 @[simp] theorem mkApp_eq (f a : Expr) : mkApp f a = .app f a := rfl
 
 @[simp] theorem mkLam_eq (ty b : Expr) :
@@ -138,8 +133,6 @@ recurrence is the compiler's (the census row above). -/
 
 @[simp] theorem mkLetE_eq (ty v b : Expr) :
     mkLetE ty v b = .letE ty v b := rfl
-
-@[simp] theorem mkLit_eq (l : Literal) : mkLit l = .lit l := rfl
 
 @[simp] theorem mkProj_eq (s : Name) (i : Nat) (e : Expr) :
     mkProj s i e = .proj s i e := rfl

@@ -29,7 +29,7 @@ import ConLeche.Model.Inductives.TargetOutSat
 import ConLeche.Model.Inductives.GenRecParams
 import ConLeche.Verify.InferLeaves
 import ConLeche.Verify.CheckerF
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 
 public section
 

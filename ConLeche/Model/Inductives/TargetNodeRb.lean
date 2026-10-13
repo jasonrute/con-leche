@@ -8,7 +8,7 @@ public import ConLeche.Model.Inductives.ContN2
 public import ConLeche.Model.Inductives.BlockHoleRead
 public import ConLeche.Verify.Inductives.PosNodes
 import ConLeche.Kernel.Inductives.RecCheck
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 
 public section
 

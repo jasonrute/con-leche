@@ -56,15 +56,6 @@ theorem posD_frame_kty {ops : ConLeche.CheckerOps CheckM} {env : Env} {ctx : Nes
   cases h with
   | frame _ _ _ _ _ _ _ _ hkty _ => exact hkty
 
-/-- A constant applied to arguments in a context is in it. -/
-theorem CtxOkP.mkAppN_const {env : Env} {m : EnvModel V env} {φ : Name → Nat} {d : Nat}
-    {Δ : List Term} (hΔ : Δ.length = d) {n : Name} {us : List Level} {as : List Expr}
-    (h : ∀ x ∈ as, CtxOkP m φ d Δ x) : CtxOkP m φ d Δ (Expr.mkAppN (.const n us) as) := by
-  refine ⟨hΔ, fun l hl => ?_⟩
-  rcases ConLeche.fvarLeaves_mkAppN hl with h0 | ⟨x, hx, hlx⟩
-  · simp [Expr.fvarLeaves] at h0
-  · exact (h x hx).2 l hlx
-
 /-- A node's key parameters are scoped, and closed, at the depth of the
 frames its frame is derived under. -/
 theorem posNodeOk_dsAnc {ops : ConLeche.CheckerOps CheckM} {env : Env} {ctx : NestCtx}

@@ -30,10 +30,6 @@ variable {mode : CheckMode}
 
 open Expr
 
-theorem find?_mem {env : Env} {n : Name} {ci : ConstantInfo}
-    (h : env.find? n = some ci) : ci ∈ env.consts :=
-  List.mem_of_find?_eq_some h
-
 /-! ## Inversion lemmas -/
 
 set_option linter.unusedSimpArgs false in
@@ -2526,7 +2522,7 @@ theorem unfoldDefinition_WScoped {env : Env} (henv : EnvWF env)
   · intro h
     simp only [Option.some.injEq] at h
     subst h
-    obtain ⟨-, -, -, -, hval, -⟩ := henv _ (find?_mem hf)
+    obtain ⟨-, -, -, -, hval, -⟩ := henv _ (Env.find?_mem hf)
     obtain ⟨hvc, -, -, -⟩ := hval cv value hint rfl
     refine Expr.WScoped.mkAppN
       (WScoped.of_not_hasFvar (by
@@ -2605,7 +2601,7 @@ theorem whnfPres_WScoped {env : Env} (henv : EnvWF env) :
             fun x hx => hwapp.getAppArgs x hx
           have hrhs : WScoped d
               (r.rhs.instantiateLevelParams cv.levelParams us) := by
-            obtain ⟨-, -, -, -, -, hrules, -⟩ := henv _ (find?_mem hfc)
+            obtain ⟨-, -, -, -, -, hrules, -⟩ := henv _ (Env.find?_mem hfc)
             obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules rfl r
               (List.mem_of_find?_eq_some hrule)
             exact WScoped.of_not_hasFvar

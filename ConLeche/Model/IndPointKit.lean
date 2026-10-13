@@ -1,7 +1,7 @@
 module
 
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Verify.Denote.OpenRevDenote
 import ConLeche.Kernel.Checker
 public import ConLeche.Model.IndDomGrade

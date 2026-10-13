@@ -7,15 +7,11 @@ import ConLeche.Verify.Extend.Inversions
 public section
 
 /-!
-# `wfOpsM mode` runs to pure runs, per declaration-checker function
+# Scoping facts for the cache bridge
 
-With the memo operations unguarded, part B's entry-point bridges carry
-the arguments' well-scopedness, so `wfOpsM mode`'s condition is per call
-(`EnvWF env ∧ wscopedB`) and can no longer be discharged wholesale per
-function.  This module proves the run-level implications instead: a
-successful `wfOpsM mode` run of each declaration-checker function over a
-well-formed environment is the pure `fueledOps` run at the same fuel.
-At each operation call site the argument's well-scopedness comes from
+The cached tier's bridge (`ConLeche/Verify/Cached/BridgeCS1.lean`
+through `BridgeCSDecl.lean`) carries the arguments' well-scopedness to
+every operation call.  At each call site it comes from
 
 * the checker's own input validation (`looseBVarsBounded`/`hasFvar`
   guards precede every inference of raw input — at depth 0
@@ -27,11 +23,8 @@ At each operation call site the argument's well-scopedness comes from
   — the defeq comparisons run at the opened depth, over variables of
   that frame).
 
-The cached tier's bridge composes these with the intermediate `EnvWF`
-facts into the per-declaration bridge: `ConLeche/Verify/Cached/BridgeCS1.lean`
-through `BridgeCS3.lean` mirror the `_wfimp` walks per call site,
-`BridgeCS4.lean` and `BridgeCSDecl.lean` chain them along the phase
-drivers into the per-declaration step (`checkDeclStepC_run`).
+This module holds the pieces of that which are not lemmas about the
+operations themselves.
 -/
 
 set_option linter.unusedSimpArgs false
@@ -49,7 +42,7 @@ theorem wscopedB_of_not_hasFvar {e : Expr} (h : e.hasFvar = false)
     {d : Nat} : e.wscopedB d = true :=
   (WScoped.of_not_hasFvar h).to_wscopedB
 
-/-! ## The leaf checker functions, `wfOpsM mode` runs to pure runs -/
+/-! ## Opened telescopes -/
 
 /-- `openPisAtFvars` puts the variable it creates for binder `j` at
 index `i + j` — the positional companion of `openPisAtFvars_WScoped`,
@@ -179,7 +172,7 @@ theorem wscopedB_substConst0 {n : Name} {r : Expr}
   | .lam _ _, _, he | .forallE _ _, _, he
   | .letE _ _ _, _, he | .proj _ _ _, _, he => he
 
-/-! ## The div/mod pin gate, `wfOpsM mode` runs to pure runs -/
+/-! ## The div/mod pin gate -/
 
 /-- The pinned open certificate statements are well-scoped at the
 certificate frame: hypotheses at their own binder index (they ride as

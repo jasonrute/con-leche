@@ -1,7 +1,6 @@
 module
 
-public import ConLeche.Model.Reading.Shift
-import ConLeche.Semantics.Tower.TowerKit
+public import ConLeche.Verify.Denote.Depth
 import ConLeche.Verify.Denote.Shift
 public import ConLeche.Verify.Subst
 import ConLeche.Verify.Denote
@@ -15,7 +14,7 @@ The substitution crossing the β/ζ clauses of the P-tier step proof run
 through.
 
 **It does not cost `EnvWF`.**  Same reason as `denote_shiftFrom`
-(`Reading/Shift.lean`): `denote`'s binder clauses read only the
+(`Verify/Denote/Depth.lean`): `denote`'s binder clauses read only the
 binder's domain and body, which `Expr.substFvarAt` substitutes
 structurally, so each closes by the recursion alone.
 
@@ -33,7 +32,7 @@ Both are discharged from one closedness fact at every real supplier:
 `Term.liftN_eq_self` and `Term.inst_eq_self`
 (`Verify/Denote/VClosed.lean`) take the same
 `Term.bvarsBelow k (acval n ψ)` hypothesis, and `hacl` is
-already an `EnvModel` field (`acval_closed`).
+`EnvModel.acval_closed`, read off the `cval_closed` field.
 
 ## Where the arithmetic lands
 
@@ -44,7 +43,6 @@ At depth `D + 1` the variable
 -/
 
 namespace ConLeche.Term.Term
-open ConLeche.SetModel
 
 /-! ### Two lift identities the depth-lift needs
 
@@ -99,9 +97,7 @@ theorem liftN_liftN : ∀ (e : Term) (n m k : Nat),
 
 end ConLeche.Term.Term
 
-namespace ConLeche.Model
-open ConLeche.Semantics
-open ConLeche.SetModel
+namespace ConLeche.Verify
 
 
 open ConLeche.Term ConLeche.Verify
@@ -112,7 +108,7 @@ variable {env : Env} {φ : Name → Nat}
 variable {acval : Name → (Name → Nat) → Term}
 
 /-- The `Nat`-literal spine is `inst`-invariant when its two heads
-are.  `Reading/Shift.lean`'s `natLitT_liftN` one operation over. -/
+are.  `Verify/Denote/Depth.lean`'s `natLitT_liftN` one operation over. -/
 private theorem natLitT_inst {za sa y : Term} {k : Nat}
     (hz : za.inst y k = za) (hs : sa.inst y k = sa) :
     ∀ n : Nat, (natLitT za sa n).inst y k = natLitT za sa n := by
@@ -353,4 +349,4 @@ theorem denote_beta
   exact h
 
 
-end ConLeche.Model
+end ConLeche.Verify

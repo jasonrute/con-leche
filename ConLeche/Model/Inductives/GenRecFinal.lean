@@ -282,7 +282,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
         show interp V ρ (ConLeche.Semantics.blockRecAV _ _ _ _ j) = pt
         rw [heq]
         exact eq_pt_of_mem_univZero (genRecTyZ hμ R hg h mpC j hj _ ρ hℓ) hmem
-      · rw [denote_instLevels (acvalParamsAt_of_core m₃) φ, hac] at hRa
+      · rw [denote_instLevels m₃.acval_params φ, hac] at hRa
         exact genRuleRaZ hμ R hg h mpC hfind hlenEs hr hcA hrhs hRa hℓ ρ
     | some t =>
       have hmb' : (ConLeche.tgtMajorsOf out j).member = some t := hmb

@@ -148,40 +148,6 @@ theorem tgtClsG_of_mem {d : BlockData V} {Dc : Nat → LfpDatum V} {mc : Nat →
     rw [ite_eq_right hg] at ht
     exact absurd ht (not_mem_empty t)
 
-/-- **An argument spine opening with variables, read** (`argsA_split` at
-parameter variables, whose types need no scoping). -/
-theorem argsA_split_fvars {env : Env} (m : EnvModel V env) (ψ : Name → Nat) {D0 D' : Nat}
-    {args : List Expr} {argsA : List Term}
-    (hsp : DenoteSpine m.acval env ψ D' args argsA) {n : Nat} (hn : n ≤ args.length)
-    (hpre : ∀ q, q < n → ∃ ty, args[q]? = some (.fvar q ty)) (hnD : n ≤ D0)
-    {L : List V} (hL : D' = D0 + L.length) (σ : Nat → V)
-    {isR : List V} (hlen : isR.length = args.length - n)
-    (htail : ∀ (l : Nat) (xa : Term), argsA[n + l]? = some xa →
-      isR[l]? = some (interp V (consList L σ) xa)) :
-    argsA.map (interp V (consList L σ)) = (List.range n).map (fun q => σ (D0 - 1 - q)) ++ isR := by
-  have hl := hsp.length
-  apply List.ext_getElem?
-  intro q
-  by_cases hq : q < n
-  · rw [List.getElem?_append_left (by simp; omega), List.getElem?_map, List.getElem?_map,
-      List.getElem?_range hq]
-    obtain ⟨ty, hx⟩ := hpre q hq
-    obtain ⟨v, hv, hdv⟩ := denoteSpine_getElem?' hsp q _ hx
-    rw [hv, Option.map_some]
-    rw [denote_fvar, Option.some.injEq] at hdv
-    subst hdv
-    rw [Option.map_some, interp_bvar, show D' - 1 - q = (D0 - 1 - q) + L.length by omega,
-      consList_apply_add]
-  · rw [List.getElem?_append_right (by simp; omega), List.getElem?_map]
-    simp only [List.length_map, List.length_range]
-    by_cases hq2 : q < argsA.length
-    · rw [List.getElem?_eq_getElem hq2, Option.map_some]
-      have hq3 : argsA[n + (q - n)]? = some argsA[q] := by
-        rw [show n + (q - n) = q by omega]; exact List.getElem?_eq_getElem hq2
-      rw [htail (q - n) (argsA[q]) hq3]
-    · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
-      rfl
-
 /-! ## A key's parameters, read back at a stack's suffix -/
 
 theorem substFvars_congr_s {b D : Nat} {s s' : Nat → Expr} (hs : ∀ v, v < b → s v = s' v) :
@@ -241,7 +207,6 @@ theorem nodeRb_erasedEq_prog {ctx : NestCtx} {occ a X : List NestHole} (hocc : a
     · have := callSubst_suffix (ctx := ctx) occ [] fvsF hv
       rwa [List.append_nil] at this
   rwa [substFvars_congr_s hs] at h1
-
 
 theorem Expr.ErasedEqL.toErasedEqs : ∀ {as bs : List Expr}, Expr.ErasedEqL as bs →
     ConLeche.ErasedEqs as bs

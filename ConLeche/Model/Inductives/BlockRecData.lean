@@ -40,7 +40,7 @@ namespace ConLeche.Model
 
 open ConLeche.Semantics SetTheory
 open ConLeche.Term
-open ConLeche.Verify (denote openRev)
+open ConLeche.Verify
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo RecRule BlockShape
   consBlockRecs)
 
@@ -312,15 +312,6 @@ theorem blockRecLeafAV_closed (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     (fun _c' hc' => closed_blockRecTyAV hμ mpC h (List.getElem?_eq_getElem hc') ψ)
     (heqB ψ)
 
-/-- **C-2 at the run**: lifting the stage's leaf is a no-op. -/
-theorem blockRecLeafAV_liftN (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    (h : ConLeche.RecStageG μ F envC p cvTas rs)
-    (heqB : ∀ ψ : Name → Nat, ∀ e ∈ eqs ψ, Term.bvarsBelow rs.length e)
-    (ψ : Name → Nat) (i k : Nat) :
-    (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i).liftN 1 k
-      = blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i :=
-  liftN_eq_self_of_closed (blockRecLeafAV_closed hμ mpC h heqB ψ i) k 1
-
 /-- **C-4 at the run**: the stage's leaf is graded — `blockRecAV_facts`
 at the family premise, one line.  **The block position is needed**:
 out of range `projChainAV` walks past the chain's last binder and the
@@ -422,7 +413,7 @@ theorem blockRecLeafOk_of (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ
       ConLeche.Semantics.BlockRecPre V (s ψ) rs.length
         (blockRecTyAV mpC.base2.acval envC rs ψ) (eqs ψ) ρ) :
     BlockRecLeafOk mpC rs s eqs :=
-  ⟨blockRecLeafAV_closed hμ mpC h heqB, blockRecLeafAV_liftN hμ mpC h heqB,
+  ⟨blockRecLeafAV_closed hμ mpC h heqB,
     blockRecLeafAV_par_run hμ mpC h heqP, fun ψ _ hi ρ => blockRecLeafAV_wd hpre ψ hi ρ,
     hpre⟩
 
@@ -1437,8 +1428,8 @@ theorem blockRecBareModel_run {envC : Env} (hμ : μ.verifiedChecks = true)
       ⟨(hfacts r hr).1, (hfacts r hr).2.1, (hfacts r hr).2.2.1, (hfacts r hr).2.2.2.1⟩)
     (fun n hne => blockRecAcv_of_notin (fun r hr => hne (r.1, r.2.2.1)
       (List.mem_map.mpr ⟨r, hr, rfl⟩)))
-    (hB fun r hr => (hL r hr).1) (hB fun r hr => (hL r hr).2.1)
-    (hB fun r hr => (hL r hr).2.2.1) (hB fun r hr => (hL r hr).2.2.2)
+    (hB fun r hr => (hL r hr).1)
+    (hB fun r hr => (hL r hr).2.1) (hB fun r hr => (hL r hr).2.2)
     (hB fun r hr => hrd r hr)
 
 /-- **A checked right-hand side READS, and its reading is graded.**
@@ -1524,7 +1515,7 @@ theorem blockRuleRhs_read_run {envC : Env} (hμ : μ.verifiedChecks = true)
     rw [hacR, ← hac] at hRa
     exact ⟨Ra, by rw [← hcross]; exact hRa, hok⟩
   refine ⟨fun φ us => ?_, fun ψ ρ => ?_⟩
-  · rw [denote_instLevels (acvalParamsAt_of_core m₃) φ]
+  · rw [denote_instLevels m₃.acval_params φ]
     obtain ⟨Ra, hRa, -⟩ := hone (Level.substFn φ r.1.levelParams us)
     rw [hRa, blockRuleRaOf, hRa]
     rfl
@@ -1667,7 +1658,7 @@ theorem blockRuleTVa_run (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ 
   obtain ⟨-, -, hres, -, -⟩ := ConLeche.recStage_facts h r (List.mem_of_getElem? hr)
   obtain ⟨-, -, -, hread, -⟩ :=
     recStage_tyPis hμ mpC h hr (Level.substFn φ r.1.levelParams us)
-  rw [denote_instLevels (acvalParamsAt_of_core m₃) φ,
+  rw [denote_instLevels m₃.acval_params φ,
     blockRecDenote_cross h hac _ 0 _ (constsBound_of_constsResolve _ hres) hread] at hTVa
   exact (Option.some.inj hTVa).symm
 
@@ -1904,7 +1895,7 @@ theorem blockRuleRhsOk_base {envC : Env} (hμ : μ.verifiedChecks = true)
   obtain rfl := blockRuleTVa_run hμ mpC h hac hrj φ us hTVa
   have hcross := blockRecDenote_cross h hac (Level.substFn φ cA.1.levelParams usj) 0
     cA.1.type hctorCB (hctorRead (Level.substFn φ cA.1.levelParams usj))
-  rw [denote_instLevels (acvalParamsAt_of_core m₃) φ, hcross] at hTVja
+  rw [denote_instLevels m₃.acval_params φ, hcross] at hTVja
   obtain rfl : ctorTy (Level.substFn φ cA.1.levelParams usj) = TVja := Option.some.inj hTVja
   -- the rule's own reading, as a function of the valuation
   have hreadRa : denote m₃.acval
@@ -1913,7 +1904,7 @@ theorem blockRuleRhsOk_base {envC : Env} (hμ : μ.verifiedChecks = true)
       = some (blockRuleRaOf m₃.acval
           (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) rhs
           (Level.substFn φ r.1.levelParams us)) := by
-    rw [← denote_instLevels (acvalParamsAt_of_core m₃) (ks := r.1.levelParams) (us := us) φ]
+    rw [← denote_instLevels m₃.acval_params (ks := r.1.levelParams) (us := us) φ]
     exact hreadR φ us
   unfold BlockRuleBase
   rw [hstored] at hfitR hidx ⊢

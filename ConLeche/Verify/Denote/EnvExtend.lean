@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Reading.Install
-public import ConLeche.Semantics.ConstsBound
+public import ConLeche.Verify.Denote.AcvalCongr
+public import ConLeche.Verify.Denote.ConstsBound
 
 public section
 
@@ -15,9 +15,7 @@ only through `find?` (`FindPreserved`) and the two support guards
 (`LitGuardsAgree`).
 -/
 
-namespace ConLeche.Model
-open ConLeche.Semantics
-open ConLeche.SetModel
+namespace ConLeche.Verify
 
 open ConLeche.Term ConLeche.Verify
 
@@ -379,4 +377,4 @@ theorem denote_envExtend_mono_ok {env₀ env : Env}
       | natVal n => exact absurd rfl (hnat n)
       | strVal s => exact absurd rfl (hstr s)
 
-end ConLeche.Model
+end ConLeche.Verify

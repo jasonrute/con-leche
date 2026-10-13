@@ -46,52 +46,6 @@ theorem consBlockRecsBareF_mkFEnv (p : BlockShape) :
 
 /-! ## The records -/
 
-/-- **One rule's λ-tower, as checked**: the stream's right-hand side
-`rhs`, stored as `out = rhs`, at the rule-less recursors'
-environment `envR`, typed there, its λ-tower compared binder by binder
-with the recursor type's prefix and the constructor's fields at the
-constructors' environment `envT`. -/
-structure RuleTower (mode : CheckMode) (F : Nat) (envR envT : Env) (p : BlockShape)
-    (recTys : List Expr) (ri : Nat) (cvR : ConstantVal) (cA : ConstantVal × Nat)
-    (rhs out : Expr) : Type where
-  recTy : Expr
-  tyR : Expr
-  rbs : List Expr
-  body : Expr
-  fvsPref : List Expr
-  oPref : Expr
-  cpref : List Expr
-  crest : Expr
-  fvsF : List Expr
-  cbody : Expr
-  ldoms : List Expr
-  lrest : Expr
-  concl : Expr
-  hrecTy : recTys[ri]? = some recTy
-  hbv : rhs.looseBVarsBounded 0 = true
-  hfv : rhs.hasFvar = false
-  hout : out = rhs
-  hlp : out.allLevelParamsDefined cvR.levelParams = true
-  hres : out.constsResolve envR = true
-  htyR : inferTypeCore mode envR F 0 out = .ok tyR
-  hstrip : Expr.stripLams (p.rulePrefixAt ri + cA.2) out = some (rbs, body)
-  hpref : openPisAtFvars (p.rulePrefixAt ri) recTy 0 = some (fvsPref, oPref)
-  hcpar : Expr.instPisAt (fvsPref.take p.nP) cA.1.type = some (cpref, crest)
-  hfld : openPisAtFvars cA.2 crest (p.rulePrefixAt ri) = some (fvsF, cbody)
-  hlams : Expr.instLamsAt (fvsPref ++ fvsF) out = some (ldoms, lrest)
-  /-- the λ-domains resolve at the constructors' environment -/
-  hldomsRes : ∀ t ∈ ldoms, t.constsResolve envT = true
-  hG2len : ((fvsPref ++ fvsF).map Expr.fvarTypeD).length = ldoms.length
-  hG2 : ∀ l, l < ((fvsPref ++ fvsF).map Expr.fvarTypeD).length →
-    isDefEqCore mode envT F (p.rulePrefixAt ri + cA.2)
-      (((fvsPref ++ fvsF).map Expr.fvarTypeD).getD l default) (ldoms.getD l default) = .ok true
-  /-- the recursor's conclusion at the prefix, the constructor's result
-  indices and the constructed element -/
-  hconcl : Expr.instPisAtLift
-      (fvsPref ++ cbody.getAppArgs.drop p.nP ++
-        [Expr.mkAppN (.const cA.1.name (p.lps.map .param)) (fvsPref.take p.nP ++ fvsF)])
-      recTy = some concl
-
 /-- **One rule's stored right-hand side, at ANY major**: `out`, stored
 at the rule-less recursors' environment `envR` — closed, its level
 parameters the recursor's, its constants resolved and its type inferred

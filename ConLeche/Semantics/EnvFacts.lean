@@ -108,19 +108,4 @@ structure EnvFacts (env : Env) where
   nat_op_guard : ∀ c, (c ∈ natOpNames ∨ c ∈ natDivModNames) →
     natOpStored env c = true → natOpGuard env c = true
 
-/-! ## Two `find?` readings -/
-
-/-- A `find?` hit names the stored constant. -/
-theorem Env.find?_name {env : Env} {n : Name} {ci : ConstantInfo}
-    (h : env.find? n = some ci) : ci.name = n := by
-  unfold ConLeche.Env.find? at h
-  have := List.find?_some h
-  simpa using this
-
-/-- A `find?` hit is a stored constant. -/
-theorem Env.find?_mem {env : Env} {n : Name} {ci : ConstantInfo}
-    (h : env.find? n = some ci) : ci ∈ env.consts := by
-  unfold ConLeche.Env.find? at h
-  exact List.mem_of_find?_eq_some h
-
 end ConLeche.Semantics

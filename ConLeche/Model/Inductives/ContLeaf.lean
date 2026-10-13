@@ -13,8 +13,8 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructRecKit
 import ConLeche.Model.NatEqs
 import ConLeche.Model.Env.LfpFormer
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Semantics.Tower.FixTower
 import ConLeche.Semantics.Tower.TowerKit
 
@@ -80,8 +80,8 @@ theorem keyFit_of_wd {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : Lf
   rw [hf] at hf'
   obtain ⟨rfl, rfl⟩ : cv = cv' ∧ caps = caps' := by simpa using hf'
   obtain ⟨ab, hta, hmap⟩ := hab ψ
-  have hmem := ConLeche.Semantics.Env.find?_mem hf
-  have hname := ConLeche.Semantics.Env.find?_name hf
+  have hmem := ConLeche.Env.find?_mem hf
+  have hname := ConLeche.Env.find?_name hf
   have hin := mp.mem_type _ hmem ψ _ hta ρ
   rw [hname] at hin
   have hwf := mp.base2.wf _ hmem
@@ -104,7 +104,7 @@ satisfies the container's parameter telescope, the indices fit its index
 telescope there, and the instance is the carrier's component at the
 index tuple.  `ds` are scoped at `b ≤ dep` (the walk's hole bound) and
 read there as `dsa`. -/
-theorem keyLeafW {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
+theorem keyLeaf {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
     (hD : D ∈ mp.lfpBlocks) {mm : Nat} (hmm : mm < D.k) {cv : ConstantVal} {caps : IndCaps}
     (hf : env.find? (D.member mm) = some (.indInfo cv caps)) {us : List Level} {dep b : Nat}
     (hbd : b ≤ dep) {ds is : List Expr} {wa : Term}
@@ -159,29 +159,6 @@ theorem keyLeafW {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDat
   rw [interp_mkAppN_foldl, List.map_append, has,
     acval_interp_closed mp.base2 _ ψ ρ τ]
   exact h.leaf mm hmm ψ τ as _ hsa hs₂
-
-/-- **The container instance at its leaf** (`keyLeafW` at a graded instance). -/
-theorem keyLeaf {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
-    (hD : D ∈ mp.lfpBlocks) {mm : Nat} (hmm : mm < D.k) {cv : ConstantVal} {caps : IndCaps}
-    (hf : env.find? (D.member mm) = some (.indInfo cv caps)) {us : List Level} {dep b : Nat}
-    (hbd : b ≤ dep) {ds is : List Expr} {wa : Term}
-    (hwa : denote mp.base2.acval env φ dep
-      (Expr.mkAppN (.const (D.member mm) us) (ds ++ is)) = some wa)
-    (hlenP : ds.length = (D.params (Level.substFn φ cv.levelParams us)).length)
-    (hlenI : is.length = (D.ids mm (Level.substFn φ cv.levelParams us)).length)
-    (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List Term}
-    (hdsa : DenoteSpine mp.base2.acval env φ b ds dsa) :
-    us.length = cv.levelParams.length ∧ ∃ isa, DenoteSpine mp.base2.acval env φ dep is isa ∧
-      ∀ ρ : Nat → V, WellDenotedTy V ρ wa →
-        Sat V (D.params (Level.substFn φ cv.levelParams us)).reverse
-            (keyFrame dsa b (dropV (dep - b) ρ)) ∧
-        SpineFit (keyFrame dsa b (dropV (dep - b) ρ)) (D.ids mm (Level.substFn φ cv.levelParams us))
-            (isa.map (interp V ρ)) ∧
-        interp V ρ wa = app (D.carrier (Level.substFn φ cv.levelParams us)
-            (keyFrame dsa b (dropV (dep - b) ρ)) mm)
-          (tupW (D.u mm (Level.substFn φ cv.levelParams us)) (isa.map (interp V ρ))) := by
-  obtain ⟨hul, isa, hisa, h⟩ := keyLeafW mp hD hmm hf hbd hwa hlenP hlenI hdsw hdsa
-  exact ⟨hul, isa, hisa, fun ρ hwd => h ρ hwd⟩
 
 /-- **A container instance grows along a relation** at whose pairs the
 application is graded and its indices are the same, as soon as the
@@ -385,7 +362,7 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     have := teleFitPA_to_chain (ab.take ds.length).length htele hle hTF n (by simpa using hn)
     simpa using this
   -- the former's telescope is closed, so the fit holds at the key frame's base
-  have hwf := mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hf)
+  have hwf := mp.base2.wf _ (ConLeche.Env.find?_mem hf)
   have hcl : Term.bvarsBelow 0 (mkPisAV ab (.sort (D.w ψ))) :=
     ConLeche.Verify.denote_bvarsBelow mp.base2.cval_closed 0 _
       (ConLeche.Expr.WScoped.of_not_hasFvar hwf.1) hwf.2.2.2.1

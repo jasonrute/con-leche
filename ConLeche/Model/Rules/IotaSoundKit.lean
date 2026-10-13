@@ -1,16 +1,16 @@
 module
 
 -- `RedSoundKit` is the SHARED kit: `DenoteSpine`'s list algebra,
--- `denote_mkAppN(_inv)`, `frame_spine`, `hoist_spine`,
+-- `denote_mkAppN(_inv)`, `frame_spine`,
 -- `mkAppN_of_fitA`, `PiChain`/`peelPis_of_piChain` and the tower
 -- entry's reading live there, not here.
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.RedSoundKit
-import ConLeche.Model.Reading.Inst
-import ConLeche.Model.Reading.Shift
+import ConLeche.Verify.Denote.Inst
+import ConLeche.Verify.Denote.Depth
 import ConLeche.Verify.Denote.OpenRevDenote
 import ConLeche.Verify.Denote.OpenVars
-import ConLeche.Model.Reading.Closed
+import ConLeche.Verify.Denote.Closed
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Denote.Shift
 
@@ -20,13 +20,13 @@ public section
 # The ι kit (task #305)
 
 The spine, frame and fit lemmas the ι rule and the three stuck-major
-rescues need, stated over `Model/Reading/Lemmas.lean`'s
+rescues need, stated over `Verify/Denote/Lemmas.lean`'s
 `DenoteSpine` and the `Frame`/`Graded`/`LeavesSub` abbreviations
 of `Motive.lean`:
 
 * the `DenoteSpine` residue only the ι rules use
   (`exists_of_all`); the rest of the spine API is
-  `Model/Reading/Lemmas.lean`'s, shared;
+  `Verify/Denote/Lemmas.lean`'s, shared;
 * `interp_mkAppN_congrK`, `constTy_pkg`, `denote_const_arityK`;
 * the `take`/`drop`/`getD` list algebra over readings.
 -/
@@ -45,7 +45,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
 
 /-! ## The `DenoteSpine` API
 
-`mem` and `getD` are `Model/Reading/Lemmas.lean`'s; what is left here
+`mem` and `getD` are `Verify/Denote/Lemmas.lean`'s; what is left here
 is the residue only the ι rules use. -/
 
 namespace DenoteSpine
@@ -138,7 +138,7 @@ theorem constTy_pkg {m : EnvModel V env} (hct : ConstType m φ)
       (ci.toConstantVal.type.instantiateLevelParams
         ci.toConstantVal.levelParams us).looseBVarsBounded 0 = true := by
   obtain ⟨ta, hta, hok, hmem⟩ := hct 0 n ci us hf hnt hlen
-  have hwf := m.wf _ (ConLeche.Semantics.Env.find?_mem hf)
+  have hwf := m.wf _ (ConLeche.Env.find?_mem hf)
   have hnf : (ci.toConstantVal.type.instantiateLevelParams
       ci.toConstantVal.levelParams us).hasFvar = false := by
     rw [ConLeche.Expr.hasFvar_instantiateLevelParams]; exact hwf.1
@@ -178,21 +178,6 @@ theorem denote_const_arityK {acval : Name → (Name → Nat) → Term}
 
 /-! ## The list algebra over readings -/
 
-/-- Pointwise reading of a map equality at `getD` slots. -/
-theorem map_interp_getD_eqK {ρ : Nat → V} {as bs : List Term}
-    (h : as.map (interp V ρ) = bs.map (interp V ρ))
-    {i : Nat} (hi : i < as.length) :
-    interp V ρ (as.getD i default) = interp V ρ (bs.getD i default) := by
-  have hlen : as.length = bs.length := by
-    have := congrArg List.length h
-    simpa using this
-  have h1 : (as.map (interp V ρ))[i]? = (bs.map (interp V ρ))[i]? := by rw [h]
-  rw [List.getElem?_map, List.getElem?_map] at h1
-  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
-    List.getElem?_eq_getElem hi, List.getElem?_eq_getElem (hlen ▸ hi)]
-  rw [List.getElem?_eq_getElem hi, List.getElem?_eq_getElem (hlen ▸ hi)] at h1
-  simpa using h1
-
 /-- `getD` through `take`, below the cut. -/
 theorem getD_takeAK {as : List Term} {k i : Nat} (hi : i < k) :
     (as.take k).getD i default = as.getD i default := by
@@ -225,29 +210,9 @@ theorem take_getD_splitAK {as : List Term} {k : Nat}
 
 /-! ## The redex's own slots
 
-`wellDenoted_app_congr_argK` and `wellDenoted_mkAppN_snoc_congrK`:
-the subject's grading is about the ORIGINAL major slot and the arity-checked
+The subject's grading is about the ORIGINAL major slot and the arity-checked
 walk is handed the prepared one, so the last argument is exchanged
 along the reduction's own `interp` equation. -/
-
-/-- **An app's argument may be exchanged for an interpretation-equal
-graded one**. -/
-theorem wellDenoted_app_congr_argK {ρ : Nat → V} {f a a' : Term}
-    (h : WellDenoted V ρ (.app f a)) (ha' : WellDenoted V ρ a')
-    (heq : interp V ρ a = interp V ρ a') :
-    WellDenoted V ρ (.app f a') := by
-  rw [WellDenoted_app] at h ⊢
-  obtain ⟨hf, -, v, A, B, hslot, hmem, hcod⟩ := h
-  exact ⟨hf, ha', v, A, B, hslot, heq ▸ hmem, hcod⟩
-
-/-- The same at a spine's last argument. -/
-theorem wellDenoted_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : Term}
-    {as : List Term}
-    (h : WellDenoted V ρ (Term.mkAppN f (as ++ [a])))
-    (ha' : WellDenoted V ρ a') (heq : interp V ρ a = interp V ρ a') :
-    WellDenoted V ρ (Term.mkAppN f (as ++ [a'])) := by
-  rw [Term.mkAppN_append] at h ⊢
-  exact wellDenoted_app_congr_argK h ha' heq
 
 /-! ## The fired rule's right-hand side and the telescope residual -/
 
@@ -267,7 +232,7 @@ theorem recRhs_depthK {m : EnvModel V env}
       ((RecRule.rhs rl).instantiateLevelParams cv.levelParams
         us).looseBVarsBounded 0 = true := by
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
-    m.wf _ (ConLeche.Semantics.Env.find?_mem hf)
+    m.wf _ (ConLeche.Env.find?_mem hf)
   obtain ⟨hRnf, -, -, hRbd, -⟩ := hrec' cv mI rP rules rfl rl hmem
   have hnf : ((RecRule.rhs rl).instantiateLevelParams cv.levelParams
       us).hasFvar = false := by

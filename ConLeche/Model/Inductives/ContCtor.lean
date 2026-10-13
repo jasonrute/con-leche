@@ -4,7 +4,7 @@ public import ConLeche.Model.Inductives.NestPosMono
 public import ConLeche.Semantics.SubstAV
 import ConLeche.Semantics.Inductives.FieldsEqOn
 import ConLeche.Model.Inductives.ContN2
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Verify.InferLemmas
 
 public section

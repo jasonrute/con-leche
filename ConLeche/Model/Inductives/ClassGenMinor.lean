@@ -19,8 +19,8 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Semantics.Kit
 import ConLeche.Model.Inductives.SumKit
-import ConLeche.Model.Reading.ErasedEq
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.ErasedEq
+import ConLeche.Verify.Denote.Inst
 
 public section
 

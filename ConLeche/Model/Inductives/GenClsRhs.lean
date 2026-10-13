@@ -21,9 +21,9 @@ import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Inductives.BlockRecData
 import ConLeche.Model.Inductives.FixKit
-import ConLeche.Model.Reading.ErasedEq
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.ErasedEq
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Verify.Denote
 import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.Rules.InferSoundKit
@@ -358,7 +358,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
   have hnF := genRun_nF hμ R hg mpC.base2.acval ψ c hc j hj
   have hbelow := genRun_below hμ R hg h mpC ψ c hc j hj q hq
   rw [hlc, ← hnF] at hbelow
-  obtain ⟨xs, fs, rfl, hxs, hfs⟩ := spineFit_append_split hys
+  obtain ⟨xs, fs, rfl, hxs, hfs⟩ := spineFit_append_inv hys
   have hxl : xs.length = R.g.pre.length := hxs.length_eq.trans hlc
   have hfl : fs.length = (genCtorAt R.g R.rd c j).nF := hfs.length_eq.trans hnF.symm
   -- the frame's domains are closed below it
@@ -505,7 +505,7 @@ theorem genRhs (hμ : μ.verifiedChecks = true)
   intro c hc j hj ys hys
   obtain ⟨hlc, -⟩ := genPdoms_read hμ R hg h mpC ψ hc
   have hnF := genRun_nF hμ R hg mpC.base2.acval ψ c hc j hj
-  obtain ⟨xs, fs, rfl, hxs, hfs⟩ := spineFit_append_split hys
+  obtain ⟨xs, fs, rfl, hxs, hfs⟩ := spineFit_append_inv hys
   have hxl : xs.length = R.g.pre.length := hxs.length_eq.trans hlc
   have hfl : fs.length = (genCtorAt R.g R.rd c j).nF := hfs.length_eq.trans hnF.symm
   -- each ih term: its tower, sound

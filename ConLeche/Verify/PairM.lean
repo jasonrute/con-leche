@@ -75,12 +75,6 @@ instance : MonadExceptOf CheckError (PairM rel) where
 @[simp] theorem snd_pure {α : Type} (a : α) :
     (pure a : PairM rel α).val.2 = pure a := rfl
 
-@[simp] theorem fst_throw {α : Type} (e : CheckError) :
-    (throw e : PairM rel α).val.1 = throw e := rfl
-
-@[simp] theorem snd_throw {α : Type} (e : CheckError) :
-    (throw e : PairM rel α).val.2 = throw e := rfl
-
 @[simp] theorem fst_ite {α : Type} {c : Prop} [Decidable c]
     (x y : PairM rel α) :
     (if c then x else y).val.1 = if c then x.val.1 else y.val.1 := by

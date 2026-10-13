@@ -354,7 +354,7 @@ the supports of an element's sub-values collected along paths into
 one support. Monotonicity follows from accessibility as in §4; the
 recursor's frames in con-leche still compare case by case, the container's row
 #src("ConLeche/Semantics/Inductives/HoleMono.lean", 17, 23)[comparing its least fixed points at two instantiations]
-#src("ConLeche/SetModel/HoleClose.lean", 17, 22)[by leastness].
+#src("ConLeche/SetModel/HoleClose.lean", 17, 20)[by leastness].
 Nothing about the container's parameter is recorded when it is installed:
 the walk at the instantiation is what makes the argument go through.
 

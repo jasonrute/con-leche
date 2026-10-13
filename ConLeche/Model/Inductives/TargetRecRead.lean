@@ -2,7 +2,7 @@ module
 
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Denote
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Model.Rules.Sound
 public import ConLeche.Model.Inductives.BlockRecRule
 
@@ -25,7 +25,7 @@ leaves a recursor-free node syntactically UNCHANGED, and its two readings — at
 -/
 
 namespace ConLeche.Model
-open ConLeche.Verify (denote denote_bvar denote_fvar projNV)
+open ConLeche.Verify
 open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetModel

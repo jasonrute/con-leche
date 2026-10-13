@@ -6,7 +6,7 @@ public import ConLeche.Model.Inductives.BlockLfpHoles
 import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Model.IndDomGrade
 import ConLeche.Model.Inductives.BlockData
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 public import ConLeche.Verify.Inductives.NfMemberFree
 public section
 
@@ -841,41 +841,5 @@ theorem LfpDatum.holeChains_congr {D D' : LfpDatum V} {ψ ψ' : Name → Nat} (h
   simp only [hk, hu, hi, hn, hf', he']
 
 /-! ## A closed telescope's prefix -/
-
-omit [SetTheory V] in
-theorem domsBelow_take : ∀ {Fs : List Term} {k : Nat} (n : Nat),
-    DomsBelow k Fs → DomsBelow k (Fs.take n)
-  | [], _, _, _ => by simp; trivial
-  | _ :: _, _, 0, _ => trivial
-  | _ :: Fs, _, n + 1, h => ⟨h.1, domsBelow_take (Fs := Fs) n h.2⟩
-
-/-- **A graded closed telescope's first `n` domains** are closed and
-hereditarily graded at every frame — a member's parameter
-telescope, read off its former's type. -/
-theorem teleTake_ok {pps : List Term} {B : Term} (n : Nat)
-    (hok : ∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps B)) (hb : DomsBelow 0 pps) :
-    DomsBelow 0 ((pps.take n)) ∧ ∀ σ : Nat → V,
-      FieldsOkB 0 σ ((pps.take n)) := by
-  have hdom : ∀ σ : Nat → V, ∀ i, i < ((pps.take n)).length → ∀ as : List V,
-      SpineFit σ (((pps.take n)).take i) as →
-      WellDenotedTy V (consList as σ) (((pps.take n)).getD i default) := by
-    intro σ i hi as has
-    have hi' : i < pps.length := by simp at hi; omega
-    have hin : i < n := by simp at hi; omega
-    have hget : ((pps.take n)).getD i default = pps[i]'hi' := by
-      rw [List.getD_eq_getElem?_getD, List.getElem?_take_of_lt hin,
-        List.getElem?_eq_getElem hi']
-      rfl
-    rw [hget]
-    refine wellDenoted_mkPisAV_dom (Δa := []) (fun ρ _ => hok ρ) i _
-      (List.getElem?_eq_getElem hi') _ ?_
-    have h1 : ((pps.take n)).take i = (pps.take i) := by
-      rw [List.take_take, Nat.min_eq_left (Nat.le_of_lt hin)]
-    rw [h1] at has
-    simpa using sat_of_spineFit (Sat_nil V σ) has
-  have hb' := hb
-  refine ⟨domsBelow_take n hb', fun σ =>
-    fieldsOkB_of_prefix _ σ fun i hi as has => ⟨(hdom σ i hi as has).1,
-        (hdom σ i hi as has).2, fun h => absurd rfl h⟩⟩
 
 end ConLeche.Model

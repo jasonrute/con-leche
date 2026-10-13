@@ -5,13 +5,9 @@ public import ConLeche.SetModel.TaggedSum
 @[expose] public section
 
 /-!
-# Finite iterates and countable unions (task #188)
+# Countable unions (task #188)
 
-The finite iterates of a set functor from the empty set,
-
-    iterF Φ 0 = ∅,   iterF Φ (n+1) = Φ (iterF Φ n),
-
-and the countable union `natUnion f = ⋃ₙ f n`, a member of `univ w` at
+The countable union `natUnion f = ⋃ₙ f n`, a member of `univ w` at
 `w ≥ 1` when every `f n` is (`ω ∈ univ w`, `omega_mem_univ_succ`).
 
 Everything here is over the bare `SetTheory` interface; no syntax.
@@ -22,14 +18,6 @@ namespace ConLeche.SetTheory.Tower
 universe u
 
 variable {V : Type u} [SetTheory V]
-
-/-- The finite iterates of a set functor from the empty set. -/
-noncomputable def iterF (Φ : V → V) : Nat → V
-  | 0 => empty
-  | n + 1 => Φ (iterF Φ n)
-
-@[simp] theorem iterF_zero (Φ : V → V) : iterF Φ 0 = empty := rfl
-@[simp] theorem iterF_succ (Φ : V → V) (n : Nat) : iterF Φ (n + 1) = Φ (iterF Φ n) := rfl
 
 /-- The union of a countable family `f 0 ∪ f 1 ∪ …` (the ω-indexed union
 through the tag fibre). -/

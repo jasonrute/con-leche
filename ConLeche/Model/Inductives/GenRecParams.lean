@@ -4,7 +4,7 @@ public import ConLeche.Model.Inductives.GenRecStage
 public import ConLeche.Model.Inductives.BlockRecData
 public import ConLeche.Model.Inductives.BlockRecTyShapeRun
 import ConLeche.Model.Inductives.ClassGenRead
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Verify.Rules.InferBridge
 
 public section

@@ -1,15 +1,15 @@
 module
 
 -- `RedSoundKit` is the SHARED kit: `DenoteSpine`'s list algebra,
--- `hoist_spine`, `frame_spine`, `denote_mkAppN(_inv)`, the
+-- `frame_spine`, `denote_mkAppN(_inv)`, the
 -- `PiChain` guard and the tower entry's reading live there
 public import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.CtxOkKit
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Verify.PropRead
-import ConLeche.Model.Reading.Closed
+import ConLeche.Verify.Denote.Closed
 import ConLeche.Verify.InstLevels
 import ConLeche.Model.Reading.Levels
 import ConLeche.Rules.Rigid
@@ -130,7 +130,7 @@ theorem denote_open_rename {acval : Name → (Name → Nat) → Term}
 
 /-- The same constant at level-equivalent instantiations has one
 reading. -/
-theorem acval_const_congr' {m : EnvModel V env} (hap : AcvalParams m)
+theorem acval_const_congr {m : EnvModel V env}
     {d : Nat} {n : Name} {us us' : List Level} {aa ba : Term}
     (hlev : Level.isEquivList us us' = some true)
     (hda : denote m.acval env φ d (.const n us) = some aa)
@@ -145,7 +145,7 @@ theorem acval_const_congr' {m : EnvModel V env} (hap : AcvalParams m)
     split at hda
     · split at hdb
       · rw [← Option.some.inj hda, ← Option.some.inj hdb]
-        refine hap n ci hf _ _ ?_
+        refine m.acval_params n ci hf _ _ ?_
         intro p _
         exact Level.substFn_of_evalEqList _
           (Level.isEquivList_sound hlev φ) p

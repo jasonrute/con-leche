@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.IndFrame
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 
 public section
 

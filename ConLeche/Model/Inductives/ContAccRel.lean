@@ -24,7 +24,7 @@ A frame hole stands for its member's whole application (it takes no
 parameters), and a group member's hole value reads its key frame only
 through the index telescope, which reads alike at two frames agreeing off
 the holes (N2's `TeleEq`), so a hole value does not move when the
-enclosing frame changes off the holes (`grpVals_eq`).  The holes never
+enclosing frame changes off the holes.  The holes never
 hold the point: a new hole's value at its full arity is a fibre of the
 tuple (a strict set, as in `LfpDatum.accRel_ptFree`) or `∅`; an enclosing
 hole is the enclosing relation's.
@@ -130,24 +130,6 @@ theorem parsLen_dsa {mm : Nat} (hmm : mm < D.k) :
     (D.pars mm (Level.substFn φ lps us)).length = dsa.length := by
   obtain ⟨h, -, -, -⟩ := mp.lfp_ok D hD
   rw [h.parsLen mm hmm, hlenP, DenoteSpine.length_eq hdsa]
-
-/-- The group's hole values do not move with the frame off the holes, nor
-off the group. -/
-theorem grpVals_eq {ρ ρ' Y Y' : Nat → V} (hag : AgreeOff (holeP hi ctx.nP hi) ρ ρ')
-    (hY : ∀ p ∈ grp, Y (D.names.idxOf p.1) = Y' (D.names.idxOf p.1)) :
-    grpVals D (Level.substFn φ lps us) grp (keyFrame dsa hi ρ) Y
-      = grpVals D (Level.substFn φ lps us) grp (keyFrame dsa hi ρ') Y' := by
-  unfold grpVals
-  refine List.map_congr_left fun p hp => ?_
-  obtain ⟨mm, -, -, hidx, -, -, -, -, -, -, hte⟩ :=
-    grpMember mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hp
-  unfold LfpDatum.holeVal
-  rw [hY p hp, hidx, (hte ρ ρ' hag).holeFam]
-
-/-- A group member's index is a member. -/
-theorem grp_idx_lt {p : Name × Expr} (hp : p ∈ grp) : D.names.idxOf p.1 < D.k := by
-  obtain ⟨mm, hmm, -, hidx, -⟩ := grpMember mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hp
-  rw [hidx]; exact hmm
 
 omit hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg in
 /-- **The frame hole's value at full arity** is an occurrence of the tuple

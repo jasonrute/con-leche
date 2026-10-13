@@ -3,7 +3,7 @@ module
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Denote
 import ConLeche.Verify.Shift
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 public import ConLeche.Model.Env.EnvModel
 public import ConLeche.Semantics.SubstAV
 public import ConLeche.Verify.SubstFvars

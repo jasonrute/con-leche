@@ -2,7 +2,7 @@ module
 
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Denote
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Semantics.Tower.BlockRecTower
 import ConLeche.Semantics.Kit
 import ConLeche.Model.Inductives.StructRecKit
@@ -10,9 +10,9 @@ import ConLeche.Model.IndFrame
 import ConLeche.Model.Inductives.BlockRecRead
 import ConLeche.Semantics.BasisOk
 import ConLeche.Model.Rules.Sound
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 public import ConLeche.Model.Inductives.FixKit
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 
 public section
 
@@ -37,7 +37,7 @@ frame (`instPisAtLift_instSeq`) and evaluated (`interp_peelPis_mkPisAV`).
 -/
 
 namespace ConLeche.Model
-open ConLeche.Verify (charListT denote natLitT)
+open ConLeche.Verify
 open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetModel
@@ -76,7 +76,7 @@ theorem FvarList.cons {E : Nat} {xs : List Expr} (h : FvarList E xs) (ty : Expr)
 
 /-! ## The literal readings are lift-invariant
 
-`Reading/Shift.lean` has these at `liftN 1`; the abstraction inserts `nR`
+`Verify/Denote/Depth.lean` has these at `liftN 1`; the abstraction inserts `nR`
 binders at once, and the leaves' closedness gives every `n`. -/
 
 theorem natLitT_liftN_gen {za sa : Term} {n k : Nat}

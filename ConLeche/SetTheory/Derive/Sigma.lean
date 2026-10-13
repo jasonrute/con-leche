@@ -145,10 +145,6 @@ theorem Fib_sigmaSet (w : Nat) (A : V) (B : V → V) : Fib (decide (w = 0)) (sig
   · simp only [hw, decide_false, Fib_false]
     rw [sigmaSet_pos hw]; exact strict_sigmaPairs
 
-/-- A pair set is a type. -/
-theorem IsTy_sigmaSet (w : Nat) (A : V) (B : V → V) : IsTy (sigmaSet w A B) :=
-  IsTy_of_Fib (Fib_sigmaSet w A B)
-
 /-! ## The unit at a level (task #342, items B and C)
 
 `PUnit.{w}` and the pair towers' terminator.  At `0` the unit is the
@@ -207,24 +203,6 @@ theorem Fib_unitSetAt (w : Nat) : Fib (decide (w = 0)) (unitSetAt w : V) := by
   · simp only [hw, decide_false, Fib_false]
     rw [unitSetAt_pos hw]; exact strict_sing_empty
 
-theorem IsTy_unitSetAt (w : Nat) : IsTy (unitSetAt w : V) := IsTy_of_Fib (Fib_unitSetAt w)
-
-theorem empty_ne_kpair (a b : V) : (empty : V) ≠ kpair a b := fun h =>
-  not_mem_empty (sing a) (h ▸ mem_upair_left (sing a) (upair a b))
-
-theorem sfst_empty : sfst (empty : V) = pt := by
-  unfold sfst
-  rw [dite_eq_right]
-  rintro ⟨a, b, h⟩
-  exact empty_ne_kpair a b h
-
-theorem ssnd_empty : ssnd (empty : V) = pt := by
-  unfold ssnd
-  rw [dite_eq_right]
-  rintro ⟨a, b, h⟩
-  exact empty_ne_kpair a b h
-
-/- Opaque interface operators (see `Derive/Empty.lean`). -/
 attribute [irreducible] sigmaSet spair sfst ssnd
 
 end ConLeche.SetTheory

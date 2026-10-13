@@ -370,8 +370,6 @@ applied where a table is created at run time, never on a closed term
 def IdTable.markLinear (t : IdTable α) : IdTable α :=
   { dense := t.dense.markLinear, sparse := t.sparse.markLinear }
 
-theorem IdTable.markLinear_eq (t : IdTable α) : t.markLinear = t := rfl
-
 /-! ### The table is its naive map
 
 `get?` is the abstraction of the dense-plus-sparse table to the partial

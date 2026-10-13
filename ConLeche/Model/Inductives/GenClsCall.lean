@@ -10,9 +10,9 @@ import ConLeche.Model.Inductives.ClassRecKit
 import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Inductives.TargetCallKit
 import ConLeche.Model.Inductives.BlockRecIdxConv
-import ConLeche.Model.Reading.Shift
-import ConLeche.Model.Reading.Inst
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.Depth
+import ConLeche.Verify.Denote.Inst
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Verify.Inductives.GenDepth
 import ConLeche.Verify.Inductives.ClassGenScope
 import ConLeche.Verify.Shift

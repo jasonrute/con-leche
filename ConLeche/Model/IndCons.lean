@@ -8,7 +8,7 @@ public section
 # The inductive cons, P tier: the mechanical rows at an ind-kind head (task #161)
 
 `declStep_preserves_of_basis_cons` (`Model/BasisStep.lean`) collapses seven
-of `declStep_preserves_of_cons`'s eleven premises at a *basis* cons.  An
+of `declStep_preserves_of_cons`'s premises at a *basis* cons.  An
 *inductive-block* cons is the other side of the same coin: its name is
 never reserved, so the two rows a basis cons could route by *name*
 (`caps_ok` through `capsOk_cons_basis`) are unavailable, while every
@@ -100,7 +100,6 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     -- the head's own obligations (task #161 S7)
     (hh : ConsHead env c₀ A)
     -- the leaf's tower
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -133,7 +132,7 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh
-    hAclosed hAparams hAok htyReads htyOk hmemNew
+    hAparams hAok htyReads htyOk hmemNew
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · -- `hvalReads`: an inductive cons is never a definition
     intro _ψ cv2 value2 hmem
@@ -172,7 +171,6 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
     (hknd : (∃ cv caps, c₀ = .indInfo cv caps) ∨
       ∃ cv nP nF, c₀ = .ctorInfo cv nP nF)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -197,7 +195,7 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_ind_cons mp hfresh hnres ?_ ?_ hh
-    hAclosed hAparams hAok htyReads htyOk hmemNew
+    hAparams hAok htyReads htyOk hmemNew
     hcaps ?_ ?_ (hind := hind)
   · rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
       intro _ _ _ h <;> exact nomatch h
@@ -218,7 +216,6 @@ theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
     (hknd : ∃ cv mI rP rules, c₀ = .recInfo cv mI rP rules)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -245,7 +242,7 @@ theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
   obtain ⟨cv, mI, rP, rules, rfl⟩ := hknd
   exact declStep_preserves_of_ind_cons mp hfresh hnres
     (fun _ _ _ h => nomatch h)
-    (fun _ h => nomatch h) hh hAclosed hAparams hAok
+    (fun _ h => nomatch h) hh hAparams hAok
     htyReads htyOk hmemNew hcaps hrec (fun _ h => nomatch h)
 
 end ConLeche.Model

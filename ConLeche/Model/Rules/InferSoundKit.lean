@@ -7,7 +7,7 @@ public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Semantics.Hoist
 import ConLeche.Semantics.LitStep
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.WellDenotedTransport
 
 public section
@@ -493,7 +493,7 @@ The `.proj` rule's reading walk: the spine inversion,
 the entry-kind inversion, and the fit-free residual — the checker's
 `instPisAt` peel of the stored entry type reads to the syntactic peel
 of its reading.  The spine relation and its algebra are
-`Model/Reading/Lemmas.lean`'s `DenoteSpine`. -/
+`Verify/Denote/Lemmas.lean`'s `DenoteSpine`. -/
 
 /-- **The checker's `instPisAt` peel reads to the syntactic peel of
 the type's reading** — the fit's residual (`TeleFitPA.peelPis`)

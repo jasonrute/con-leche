@@ -36,22 +36,14 @@ noncomputable def univ : Nat → V := tyU
 
 theorem univ_zero : (univ 0 : V) = univZero := tyU_zero
 
-theorem mem_univ {n : Nat} {T : V} : T ∈ˢ (univ n : V) ↔ T ∈ˢ tg n ∧ IsTy T := mem_tyU
-
 theorem mem_tg_of_mem_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V)) : T ∈ˢ tg n :=
   mem_tg_of_mem_tyU h
-
-theorem univ_subset_tg (n : Nat) : (univ n : V) ⊆ˢ tg n := fun _ => mem_tg_of_mem_univ
 
 theorem IsTy_of_mem_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V)) : IsTy T :=
   IsTy_of_mem_tyU h
 
 theorem ne_pt_of_mem_univ {n : Nat} {T : V} (h : T ∈ˢ (univ n : V)) : T ≠ pt :=
   (IsTy_of_mem_univ h).ne_pt
-
-/-- A member of `tg n` that is a type is a member of `univ n`. -/
-theorem mem_univ_of_tg {n : Nat} {T : V} (hT : T ∈ˢ tg n) (h : IsTy T) : T ∈ˢ (univ n : V) :=
-  mem_tyU_of_IsTy hT h
 
 /-- A member of `tg n` that is strict is a member of `univ n`. -/
 theorem mem_univ_of_tg_strict {n : Nat} {T : V} (hT : T ∈ˢ tg n) (hs : Strict T) :
@@ -63,8 +55,6 @@ theorem mem_univ_of_mem_univZero {n : Nat} {T : V} (hT : T ∈ˢ (univZero : V))
 
 /-- **Cumulativity.** -/
 theorem univ_mono {m n : Nat} (h : m ≤ n) : (univ m : V) ⊆ˢ univ n := tyU_mono h
-
-theorem univ_subset_succ (n : Nat) : (univ n : V) ⊆ˢ univ (n + 1) := univ_mono (Nat.le_succ n)
 
 /-- The strict universe is inside the universe of types. -/
 theorem strictU_subset_univ (n : Nat) : (strictU n : V) ⊆ˢ univ n := strictU_subset_tyU n
@@ -101,13 +91,7 @@ theorem IsTy_empty : IsTy (empty : V) := IsTy_of_strict strict_empty
 /-- An equation is a type (a truth value). -/
 theorem IsTy_eqv (x y : V) : IsTy (eqv x y) := Or.inl (eqv_mem_univZero x y)
 
-theorem univ_mem_tg_succ (n : Nat) : (univ n : V) ∈ˢ tg (n + 1) := tyU_mem_tg_succ n
-
 theorem univ_mem_univ (n : Nat) : (univ n : V) ∈ˢ univ (n + 1) := tyU_mem_tyU_succ n
-
-/-- `Sort m : Sort n` whenever `m < n`. -/
-theorem univ_mem_univ_of_lt {m n : Nat} (h : m < n) : (univ m : V) ∈ˢ univ n :=
-  univ_mono h _ (univ_mem_univ m)
 
 theorem omega_mem_univ_succ (n : Nat) : (omega : V) ∈ˢ univ (n + 1) :=
   mem_univ_of_mem_strictU (omega_mem_strictU_succ n)

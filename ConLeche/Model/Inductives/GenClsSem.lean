@@ -3,7 +3,7 @@ module
 public import ConLeche.Model.Inductives.GenRecPreRun
 import ConLeche.Model.Inductives.NestPosOut
 import ConLeche.Model.Inductives.StructFrameKit
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Verify.Inductives.ClassGenScope
 import ConLeche.Model.Inductives.ContN2
 import ConLeche.Model.Inductives.ContLeaf
@@ -26,7 +26,7 @@ import ConLeche.Model.Inductives.GenRecPins
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.CtxOkKit
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Verify.Inductives.GenRecScoped
 import ConLeche.Verify.CheckerF
 import ConLeche.Verify.EnvBound

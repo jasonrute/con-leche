@@ -139,16 +139,9 @@ public import ConLeche.Model.InstallRun
 public import ConLeche.Model.StreamConsts
 public import ConLeche.Semantics.Tower.TowerKit
 public import ConLeche.Verify.Denote
-public import ConLeche.Model.Reading.Lemmas
-public import ConLeche.Model.Reading.Shift
-public import ConLeche.Model.Reading.Inst
-public import ConLeche.Model.Reading.Closed
-public import ConLeche.Model.Reading.Install
-public import ConLeche.Model.Reading.EnvExtend
 public import ConLeche.Model.Reading.Levels
 public import ConLeche.Model.Reading.LpDefF
 -- Modules named here so `lake build ConLecheModel` roots the whole tree.
-public import ConLeche.Model.Reading.ErasedEq
 public import ConLeche.Model.AxiomMem
 public import ConLeche.Model.AxiomReduce
 public import ConLeche.Model.RecRulesCons
@@ -159,7 +152,8 @@ public import ConLeche.Model.ReduceOps
 /-!
 # `ConLeche.Model` — the graded model
 
-The graded model: the stored-term reading's metatheory (`Reading/*`),
+The graded model: the stored-term reading's facts that read the
+environment invariant (`Reading/*`; the rest is `Verify/Denote/*`),
 `EnvModel`/`EnvModelM`, the per-rule soundness rows, the
 basis/inductive/projection install families, the fold (`Model/Fold.lean`)
 and the capstone.  It stands on `ConLeche/{Verify,Semantics,SetModel,

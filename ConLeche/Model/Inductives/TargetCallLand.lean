@@ -5,7 +5,7 @@ import ConLeche.Model.Env.LfpAcc
 import ConLeche.Model.Inductives.StructRecKit
 import ConLeche.Semantics.Tower.FixTower
 import ConLeche.Semantics.Tower.TowerKit
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Model.Reading.SubstFvars
 public import ConLeche.Model.Inductives.NestPosMono
 

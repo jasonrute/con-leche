@@ -39,20 +39,6 @@ theorem Expr.lamPair?_some {B₁ B₂ t₁ b₁ t₂ b₂ : Expr}
   obtain ⟨rfl, rfl, rfl, rfl⟩ := by simpa using h
   exact ⟨rfl, rfl⟩
 
-@[simp] theorem pureFns_whnfCore (env : Env) (f d : Nat) (e : Expr) (c : Bool) :
-    (pureFns mode env (f + 1)).whnfCore c d e =
-      whnfCoreBody mode (pureFns mode env f) env c d e := rfl
-
-@[simp] theorem pureFns_whnf (env : Env) (f d : Nat) (e : Expr) :
-    (pureFns mode env (f + 1)).whnf d e = whnfBody (pureFns mode env f) env d e := rfl
-
-@[simp] theorem pureFns_infer (env : Env) (f d : Nat) (e : Expr) :
-    (pureFns mode env (f + 1)).infer d e = inferBody (pureFns mode env f) env d e := rfl
-
-@[simp] theorem pureFns_defeq (env : Env) (f d : Nat) (a b : Expr) :
-    (pureFns mode env (f + 1)).defeq d a b =
-      defeqBody mode (pureFns mode env f) env d a b := rfl
-
 theorem whnfCore_succ (env : Env) (f d : Nat) (e : Expr) {c : Bool} :
     whnfCore mode env (f + 1) d e c = whnfCoreBody mode (pureFns mode env f) env c d e := rfl
 
@@ -72,10 +58,6 @@ fields are the full knot's at the same fuel, so the equations below
 fold them straight back to the full spellings and the io claims family
 consumes the sealed four unchanged. -/
 
-@[simp] theorem pureFnsIO_whnfCore (env : Env) (f d : Nat) (e : Expr) (c : Bool) :
-    (pureFnsIO mode env f).whnfCore c d e = whnfCore mode env f d e c := by
-  cases f <;> rfl
-
 @[simp] theorem pureFnsIO_whnf (env : Env) (f d : Nat) (e : Expr) :
     (pureFnsIO mode env f).whnf d e = whnf mode env f d e := by
   cases f <;> rfl
@@ -87,10 +69,6 @@ consumes the sealed four unchanged. -/
 theorem ensureSortIO_def (env : Env) (f d : Nat) (e : Expr) :
     ensureSort (pureFnsIO mode env f) env d e = ensureSortCore mode env f d e := by
   cases f <;> rfl
-
-@[simp] theorem pureFnsIO_infer (env : Env) (f d : Nat) (e : Expr) :
-    (pureFnsIO mode env (f + 1)).infer d e =
-      inferBodyIO (pureFnsIO mode env f) env d e := rfl
 
 theorem inferTypeCoreIO_succ (env : Env) (f d : Nat) (e : Expr) :
     inferTypeCoreIO mode env (f + 1) d e =
@@ -108,10 +86,6 @@ theorem inferTypeCoreIO_zero (env : Env) (d : Nat) (e : Expr) :
 The executable knot's `inferIO` slot **is** the leaf-lane
 `inferTypeCoreIO` the io claims are stated at (`inferTypeIO_on`), at
 every mode (task #346). -/
-
-@[simp] theorem pureFns_inferIO (env : Env) (f d : Nat) (e : Expr) :
-    (pureFns mode env (f + 1)).inferIO d e =
-      inferBodyIO (CoreFns.ioView (pureFns mode env f)) env d e := rfl
 
 theorem inferTypeIO_succ (env : Env) (f d : Nat) (e : Expr) :
     inferTypeIO mode env (f + 1) d e =

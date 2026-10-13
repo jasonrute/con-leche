@@ -88,7 +88,7 @@ theorem extendFalse (mp : EnvModelM V μ env)
           = some (Term.const .empty [0]) from rfl] at hp
         rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun _ _ => rfl) (fun _ _ _ => rfl)
+    (fun _ _ _ => rfl)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, denote_falseA_type ψ⟩) ?_ ?_
     (hind := indStrictHead_cons_prop (ab := fun _ => []) fun ψ => denote_falseA_type ψ))
@@ -104,7 +104,7 @@ theorem extendFalse (mp : EnvModelM V μ env)
 /-! ## `False.rec` — the recipe at `Prop` -/
 
 /-- **`False.rec`'s type reading.**  The moves of `BasisEmpty`'s module
-docstring; the leaves are `acval_basis_pinned` at `Empty`. -/
+docstring; the leaves are `EnvModel.acval_pinned` at `Empty`. -/
 theorem denote_falseRecA_type {m : EnvModel V env}
     {A : (Name → Nat) → Term} (ψ : Name → Nat)
     (hE : env.find? falseName = some falseA) :
@@ -119,7 +119,7 @@ theorem denote_falseRecA_type {m : EnvModel V env}
   have hleaf : acvalWith m.acval falseRecA.name A falseName ψ
       = Term.const .empty [0] := by
     rw [acvalWith_ne (by decide)]
-    exact acval_basis_pinned hE (by decide) hpd
+    exact EnvModel.acval_pinned _ hE (by decide) hpd
   have hEc : ∀ d : Nat,
       denote (acvalWith m.acval falseRecA.name A)
           ⟨falseRecA :: env.consts⟩ ψ d (.const falseName [])
@@ -168,7 +168,7 @@ theorem extendFalseRec (mp : EnvModelM V μ env)
       (fun _ h => nomatch h)
       (fun _ _ _ _ h => by injection h with _ _ _ h4
                            intro r hr; rw [← h4] at hr; exact nomatch hr))
-    (fun _ _ => rfl) ?_
+    ?_
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_)
   · intro ψ₁ ψ₂ hp

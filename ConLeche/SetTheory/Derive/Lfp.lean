@@ -36,9 +36,4 @@ theorem tg_mem_of_subset_mem {w : Nat} {y z : V} (hy : y ∈ˢ (tg w : V)) (hz :
     exact hz.trans hy
   · exact (tg_isTGUniverse (Nat.pos_iff_ne_zero.mp hw)).mem_of_subset_mem hy hz
 
-/-- Separation stays inside every level. -/
-theorem tg_sep_mem {w : Nat} {a : V} {p : V → Prop} (ha : a ∈ˢ (tg w : V)) :
-    sep a p ∈ˢ (tg w : V) :=
-  tg_mem_of_subset_mem ha sep_subset
-
 end ConLeche.SetTheory

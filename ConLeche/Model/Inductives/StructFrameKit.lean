@@ -1,6 +1,6 @@
 module
 
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Verify.BinderLoop
 public import ConLeche.Model.Inductives.TowerCons
 public import ConLeche.Model.IndTowerRead
@@ -12,7 +12,7 @@ import ConLeche.Verify.InstLevels
 import ConLeche.Verify.Mono
 import ConLeche.Verify.Subst
 import ConLeche.Kernel.Inductives.StructParts
-import ConLeche.Model.Reading.Install
+import ConLeche.Verify.Denote.AcvalCongr
 import ConLeche.Verify.EnvWF
 import ConLeche.Model.IndFrame
 import ConLeche.Model.IndDomGrade
@@ -372,7 +372,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hcross.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
       rw [hac, acvalWith_ne hnT'] at hmem
       rw [hac, acvalWith_ne hnC]
@@ -385,7 +385,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
         exact denote_cons_mono hfresh
           ((hcross.typeOf hf).instantiateLevelParams _ _) _ 0
           (constsBound_instType mp.base2.wf
-            (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
+            (ConLeche.Env.find?_mem hf) us) hTCa
   · -- the unit-like half
     intro T' cvT' caps' hf hcapu hres φ' us hlen
     by_cases hTT : T' = T
@@ -401,7 +401,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hcross.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x y hlents hfit hmx hmy
       rw [hac, acvalWith_ne hnT'] at hmx hmy
       exact hlaw ρ ts rest x y hlents hfit hmx hmy
@@ -711,7 +711,7 @@ theorem piTeleAV_graded :
           simp only [Nat.sub_zero, Nat.add_sub_cancel, List.getD]
           rw [List.getElem?_append_right (by omega), hlen, Nat.sub_self]
           rfl]
-        exact WellDenotedTy_pi_dom (hT ρ hρ)
+        exact ⟨WellDenoted_pi_dom (hT ρ hρ), (cast (WellDenoted_pi V ρ _ _) (hT ρ hρ)).2.1⟩
       | succ i =>
         rw [show k + 1 - (i + 1) = k - i from by omega,
           List.drop_append_of_le_length (by omega), List.append_assoc,

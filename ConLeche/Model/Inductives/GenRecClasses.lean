@@ -214,7 +214,7 @@ theorem genRecCtor_find
     have hc := hD.hctor i hi
     have hcA' : M₀.ctors[i] = cA := (List.getElem?_eq_some_iff.mp hcA).2
     rw [hcA'] at hc
-    have hname := ConLeche.Semantics.Env.find?_name hc
+    have hname := ConLeche.Env.find?_name hc
     simp only [ConstantInfo.name, ConstantInfo.toConstantVal] at hname
     rw [hname]
     exact hc

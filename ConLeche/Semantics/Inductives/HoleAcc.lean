@@ -89,8 +89,6 @@ level; at `w = 0` nothing is asked (a `Prop`-valued block's fields range
 over any universe, and no bound is sized there — task #327). -/
 def SmallAt (w : Nat) (x : V) : Prop := w ≠ 0 → x ∈ˢ (tg w : V)
 
-theorem SmallAt.of_mem {w : Nat} {x : V} (h : x ∈ˢ (tg w : V)) : SmallAt w x := fun _ => h
-
 theorem SmallAt.zero (x : V) : SmallAt 0 x := fun h => absurd rfl h
 
 /-- **Accessible along `R` with bound `A`, admissible items `Q`, at the
@@ -150,11 +148,9 @@ theorem Symm.underBoth {R : FrameRel V} (h : R.Symm) (A : Term) : (R.underBoth A
   rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx, hx'⟩
   exact ⟨x, ρ', ρ, rfl, rfl, h ρ ρ' hR, hx', hx⟩
 
-
 end FrameRel
 
 /-! ## Generic facts -/
-
 
 /-- **Point-freeness survives a binder.** -/
 theorem PtFreeOn.underBoth {Q : Nat → Nat → Prop} {R : FrameRel V} (h : PtFreeOn Q R)

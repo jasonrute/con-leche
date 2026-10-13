@@ -2,7 +2,7 @@ module
 
 public import ConLeche.Model.Levels
 public import ConLeche.Semantics.BasisRules
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 
 import ConLeche.Model.BasisLfp
 import ConLeche.Model.Cover
@@ -50,7 +50,7 @@ A pinned leaf's reading at a constant that binds levels. -/
 /-- **A stored pinned constant's reading, at a level list.**  The
 extension's fresh leaf is stepped over by `acvalWith_ne`, the prefix
 lookup by `Env.find?_cons`, and the leaf itself is
-`acval_basis_pinned`. -/
+`EnvModel.acval_pinned`. -/
 theorem denote_pinned_const {m : EnvModel V env}
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     {n : Name} {ci : ConstantInfo} {ψ : Name → Nat} {ls : List Level}
@@ -67,7 +67,7 @@ theorem denote_pinned_const {m : EnvModel V env}
   have hf' : (⟨c₀ :: env.consts⟩ : Env).find? n = some ci := by
     rw [ConLeche.Env.find?_cons, ite_eq_right hne]; exact hf
   rw [denote_const hf' hlen, acvalWith_ne (fun h => hne h.symm),
-    acval_basis_pinned (m := m) hf hres hpd]
+    EnvModel.acval_pinned m hf hres hpd]
 
 /-! ### Lift-then-instantiate absorption
 
@@ -274,7 +274,7 @@ theorem extendNat (mp : EnvModelM V μ env)
           = some (Term.const .nat []) from rfl] at hp
         rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun _ _ => rfl) (fun _ _ _ => rfl)
+    (fun _ _ _ => rfl)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, denote_natA_type ψ⟩) ?_ ?_ ?_ ?_
     (hind := indStrictHead_cons (ab := fun _ => []) (s := fun _ => 1)
@@ -319,7 +319,7 @@ theorem extendNatZero (mp : EnvModelM V μ env)
           = some (Term.const .natZero []) from rfl] at hp
         rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun _ _ => rfl) (fun _ _ _ => rfl)
+    (fun _ _ _ => rfl)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_ ?_ ?_)
   · intro ψ ta h ρ
@@ -352,9 +352,9 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
   -- the pinned block's lfp clause, recorded at its last constructor's cons
   -- (the constructors' leaves are read by `ctor`)
   have hNl0 : ∀ ψ : Name → Nat, mp.base2.acval natName ψ = Term.const .nat [] :=
-    fun ψ => acval_basis_pinned (m := mp.base2) hN (by decide) rfl
+    fun ψ => EnvModel.acval_pinned mp.base2 hN (by decide) rfl
   have hZl0 : ∀ ψ : Name → Nat, mp.base2.acval natZeroName ψ = Term.const .natZero [] :=
-    fun ψ => acval_basis_pinned (m := mp.base2) hZ (by decide) rfl
+    fun ψ => EnvModel.acval_pinned mp.base2 hZ (by decide) rfl
   refine coverTo_addLfp (D := natLfp natName natZeroName natSuccName)
     (hL := natLfp_clause
       (fun ψ ρ => by rw [acvalWith_ne (by decide), hNl0]; rfl)
@@ -445,7 +445,7 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
           = some (Term.const .natSucc []) from rfl] at hp
         rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun _ _ => rfl) (fun _ _ _ => rfl)
+    (fun _ _ _ => rfl)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_ ?_ ?_)
   · intro ψ ta h ρ
@@ -464,12 +464,12 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
     have hZl : m₂.acval natZeroName (Level.substFn φ [] [])
         = Term.const .natZero [] := by
       rw [hac, acvalWith_ne (by decide)]
-      refine acval_basis_pinned (m := mp.base2) hZ (by decide) ?_
+      refine EnvModel.acval_pinned mp.base2 hZ (by decide) ?_
       simp +decide [ConLeche.Verify.pinnedStructT]
     have hNl : m₂.acval natName (Level.substFn φ [] [])
         = Term.const .nat [] := by
       rw [hac, acvalWith_ne (by decide)]
-      refine acval_basis_pinned (m := mp.base2) hN (by decide) ?_
+      refine EnvModel.acval_pinned mp.base2 hN (by decide) ?_
       simp +decide [ConLeche.Verify.pinnedStructT]
     have hSl : m₂.acval natSuccName (Level.substFn φ [] [])
         = Term.const .natSucc [] := by
@@ -1054,7 +1054,7 @@ theorem natRecTyRead (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
             (.pi (natStepTy)
               (.pi (.const .nat [])
                 (.app (.bvar 3) (.bvar 0)))))) := by
-  rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+  rw [denote_instLevels m₂.acval_params φ, hac,
     denote_natRecA_type (m := m) _ hN hZ hS, ← hψ]
   rfl
 
@@ -1178,7 +1178,7 @@ theorem natRecZeroLaw {m : EnvModel V env}
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
   refine ⟨natZeroRa ψ, ?_, natZeroRa_wellDenoted ψ, ?_, ?_⟩
-  · rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+  · rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_natRec_zeroRhs (m := m) _ hN hZ hS]
   · intro _ _ h; exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
@@ -1194,7 +1194,7 @@ theorem natRecZeroLaw {m : EnvModel V env}
       = Term.const .natZero [] := by
     rw [show RecRule.ctor natRecZeroRule = natZeroName from rfl, hac,
       acvalWith_ne (by decide)]
-    refine acval_basis_pinned (m := m) hZ (by decide) ?_
+    refine EnvModel.acval_pinned m hZ (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hrecL : m₂.acval natRecA.name
       (Level.substFn φ natRecA.toConstantVal.levelParams us)
@@ -1231,7 +1231,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
       ψ = Level.substFn φ natRecA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
   refine ⟨natSuccRa ψ, ?_, natSuccRa_wellDenoted ψ, ?_, ?_⟩
-  · rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+  · rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_natRec_succRhs (m := m) _ hN hZ hS]
   · intro _ _ h; exact nomatch h
   intro cvj cnP cnF hfj usj ρ xs ys TVa TVja restR restC hxs hys husj
@@ -1249,7 +1249,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
       = Term.const .natSucc [] := by
     rw [show RecRule.ctor natRecSuccRule = natSuccName from rfl, hac,
       acvalWith_ne (by decide)]
-    refine acval_basis_pinned (m := m) hS (by decide) ?_
+    refine EnvModel.acval_pinned m hS (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hrecL : m₂.acval natRecA.name
       (Level.substFn φ natRecA.toConstantVal.levelParams us)
@@ -1266,7 +1266,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
     exact a1.symm
   subst hcvj
   have hTVja' : TVja = .pi (.const .nat []) (.const .nat []) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_natSuccTy (m := m) _ (by decide) hN] at hTVja
     exact (Option.some.inj hTVja).symm
   subst hTVja'
@@ -1322,7 +1322,7 @@ theorem extendNatRec (mp : EnvModelM V μ env)
         · exact ⟨⟨_, _, _, hS⟩, fun hb => Bool.noConfusion hb,
             fun hb => Bool.noConfusion hb⟩
         · exact nomatch hr''))
-    (fun _ _ => rfl) ?_
+    ?_
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_ ?_)
   · intro ψ₁ ψ₂ hp

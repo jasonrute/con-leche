@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.GenRuleSyn
-import ConLeche.Semantics.ConstsBound
+import ConLeche.Verify.Denote.ConstsBound
 import ConLeche.Verify.Inductives.NestCallSyn
 import ConLeche.Verify.Abstract
 import ConLeche.Verify.Inductives.NestScope
@@ -29,7 +29,6 @@ it.
 
 namespace ConLeche.Model
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ConstsBound)
 open ConLeche (Env Expr Name Level ConstantVal ClassGen ClassCtor)
 
 /-! ## Forgetting the free variables -/
@@ -107,25 +106,25 @@ theorem constsBound_eraseFVars {env : Env} : ∀ (e : Expr), ConstsBound env e �
   induction e with
   | fvar i T _ => intro _; simp [CBNF, F0]
   | app f a ihf iha =>
-    intro h; rw [ConLeche.Semantics.constsBound_app] at h
-    simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Semantics.constsBound_app] at ihf iha ⊢
+    intro h; rw [ConLeche.Verify.constsBound_app] at h
+    simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Verify.constsBound_app] at ihf iha ⊢
     exact ⟨ihf h.1, iha h.2⟩
   | lam t b iht ihb =>
-    intro h; rw [ConLeche.Semantics.constsBound_lam] at h
-    simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Semantics.constsBound_lam] at iht ihb ⊢
+    intro h; rw [ConLeche.Verify.constsBound_lam] at h
+    simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Verify.constsBound_lam] at iht ihb ⊢
     exact ⟨iht h.1, ihb h.2⟩
   | forallE t b iht ihb =>
-    intro h; rw [ConLeche.Semantics.constsBound_forallE] at h
+    intro h; rw [ConLeche.Verify.constsBound_forallE] at h
     simp only [CBNF, eraseFVars, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_forallE] at iht ihb ⊢
+      ConLeche.Verify.constsBound_forallE] at iht ihb ⊢
     exact ⟨iht h.1, ihb h.2⟩
   | letE t v b iht ihv ihb =>
-    intro h; rw [ConLeche.Semantics.constsBound_letE] at h
-    simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Semantics.constsBound_letE] at iht ihv ihb ⊢
+    intro h; rw [ConLeche.Verify.constsBound_letE] at h
+    simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Verify.constsBound_letE] at iht ihv ihb ⊢
     exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
   | proj s i e ih =>
-    intro h; rw [ConLeche.Semantics.constsBound_proj] at h
-    simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Semantics.constsBound_proj] at ih ⊢
+    intro h; rw [ConLeche.Verify.constsBound_proj] at h
+    simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Verify.constsBound_proj] at ih ⊢
     exact ih h
   | _ => intro h; exact h
 
@@ -202,27 +201,27 @@ theorem CBNF_abstract1 {env : Env} (i : Nat) :
   | app f a ihf iha =>
     intro k h
     simp only [CBNF, Expr.abstract1, eraseFVars, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_app] at ihf iha h ⊢
+      ConLeche.Verify.constsBound_app] at ihf iha h ⊢
     exact ⟨ihf k h.1, iha k h.2⟩
   | lam t b iht ihb =>
     intro k h
     simp only [CBNF, Expr.abstract1, eraseFVars, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_lam] at iht ihb h ⊢
+      ConLeche.Verify.constsBound_lam] at iht ihb h ⊢
     exact ⟨iht k h.1, ihb (k + 1) h.2⟩
   | forallE t b iht ihb =>
     intro k h
     simp only [CBNF, Expr.abstract1, eraseFVars, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_forallE] at iht ihb h ⊢
+      ConLeche.Verify.constsBound_forallE] at iht ihb h ⊢
     exact ⟨iht k h.1, ihb (k + 1) h.2⟩
   | letE t v b iht ihv ihb =>
     intro k h
     simp only [CBNF, Expr.abstract1, eraseFVars, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_letE] at iht ihv ihb h ⊢
+      ConLeche.Verify.constsBound_letE] at iht ihv ihb h ⊢
     exact ⟨iht k h.1, ihv k h.2.1, ihb (k + 1) h.2.2⟩
   | proj s j e ih =>
     intro k h
     simp only [CBNF, Expr.abstract1, eraseFVars, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_proj] at ih h ⊢
+      ConLeche.Verify.constsBound_proj] at ih h ⊢
     exact ih k h
   | _ => intro k h; exact h
 
@@ -233,7 +232,7 @@ theorem CBNF_closeTelescope {env : Env} :
   | [], _, b, h => ⟨(fun _ h' => nomatch h'), h⟩
   | d :: nds, i, b, h => by
     simp only [ConLeche.closeTelescope, CBNF, eraseFVars, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_forallE] at h
+      ConLeche.Verify.constsBound_forallE] at h
     have h2 : CBNF env (ConLeche.closeTelescope nds (i + 1) b) :=
       CBNF_abstract1 i _ 0 h.2
     obtain ⟨hn, hb⟩ := CBNF_closeTelescope nds (i + 1) b h2
@@ -251,7 +250,7 @@ theorem CBNF_mkAppN {env : Env} :
     show CBNF env (Expr.mkAppN (.app f a) as) ↔ _
     rw [ih]
     have happ : CBNF env (.app f a) ↔ CBNF env f ∧ CBNF env a := by
-      simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Semantics.constsBound_app]
+      simp only [CBNF, eraseFVars, Expr.replaceFVars, ConLeche.Verify.constsBound_app]
     rw [happ]
     simp only [List.mem_cons, forall_eq_or_imp, and_assoc]
 
@@ -430,27 +429,27 @@ theorem constsBound_eraseFVarTys_of_CBNF {env : Env} :
   | app f a ihf iha =>
     intro h
     simp only [CBNF, eraseFVars, Expr.eraseFVarTys, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_app] at ihf iha h ⊢
+      ConLeche.Verify.constsBound_app] at ihf iha h ⊢
     exact ⟨ihf h.1, iha h.2⟩
   | lam t b iht ihb =>
     intro h
     simp only [CBNF, eraseFVars, Expr.eraseFVarTys, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_lam] at iht ihb h ⊢
+      ConLeche.Verify.constsBound_lam] at iht ihb h ⊢
     exact ⟨iht h.1, ihb h.2⟩
   | forallE t b iht ihb =>
     intro h
     simp only [CBNF, eraseFVars, Expr.eraseFVarTys, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_forallE] at iht ihb h ⊢
+      ConLeche.Verify.constsBound_forallE] at iht ihb h ⊢
     exact ⟨iht h.1, ihb h.2⟩
   | letE t v b iht ihv ihb =>
     intro h
     simp only [CBNF, eraseFVars, Expr.eraseFVarTys, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_letE] at iht ihv ihb h ⊢
+      ConLeche.Verify.constsBound_letE] at iht ihv ihb h ⊢
     exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
   | proj s i e ih =>
     intro h
     simp only [CBNF, eraseFVars, Expr.eraseFVarTys, Expr.replaceFVars,
-      ConLeche.Semantics.constsBound_proj] at ih h ⊢
+      ConLeche.Verify.constsBound_proj] at ih h ⊢
     exact ih h
   | _ => intro h; exact h
 

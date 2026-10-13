@@ -1084,7 +1084,6 @@ theorem installStepC_skels (mode : CheckMode) (i : Nat) {fe : FEnv}
   | quotDecl k cv => exact hord _
   | indDecl block nP => exact hord _
 
-
 /-- Phase A's accepting run installs the stream's skeletons. -/
 theorem installRun_skels (mode : CheckMode) {ds : List Declaration}
     {p : Nat × FEnv × Array PendingCheck}
@@ -1112,38 +1111,12 @@ two modes — in particular the trusted (`.trusted`) and the verified
 (`.verified`) mode the binary ships — both accept the same stream, the
 two installed environments carry the same install skeletons.  Stated
 for any two modes; the shipped pair is the instance
-`.trusted` / `.verified` (`trusted_agrees_skels_shipped`). -/
+`.trusted` / `.verified`. -/
 theorem trusted_agrees_skels_D {μP μT : CheckMode} {ds : Array Declaration}
     {envP envN : Env}
     (hP : checkDecls μP pins ds = .ok envP)
     (hN : checkDecls μT pins ds = .ok envN) :
     envSkels envN = envSkels envP :=
   (checkDecls_skels hN).trans (checkDecls_skels hP).symm
-
-/-- The census's sentence: the accepted declaration **names** agree. -/
-theorem trusted_agrees_names_D {μP μT : CheckMode} {ds : Array Declaration}
-    {envP envN : Env}
-    (hP : checkDecls μP pins ds = .ok envP)
-    (hN : checkDecls μT pins ds = .ok envN) :
-    envN.consts.map ConstantInfo.name = envP.consts.map ConstantInfo.name := by
-  have h := congrArg (List.map skelName) (trusted_agrees_skels_D hP hN)
-  simpa [envSkels, List.map_map, Function.comp_def] using h
-
-/-- … and so do the accepted declaration **counts**. -/
-theorem trusted_agrees_count_D {μP μT : CheckMode} {ds : Array Declaration}
-    {envP envN : Env}
-    (hP : checkDecls μP pins ds = .ok envP)
-    (hN : checkDecls μT pins ds = .ok envN) :
-    envN.consts.length = envP.consts.length := by
-  have h := congrArg List.length (trusted_agrees_skels_D hP hN)
-  simpa [envSkels] using h
-
-/-- The shipped pair, spelled out: `--trusted` and `--verified` agree on
-the install skeletons whenever both accept. -/
-theorem trusted_agrees_skels_shipped {ds : Array Declaration} {envP envT : Env}
-    (hP : checkDecls .verified pins ds = .ok envP)
-    (hT : checkDecls .trusted pins ds = .ok envT) :
-    envSkels envT = envSkels envP :=
-  trusted_agrees_skels_D hP hT
 
 end ConLeche.Cached

@@ -5,7 +5,7 @@ public import ConLeche.Model.Inductives.ContLeaf
 import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Env.BlockLfpTup
 import ConLeche.Model.Env.BlockLfpMono
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.Inductives.ContSubst
 import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Model.Rules.Inputs
@@ -58,20 +58,6 @@ applied with hole-free indices. -/
     PiPosThen (ResultAt m φ ctx.nP hi (hi + x.2) cur) x.2 R ca
 
 /-! ## The frame's group, its holes and its relation -/
-
-/-- A λ-tower applied along a fitting prefix is the tower over the rest. -/
-theorem holeFam_append_apply :
-    ∀ {Fs : List Term} {ρ : Nat → V} {as : List V} (Gs : List Term) (g : List V → V)
-      (is : List V), SpineFit ρ Fs as →
-      (as ++ is).foldl app (holeFam ρ (Fs ++ Gs) g)
-        = is.foldl app (holeFam (consList as ρ) Gs fun bs => g (as ++ bs))
-  | [], _, [], _, _, _, _ => rfl
-  | [], _, _ :: _, _, _, _, h => h.elim
-  | _ :: _, _, [], _, _, _, h => h.elim
-  | F :: Fs, ρ, a :: as, Gs, g, is, h => by
-    show (as ++ is).foldl app (app (lamV (interp V ρ F) _) a) = _
-    rw [app_lamV h.1, consList_cons]
-    exact holeFam_append_apply (Fs := Fs) Gs (fun as => g (a :: as)) is h.2
 
 /-- **A spine of values each inhabiting its entry read below the earlier
 ones fits**, when entry `i` is a reading over the base frame lifted past
@@ -286,7 +272,7 @@ theorem grp_typeT {p : Name × Expr} (hp : p ∈ grp) :
   rw [hf] at hf'
   obtain ⟨rfl, rfl⟩ : cv = cv' ∧ caps = caps' := by simpa using hf'
   subst hlp
-  have hwf := mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hf)
+  have hwf := mp.base2.wf _ (ConLeche.Env.find?_mem hf)
   have hcl : (cv.type.instantiateLevelParams cv.levelParams us).hasFvar = false := by
     rw [Expr.hasFvar_instantiateLevelParams]; exact hwf.1
   have hbb : (cv.type.instantiateLevelParams cv.levelParams us).looseBVarsBounded 0 = true := by
@@ -339,7 +325,7 @@ theorem grp_typeT_wd {p : Name × Expr} (hp : p ∈ grp) {ta : Term}
   refine (WellDenoted_substAV _ _ 0 ρ fun j => hτ j).mpr ?_
   rw [← keyFrame_eq_substE hdl]
   · -- the member's closed type, graded at every frame, past the parameters
-    have hmem := ConLeche.Semantics.Env.find?_mem hf
+    have hmem := ConLeche.Env.find?_mem hf
     have hwd := (mp.type_wellDenotedTy _ hmem ψ _ hread
       (fun j => ρ (j + hi))).1
     have hsP := h.parsSat mm hmm ψ _ hs
@@ -899,7 +885,7 @@ theorem frameIter (hin : RulesInputs V mp.base2 φ) {F : Nat}
       env.find? (D.ctorName c j) = some (.ctorInfo x.1 ds.length x.2))
     (fun x crest hQx hcr hinf => by
       obtain ⟨c, j, ⟨hc, -⟩, hj, hfc⟩ := hQx
-      have hwf := mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfc)
+      have hwf := mp.base2.wf _ (ConLeche.Env.find?_mem hfc)
       have hcl : (x.1.type.instantiateLevelParams x.1.levelParams us).hasFvar = false := by
         rw [Expr.hasFvar_instantiateLevelParams]; exact hwf.1
       have hbb : (x.1.type.instantiateLevelParams x.1.levelParams us).looseBVarsBounded 0
