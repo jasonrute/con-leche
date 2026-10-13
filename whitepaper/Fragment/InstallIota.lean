@@ -90,10 +90,10 @@ theorem CtxWD_liftCtx_atCtx (M : Name → List Nat → V) (φ : Name → Nat) {n
     refine and_congr Iff.rfl ⟨fun h vs hvs => ?_, fun h vs hvs => ?_⟩
     · have hl := FitsVals_length M φ hvs
       have := h vs ((FitsVals_liftCtx_atCtx M φ ρ Γ vs hi hf ho hk).mpr hvs)
-      rwa [WellDenoted_atCtx M φ ρ A hl hi hf ho hk] at this
+      rwa [WellDenoted_atCtx M φ ρ A hl hi hf ho hk, interp_atCtx M φ ρ A hl hi hf ho hk] at this
     · rw [FitsVals_liftCtx_atCtx M φ ρ Γ vs hi hf ho hk] at hvs
       have hl := FitsVals_length M φ hvs
-      rw [WellDenoted_atCtx M φ ρ A hl hi hf ho hk]
+      rw [WellDenoted_atCtx M φ ρ A hl hi hf ho hk, interp_atCtx M φ ρ A hl hi hf ho hk]
       exact h vs hvs
 
 namespace IndSpec
@@ -161,10 +161,9 @@ context read in the final model at the instantiated valuation
 theorem recSet_eq (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
     (hus : us.length = S.recLparams.length) :
     S.M₃ m.M S.recName (us.map (Level.eval φ)) =
-      lamCtx (S.M₃ m.M) (Level.substVal φ S.recLparams us)
-        (S.q.holds (Level.substVal φ S.recLparams us)) ρ S.recCtx fun ρ' =>
+      lamCtx (S.M₃ m.M) (Level.substVal φ S.recLparams us) ρ S.recCtx fun ρ' =>
+        if S.qv (Level.substVal φ S.recLparams us) then pt else
           S.recSem m.M (S.lparams.map (Level.substVal φ S.recLparams us))
-            (S.q.holds (Level.substVal φ S.recLparams us))
             (readEnv S.nP (shiftE (1 + S.nI + S.n + 1) 0 ρ')) (ρ' (1 + S.nI + S.n))
             (readEnv S.n (shiftE (1 + S.nI) 0 ρ')) (readEnv S.nI (shiftE 1 0 ρ')) (ρ' 0) := by
   have hS := hok.scoped
@@ -173,26 +172,25 @@ theorem recSet_eq (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
       = Level.substVal φ S.recLparams us n :=
     fun n hn => recVal_agree φ hus n (S.lparams_sub_recLparams hn)
   have hls := block_levels_eq (S := S) φ hus
-  have R₃ := reader₃ hok m.M (Level.substVal φ S.recLparams us)
-  have R₂ := reader₂ hok m.M (Level.substVal φ S.recLparams us) hval
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.recLparams us)
+  have R₂ := reader₂ hpl hok m.M (Level.substVal φ S.recLparams us) hval
   have hwdC : ∀ c ∈ S.ctors, ∀ ps, ps.length = S.nP →
       FitsVals m.M (S.ψ (S.lparams.map (Level.substVal φ S.recLparams us))) base S.params ps →
       CtxWD (S.M₃ m.M) (Level.substVal φ S.recLparams us) (consList ps ρ) (S.fieldCtx c.fields) :=
-    fun c hc ps hps hp => (R₃.R.idxFit_of_wd hS hc (wd_ctorType hs m hok hc _ ρ) hps hp).1
+    fun c hc ps hps hp => (R₃.R.idxFit_of_wd hS hc (wd_ctorType hpl hs m hok hc _ ρ) (ty_ctorType hpl hs m hok hc _ ρ) (NestFit_of_plain hpl) hps hp).1
   have hagree := R₂.agree_recCtx hS R₃ hagr hpl hok.freshI base ρ hwdC
   have e : S.M₃ m.M S.recName (us.map (Level.eval φ)) = S.recSet m.M (us.map (Level.eval φ)) := by
     simp [M₃]
   rw [e]
-  show lamCtx (S.M₂ m.M) (valOf S.recLparams (us.map (Level.eval φ)))
-      (S.q.holds (valOf S.recLparams (us.map (Level.eval φ)))) base S.recCtx
-      (fun ρ' => S.recSem m.M (S.lparams.map (valOf S.recLparams (us.map (Level.eval φ))))
-        (S.q.holds (valOf S.recLparams (us.map (Level.eval φ))))
-        (readEnv S.nP (shiftE (1 + S.nI + S.n + 1) 0 ρ')) (ρ' (1 + S.nI + S.n))
-        (readEnv S.n (shiftE (1 + S.nI) 0 ρ')) (readEnv S.nI (shiftE 1 0 ρ')) (ρ' 0)) = _
+  show lamCtx (S.M₂ m.M) (valOf S.recLparams (us.map (Level.eval φ))) base S.recCtx
+      (fun ρ' => if S.qv (valOf S.recLparams (us.map (Level.eval φ))) then pt else
+        S.recSem m.M (S.lparams.map (valOf S.recLparams (us.map (Level.eval φ))))
+          (readEnv S.nP (shiftE (1 + S.nI + S.n + 1) 0 ρ')) (ρ' (1 + S.nI + S.n))
+          (readEnv S.n (shiftE (1 + S.nI) 0 ρ')) (readEnv S.nI (shiftE 1 0 ρ')) (ρ' 0)) = _
   rw [hls, hagr.q_holds]
   exact lamCtx_congr₂ hagree fun vs hvs => by
     obtain ⟨t, is, mins, m', ps, rfl, hi, hmins, hps⟩ := S.fits_recCtx_split hvs
-    rw [recF_read S m.M _ _ hi hmins hps, recF_read S m.M _ _ hi hmins hps]
+    rw [recF_read S m.M _ hi hmins hps, recF_read S m.M _ hi hmins hps]
 
 /-- **The recursor's set applied to a fitting spine**: the spine fits
 the recursor's context, the value lies in the motive at the indices
@@ -217,12 +215,12 @@ theorem rec_app_mem (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
       ∈ˢ appList m' (is.reverse ++ [t]) ∧
     SpineOk (S.M₃ m.M S.recName (us.map (Level.eval φ)))
       (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ++ [t]) ∧
-    (S.q.holds (Level.substVal φ S.recLparams us) = false →
+    (S.qv (Level.substVal φ S.recLparams us) = false →
       appList (S.M₃ m.M S.recName (us.map (Level.eval φ)))
           (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ++ [t])
-        = S.recSem m.M (S.lparams.map (Level.substVal φ S.recLparams us)) false ps m' mins is t) := by
+        = S.recSem m.M (S.lparams.map (Level.substVal φ S.recLparams us)) ps m' mins is t) := by
   have hS := hok.scoped
-  have R₃ := reader₃ hok m.M (Level.substVal φ S.recLparams us)
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.recLparams us)
   have hi : is.length = S.nI := by have := FitsVals_length m.M _ his; simpa [nI] using this
   have hfit : FitsVals (S.M₃ m.M) (Level.substVal φ S.recLparams us) ρ S.recCtx
       (t :: is ++ mins ++ [m'] ++ ps) :=
@@ -234,32 +232,20 @@ theorem rec_app_mem (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
     simp [M₃]
   have hf := recSet_mem hpl hs m hok φ ρ hus
   rw [recType_eq, interp_mkPis] at hf
-  have hG : S.q.holds (Level.substVal φ S.recLparams us) = true →
-      ∀ ws, FitsVals (S.M₃ m.M) (Level.substVal φ S.recLparams us) ρ S.recCtx ws →
-        interp (S.M₃ m.M) (Level.substVal φ S.recLparams us) (consList ws ρ)
-          (Expr.mkAppN (.bvar (1 + S.nI + S.n)) (Expr.varsAt 1 S.nI ++ [.bvar 0])) ∈ˢ
-          (univ 0 : V) := by
-    intro hq ws hws
-    obtain ⟨t', is', mins', m'', ps', rfl, hi', hmins', hps'⟩ := S.fits_recCtx_split hws
-    obtain ⟨hp', hm', -, his', ht'⟩ := (R₃.R.fits_recCtx_iff hS hi' hmins' hps').mp hws
-    rw [read_recBody S _ _ hi' hmins']
-    have hz := S.q_holds (Level.substVal φ S.recLparams us)
-    rw [hq, Bool.true_eq, beq_iff_eq] at hz
-    rw [← hz]
-    exact R₃.R.motiveOk_of_mem hS hps' hp' hm' is' his' t' ht'
+  have hwr := wd_recType hpl hs m hok (Level.substVal φ S.recLparams us) ρ
+  rw [recType_eq, WellDenoted_mkPis] at hwr
   refine ⟨hfit, ?_, ?_, ?_⟩
   · rw [hrev, e]
     have := appList_mem_of_piCtx _ _ hf hfit
     rwa [read_recBody S _ _ hi hmins] at this
   · rw [hrev, e]
-    exact spineOk_of_piCtx _ _ hf hfit hG
+    exact spineOk_of_piCtx _ _ hf hfit hwr.1.ty
   · intro hq
-    rw [hrev, recSet_eq hpl hs m hok φ ρ hus, hq, appList_lamCtx_false hfit,
-      recF_read S m.M _ _ hi hmins hps]
+    rw [hrev, recSet_eq hpl hs m hok φ ρ hus, appList_lamCtx _ _ hfit, hq, ite_eq_right Bool.false_ne_true,
+      recF_read S m.M _ hi hmins hps]
 
 /-! ## The major: the constructor's set applied -/
 
-omit hpl in
 /-- **The constructor's set applied to fitting values** is the
 constructor value at the fields, and the values fit semantically: the
 parameters the parameter context, the fields the constructor's fields.
@@ -275,33 +261,28 @@ theorem ctor_app (φ : Name → Nat) (ρ : Nat → V) {usj : List Level}
       = S.ctorVal (S.lparams.map (Level.substVal φ S.lparams usj)) j fs := by
   have hS := hok.scoped
   have hcm : c ∈ S.ctors := List.mem_of_getElem? hc
-  have R₃ := reader₃ hok m.M (Level.substVal φ S.lparams usj)
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.lparams usj)
   unfold ctorType at hfit
-  rw [← List.reverse_append, TeleFitV_mkPis _ _ _ (by simp [hf, hps, length_fieldCtx, nP, Nat.add_comm]),
+  rw [← List.reverse_append, TeleFitV_mkPis _ _ (by simp [hf, hps, length_fieldCtx, nP, Nat.add_comm]),
     List.reverse_reverse, FitsVals_append _ _ (by rw [hf, length_fieldCtx])] at hfit
   obtain ⟨hpF, hfF⟩ := hfit
   have hp := (R₃.R.fits_params hS).mp hpF
-  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hs m hok hcm _ ρ) hps hp
-  have hff := (R₃.R.fits_fieldCtx hS (hS.2.2.2.1 c hcm).1 hps hp hidx.1).1.mp hfF
+  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) (ty_ctorType hpl hs m hok hcm _ ρ) (NestFit_of_plain hpl) hps hp
+  have hff := (R₃.R.fits_fieldCtx hS (NestFit_of_plain hpl) (hS.2.2.2.1 c hcm).1 hps hp hidx.1).1.mp hfF
   refine ⟨hp, hff, ?_⟩
   rw [R₃.ctor j c hc, ← lparams_map_substVal hok φ husj]
-  have R₁ := S.reader₁ (M := m.M) (φ := Level.substVal φ S.lparams usj) hok.freshI
+  have R₁ := S.reader₁ (M := m.M) hpl (φ := Level.substVal φ S.lparams usj) hok.freshI
+    (fun c hc => (hok.scoped.2.2.2.1 c hc).2.1)
   have hfit₁ : FitsVals (S.M₁ m.M) (S.ψ (S.lparams.map (Level.substVal φ S.lparams usj))) base
       (S.fieldCtx c.fields ++ S.params) (fs ++ ps) :=
     (FitsVals_append _ _ (by rw [hf, S.length_fieldCtx])).mpr
       ⟨(R₁.fits_params hS).mpr hp,
        R₁.fits_fieldCtx_of_idx hS (hS.2.2.2.1 c hcm).1 (ρ := base) hps hp hff (hidx.2 fs hff).2.1⟩
   unfold ctorSet
-  rw [← List.reverse_append]
-  cases hz : S.z (S.lparams.map (Level.substVal φ S.lparams usj))
-  · rw [appList_lamCtx_false hfit₁, consList_append, readEnv_consList hf]
-  · rw [appList_lamCtx _ _ hfit₁ (G := fun _ => truthVal True)
-      (fun ws _ => by simp [ctorVal, hz]; exact pt_mem_truthVal trivial)
-      (fun _ _ _ => truthVal_mem_univ_zero _), consList_append, readEnv_consList hf]
+  rw [← List.reverse_append, appList_lamCtx _ _ hfit₁, consList_append, readEnv_consList hf]
 
 /-! ## The rule's context -/
 
-omit hpl in
 /-- **Values fitting a rule's context**: the parameters fit, the
 motive is in its type, the minors fit theirs, and the fields fit the
 constructor's fields semantically — and conversely. -/
@@ -314,7 +295,7 @@ theorem fits_ruleCtx (φr : Name → Nat) (ρ : Nat → V) {c : CtorSpec} (hcm :
       FitsVals (S.M₃ m.M) φr (cons m' (consList ps ρ)) S.minorsCtx mins ∧
       S.FitsFields m.M (S.lparams.map φr) (S.Fam m.M (S.lparams.map φr) ps) ps c.fields fs := by
   have hS := hok.scoped
-  have R₃ := reader₃ hok m.M φr
+  have R₃ := reader₃ hpl hok m.M φr
   have hosl : (mins ++ [m']).length = S.n + 1 := by simp [hmins]
   have e2 : consList mins (cons m' (consList ps ρ)) = consList (mins ++ [m']) (consList ps ρ) := by
     simp [consList_append]
@@ -328,15 +309,14 @@ theorem fits_ruleCtx (φr : Name → Nat) (ρ : Nat → V) {c : CtorSpec} (hcm :
   rw [FitsVals_liftCtx_liftN _ _ _ _ _ hosl]
   constructor
   · rintro ⟨hp, hm, hmn, hfF⟩
-    exact ⟨hp, hm, hmn, (R₃.R.fits_fieldCtx hS (hS.2.2.2.1 c hcm).1 hps hp
-      (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hs m hok hcm φr ρ) hps hp).1).1.mp hfF⟩
+    exact ⟨hp, hm, hmn, (R₃.R.fits_fieldCtx hS (NestFit_of_plain hpl) (hS.2.2.2.1 c hcm).1 hps hp
+      (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) (ty_ctorType hpl hs m hok hcm φr ρ) (NestFit_of_plain hpl) hps hp).1).1.mp hfF⟩
   · rintro ⟨hp, hm, hmn, hfF⟩
-    exact ⟨hp, hm, hmn, (R₃.R.fits_fieldCtx hS (hS.2.2.2.1 c hcm).1 hps hp
-      (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hs m hok hcm φr ρ) hps hp).1).1.mpr hfF⟩
+    exact ⟨hp, hm, hmn, (R₃.R.fits_fieldCtx hS (NestFit_of_plain hpl) (hS.2.2.2.1 c hcm).1 hps hp
+      (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) (ty_ctorType hpl hs m hok hcm φr ρ) (NestFit_of_plain hpl) hps hp).1).1.mpr hfF⟩
 
 /-! ## The inductive hypotheses' terms -/
 
-omit hpl in
 /-- A field's domain is well-denoted at fitting earlier fields. -/
 theorem wd_fieldDom (φr : Name → Nat) (ρ : Nat → V) {c : CtorSpec} (hcm : c ∈ S.ctors)
     {ps fs : List V} (hps : ps.length = S.nP)
@@ -346,8 +326,8 @@ theorem wd_fieldDom (φr : Name → Nat) (ρ : Nat → V) {c : CtorSpec} (hcm : 
     (hk : k < c.fields.length) :
     WellDenoted (S.M₃ m.M) φr (consList (earlier fs k) (consList ps ρ)) (S.fieldDom k f) := by
   have hS := hok.scoped
-  have R₃ := reader₃ hok m.M φr
-  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hs m hok hcm φr ρ) hps hp
+  have R₃ := reader₃ hpl hok m.M φr
+  have hidx := R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm φr ρ) (ty_ctorType hpl hs m hok hcm φr ρ) (NestFit_of_plain hpl) hps hp
   have hf := S.FitsFields_length m.M _ hfit
   have hfF := (hidx.2 fs hfit).1
   have hA : (S.fieldCtx c.fields)[c.fields.length - 1 - k]? = some (S.fieldDom k f) := by
@@ -414,18 +394,18 @@ theorem recCall_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
           es.map (Expr.atCtx c.fields.length k 0 (S.n + 1) mt) ++ [last]))
       ∈ˢ appList m' ((S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
           (consList ys (consList (earlier fs k) (envP ps))) es).reverse ++ [t]) ∧
-    (S.q.holds (Level.substVal φ S.recLparams us) = false →
+    (S.qv (Level.substVal φ S.recLparams us) = false →
       interp (S.M₃ m.M) (Level.substVal φ S.recLparams us)
         (consList ys (consList fs (consList (mins ++ [m']) (consList ps ρ))))
         (Expr.mkAppN (.const S.recName S.recLvls)
           (Expr.varsAt (mt + c.fields.length + S.n + 1) S.nP ++ [.bvar (mt + c.fields.length + S.n)] ++
             Expr.varsAt (mt + c.fields.length) S.n ++
             es.map (Expr.atCtx c.fields.length k 0 (S.n + 1) mt) ++ [last]))
-        = S.recSem m.M (S.lparams.map (Level.substVal φ S.recLparams us)) false ps m' mins
+        = S.recSem m.M (S.lparams.map (Level.substVal φ S.recLparams us)) ps m' mins
             (S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
               (consList ys (consList (earlier fs k) (envP ps))) es) t) := by
   have hS := hok.scoped
-  have R₃ := reader₃ hok m.M (Level.substVal φ S.recLparams us)
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.recLparams us)
   have hosl : (mins ++ [m']).length = S.n + 1 := by simp [hmins]
   have hkd : fs.drop (c.fields.length - k) = earlier fs k := by simp [earlier, hf]
   -- the head
@@ -520,16 +500,15 @@ theorem ihVal_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
     (hfit : S.FitsFields m.M (S.lparams.map (Level.substVal φ S.recLparams us)) (S.Fam m.M (S.lparams.map (Level.substVal φ S.recLparams us)) ps) ps c.fields fs) :
     WellDenoted (S.M₃ m.M) (Level.substVal φ S.recLparams us)
       (consList fs (consList (mins ++ [m']) (consList ps ρ))) (S.ihVal c.fields.length kf.1 kf.2) ∧
-    S.IhTyped m.M (S.lparams.map (Level.substVal φ S.recLparams us))
-      (S.q.holds (Level.substVal φ S.recLparams us)) ps m' fs kf
+    S.IhTyped m.M (S.lparams.map (Level.substVal φ S.recLparams us)) ps m' fs kf
       (interp (S.M₃ m.M) (Level.substVal φ S.recLparams us)
         (consList fs (consList (mins ++ [m']) (consList ps ρ))) (S.ihVal c.fields.length kf.1 kf.2)) ∧
-    (S.q.holds (Level.substVal φ S.recLparams us) = false →
+    (S.qv (Level.substVal φ S.recLparams us) = false →
       interp (S.M₃ m.M) (Level.substVal φ S.recLparams us)
         (consList fs (consList (mins ++ [m']) (consList ps ρ))) (S.ihVal c.fields.length kf.1 kf.2)
-      = S.ihSem m.M (S.lparams.map (Level.substVal φ S.recLparams us)) false ps m' mins fs kf) := by
+      = S.ihSem m.M (S.lparams.map (Level.substVal φ S.recLparams us)) ps m' mins fs kf) := by
   have hS := hok.scoped
-  have R₃ := reader₃ hok m.M (Level.substVal φ S.recLparams us)
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.recLparams us)
   obtain ⟨k, f⟩ := kf
   obtain ⟨hkf', hk, hrec⟩ := mem_recFields hkf
   dsimp only at hkf' hk hrec ⊢
@@ -538,8 +517,8 @@ theorem ihVal_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
   have hsc := (hS.2.2.2.1 c hcm).1 _ f hkf'
   rw [show c.fields.length - 1 - (c.fields.length - 1 - k) = k by omega] at hsc
   have hget := S.FitsFields_get m.M _ hfit hkf' hk
-  have hwdD := wd_fieldDom hs m hok _ ρ hcm hps hp hfit hkf' hk
-  have hidx := (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hs m hok hcm _ ρ) hps hp).2 fs hfit
+  have hwdD := wd_fieldDom hpl hs m hok _ ρ hcm hps hp hfit hkf' hk
+  have hidx := (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) (ty_ctorType hpl hs m hok hcm _ ρ) (NestFit_of_plain hpl) hps hp).2 fs hfit
   have hfv : consList fs (consList (mins ++ [m']) (consList ps ρ)) (c.fields.length - 1 - k)
       = fieldVal fs k := by
     rw [consList_getD (by omega)]
@@ -550,7 +529,7 @@ theorem ihVal_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
   | container => exact (S.noCont_absurd (hok.noCont hpl) hcm hkf').elim
   | reflexive tele es =>
     have hmt : tele.length = tele.length := rfl
-    -- the field's domain: a product over the telescope
+    -- the field's domain: a Π-type over the telescope
     simp only [fieldDom] at hwdD
     rw [WellDenoted_mkPis] at hwdD
     obtain ⟨hwdT, hwdB⟩ := hwdD
@@ -575,9 +554,8 @@ theorem ihVal_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
         have hlen := FitsVals_length m.M _ hys
         have hys' : FitsVals (S.M₃ m.M) (Level.substVal φ S.recLparams us)
             (consList (earlier fs k) (consList ps ρ)) tele ys := (FitsVals_congr₂ hagree).mpr hys
-        have hmem := appList_mem_of_piCtx m.M _ hget hys
-        have hspine := spineOk_of_piCtx m.M _ hget hys fun hz _ _ =>
-          S.fibre_mem_univ_zero _ (S.Fam_inUniv m.M _ ps) hz _
+        have hmem := S.reflBody_sub _ _ _ _ (appList_mem_of_piCtx m.M _ hget hys)
+        have hspine := spineOk_of_piCtx m.M _ hget hys (hagree.ty hwdT.ty)
         have hlastV : interp (S.M₃ m.M) (Level.substVal φ S.recLparams us)
             (consList ys (consList fs (consList (mins ++ [m']) (consList ps ρ))))
             (Expr.mkAppN (.bvar (tele.length + c.fields.length - 1 - k)) (Expr.varsAt 0 tele.length))
@@ -601,8 +579,7 @@ theorem ihVal_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
           (hidx.2.1 k _ hkf' hk ys hys) hmem
     -- the abstraction over the lifted telescope
     have hl := R₃.R.lamCtx_liftCtx_atCtx (ihsE := []) (l := 0) (fs := fs) (os := mins ++ [m']) (ps := ps)
-      (ρ := ρ) rfl hf hosl (Nat.le_of_lt hk) hps (S.q.holds (Level.substVal φ S.recLparams us)) tele
-      hsc.1
+      (ρ := ρ) rfl hf hosl (Nat.le_of_lt hk) hps tele hsc.1
     simp only [consList_nil] at hl
     refine ⟨?_, ?_, ?_⟩
     · -- the invariant
@@ -624,32 +601,27 @@ theorem ihVal_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
         refine ⟨h.1, ?_⟩
         rw [h.2.1]
         exact h.2.2.1
-      · intro hq ys hys
+      · intro ys hys
         have h := hcall ys ((hfitT ys).mp hys)
         rw [h.2.1]
-        have hz := S.q_holds (Level.substVal φ S.recLparams us)
-        rw [hq, Bool.true_eq, beq_iff_eq] at hz
-        rw [← hz]
-        exact R₃.R.motiveOk_of_mem hS hps hp hm _ (hidx.2.1 k _ hkf' hk ys ((hfitT ys).mp hys)) _
-          (appList_mem_of_piCtx m.M _ hget ((hfitT ys).mp hys))
+        exact IsTy_of_mem_typeU (R₃.R.motiveOk_of_mem hS hps hp hm _
+          (hidx.2.1 k _ hkf' hk ys ((hfitT ys).mp hys)) _
+          (S.reflBody_sub _ _ _ _ (appList_mem_of_piCtx m.M _ hget ((hfitT ys).mp hys))))
     · -- the hypothesis' set
       dsimp only [IhTyped, ihVal]
       rw [interp_mkLams, hl, hkd]
-      refine lamCtx_mem_piCtx m.M _ (fun ys hys => ?_) fun hq ys hys => ?_
+      refine lamCtx_mem_piCtx m.M _ (fun ys hys => ?_) fun ys hys => ?_
       · have hlen := FitsVals_length m.M _ hys
         rw [readEnv_consList hlen]
         exact (hcall ys hys).2.2.1
       · have hlen := FitsVals_length m.M _ hys
         rw [readEnv_consList hlen]
-        have hz := S.q_holds (Level.substVal φ S.recLparams us)
-        rw [hq, Bool.true_eq, beq_iff_eq] at hz
-        rw [← hz]
-        exact R₃.R.motiveOk_of_mem hS hps hp hm _ (hidx.2.1 k _ hkf' hk ys hys) _
-          (appList_mem_of_piCtx m.M _ hget hys)
+        exact IsTy_of_mem_typeU (R₃.R.motiveOk_of_mem hS hps hp hm _ (hidx.2.1 k _ hkf' hk ys hys) _
+          (S.reflBody_sub _ _ _ _ (appList_mem_of_piCtx m.M _ hget hys)))
     · -- the graph regime
       intro hq
       dsimp only [ihSem, ihVal]
-      rw [interp_mkLams, hl, hkd, hq]
+      rw [interp_mkLams, hl, hkd]
       refine lamCtx_congr m.M _ fun ys hys => ?_
       have hlen := FitsVals_length m.M _ hys
       rw [readEnv_consList hlen]
@@ -684,109 +656,58 @@ theorem fits_ruleCtx_split (φr : Name → Nat) {ρ : Nat → V} {c : CtorSpec} 
   · simp only [List.length_take, hl]; omega
   · simp only [List.length_take, List.length_drop, hl]; omega
 
-/-- **The ι law of a generated rule** (`RecRuleLaw`, `EnvModel.lean`)
-for the recursor's constant and the constructor's, at the recursor's
-`nP` parameters, `nP + 1 + n` arguments before the indices and the
-major at `nP + 1 + n + nI`. -/
-theorem rec_rule_law {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
-    RecRuleLaw (S.M₃ m.M) S.recName S.recInfo S.nP (S.nP + 1 + S.n) (S.nP + 1 + S.n + S.nI)
-      ⟨c.name, c.fields.length, S.ruleRhs c j, none⟩ (S.ctorInfo c) := by
-  intro φ ρ us usj xs ys hus husj hxs hys hfitR hfitC hlv hpar hidx
+/-- **The ι law of a generated rule, at a constructor value** (the
+second half of `rec_rule_law`, shared with the K law
+`rec_rule_lawK`): at parameters, a motive and minors fitting the
+recursor's context and fields fitting constructor `j` at the family,
+the recursor's set applied to the spine ending in the constructor's
+index values and value is, where it is not the point, the rule's
+right-hand side at the parameters, motive, minors and fields; the
+right-hand side is well-denoted with a well-formed application
+chain. -/
+theorem rec_rule_core (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
+    (hus : us.length = S.recLparams.length) {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c)
+    {ps mins fs : List V} {m' : V}
+    (hps : ps.length = S.nP) (hmins : mins.length = S.n) (hf : fs.length = c.fields.length)
+    (hp : FitsVals m.M (S.ψ (S.lparams.map (Level.substVal φ S.recLparams us))) base S.params ps)
+    (hm : m' ∈ˢ interp (S.M₃ m.M) (Level.substVal φ S.recLparams us) (consList ps ρ) S.motiveTy)
+    (hmn : FitsVals (S.M₃ m.M) (Level.substVal φ S.recLparams us) (cons m' (consList ps ρ))
+      S.minorsCtx mins)
+    (hfitF : S.FitsFields m.M (S.lparams.map (Level.substVal φ S.recLparams us))
+      (S.Fam m.M (S.lparams.map (Level.substVal φ S.recLparams us)) ps) ps c.fields fs)
+    (hne : appList (S.M₃ m.M S.recName (us.map (Level.eval φ)))
+        (ps.reverse ++ [m'] ++ mins.reverse ++
+          (S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
+            (consList fs (envP ps)) c.idx).reverse ++
+          [S.ctorVal (S.lparams.map (Level.substVal φ S.recLparams us)) j fs]) ≠ pt) :
+    appList (S.M₃ m.M S.recName (us.map (Level.eval φ)))
+        (ps.reverse ++ [m'] ++ mins.reverse ++
+          (S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
+            (consList fs (envP ps)) c.idx).reverse ++
+          [S.ctorVal (S.lparams.map (Level.substVal φ S.recLparams us)) j fs])
+      = appList (interp (S.M₃ m.M) φ ρ ((S.ruleRhs c j).instL S.recLparams us))
+          ((ps.reverse ++ [m'] ++ mins.reverse ++
+            (S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
+              (consList fs (envP ps)) c.idx).reverse).take (S.nP + 1 + S.n) ++
+            (ps.reverse ++ fs.reverse).drop S.nP) ∧
+    WellDenoted (S.M₃ m.M) φ ρ ((S.ruleRhs c j).instL S.recLparams us) ∧
+    SpineOk (interp (S.M₃ m.M) φ ρ ((S.ruleRhs c j).instL S.recLparams us))
+      ((ps.reverse ++ [m'] ++ mins.reverse ++
+          (S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
+            (consList fs (envP ps)) c.idx).reverse).take (S.nP + 1 + S.n) ++
+        (ps.reverse ++ fs.reverse).drop S.nP) := by
   have hS := hok.scoped
   have hcm : c ∈ S.ctors := List.mem_of_getElem? hc
   have hj : j < S.n := (List.getElem?_eq_some_iff.mp hc).1
-  have hnf : c.fields.length = c.fields.length := rfl
-  simp only [recInfo, ctorInfo] at hus husj hfitR hfitC hlv hidx ⊢
-  rw [TeleFitV_instL] at hfitR hfitC
-  have R₃ := reader₃ hok m.M (Level.substVal φ S.recLparams us)
-  have hLj : S.lparams.map (Level.substVal φ S.lparams usj)
-      = S.lparams.map (Level.substVal φ S.recLparams us) :=
-    block_valuation_eq hS φ hus husj hlv
-  -- the recursor's spine, split
-  obtain ⟨m', rest, hd⟩ : ∃ m' rest, xs.drop S.nP = m' :: rest := by
-    cases hd : xs.drop S.nP with
-    | nil =>
-      have := congrArg List.length hd
-      simp only [List.length_drop, List.length_nil, hxs] at this
-      omega
-    | cons m' rest => exact ⟨m', rest, rfl⟩
-  have hrest : rest.length = S.n + S.nI := by
-    have := congrArg List.length hd
-    simp only [List.length_drop, List.length_cons, hxs] at this
-    omega
-  obtain ⟨ps, mins, is, hxs', hps, hmins, hi⟩ : ∃ ps mins is,
-      xs = ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ∧ ps.length = S.nP ∧
-        mins.length = S.n ∧ is.length = S.nI :=
-    ⟨(xs.take S.nP).reverse, (rest.take S.n).reverse, (rest.drop S.n).reverse,
-      by
-        rw [List.reverse_reverse, List.reverse_reverse, List.reverse_reverse, List.append_assoc,
-          List.append_assoc, List.take_append_drop, List.singleton_append, ← hd,
-          List.take_append_drop],
-      by simp only [List.length_reverse, List.length_take, hxs]; omega,
-      by simp only [List.length_reverse, List.length_take, hrest]; omega,
-      by simp only [List.length_reverse, List.length_drop, hrest]; omega⟩
-  subst hxs'
-  have hfitR' := hfitR
-  rw [recType_eq, TeleFitV_mkPis _ _ _ (by
-      simp only [List.length_append, List.length_singleton, hxs, length_recCtx]; omega),
-    show (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ++
-        [appList (S.M₃ m.M c.name (usj.map (Level.eval φ))) ys]).reverse
-      = appList (S.M₃ m.M c.name (usj.map (Level.eval φ))) ys :: is ++ mins ++ [m'] ++ ps by
-      simp [List.reverse_append]] at hfitR'
-  obtain ⟨hp, hm, hmn, his, ht⟩ := (R₃.R.fits_recCtx_iff hS hi hmins hps).mp hfitR'
-  -- the constructor's spine, split
-  obtain ⟨ps₂, fs, hys₂, hps₂, hf⟩ : ∃ ps₂ fs, ys = ps₂.reverse ++ fs.reverse ∧
-      ps₂.length = S.nP ∧ fs.length = c.fields.length :=
-    ⟨(ys.take S.nP).reverse, (ys.drop S.nP).reverse, by simp,
-      by rw [List.length_reverse, List.length_take, hys]; omega,
-      by rw [List.length_reverse, List.length_drop, hys, Nat.add_sub_cancel_left]⟩
-  subst hys₂
-  have hle₁ : S.nP ≤ (ps.reverse ++ [m'] ++ mins.reverse).length := by
-    simp only [List.length_append, List.length_reverse, List.length_singleton, hps]; omega
-  have hle₂ : S.nP ≤ (ps.reverse ++ [m']).length := by
-    simp only [List.length_append, List.length_reverse, List.length_singleton, hps]; omega
-  have hle₃ : ps.reverse.length ≤ S.nP := Nat.le_of_eq (by rw [List.length_reverse, hps])
-  have hle₃' : S.nP ≤ ps.reverse.length := Nat.le_of_eq (by rw [List.length_reverse, hps])
-  have hle₄ : ps₂.reverse.length ≤ S.nP := Nat.le_of_eq (by rw [List.length_reverse, hps₂])
-  have hle₄' : S.nP ≤ ps₂.reverse.length := Nat.le_of_eq (by rw [List.length_reverse, hps₂])
-  have htake₁ : (ps₂.reverse ++ fs.reverse).take S.nP = ps₂.reverse := by
-    rw [List.take_append_of_le_length hle₄', List.take_of_length_le hle₄]
-  have htake₂ : (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse).take S.nP = ps.reverse := by
-    rw [List.take_append_of_le_length hle₁, List.take_append_of_le_length hle₂,
-      List.take_append_of_le_length hle₃', List.take_of_length_le hle₃]
-  rw [htake₁, htake₂, List.reverse_inj] at hpar
-  subst ps₂
-  -- the major is the constructor value at the fields
-  obtain ⟨-, hfitF, hmajor⟩ := ctor_app hs m hok φ ρ husj hc hps hf hfitC
-  rw [hLj] at hfitF hmajor
-  -- the index comparison: the indices are the constructor's index values
-  have hisv : is = S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
-      (consList fs (envP ps)) c.idx := by
-    have hB := hidx ((S.famAt c.fields.length c.idx).instL S.lparams usj) (consList (fs ++ ps) ρ)
-      S.name (S.lvls.map (Level.subst S.lparams usj))
-      ((Expr.varsAt c.fields.length S.nP).map (·.instL S.lparams usj))
-      (c.idx.map (·.instL S.lparams usj))
-      (by
-        rw [piBodyV_instL, ctorType,
-          piBodyV_mkPis _ (by simp [hf, hps, length_fieldCtx, nP, Nat.add_comm])]
-        simp [List.reverse_append])
-      (by simp [famAt, Expr.instL_mkAppN])
-      (by simp [Expr.varsAt, nP])
-    rw [List.drop_left' (by simp [hps, hmins]; omega)] at hB
-    have hlen : ((c.idx.map (·.instL S.lparams usj)).map (interp (S.M₃ m.M) φ (consList (fs ++ ps) ρ))).length
-        = is.reverse.length := by
-      simp [hi, (hS.2.2.2.1 c hcm).2.2.1]
-    have := List.map_eq_of_zip id hlen hB
-    simp only [List.map_id, List.map_map, Function.comp_def, id_eq, interp_instL, consList_append] at this
-    rw [← List.reverse_reverse is, ← this,
-      (reader₃ hok m.M (Level.substVal φ S.lparams usj)).R.idxVals_eq
-        (hS.2.2.2.1 c hcm).2.2.2 (by simp [hf, hps]; omega), hLj]
-  subst hisv
-  rw [hmajor] at ht ⊢
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.recLparams us)
+  have his := ((R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ)
+    (ty_ctorType hpl hs m hok hcm _ ρ) (NestFit_of_plain hpl) hps hp).2 fs hfitF).2.2
+  have ht := S.ctorVal_mem_Fam m.M _ (noRecDep hok) (domsBounded_of hpl hs m hok _ ρ hps hp)
+    (S.contOk_of_plain m.M _ hpl ps) hc hfitF
   -- the left-hand side: the semantic recursor at the constructor value
   have key := rec_app_mem hpl hs m hok φ ρ hus hps hp hm hmins hmn his ht
   -- the right-hand side's context and spine
-  have hfitRule := (fits_ruleCtx hs m hok _ ρ hcm hf hmins hps).mpr ⟨hp, hm, hmn, hfitF⟩
+  have hfitRule := (fits_ruleCtx hpl hs m hok _ ρ hcm hf hmins hps).mpr ⟨hp, hm, hmn, hfitF⟩
   have hspineR : (ps.reverse ++ [m'] ++ mins.reverse ++
         (S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
           (consList fs (envP ps)) c.idx).reverse).take (S.nP + 1 + S.n) ++
@@ -833,7 +754,7 @@ theorem rec_rule_law {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
             (consList fs' (envP ps')) c.idx).reverse ++
             [S.ctorVal (S.lparams.map (Level.substVal φ S.recLparams us)) j fs']) := by
     intro fs' mins' m'' ps' hf' hmins' hps' hp' hfitF'
-    have hidx' := (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hs m hok hcm _ ρ) hps' hp').2 fs' hfitF'
+    have hidx' := (R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) (ty_ctorType hpl hs m hok hcm _ ρ) (NestFit_of_plain hpl) hps' hp').2 fs' hfitF'
     have h := R₃.read_concl hS hok.freshI hc (ihsE := []) (nIh := 0) (o := S.n + 1) (os := mins' ++ [m''])
       (ρ := ρ) rfl hf' (by simp [hmins']) (Nat.succ_pos _) hps' hp' hfitF' hidx'.2.1
     have hg : (mins' ++ [m'']).getD S.n pt = m'' := by rw [← hmins']; exact getD_append_length _
@@ -848,7 +769,7 @@ theorem rec_rule_law {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
       (Expr.varsAt 0 c.fields.length ++ c.recFields.map fun kf => S.ihVal c.fields.length kf.1 kf.2))
     fun vs hvs => by
       obtain ⟨fs', mins', m'', ps', rfl, hf', hmins', hps'⟩ := fits_ruleCtx_split m _ hvs
-      obtain ⟨hp', hm', hmn', hfitF'⟩ := (fits_ruleCtx hs m hok _ ρ hcm hf' hmins' hps').mp hvs
+      obtain ⟨hp', hm', hmn', hfitF'⟩ := (fits_ruleCtx hpl hs m hok _ ρ hcm hf' hmins' hps').mp hvs
       rw [show consList (fs' ++ mins' ++ [m''] ++ ps') ρ
           = consList fs' (consList (mins' ++ [m'']) (consList ps' ρ)) by simp [consList_append]]
       have hih := fun kf (hkf : kf ∈ c.recFields) =>
@@ -873,29 +794,290 @@ theorem rec_rule_law {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
   refine ⟨?_, ?_, ?_⟩
   · -- the equation
     rw [hspineR, interp_instL]
-    cases hq : S.q.holds (Level.substVal φ S.recLparams us)
-    · rw [key.2.2.2 hq, S.recSem_eq m.M _ false hpl (noRecDep hok)
+    cases hq : S.qv (Level.substVal φ S.recLparams us)
+    · rw [key.2.2.2 hq, S.recSem_eq m.M _ hpl (noRecDep hok)
         (domsBounded_of hpl hs m hok _ ρ hps hp)
         (fun hz => uniq_of hpl hs m hok _ hz (large_of_q_false hq) hz) hp hc hfitF m' mins]
       unfold ruleRhs
-      rw [interp_mkLams, hq, appList_lamCtx_false hfitRule, henv, hbody fs mins m' ps hf hmins]
+      rw [interp_mkLams, appList_lamCtx _ _ hfitRule, henv, hbody fs mins m' ps hf hmins]
       congr 2
       exact List.map_congr_left fun kf hkf =>
         ((ihVal_ok hpl hs m hok φ ρ hus hcm hkf hf hmins hps hp hm hmn hfitF).2.2 hq).symm
-    · rw [recSet_eq hpl hs m hok φ ρ hus, hq, lamCtx_true_eq_pt _ _ (by simp [recCtx]), appList_pt]
-      unfold ruleRhs
-      rw [interp_mkLams, hq, lamCtx_true_eq_pt _ _ (by simp [ruleCtx]), appList_pt]
+    · -- into `Prop` the recursor is the point, and the law asks nothing of it
+      exfalso
+      apply hne
+      rw [recSet_eq hpl hs m hok φ ρ hus, lamCtx_eq_pt _ _ (fun _ _ => by simp [hq]), appList_pt]
   · -- the invariant
     rw [WellDenoted_instL]
     exact hrhs.1
   · -- the application chain
     rw [hspineR, interp_instL]
     refine spineOk_of_teleFitV _ _ hT hrhs.2 ?_
-    rw [TeleFitV_mkPis _ _ _ (by
+    rw [TeleFitV_mkPis _ _ (by
         rw [List.length_reverse, length_ruleCtx]
         simp only [List.length_append, List.length_singleton, hf, hmins, hps]),
       List.reverse_reverse]
     exact hfitRule
+
+/-- **The ι law of a generated rule** (`RecRuleLaw`, `EnvModel.lean`)
+for the recursor's constant and the constructor's, at the recursor's
+`nP` parameters, `nP + 1 + n` arguments before the indices and the
+major at `nP + 1 + n + nI`. -/
+theorem rec_rule_law {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
+    RecRuleLaw (S.M₃ m.M) S.recName S.recInfo S.nP (S.nP + 1 + S.n) (S.nP + 1 + S.n + S.nI)
+      ⟨c.name, c.fields.length, S.ruleRhs c j, none, S.isK⟩ (S.ctorInfo c) := by
+  intro φ ρ us usj xs ys hus husj hxs hys hfitR hfitC hlv hpar hidx hne
+  have hS := hok.scoped
+  have hcm : c ∈ S.ctors := List.mem_of_getElem? hc
+  have hnf : c.fields.length = c.fields.length := rfl
+  simp only [recInfo, ctorInfo] at hus husj hfitR hfitC hlv hidx ⊢
+  rw [TeleFitV_instL] at hfitR hfitC
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.recLparams us)
+  have hLj : S.lparams.map (Level.substVal φ S.lparams usj)
+      = S.lparams.map (Level.substVal φ S.recLparams us) :=
+    block_valuation_eq hS φ hus husj hlv
+  -- the recursor's spine, split
+  obtain ⟨m', rest, hd⟩ : ∃ m' rest, xs.drop S.nP = m' :: rest := by
+    cases hd : xs.drop S.nP with
+    | nil =>
+      have := congrArg List.length hd
+      simp only [List.length_drop, List.length_nil, hxs] at this
+      omega
+    | cons m' rest => exact ⟨m', rest, rfl⟩
+  have hrest : rest.length = S.n + S.nI := by
+    have := congrArg List.length hd
+    simp only [List.length_drop, List.length_cons, hxs] at this
+    omega
+  obtain ⟨ps, mins, is, hxs', hps, hmins, hi⟩ : ∃ ps mins is,
+      xs = ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ∧ ps.length = S.nP ∧
+        mins.length = S.n ∧ is.length = S.nI :=
+    ⟨(xs.take S.nP).reverse, (rest.take S.n).reverse, (rest.drop S.n).reverse,
+      by
+        rw [List.reverse_reverse, List.reverse_reverse, List.reverse_reverse, List.append_assoc,
+          List.append_assoc, List.take_append_drop, List.singleton_append, ← hd,
+          List.take_append_drop],
+      by simp only [List.length_reverse, List.length_take, hxs]; omega,
+      by simp only [List.length_reverse, List.length_take, hrest]; omega,
+      by simp only [List.length_reverse, List.length_drop, hrest]; omega⟩
+  subst hxs'
+  have hfitR' := hfitR
+  rw [recType_eq, TeleFitV_mkPis _ _ (by
+      simp only [List.length_append, List.length_singleton, hxs, length_recCtx]; omega),
+    show (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ++
+        [appList (S.M₃ m.M c.name (usj.map (Level.eval φ))) ys]).reverse
+      = appList (S.M₃ m.M c.name (usj.map (Level.eval φ))) ys :: is ++ mins ++ [m'] ++ ps by
+      simp [List.reverse_append]] at hfitR'
+  obtain ⟨hp, hm, hmn, his, -⟩ := (R₃.R.fits_recCtx_iff hS hi hmins hps).mp hfitR'
+  -- the constructor's spine, split
+  obtain ⟨ps₂, fs, hys₂, hps₂, hf⟩ : ∃ ps₂ fs, ys = ps₂.reverse ++ fs.reverse ∧
+      ps₂.length = S.nP ∧ fs.length = c.fields.length :=
+    ⟨(ys.take S.nP).reverse, (ys.drop S.nP).reverse, by simp,
+      by rw [List.length_reverse, List.length_take, hys]; omega,
+      by rw [List.length_reverse, List.length_drop, hys, Nat.add_sub_cancel_left]⟩
+  subst hys₂
+  have hle₁ : S.nP ≤ (ps.reverse ++ [m'] ++ mins.reverse).length := by
+    simp only [List.length_append, List.length_reverse, List.length_singleton, hps]; omega
+  have hle₂ : S.nP ≤ (ps.reverse ++ [m']).length := by
+    simp only [List.length_append, List.length_reverse, List.length_singleton, hps]; omega
+  have hle₃ : ps.reverse.length ≤ S.nP := Nat.le_of_eq (by rw [List.length_reverse, hps])
+  have hle₃' : S.nP ≤ ps.reverse.length := Nat.le_of_eq (by rw [List.length_reverse, hps])
+  have hle₄ : ps₂.reverse.length ≤ S.nP := Nat.le_of_eq (by rw [List.length_reverse, hps₂])
+  have hle₄' : S.nP ≤ ps₂.reverse.length := Nat.le_of_eq (by rw [List.length_reverse, hps₂])
+  have htake₁ : (ps₂.reverse ++ fs.reverse).take S.nP = ps₂.reverse := by
+    rw [List.take_append_of_le_length hle₄', List.take_of_length_le hle₄]
+  have htake₂ : (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse).take S.nP = ps.reverse := by
+    rw [List.take_append_of_le_length hle₁, List.take_append_of_le_length hle₂,
+      List.take_append_of_le_length hle₃', List.take_of_length_le hle₃]
+  rw [htake₁, htake₂] at hpar
+  -- the parameters and the indices fit one context of types: the former's
+  have hctx : CtxWD m.M (S.ψ (S.lparams.map (Level.substVal φ S.recLparams us))) base
+      (S.indices ++ S.params) := by
+    obtain ⟨T, hT⟩ := hok.2.2.2.1
+    have := (infer_sound (m := m) (φ := S.ψ (S.lparams.map (Level.substVal φ S.recLparams us))) hT
+      base (Sat_nil _ _ _)).1
+    unfold indType at this
+    rw [WellDenoted_mkPis] at this
+    exact this.1
+  -- the parameter comparison: the constructor's parameters are the recursor's
+  obtain ⟨hpF₂, -, -⟩ := ctor_app hpl hs m hok φ ρ husj hc hps₂ hf hfitC
+  rw [hLj] at hpF₂
+  have hpe : ps₂ = ps := FitsVals_eq_of_cond m.M _ (CtxWD_append' hctx).1.ty hpF₂ hp
+    fun p hp' => hpar p (List.mem_zip_reverse (by rw [hps₂, hps]) hp')
+  subst ps₂
+  -- the major is the constructor value at the fields
+  obtain ⟨-, hfitF, hmajor⟩ := ctor_app hpl hs m hok φ ρ husj hc hps hf hfitC
+  rw [hLj] at hfitF hmajor
+  -- the index comparison: the indices are the constructor's index values
+  have hisv : is = S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
+      (consList fs (envP ps)) c.idx := by
+    have hB := hidx ((S.famAt c.fields.length c.idx).instL S.lparams usj) (consList (fs ++ ps) ρ)
+      S.name (S.lvls.map (Level.subst S.lparams usj))
+      ((Expr.varsAt c.fields.length S.nP).map (·.instL S.lparams usj))
+      (c.idx.map (·.instL S.lparams usj))
+      (by
+        rw [piBodyV_instL, ctorType,
+          piBodyV_mkPis (by simp [hf, hps, length_fieldCtx, nP, Nat.add_comm])]
+        simp [List.reverse_append])
+      (by simp [famAt, Expr.instL_mkAppN])
+      (by simp [Expr.varsAt, nP])
+    rw [List.drop_left' (by simp [hps, hmins]; omega)] at hB
+    have hvals : (c.idx.map (·.instL S.lparams usj)).map (interp (S.M₃ m.M) φ (consList (fs ++ ps) ρ))
+        = (S.idxVals m.M (S.lparams.map (Level.substVal φ S.recLparams us))
+            (consList fs (envP ps)) c.idx).reverse := by
+      simp only [List.map_map, Function.comp_def, interp_instL, consList_append]
+      rw [← hLj, ← (reader₃ hpl hok m.M (Level.substVal φ S.lparams usj)).R.idxVals_eq
+        (hS.2.2.2.1 c hcm).2.2.2 (by simp [hf, hps]; omega), List.reverse_reverse]
+    rw [hvals] at hB
+    -- the index comparison: both fit the index context at the parameters
+    have hivF := ((R₃.R.idxFit_of_wd hS hcm (wd_ctorType hpl hs m hok hcm _ ρ) (ty_ctorType hpl hs m hok hcm _ ρ) (NestFit_of_plain hpl) hps hp).2 fs
+      hfitF).2.2
+    have hctxI := ((CtxWD_append' hctx).2 ps hp |>.ty)
+    refine (FitsVals_eq_of_cond m.M _ (ρ := envP ps) hctxI hivF his fun p hp' => hB p
+      (List.mem_zip_reverse (by simp [hi, idxVals, (hS.2.2.2.1 c hcm).2.2.1, nI]) hp')).symm
+  subst hisv
+  simp only at hne
+  rw [hmajor] at hne ⊢
+  exact rec_rule_core hpl hs m hok φ ρ hus hc hps hmins hf hp hm hmn hfitF hne
+
+
+omit [IndLib V] [LevelOracle] hpl hs m hok in
+/-- A K-like block has one constructor, with no fields. -/
+theorem isK_spec (h : S.isK = true) : ∃ c, S.ctors = [c] ∧ c.fields = [] := by
+  unfold isK at h
+  simp only [Bool.and_eq_true] at h
+  obtain ⟨-, hc⟩ := h
+  split at hc
+  · rename_i c hcs
+    exact ⟨c, hcs, List.isEmpty_iff.mp hc⟩
+  · cases hc
+
+omit [IndLib V] [LevelOracle] hpl hs m hok in
+/-- A spine up to a recursor's major splits as the parameters, the
+motive, the minors and the indices. -/
+theorem split_recSpine {xs : List V} (hxs : xs.length = S.nP + 1 + S.n + S.nI) :
+    ∃ (ps : List V) (m' : V) (mins is : List V),
+      xs = ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ∧ ps.length = S.nP ∧
+      mins.length = S.n ∧ is.length = S.nI := by
+  obtain ⟨m', rest, hd⟩ : ∃ m' rest, xs.drop S.nP = m' :: rest := by
+    cases hd : xs.drop S.nP with
+    | nil =>
+      have := congrArg List.length hd
+      simp only [List.length_drop, List.length_nil, hxs] at this
+      omega
+    | cons m' rest => exact ⟨m', rest, rfl⟩
+  have hrest : rest.length = S.n + S.nI := by
+    have := congrArg List.length hd
+    simp only [List.length_drop, List.length_cons, hxs] at this
+    omega
+  exact ⟨(xs.take S.nP).reverse, m', (rest.take S.n).reverse, (rest.drop S.n).reverse,
+    by
+      rw [List.reverse_reverse, List.reverse_reverse, List.reverse_reverse, List.append_assoc,
+        List.append_assoc, List.take_append_drop, List.singleton_append, ← hd,
+        List.take_append_drop],
+    by simp only [List.length_reverse, List.length_take, hxs]; omega,
+    by simp only [List.length_reverse, List.length_take, hrest]; omega,
+    by simp only [List.length_reverse, List.length_drop, hrest]; omega⟩
+
+/-- **The K law of a generated rule** (`RecRuleLawK`, task #342 F2):
+for a block with one constructor `c`, which has no fields, at ANY
+values fitting the recursor's telescope — the major's value whatever
+term produced it — the recursor is the rule's right-hand side at the
+parameters, motive and minor alone.  The proof is **inversion of the
+least fixed point**: the recursor's fit puts the major's value `t` in
+the fibre at the recursor's own parameters and indices
+(`fits_recCtx_iff`), and a member of a fibre is a constructor instance
+over the family (`IndSpec.mem_Fam`, the fixed-point equation); with
+one constructor and no fields that instance is `c` at the recursor's
+parameters, its index values are the indices, and `t` is its value
+(at a proposition the point, above it the empty tagged tuple).  The
+plain law's second half (`rec_rule_core`) then applies at the
+recursor's own parameters.  So the constructor's parameter telescope
+needs no comparison with the recursor's: the inversion is read off the
+recursor's fit, in the block's own parameter context.  Neither the
+family's sort nor the elimination level is used: the law holds for
+every one-constructor, fieldless block (Lean's K adds "is `Prop`",
+`isK`, and so does the flag). -/
+theorem rec_rule_lawK {c : CtorSpec} (hK : S.ctors = [c]) (hnf : c.fields = []) :
+    RecRuleLawK (S.M₃ m.M) S.recName S.recInfo (S.nP + 1 + S.n) (S.nP + 1 + S.n + S.nI)
+      ⟨c.name, c.fields.length, S.ruleRhs c 0, none, S.isK⟩ := by
+  intro φ ρ us vs hus hlen hfit hne
+  have hS := hok.scoped
+  simp only [recInfo] at hus hfit hne ⊢
+  rw [TeleFitV_instL] at hfit
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.recLparams us)
+  -- the spine, split: parameters, motive, minors, indices, major
+  obtain ⟨xs, t, rfl⟩ : ∃ xs t, vs = xs ++ [t] := by
+    have hne' : vs ≠ [] := by intro h; simp [h] at hlen
+    exact ⟨vs.dropLast, vs.getLast hne', (List.dropLast_concat_getLast hne').symm⟩
+  have hxs : xs.length = S.nP + 1 + S.n + S.nI := by simpa using hlen
+  obtain ⟨ps, m', mins, is, rfl, hps, hmins, hi⟩ := split_recSpine hxs
+  rw [recType_eq, TeleFitV_mkPis _ _ (by
+      simp only [List.length_append, List.length_singleton, List.length_reverse, hps, hmins, hi,
+        length_recCtx]; omega),
+    show (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ++ [t]).reverse
+      = t :: is ++ mins ++ [m'] ++ ps by simp [List.reverse_append]] at hfit
+  obtain ⟨hp, hm, hmn, -, ht⟩ := (R₃.R.fits_recCtx_iff hS hi hmins hps).mp hfit
+  -- inversion of the least fixed point: the major is the one constructor's value
+  obtain ⟨j, c', fs, hc', hfitF, hisv, htv⟩ := (S.mem_Fam m.M _ (noRecDep hok)
+    (domsBounded_of hpl hs m hok _ ρ hps hp) (S.contOk_of_plain m.M _ hpl ps)).mp ht
+  rw [hK] at hc'
+  obtain ⟨rfl, rfl⟩ : j = 0 ∧ c' = c := by
+    cases j with
+    | zero => simp only [List.getElem?_cons_zero, Option.some.injEq] at hc'; exact ⟨rfl, hc'.symm⟩
+    | succ j => simp at hc'
+  have hf : fs.length = c'.fields.length := S.FitsFields_length m.M _ hfitF
+  have hfs : fs = [] := by rw [hnf] at hf; exact List.eq_nil_of_length_eq_zero hf
+  subst hfs
+  have h1 : (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ++ [t]).take (S.nP + 1 + S.n)
+      = ps.reverse ++ [m'] ++ mins.reverse := by
+    rw [List.append_assoc _ is.reverse, List.take_left' (by simp [hps, hmins]; omega)]
+  have h2 : (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse).take (S.nP + 1 + S.n) ++
+      (ps.reverse ++ ([] : List V).reverse).drop S.nP = ps.reverse ++ [m'] ++ mins.reverse := by
+    rw [List.take_left' (by simp [hps, hmins]; omega)]
+    simp [hps]
+  subst hisv htv
+  have hc0 : S.ctors[0]? = some c' := by rw [hK]; rfl
+  have core := rec_rule_core hpl hs m hok φ ρ hus hc0 hps hmins hf hp hm hmn hfitF hne
+  rw [h2] at core
+  rw [h1]
+  exact core
+
+
+/-- **The slot law of a generated rule** (`RecRuleSlotLaw`, task #342
+F2): where the recursor's telescope holds the point as the major, the
+fibre it lies in — the family at the recursor's own parameters,
+indices and levels (`fits_recCtx_iff`) — holds the point, so the
+family's sort is zero there (above it the fibre is a set of tagged
+values, `mem_Fam_false`); the constructor, at levels that evaluate as
+the recursor's (the level comparison), is then the point
+(`ctorSet` at a proposition). -/
+theorem rec_rule_slot {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
+    RecRuleSlotLaw (S.M₃ m.M) S.recName S.recInfo (S.nP + 1 + S.n + S.nI)
+      ⟨c.name, c.fields.length, S.ruleRhs c j, none, S.isK⟩ (S.ctorInfo c) := by
+  intro φ ρ us usj xs ys hus husj hxs hfit hlv
+  have hS := hok.scoped
+  simp only [recInfo, ctorInfo] at hus husj hfit hlv ⊢
+  have hlv := hlv trivial
+  rw [TeleFitV_instL] at hfit
+  have R₃ := reader₃ hpl hok m.M (Level.substVal φ S.recLparams us)
+  obtain ⟨ps, m', mins, is, rfl, hps, hmins, hi⟩ := split_recSpine hxs
+  rw [recType_eq, TeleFitV_mkPis _ _ (by
+      simp only [List.length_append, List.length_singleton, List.length_reverse, hps, hmins, hi,
+        length_recCtx]; omega),
+    show (ps.reverse ++ [m'] ++ mins.reverse ++ is.reverse ++ [(pt : V)]).reverse
+      = pt :: is ++ mins ++ [m'] ++ ps by simp [List.reverse_append]] at hfit
+  obtain ⟨hp, -, -, -, ht⟩ := (R₃.R.fits_recCtx_iff hS hi hmins hps).mp hfit
+  right
+  cases hz : S.z (S.lparams.map (Level.substVal φ S.recLparams us))
+  · -- above a proposition the fibre holds no point
+    exfalso
+    obtain ⟨_, _, _, _, _, _, h⟩ := (S.mem_Fam_false m.M _ (noRecDep hok)
+      (domsBounded_of hpl hs m hok _ ρ hps hp) (S.contOk_of_plain m.M _ hpl ps) hz).mp ht
+    exact tag_ne_pt h.symm
+  · -- at a proposition the constructor is the point
+    rw [R₃.ctor j c hc, ← lparams_map_substVal hok φ husj, block_valuation_eq hS φ hus husj hlv]
+    unfold ctorSet
+    rw [lamCtx_eq_pt _ _ (fun _ _ => by simp [ctorVal, hz]), appList_pt]
 
 end IndSpec
 

@@ -7,7 +7,7 @@ public import ConLeche.Kernel.CoreDefs
 /-!
 # The rules tier: a relational description of the core checker (task #305)
 
-The moves the `.verified` core checker makes, as eight mutually inductive
+The moves the `.verified` core checker makes, as six mutually inductive
 relations over the checker's own `Expr`, indexed by the environment and
 the opening depth `d` (an `fvar` carries its type, so there is no context
 list; a binder opens with `.fvar d ty` at depth `d + 1`, exactly as the

@@ -77,17 +77,24 @@ theorem Expr.usesVar_lt_of_closedAt : ∀ {e : Expr} {k i : Nat}, e.closedAt k =
     rcases hu with hu | hu
     · exact Expr.usesVar_lt_of_closedAt hc.1 hu
     · exact Expr.usesVar_lt_of_closedAt hc.2 hu
-  | .lam A _ b, k, i, hc, hu => by
+  | .lam A b, k, i, hc, hu => by
     simp only [Expr.closedAt_lam, Bool.and_eq_true] at hc
     simp only [Expr.usesVar_lam, Bool.or_eq_true] at hu
     rcases hu with hu | hu
     · exact Expr.usesVar_lt_of_closedAt hc.1 hu
     · have := Expr.usesVar_lt_of_closedAt hc.2 hu; omega
-  | .pi A _ B, k, i, hc, hu => by
+  | .pi A B, k, i, hc, hu => by
     simp only [Expr.closedAt_pi, Bool.and_eq_true] at hc
     simp only [Expr.usesVar_pi, Bool.or_eq_true] at hu
     rcases hu with hu | hu
     · exact Expr.usesVar_lt_of_closedAt hc.1 hu
+    · have := Expr.usesVar_lt_of_closedAt hc.2 hu; omega
+  | .letE T v b, k, i, hc, hu => by
+    simp only [Expr.closedAt_letE, Bool.and_eq_true] at hc
+    simp only [Expr.usesVar_letE, Bool.or_eq_true] at hu
+    rcases hu with (hu | hu) | hu
+    · exact Expr.usesVar_lt_of_closedAt hc.1.1 hu
+    · exact Expr.usesVar_lt_of_closedAt hc.1.2 hu
     · have := Expr.usesVar_lt_of_closedAt hc.2 hu; omega
 
 section Envs
@@ -115,10 +122,10 @@ variable (S : IndSpec) (M : Name → List Nat → V) (ls : List Nat) (N : NestIn
 /-! ## The container's parameter environment at the instantiation -/
 
 /-- The class's arguments before the nested position, as values. -/
-def argsBefore (ps : List V) : List V := (N.args.take N.p).map (interp M (S.ψ ls) (envP ps))
+noncomputable def argsBefore (ps : List V) : List V := (N.args.take N.p).map (interp M (S.ψ ls) (envP ps))
 
 /-- The class's arguments after the nested position, as values. -/
-def argsAfter (ps : List V) : List V := (N.args.drop N.p).map (interp M (S.ψ ls) (envP ps))
+noncomputable def argsAfter (ps : List V) : List V := (N.args.drop N.p).map (interp M (S.ψ ls) (envP ps))
 
 /-- The container's parameter environment at the instantiation: the
 arguments after the nested position (innermost), the parameter set, the arguments
@@ -237,7 +244,7 @@ theorem classFieldSet_eq_ordinary (hf : S.NestFacts M ls N) (hlen : N.args.lengt
     {i : Nat} {A : Expr} (hi : fields[i]? = some (.ordinary A)) (X : V) (Q : V → Prop) (ps : List V)
     (W : List V → V) {fs : List V} (hk : fs.length = fields.length - 1 - i) :
     S.classFieldSet M ls N X Q ps fs (S.classField N (fields.length - 1 - i) (.ordinary A))
-      = N.KS.fieldSet M (S.lsK ls N) W (S.psK M ls N ps X) fs (.ordinary A) := by
+      = N.KS.fieldSet M (S.lsK ls N) W (S.psK M ls N ps (S.adm ls X)) fs (.ordinary A) := by
   have hpf := positive_field N hf.positive hc hd hi
   have hpN : N.p < N.nPK := hf.positive.2.1
   rcases hpf with rfl | ⟨hu, -⟩
@@ -281,7 +288,7 @@ theorem classFieldSet_eq_ordinary (hf : S.NestFacts M ls N) (hlen : N.args.lengt
       simp only [List.length_append, List.length_map, List.length_take, List.length_drop,
         List.length_singleton]
       omega
-    rw [hG, S.read_pfree M ls N hlen hpN hk ps _ X _ hu]
+    rw [hG, S.read_pfree M ls N hlen hpN hk ps _ (S.adm ls X) _ hu]
 
 /-- **A field of the container, read in the block's terms**: its
 translated field's set at a parameter set `X` and a restriction `Q` is
@@ -294,17 +301,17 @@ theorem classFieldSet_eq (hf : S.NestFacts M ls N) (hlen : N.args.length + 1 = N
     {i : Nat} {f : Field} (hi : fields[i]? = some f) (X : V) (Q : V → Prop) {ps : List V}
     (hp : FitsVals M (S.ψ ls) base S.params ps) (hX : X ∈ˢ (univ (S.u₀ ls) : V))
     {W : List V → V}
-    (hW : ∀ y, y ∈ˢ W [] ↔ (y ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X) [] ∧ Q y))
+    (hW : ∀ y, y ∈ˢ W [] ↔ (y ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps (S.adm ls X)) [] ∧ Q y))
     {fs : List V} (hk : fs.length = fields.length - 1 - i) :
     S.classFieldSet M ls N X Q ps fs (S.classField N (fields.length - 1 - i) f)
-      = N.KS.fieldSet M (S.lsK ls N) W (S.psK M ls N ps X) fs f := by
+      = N.KS.fieldSet M (S.lsK ls N) W (S.psK M ls N ps (S.adm ls X)) fs f := by
   have hpf := positive_field N hf.positive hc hd hi
   cases f with
   | ordinary A => exact S.classFieldSet_eq_ordinary M ls N hf hlen hlsK hKS hc hd hi X Q ps W hk
   | reflexive tele es =>
     obtain ⟨rfl, rfl⟩ := hpf
-    simp only [classField, classFieldSet, fieldSet, piCtx_nil, idxVals, List.map_nil,
-      List.reverse_nil]
+    simp only [classField, classFieldSet, fieldSet, piCtx_nil, IndSpec.reflBody_nil, idxVals,
+      List.map_nil, List.reverse_nil]
     rw [S.classSet_eq_Fam hf hp hX]
     apply ext
     intro y
@@ -325,10 +332,10 @@ theorem ClassFits_iff (hf : S.NestFacts M ls N) (hlen : N.args.length + 1 = N.nP
     {c : CtorSpec} (hc : c ∈ N.K.ctors) (X : V) (Q : V → Prop) {ps : List V}
     (hp : FitsVals M (S.ψ ls) base S.params ps) (hX : X ∈ˢ (univ (S.u₀ ls) : V))
     {W : List V → V}
-    (hW : ∀ y, y ∈ˢ W [] ↔ (y ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X) [] ∧ Q y)) :
+    (hW : ∀ y, y ∈ˢ W [] ↔ (y ∈ˢ N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps (S.adm ls X)) [] ∧ Q y)) :
     ∀ {fields : List Field} {n : Nat}, c.fields.drop n = fields → ∀ {fs : List V},
       S.ClassFits M ls N X Q ps (S.classFields N fields) fs ↔
-        N.KS.FitsFields M (S.lsK ls N) W (S.psK M ls N ps X) fields fs
+        N.KS.FitsFields M (S.lsK ls N) W (S.psK M ls N ps (S.adm ls X)) fields fs
   | [], _, _, [] => by simp [ClassFits, FitsFields]
   | [], _, _, _ :: _ => by simp [ClassFits, FitsFields]
   | _ :: _, _, _, [] => by simp [ClassFits, FitsFields]
@@ -369,22 +376,22 @@ theorem classLaws_of (hf : S.NestFacts M ls N) (hlen : N.args.length + 1 = N.nPK
     S.ClassLaws M ls N ps where
   inv := fun X hX x hx => by
     have hzK : N.KS.z (S.lsK ls N) = false := by rw [hf.z_eq]; exact hz
-    have hbX := hf.domsBoundedK hp hX
+    have hbX := hf.domsBoundedK hp (S.adm_mem_univ ls hX)
     rw [S.classSet_eq_Fam hf hp hX, N.KS.mem_Fam_false M _ hf.noRecDep hbX (hf.contOkK _) hzK] at hx
     obtain ⟨j, c, fs, hc, hfit, -, hx'⟩ := hx
     refine ⟨j, c, fs, hc, ?_, by rw [hx', KS_tagOf]⟩
     simp only [classCtor]
     rw [S.ClassFits_iff M ls N hf hlen hlsK hKS (List.mem_of_getElem? hc) X (fun _ => True) hp hX
-      (W := N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X)) (fun _ => ⟨fun h => ⟨h, trivial⟩, fun h => h.1⟩)
+      (W := N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps (S.adm ls X))) (fun _ => ⟨fun h => ⟨h, trivial⟩, fun h => h.1⟩)
       (List.drop_zero (l := c.fields))]
     exact hfit
   intro := fun X hX j c fs hc hfit => by
     have hzK : N.KS.z (S.lsK ls N) = false := by rw [hf.z_eq]; exact hz
-    have hbX := hf.domsBoundedK hp hX
+    have hbX := hf.domsBoundedK hp (S.adm_mem_univ ls hX)
     have hcm := List.mem_of_getElem? hc
     simp only [classCtor] at hfit
     rw [S.ClassFits_iff M ls N hf hlen hlsK hKS hcm X (fun _ => True) hp hX
-      (W := N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X)) (fun _ => ⟨fun h => ⟨h, trivial⟩, fun h => h.1⟩)
+      (W := N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps (S.adm ls X))) (fun _ => ⟨fun h => ⟨h, trivial⟩, fun h => h.1⟩)
       (List.drop_zero (l := c.fields))] at hfit
     have := N.KS.ctorVal_mem_Fam M (S.lsK ls N) hf.noRecDep hbX (hf.contOkK _) hc hfit
     rw [S.KS_idxVals hf hcm] at this
@@ -393,7 +400,7 @@ theorem classLaws_of (hf : S.NestFacts M ls N) (hlen : N.args.length + 1 = N.nPK
     exact this
   ind := fun X hX Q hQ x hx => by
     have hzK : N.KS.z (S.lsK ls N) = false := by rw [hf.z_eq]; exact hz
-    have hbX := hf.domsBoundedK hp hX
+    have hbX := hf.domsBoundedK hp (S.adm_mem_univ ls hX)
     rw [S.classSet_eq_Fam hf hp hX] at hx
     refine N.KS.Fam_induction M _ hf.noRecDep hbX (hf.contOkK _) (fun _ y => Q y) ?_ [] x hx
     intro is y hs
@@ -403,7 +410,7 @@ theorem classLaws_of (hf : S.NestFacts M ls N) (hlen : N.args.length + 1 = N.nPK
     refine hQ j c fs hc ?_
     simp only [classCtor]
     rw [S.ClassFits_iff M ls N hf hlen hlsK hKS hcm X _ hp hX
-      (W := fun is' => sep (N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps X) is') fun y => Q y)
+      (W := fun is' => sep (N.KS.Fam M (S.lsK ls N) (S.psK M ls N ps (S.adm ls X)) is') fun y => Q y)
       (fun y => by
         rw [mem_sep, S.classSet_eq_Fam hf hp hX]
         exact ⟨fun h => ⟨h.1, h.1, h.2⟩, fun h => ⟨h.1, h.2.2⟩⟩)

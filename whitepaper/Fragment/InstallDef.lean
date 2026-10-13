@@ -130,7 +130,7 @@ theorem TeleFitV_congr_model {M M' : Name → List Nat → V} {φ : Name → Nat
   | ρ, T, [], _ => ⟨fun _ => TeleFitV_nil M' φ ρ T, fun _ => TeleFitV_nil M φ ρ T⟩
   | ρ, T, v :: vs, h => by
     cases T with
-    | pi A pw B =>
+    | pi A B =>
       rw [Expr.consts_pi] at h
       rw [TeleFitV_pi_cons, TeleFitV_pi_cons,
         interp_consts fun c hc => h c (List.mem_append_left _ hc),
@@ -148,7 +148,7 @@ theorem piBodyV_consts : ∀ {ρ : Nat → V} {T : Expr} {vs : List V} {B : Expr
     exact hc
   | ρ, T, v :: vs, B, ρ', h, c, hc => by
     cases T with
-    | pi A pw B' =>
+    | pi A B' =>
       simp only [piBodyV] at h
       rw [Expr.consts_pi]
       exact List.mem_append_right _ (piBodyV_consts h c hc)
@@ -194,13 +194,14 @@ def EnvModel.transport {env : Env} (m : EnvModel V env) (hs : Env.Scoped env)
         exact h d ((hsc.2.2 nP nM nMin nI rules hkind rl hrl).1.2.1 d hd) ls
     have hc : ∀ ls, m.M c ls = M' c ls := h c (by simp [hfind])
     have hctor : ∀ ls, m.M rl.ctor ls = M' rl.ctor ls := h rl.ctor (by simp [hcij])
-    intro φ ρ us usj xs ys h1 h2 h3 h4 hfit1 hfit2 hlv hps hidx
+    intro φ ρ us usj xs ys h1 h2 h3 h4 hfit1 hfit2 hlv hps hidx hne
     rw [← hctor, ← TeleFitV_congr_model (hT us)] at hfit1
     rw [← TeleFitV_congr_model (hTj usj)] at hfit2
     have hidx' : ∀ (B : Expr) (ρ' : Nat → V) (I : Name) (lsI : List Level) (rps ridx : List Expr),
         piBodyV ρ (cij.type.instL cij.lparams usj) ys = some (B, ρ') →
         B = Expr.mkAppN (.const I lsI) (rps ++ ridx) → rps.length = nP →
-        ∀ p ∈ (ridx.map (interp m.M φ ρ')).zip (xs.drop (nP + nM + nMin)), p.1 = p.2 := by
+        ∀ p ∈ (ridx.map (interp m.M φ ρ')).zip (xs.drop (nP + nM + nMin)),
+          p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2 := by
       intro B ρ' I lsI rps ridx hpb hB hlen
       have hmap : ridx.map (interp m.M φ ρ') = ridx.map (interp M' φ ρ') := by
         apply List.map_congr_left
@@ -213,7 +214,7 @@ def EnvModel.transport {env : Env} (m : EnvModel V env) (hs : Env.Scoped env)
         exact Or.inr ⟨e, List.mem_append_right _ he, hd⟩
       rw [hmap]
       exact hidx B ρ' I lsI rps ridx hpb hB hlen
-    have res := law φ ρ us usj xs ys h1 h2 h3 h4 hfit1 hfit2 hlv hps hidx'
+    have res := law φ ρ us usj xs ys h1 h2 h3 h4 hfit1 hfit2 hlv hps hidx' (by rwa [hc, hctor])
     rwa [hc, hctor, interp_consts (hR us), WellDenoted_consts (hR us)] at res
   rec_rules_nested := fun c ci nP nM nMin nI rules hfind hkind rl hrl lvs pinst hinst cij I nPc nf
       hcij hcijk => by
@@ -235,13 +236,14 @@ def EnvModel.transport {env : Env} (m : EnvModel V env) (hs : Env.Scoped env)
         exact h d ((hsc.2.2 nP nM nMin nI rules hkind rl hrl).1.2.1 d hd) ls
     have hc : ∀ ls, m.M c ls = M' c ls := h c (by simp [hfind])
     have hctor : ∀ ls, m.M rl.ctor ls = M' rl.ctor ls := h rl.ctor (by simp [hcij])
-    intro φ ρ us usj xs ys h1 h2 h3 h4 hfit1 hfit2 hidx
+    intro φ ρ us usj xs ys h1 h2 h3 h4 hfit1 hfit2 hidx hne
     rw [← hctor, ← TeleFitV_congr_model (hT us)] at hfit1
     rw [← TeleFitV_congr_model (hTj usj)] at hfit2
     have hidx' : ∀ (B : Expr) (ρ' : Nat → V) (I : Name) (lsI : List Level) (rps ridx : List Expr),
         piBodyV ρ (cij.type.instL cij.lparams usj) ys = some (B, ρ') →
         B = Expr.mkAppN (.const I lsI) (rps ++ ridx) → rps.length = nPc →
-        ∀ p ∈ (ridx.map (interp m.M φ ρ')).zip (xs.drop (nP + nM + nMin)), p.1 = p.2 := by
+        ∀ p ∈ (ridx.map (interp m.M φ ρ')).zip (xs.drop (nP + nM + nMin)),
+          p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2 := by
       intro B ρ' I lsI rps ridx hpb hB hlen
       have hmap : ridx.map (interp m.M φ ρ') = ridx.map (interp M' φ ρ') := by
         apply List.map_congr_left
@@ -254,8 +256,46 @@ def EnvModel.transport {env : Env} (m : EnvModel V env) (hs : Env.Scoped env)
         exact Or.inr ⟨e, List.mem_append_right _ he, hd⟩
       rw [hmap]
       exact hidx B ρ' I lsI rps ridx hpb hB hlen
-    have res := law φ ρ us usj xs ys h1 h2 h3 h4 hfit1 hfit2 hidx'
+    have res := law φ ρ us usj xs ys h1 h2 h3 h4 hfit1 hfit2 hidx' (by rwa [hc, hctor])
     rwa [hc, hctor, interp_consts (hR us), WellDenoted_consts (hR us)] at res
+  ind_fib := fun I ci nP nI cs S' hfind hkind => by
+    have law := m.ind_fib I ci nP nI cs S' hfind hkind
+    have hT : ∀ us, ∀ d ∈ (ci.type.instL ci.lparams us).consts, ∀ ls, m.M d ls = M' d ls :=
+      fun us d hd ls => by
+        rw [Expr.consts_instL] at hd
+        exact h d ((hs I ci hfind).1.2.1 d hd) ls
+    intro φ ρ ls vs h1 h2 hfit
+    rw [← TeleFitV_congr_model (hT ls)] at hfit
+    rw [← h I (by simp [hfind])]
+    exact law φ ρ ls vs h1 h2 hfit
+  rec_rules_slot := fun c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij => by
+    have law := m.rec_rules_slot c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij
+    have hT : ∀ us, ∀ d ∈ (ci.type.instL ci.lparams us).consts, ∀ ls, m.M d ls = M' d ls :=
+      fun us d hd ls => by
+        rw [Expr.consts_instL] at hd
+        exact h d ((hs c ci hfind).1.2.1 d hd) ls
+    have hc : ∀ ls, m.M c ls = M' c ls := h c (by simp [hfind])
+    have hctor : ∀ ls, m.M rl.ctor ls = M' rl.ctor ls := h rl.ctor (by simp [hcij])
+    intro φ ρ us usj xs ys h1 h2 h3 hfit hlv
+    rw [← TeleFitV_congr_model (hT us)] at hfit
+    have res := law φ ρ us usj xs ys h1 h2 h3 hfit hlv
+    rwa [hc, hctor] at res
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    have law := m.rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
+    have hsc := hs c ci hfind
+    have hT : ∀ us, ∀ d ∈ (ci.type.instL ci.lparams us).consts, ∀ ls, m.M d ls = M' d ls :=
+      fun us d hd ls => by
+        rw [Expr.consts_instL] at hd
+        exact h d (hsc.1.2.1 d hd) ls
+    have hR : ∀ us, ∀ d ∈ (rl.rhs.instL ci.lparams us).consts, ∀ ls, m.M d ls = M' d ls :=
+      fun us d hd ls => by
+        rw [Expr.consts_instL] at hd
+        exact h d ((hsc.2.2 nP nM nMin nI rules hkind rl hrl).1.2.1 d hd) ls
+    have hc : ∀ ls, m.M c ls = M' c ls := h c (by simp [hfind])
+    intro φ ρ us vs h1 h2 hfit hne
+    rw [← TeleFitV_congr_model (hT us)] at hfit
+    have res := law φ ρ us vs h1 h2 hfit (by rwa [hc])
+    rwa [hc, interp_consts (hR us), WellDenoted_consts (hR us)] at res
 
 /-- The transported model's assignment is the new one. -/
 theorem EnvModel.transport_M {env : Env} (m : EnvModel V env) (hs : Env.Scoped env)
@@ -309,7 +349,7 @@ theorem install_def {env : Env} {c : Name} {ci : ConstInfo} (hs : Env.Scoped env
     (m : EnvModel V env) (hok : DefOk env c ci) :
     ∃ m' : EnvModel V (env.add c ci), ∀ n, (env.find? n).isSome → ∀ ls, m'.M n ls = m.M n ls := by
   have hvs' := hok.value_scoped
-  obtain ⟨hfresh, ⟨s, u, hT, _⟩, ⟨v, T, hkind, hv, hd, _⟩, _⟩ := hok
+  obtain ⟨hfresh, ⟨s, u, hT, hsu⟩, ⟨v, T, hkind, hv, hd, _⟩, _⟩ := hok
   have hvs := hvs' v hkind
   -- The new assignment: the value's set at `c`, the old sets elsewhere.
   obtain ⟨M', hM'c, hM'n⟩ : ∃ M' : Name → List Nat → V,
@@ -326,17 +366,21 @@ theorem install_def {env : Env} {c : Name} {ci : ConstInfo} (hs : Env.Scoped env
     fun φ ρ ls hlen => by rw [hM'c, defVal_eq hvs hM' φ ρ hlen]
   have hnew : ∀ (φ : Name → Nat) (ρ : Nat → V) (ls : List Level), ls.length = ci.lparams.length →
       WellDenoted M' φ ρ (ci.type.instL ci.lparams ls) ∧
+      IsTy (interp M' φ ρ (ci.type.instL ci.lparams ls)) ∧
       WellDenoted M' φ ρ (v.instL ci.lparams ls) ∧
       interp M' φ ρ (v.instL ci.lparams ls) ∈ˢ interp M' φ ρ (ci.type.instL ci.lparams ls) := by
     intro φ ρ ls _
-    have hTsem := infer_sound (m := m₀) (φ := Level.substVal φ ci.lparams ls) hT ρ (Sat_nil _ _ _)
+    obtain ⟨hTw, hTmem⟩ := Infer.mem_typeU_of (m := m₀) (φ := Level.substVal φ ci.lparams ls)
+      (infer_sound hT) (red_sound hsu) (Sat_nil _ _ ρ)
+    have hTty := IsTy_of_mem_typeU hTmem
     have hvsem := infer_sound (m := m₀) (φ := Level.substVal φ ci.lparams ls) hv ρ (Sat_nil _ _ _)
     have heq := defeq_sound (m := m₀) (φ := Level.substVal φ ci.lparams ls) hd ρ (Sat_nil _ _ _)
-      hvsem.2.1 hTsem.1
-    rw [hm₀] at hTsem hvsem heq
+      hvsem.2.1 hTw hvsem.2.2.1.ne_pt hTty.ne_pt
+    rw [hm₀] at hTw hTty hvsem heq
     rw [WellDenoted_instL, WellDenoted_instL, interp_instL, interp_instL, ← heq]
-    exact ⟨hTsem.1, hvsem.1, hvsem.2.2⟩
-  refine ⟨{ M := M', type_ok := ?_, unfold := ?_, rec_rules := ?_, rec_rules_nested := ?_ },
+    exact ⟨hTw, heq ▸ hTty, hvsem.1, hvsem.2.2.2⟩
+  refine ⟨{ M := M', type_ok := ?_, unfold := ?_, rec_rules := ?_,
+              rec_rules_nested := ?_, ind_fib := ?_, rec_rules_slot := ?_, rec_rules_k := ?_ },
     fun n hn ls => hM'n n (Env.ne_of_isSome_find? hn hfresh) ls⟩
   · -- `type_ok`
     intro n ci' hfind φ ρ ls hlen
@@ -347,7 +391,7 @@ theorem install_def {env : Env} {c : Name} {ci : ConstInfo} (hs : Env.Scoped env
       subst h
       have := hnew φ ρ ls hlen
       rw [hval φ ρ ls hlen]
-      exact ⟨this.1, this.2.2⟩
+      exact ⟨this.1, this.2.1, this.2.2.2⟩
     · have := m₀.type_ok n ci' hfind φ ρ ls hlen
       rwa [hm₀] at this
   · -- `unfold`
@@ -359,7 +403,7 @@ theorem install_def {env : Env} {c : Name} {ci : ConstInfo} (hs : Env.Scoped env
       subst h
       simp only [ConstInfo.value?, hkind, ConstKind.value?, Option.some.injEq] at hv'
       subst hv'
-      exact ⟨(hnew φ ρ ls hlen).2.1, (hval φ ρ ls hlen).symm⟩
+      exact ⟨(hnew φ ρ ls hlen).2.2.1, (hval φ ρ ls hlen).symm⟩
     · have := m₀.unfold n ci' v' hfind hv' φ ρ ls hlen
       rwa [hm₀] at this
   · -- `rec_rules`: the new constant is a definition, not a recursor
@@ -384,6 +428,35 @@ theorem install_def {env : Env} {c : Name} {ci : ConstInfo} (hs : Env.Scoped env
       rw [Env.find?_add_of_ne env ci (Env.ne_of_isSome_find? hctor hfresh)] at hcij
       have := m₀.rec_rules_nested n ci' nP nM nMin nI rules hfind hk rl hrl lvs pinst hinst cij I
         nPc nf hcij hcijk
+      rwa [hm₀] at this
+  · -- `ind_fib`: the new constant is a definition, not a type former
+    intro n ci' nP nI cs S' hfind hk
+    rw [Env.find?_add] at hfind
+    split at hfind
+    · cases hfind
+      rw [hkind] at hk
+      cases hk
+    · have := m₀.ind_fib n ci' nP nI cs S' hfind hk
+      rwa [hm₀] at this
+  · -- `rec_rules_slot`: likewise
+    intro n ci' nP nM nMin nI rules hfind hk rl hrl cij hcij
+    rw [Env.find?_add] at hfind
+    split at hfind
+    · cases hfind
+      rw [hkind] at hk
+      cases hk
+    · have hctor := ((hs n ci' hfind).2.2 nP nM nMin nI rules hk rl hrl).2
+      rw [Env.find?_add_of_ne env ci (Env.ne_of_isSome_find? hctor hfresh)] at hcij
+      have := m₀.rec_rules_slot n ci' nP nM nMin nI rules hfind hk rl hrl cij hcij
+      rwa [hm₀] at this
+  · -- `rec_rules_k`: the new constant is a definition, not a recursor
+    intro n ci' nP nM nMin nI rules hfind hk rl hrl hkr
+    rw [Env.find?_add] at hfind
+    split at hfind
+    · cases hfind
+      rw [hkind] at hk
+      cases hk
+    · have := m₀.rec_rules_k n ci' nP nM nMin nI rules hfind hk rl hrl hkr
       rwa [hm₀] at this
 
 end Fragment

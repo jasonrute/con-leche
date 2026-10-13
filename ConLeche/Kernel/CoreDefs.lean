@@ -896,13 +896,13 @@ def recRuleK (rules : List RecRule) : Bool :=
 
 /-- The level and constructor-parameter comparands a firing rule's
 checks compare the major's constructor levels and parameters against:
-for a canonical (`.plain`) rule the constructor's levels link to the
-recursor's by name and its parameters are the recursor's leading
-arguments; for a certified nested (`.nested`) rule both are the stored
-major-domain instantiations, at the recursor's level instantiation and
-(for the parameters) instantiated at the recursor's leading-argument
-spine (the stored pins live in the `rP`-binder prefix context — index
-arguments never occur in them, by the shape certification). -/
+for a `.plain` rule the constructor's levels link to the recursor's by
+name and its parameters are the recursor's leading arguments; for a
+`.nested` rule both are the stored instantiations (the class the
+auxiliary recursor's type was generated from, `auxRuleFire`), at the
+recursor's level instantiation and (for the parameters) instantiated at
+the recursor's leading-argument spine (the stored pins live in the
+`rP`-binder prefix context; index arguments never occur in them). -/
 def recFireComparands (rl : RecRule) (lps : List Name)
     (us : List Level) (cvjLps : List Name) (args : List Expr)
     (rP : Nat) : List Level × List Expr :=

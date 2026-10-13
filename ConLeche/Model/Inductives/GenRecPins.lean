@@ -9,7 +9,7 @@ import ConLeche.Model.Capstone
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Verify.Inductives.RecStage
 import ConLeche.Verify.Inductives.TargetAuxFire
-public import ConLeche.Verify.Inductives.NestedRead
+import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
 import ConLeche.Verify.InstSpine
 import ConLeche.Verify.Denote.OpenVars

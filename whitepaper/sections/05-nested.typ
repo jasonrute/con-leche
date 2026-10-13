@@ -1,7 +1,6 @@
 #import "../lib.typ": *
 
 // Notation local to this file, matching §4.
-#let never = $sans("never")$
 #let Sort = $sans("Sort")$
 #let Nat = $sans("Nat")$
 #let red = sym.arrow.r.squiggly
@@ -37,7 +36,7 @@ sketches how the construction and the proofs of @sec:ind-model extend
 to them; the details are in the linked con-leche proof. A
 restricted case — one container instantiation, at depth one, not under
 a binder — is verified in the paper's Lean fragment:
-#src("whitepaper/Fragment/NestInstall.lean", 197, 201)[installing such a block keeps a model of the environment].
+#src("whitepaper/Fragment/NestInstall.lean", 258, 262)[installing such a block keeps a model of the environment].
 
 == Nested blocks <sec:nest-what>
 
@@ -98,7 +97,7 @@ defined to the block's parameters, $I thick arrow(x)$, is replaced by a
 variable $X$ — a _hole_ — standing for that whole application, a family
 over the indices. For this to catch every occurrence, the walk is
 preceded by a
-#src("ConLeche/Kernel/Inductives/Positivity.lean", 1555, 1569)[uniformity check]:
+#src("ConLeche/Kernel/Inductives/Positivity.lean", 1554, 1568)[uniformity check]:
 the type being defined occurs in a constructor only applied to exactly
 the block's parameters, at the block's own levels, and in no
 parameter's domain. A _frame_ is one type whose constructors are being
@@ -182,7 +181,7 @@ instantiation. It then
 - the constructor's walked type is recorded, every hole read back as
   the application it stands for, for the recursors below.
 
-#src("ConLeche/Kernel/Inductives/Positivity.lean", 1592, 1600)[The root frame]
+#src("ConLeche/Kernel/Inductives/Positivity.lean", 1591, 1599)[The root frame]
 is the same loop over the block's own constructors.
 
 On $Tree$, the field of type $List thick (Tree thick alpha)$ meets the container case at $List$ with the
@@ -232,30 +231,30 @@ motive and a recursor — $T.sans("rec")$ for the type being defined,
 $T.sans("rec")_1, T.sans("rec")_2, dots$ for the others — and each
 constructor of each class a minor premise; all recursors share one
 prefix: the parameters, the motives and the minor premises.
-#src("ConLeche/Kernel/Inductives/GenRec.lean", 143, 163)[A minor premise]
+#src("ConLeche/Kernel/Inductives/GenRec.lean", 138, 158)[A minor premise]
 is generated as in @sec:ind-checks from the constructor's fields at
 the instantiation, with one inductive hypothesis per recursive or
 nested field: the motive of the class where the field lands, under the
 field's $forall$s, read off the walk's recorded type
-(#src("ConLeche/Kernel/Inductives/GenRec.lean", 180, 187)[a recursor's type],
-#src("ConLeche/Kernel/Inductives/GenRec.lean", 189, 212)[a rule]).
+(#src("ConLeche/Kernel/Inductives/GenRec.lean", 175, 182)[a recursor's type],
+#src("ConLeche/Kernel/Inductives/GenRec.lean", 184, 207)[a rule]).
 
 #example(name: [$Tree$'s recursors])[
   With $C$ the motive for $Tree thick alpha$ and $C_1$ the motive for
-  $List thick (Tree thick alpha)$, and $ann(q)$ as in @ex:nat, the
+  $List thick (Tree thick alpha)$, the
   shared prefix is the parameter, the two motives, a minor premise for
   $TreeNode$ and one for each of $List$'s constructors at the
   instantiation:
 
   $
-    TreeRec.\{ell\} : & forall (alpha : Sort 1) thin ann(q). thin forall (C : forall (t : Tree thick alpha) thin ann(never). thin Sort ell) thin ann(q). \
-    & forall (C_1 : forall (ts : List thick (Tree thick alpha)) thin ann(never). thin Sort ell) thin ann(q). \
-    & forall (s : forall (a : alpha) thin ann(q). thin forall (ts : List thick (Tree thick alpha)) thin ann(q). thin forall (h : C_1 thick ts) thin ann(q). thin C thick (TreeNode thick a thick ts)) thin ann(q). \
-    & forall (n : C_1 thick ListNil) thin ann(q). \
-    & forall (c : forall (t : Tree thick alpha) thin ann(q). thin forall (ts : List thick (Tree thick alpha)) thin ann(q). \
-    & quad quad forall (h : C thick t) thin ann(q). thin forall (h_1 : C_1 thick ts) thin ann(q). thin C_1 thick (ListCons thick t thick ts)) thin ann(q). \
-    & forall (t : Tree thick alpha) thin ann(q). thin C thick t \
-    TreeRec1.\{ell\} : & dots.c thin forall (ts : List thick (Tree thick alpha)) thin ann(q). thin C_1 thick ts
+    TreeRec.\{ell\} : & forall (alpha : Sort 1). thin forall (C : forall (t : Tree thick alpha). thin Sort ell). \
+    & forall (C_1 : forall (ts : List thick (Tree thick alpha)). thin Sort ell). \
+    & forall (s : forall (a : alpha). thin forall (ts : List thick (Tree thick alpha)). thin forall (h : C_1 thick ts). thin C thick (TreeNode thick a thick ts)). \
+    & forall (n : C_1 thick ListNil). \
+    & forall (c : forall (t : Tree thick alpha). thin forall (ts : List thick (Tree thick alpha)). \
+    & quad quad forall (h : C thick t). thin forall (h_1 : C_1 thick ts). thin C_1 thick (ListCons thick t thick ts)). \
+    & forall (t : Tree thick alpha). thin C thick t \
+    TreeRec1.\{ell\} : & dots.c thin forall (ts : List thick (Tree thick alpha)). thin C_1 thick ts
   $
 
   (the $dots.c$ is the same prefix; the constructors' own parameter
@@ -274,26 +273,28 @@ field's $forall$s, read off the walk's recorded type
 
 A nested field under binders gets its hypothesis under the same
 binders: for $PMk : (Nat -> List thick P) -> P$ the minor premise is
-$ forall (f : Nat -> List thick P) thin ann(q). thin forall (h : forall (n : Nat) thin ann(q). thin C_1 thick (f thick n)) thin ann(q). thin C thick (PMk thick f). $
+$ forall (f : Nat -> List thick P). thin forall (h : forall (n : Nat). thin C_1 thick (f thick n)). thin C thick (PMk thick f). $
 
 *Where a rule of $T.sans("rec")_1$ fires.* A rule of @sec:ind-model
 takes the constructor's levels and parameters to be the recursor's
 own. At a container class they are not: $ListCons$ in the class
 $List thick (Tree thick alpha)$ has the parameter $Tree thick alpha$,
 not the recursor's $alpha$, and $List$'s level names, not $Tree$'s. So
-#src("ConLeche/Kernel/Env.lean", 196, 206)[each rule of a recursor at a container class stores the instantiation]
-— the container's levels and parameters, as terms in the recursor's
-level parameters and parameters — and fires only on a constructor
-application whose levels and parameters equal
-#src("ConLeche/Kernel/CoreDefs.lean", 870, 877)[the stored ones, instantiated at the recursor's levels and parameter arguments]
-(#src("ConLeche/Rules/Rel.lean", 197, 204)[the levels by the level oracle, the parameters definitionally]);
-the constructor's fields are what follows its own parameters, and the
-index comparison is as before
-(#src("ConLeche/Kernel/Inductives/RecCheck.lean", 602, 607)[the stored rules at a container class]).
+#src("ConLeche/Kernel/Env.lean", 103, 109)[each rule of a recursor at a container class stores the instantiation]
+— the class's levels and parameters, as terms in the recursor's
+level parameters and parameters
+(#src("ConLeche/Kernel/Inductives/RecCheck.lean", 602, 614)[the stored rules at a container class]).
+Where the rule's case asks for the comparisons (@sec:iota-cases), the
+constructor application's levels and parameters are compared with
+#src("ConLeche/Kernel/CoreDefs.lean", 906, 913)[the stored ones, instantiated at the recursor's levels and parameter arguments]
+(#src("ConLeche/Rules/Rel.lean", 213, 224)[the levels by the level oracle, the parameters definitionally]),
+and the index comparison is as before; elsewhere the rule fires
+comparing nothing, as for a simple block. The constructor's fields
+are what follows its own parameters.
 
 *Large elimination.* A nested block may eliminate into every sort only
 if #src("ConLeche/Kernel/Inductives/BlockRec.lean", 82, 84)[its sort is never zero]
-(#src("ConLeche/Kernel/Inductives/GenRec.lean", 563, 567)[where the checker enforces it]),
+(#src("ConLeche/Kernel/Inductives/GenRec.lean", 548, 552)[where the checker enforces it]),
 as in the official kernel. A nested proposition eliminates only into
 $sans("Prop")$, and the subsingleton criterion is never asked of a
 nested block.
@@ -305,16 +306,16 @@ nested block.
   and each class is then checked: the type being defined at the
   block's levels and parameters, or
   #src("ConLeche/Kernel/Inductives/RecCheck.lean", 410, 447)[a stored inductive type, not the quotient, whose parameters mention the type being defined and nothing but the block's parameters, in the block's sort].
-  #src("ConLeche/Kernel/Inductives/Positivity.lean", 1646, 1654)[Every class other than the type being defined is walked]
+  #src("ConLeche/Kernel/Inductives/Positivity.lean", 1645, 1653)[Every class other than the type being defined is walked]
   as a container met at the root, so every class is an instantiation
   the walk visited; a field landing at a class the stream gives
-  #src("ConLeche/Kernel/Inductives/GenRec.lean", 453, 456)[no recursor] for
+  #src("ConLeche/Kernel/Inductives/GenRec.lean", 442, 445)[no recursor] for
   is rejected. One class may be visited at several places: in
   #src("tests/e2e/src/corner_nestind_f13_listrose.lean", 12, 15)[a block with a field of type $List thick (sans("RL") thick sans("TL"))$],
   with $sans("RL") thick alpha$ a rose tree over lists, that
   instantiation is met at the block's field and again inside
   $sans("RL") thick sans("TL")$; the generator checks that
-  #src("ConLeche/Kernel/Inductives/GenRec.lean", 256, 271)[every visit gives each field the same inductive hypothesis].
+  #src("ConLeche/Kernel/Inductives/GenRec.lean", 251, 265)[every visit gives each field the same inductive hypothesis].
 ]
 
 == The model, as a sketch <sec:nest-model>
@@ -329,7 +330,7 @@ instantiation, with $W$ in place of the type being defined: for
 `Tree`, the field `List (Tree α)` of $TreeNode$ ranges over the lists
 whose entries all lie in $W$.
 That family is known, because every installed block leaves
-#src("ConLeche/Model/Annot/BlockLfp.lean", 32, 44)[a clause in the model]:
+#src("ConLeche/Model/Env/BlockLfp.lean", 33, 44)[a clause in the model]:
 its type former denotes, at all parameter values, the least fixed
 point of its operator. So the container's least fixed point is
 reused, at each approximant, and nothing new is constructed for it. At
@@ -345,8 +346,8 @@ frame's own hole, the same positions of its sub-values. Read as an
 operator of two arguments — the approximant and the container's own
 family — the container's operator at the instantiation is accessible
 by
-#src("ConLeche/Semantics/Inductives/HoleAcc.lean", 45, 52)[the same case-by-case argument as §4's],
-#src("ConLeche/Model/Inductives/ContAcc.lean", 15, 33)[run on the frame];
+#src("ConLeche/Semantics/Inductives/HoleAcc.lean", 50, 55)[the same case-by-case argument as §4's],
+#src("ConLeche/Model/Inductives/ContAcc.lean", 15, 34)[run on the frame];
 and
 #src("ConLeche/SetModel/Access.lean", 530, 540)[the least fixed point of such an operator is accessible in its first argument],
 the supports of an element's sub-values collected along paths into
@@ -396,4 +397,4 @@ $TreeRec1$ the major is a constructor of `List` applied; the
 recursor's fit puts its value in the class at the recursor's
 parameters, and `List`'s fixed-point equation there identifies the
 constructor and the fields with the rule's
-(#src("ConLeche/Model/Inductives/BlockRecLaw.lean", 448, 456)[the graph's equation, lifted to the law]).
+(#src("ConLeche/Model/Inductives/BlockRecLaw.lean", 876, 882)[the graph's equation, lifted to the law]).

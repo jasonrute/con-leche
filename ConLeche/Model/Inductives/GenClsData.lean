@@ -8,7 +8,6 @@ import ConLeche.Model.Inductives.GenClsFrame
 import ConLeche.Model.Inductives.GenClsCall
 import ConLeche.Model.Inductives.GenRecPreRun
 import ConLeche.Model.Inductives.GenRecPins
-import ConLeche.Model.Inductives.GenRecParams
 import ConLeche.Model.Inductives.GenRecClasses
 import ConLeche.Model.Inductives.BlockRecData
 import ConLeche.Model.Inductives.BlockRecLaw
@@ -24,7 +23,6 @@ import ConLeche.Model.Inductives.StructEntryKit
 import ConLeche.Model.Inductives.ContInst
 import ConLeche.Model.Inductives.ContInstRule
 import ConLeche.Model.Inductives.TargetOutRows
-import ConLeche.Model.Inductives.TargetOutSat
 import ConLeche.Model.Inductives.TargetOutIdx
 import ConLeche.Model.Inductives.TargetClasses
 import ConLeche.Model.Inductives.TargetGraph

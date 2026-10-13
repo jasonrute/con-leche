@@ -2,6 +2,7 @@ module
 
 public import Fragment.Rules
 public import Fragment.Scope
+import Fragment.Hygiene
 
 public section
 
@@ -40,15 +41,19 @@ theorem Infer.closedAt : ∀ {Γ : List Expr} {e T : Expr}, Infer env Γ e T →
     exact (List.getElem?_eq_some_iff.mp h).1
   | _, _, _, .sort => rfl
   | _, _, _, .const _ _ => rfl
-  | _, _, _, .pi hA _ hB _ _ => by
+  | _, _, _, .pi hA _ hB _ => by
     simp only [Expr.closedAt, Bool.and_eq_true]
     exact ⟨Infer.closedAt hA, Infer.closedAt hB⟩
-  | _, _, _, .lam hA _ hb _ _ _ => by
+  | _, _, _, .lam hA _ hb => by
     simp only [Expr.closedAt, Bool.and_eq_true]
     exact ⟨Infer.closedAt hA, Infer.closedAt hb⟩
   | _, _, _, .app hf _ ha _ => by
     simp only [Expr.closedAt, Bool.and_eq_true]
     exact ⟨Infer.closedAt hf, Infer.closedAt ha⟩
+  | _, _, _, .letE hT _ hv _ hb => by
+    simp only [Expr.closedAt, Bool.and_eq_true]
+    exact ⟨⟨Infer.closedAt hT, Infer.closedAt hv⟩,
+      Expr.closedAt_of_inst (Nat.zero_le _) (Infer.closedAt hb)⟩
 
 /-- **Every constant a typed term mentions is stored**: the constant
 rule looks the name up in the environment. -/
@@ -61,14 +66,20 @@ theorem Infer.consts : ∀ {Γ : List Expr} {e T : Expr}, Infer env Γ e T →
     subst hc
     rw [hfind]
     rfl
-  | _, _, _, .pi hA _ hB _ _ => fun c hc => by
+  | _, _, _, .pi hA _ hB _ => fun c hc => by
     simp only [Expr.consts, List.mem_append] at hc
     exact hc.elim (Infer.consts hA c) (Infer.consts hB c)
-  | _, _, _, .lam hA _ hb _ _ _ => fun c hc => by
+  | _, _, _, .lam hA _ hb => fun c hc => by
     simp only [Expr.consts, List.mem_append] at hc
     exact hc.elim (Infer.consts hA c) (Infer.consts hb c)
   | _, _, _, .app hf _ ha _ => fun c hc => by
     simp only [Expr.consts, List.mem_append] at hc
     exact hc.elim (Infer.consts hf c) (Infer.consts ha c)
+  | _, _, _, .letE hT _ hv _ hb => fun c hc => by
+    simp only [Expr.consts, List.mem_append] at hc
+    rcases hc with (hc | hc) | hc
+    · exact Infer.consts hT c hc
+    · exact Infer.consts hv c hc
+    · exact Infer.consts hb c (Expr.consts_of_inst hc)
 
 end Fragment

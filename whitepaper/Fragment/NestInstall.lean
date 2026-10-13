@@ -140,6 +140,67 @@ noncomputable def mInstallN : EnvModel V (S.install env) where
         rw [install_eq_installN hok, S.installN_find?, ite_eq_right hne', ite_eq_right hne] at hcij
         exact (mCtorsN hs m hok).rec_rules_nested c ci nP nM nMin nI rules hfind hkind rl hrl lvs
           pinst hinst cij I nPc nf hcij hcijk
+  ind_fib := fun I ci nP nI cs S' hfind hkind => by
+    rw [install_eq_installN hok, S.installN_find?] at hfind
+    split at hfind
+    · cases hfind; simp [rec1Info] at hkind
+    · split at hfind
+      · cases hfind; simp [recInfoN] at hkind
+      · exact (mCtorsN hs m hok).ind_fib I ci nP nI cs S' hfind hkind
+  rec_rules_slot := fun c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij => by
+    rw [install_eq_installN hok, S.installN_find?] at hfind
+    split at hfind
+    · -- `T.rec_1`: one of the generated rules, at the container's constructor
+      rename_i hc
+      subst hc
+      cases hfind
+      simp only [rec1Info, ConstKind.recursor.injEq] at hkind
+      obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hkind
+      obtain ⟨j, c', hc', rfl⟩ := S.mem_rules1 N hrl
+      have hK := K_law m hok
+      have hcij' : (S.install env).find? c'.name = some (N.KS.ctorInfo c') := by
+        rw [install_eq_installN hok]
+        exact S.find?_mono_installN N env hok.fresh (hK.2.2.2.1 j c' hc')
+      rw [hcij'] at hcij
+      cases hcij
+      exact rec_rule_slot1N hs m hok
+    · split at hfind
+      · -- `T.rec`: one of the generated rules, at its constructor
+        rename_i hc
+        subst hc
+        cases hfind
+        simp only [recInfoN, ConstKind.recursor.injEq] at hkind
+        obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hkind
+        obtain ⟨j, c', hc', rfl⟩ := S.mem_rulesN N hrl
+        have hcij' : (S.install env).find? c'.name = some (S.ctorInfo c') := by
+          rw [install_eq_installN hok, S.installN_find?, ite_eq_right (hok.ctor_ne_aux hc'),
+            ite_eq_right (hok.ctor_ne_rec hc'), S.envCtors_find? env hok.nodup_ctors,
+            S.ctorOf?_of_getElem? hok.nodup_ctors hc']
+        rw [hcij'] at hcij
+        cases hcij
+        exact rec_rule_slotN hs m hok
+      · have hstored := stored_ctor_of_envCtors hs hok hfind hkind hrl
+        have hne : rl.ctor ≠ S.recName := Env.ne_of_isSome_find? hstored (hok.fresh _ (by simp))
+        have hne' : rl.ctor ≠ N.aux := Env.ne_of_isSome_find? hstored (hok.fresh _ (by simp))
+        rw [install_eq_installN hok, S.installN_find?, ite_eq_right hne', ite_eq_right hne] at hcij
+        exact (mCtorsN hs m hok).rec_rules_slot c ci nP nM nMin nI rules hfind hkind rl hrl cij hcij
+  rec_rules_k := fun c ci nP nM nMin nI rules hfind hkind rl hrl hk => by
+    rw [install_eq_installN hok, S.installN_find?] at hfind
+    split at hfind
+    · -- `T.rec_1`: a nested block is not K
+      cases hfind
+      simp only [rec1Info, ConstKind.recursor.injEq] at hkind
+      obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hkind
+      obtain ⟨j, c', hc', rfl⟩ := S.mem_rules1 N hrl
+      cases hk
+    · split at hfind
+      · -- `T.rec`: likewise
+        cases hfind
+        simp only [recInfoN, ConstKind.recursor.injEq] at hkind
+        obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := hkind
+        obtain ⟨j, c', hc', rfl⟩ := S.mem_rulesN N hrl
+        cases hk
+      · exact (mCtorsN hs m hok).rec_rules_k c ci nP nM nMin nI rules hfind hkind rl hrl hk
 
 omit hs in
 /-- **The block laws survive the nested installation**: the new

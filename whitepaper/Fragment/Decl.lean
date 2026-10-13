@@ -66,32 +66,31 @@ namespace Fragment
 
 namespace Expr
 
-/-- `∀ Γ, b` over a context (innermost first), every binder annotated
-`pw`. -/
-def mkPis (pw : PropWhen) : List Expr → Expr → Expr
+/-- `∀ Γ, b` over a context (innermost first). -/
+def mkPis : List Expr → Expr → Expr
   | [], b => b
-  | A :: Γ, b => mkPis pw Γ (pi A pw b)
+  | A :: Γ, b => mkPis Γ (pi A b)
 
-/-- `fun Γ => b` over a context, every binder annotated `pw`. -/
-def mkLams (pw : PropWhen) : List Expr → Expr → Expr
+/-- `fun Γ => b` over a context. -/
+def mkLams : List Expr → Expr → Expr
   | [], b => b
-  | A :: Γ, b => mkLams pw Γ (lam A pw b)
+  | A :: Γ, b => mkLams Γ (lam A b)
 
-@[simp] theorem mkPis_nil (pw : PropWhen) (b : Expr) : mkPis pw [] b = b := rfl
-@[simp] theorem mkPis_cons (pw : PropWhen) (A : Expr) (Γ : List Expr) (b : Expr) :
-    mkPis pw (A :: Γ) b = mkPis pw Γ (pi A pw b) := rfl
-@[simp] theorem mkLams_nil (pw : PropWhen) (b : Expr) : mkLams pw [] b = b := rfl
-@[simp] theorem mkLams_cons (pw : PropWhen) (A : Expr) (Γ : List Expr) (b : Expr) :
-    mkLams pw (A :: Γ) b = mkLams pw Γ (lam A pw b) := rfl
+@[simp] theorem mkPis_nil (b : Expr) : mkPis [] b = b := rfl
+@[simp] theorem mkPis_cons (A : Expr) (Γ : List Expr) (b : Expr) :
+    mkPis (A :: Γ) b = mkPis Γ (pi A b) := rfl
+@[simp] theorem mkLams_nil (b : Expr) : mkLams [] b = b := rfl
+@[simp] theorem mkLams_cons (A : Expr) (Γ : List Expr) (b : Expr) :
+    mkLams (A :: Γ) b = mkLams Γ (lam A b) := rfl
 
-theorem mkPis_append (pw : PropWhen) (Γ Δ : List Expr) (b : Expr) :
-    mkPis pw (Γ ++ Δ) b = mkPis pw Δ (mkPis pw Γ b) := by
+theorem mkPis_append (Γ Δ : List Expr) (b : Expr) :
+    mkPis (Γ ++ Δ) b = mkPis Δ (mkPis Γ b) := by
   induction Γ generalizing b with
   | nil => rfl
   | cons A Γ ih => simp [ih]
 
-theorem mkLams_append (pw : PropWhen) (Γ Δ : List Expr) (b : Expr) :
-    mkLams pw (Γ ++ Δ) b = mkLams pw Δ (mkLams pw Γ b) := by
+theorem mkLams_append (Γ Δ : List Expr) (b : Expr) :
+    mkLams (Γ ++ Δ) b = mkLams Δ (mkLams Γ b) := by
   induction Γ generalizing b with
   | nil => rfl
   | cons A Γ ih => simp [ih]
@@ -142,15 +141,11 @@ def nI : Nat := S.indices.length
 def n : Nat := S.ctors.length
 /-- The block's level parameters as levels. -/
 def lvls : List Level := S.lparams.map .param
-/-- The annotation of every binder whose body is a member of the
-family or the family itself — a proposition exactly when the result
-sort is zero. -/
-def pw : PropWhen := Level.zeroness S.sort
 /-- The elimination level: the fresh parameter, or `Prop`. -/
 def ℓ : Level := if S.large then .param S.elim else .zero
-/-- The annotation of the recursor's binders: a proposition exactly
-when the elimination level is zero. -/
-def q : PropWhen := Level.zeroness S.ℓ
+/-- Is the elimination level zero at a valuation?  A semantic bit, read
+by the model's recursor (`IndRec.lean`, `recSet`), not by the checker. -/
+def qv (φ : Name → Nat) : Bool := Level.eval φ S.ℓ == 0
 /-- The recursor's level parameters: the elimination parameter in
 front of the block's, if large. -/
 def recLparams : List Name := if S.large then S.elim :: S.lparams else S.lparams
@@ -184,7 +179,7 @@ def classTy (N : NestInfo) (o : Nat) : Expr := mkAppN (.const N.K.name N.lsK) (S
 is the class, when the block has one.) -/
 def fieldDom (k : Nat) : Field → Expr
   | .ordinary A => A
-  | .reflexive tele es => mkPis S.pw tele (S.famAt (k + tele.length) es)
+  | .reflexive tele es => mkPis tele (S.famAt (k + tele.length) es)
   | .container =>
     match S.nest with
     | some N => S.classTy N k
@@ -213,16 +208,16 @@ def indicesAt (o : Nat) : List Expr := liftCtx (fun t T => T.liftN o t) S.indice
 
 /-- **The type former's type** `∀ params indices, Sort u`; no binder is
 a proposition. -/
-def indType : Expr := mkPis .never (S.indices ++ S.params) (.sort S.sort)
+def indType : Expr := mkPis (S.indices ++ S.params) (.sort S.sort)
 
 /-- **A constructor's type** `∀ params fields, I params idx`; every
 binder is a proposition exactly when the family is. -/
 def ctorType (c : CtorSpec) : Expr :=
-  mkPis S.pw (S.fieldCtx c.fields ++ S.params) (S.famAt c.fields.length c.idx)
+  mkPis (S.fieldCtx c.fields ++ S.params) (S.famAt c.fields.length c.idx)
 
 /-- The motive's type, under the parameters:
 `∀ indices (t : I params indices), Sort ℓ`. -/
-def motiveTy : Expr := mkPis .never (S.famVars 0 :: S.indices) (.sort S.ℓ)
+def motiveTy : Expr := mkPis (S.famVars 0 :: S.indices) (.sort S.ℓ)
 
 /-- The fields with an inductive hypothesis (the reflexive ones —
 recursive when the telescope is empty — and the container ones),
@@ -242,7 +237,7 @@ def ihTy (nF k l o : Nat) : Field → Expr
   | .ordinary _ => .sort .zero
   | .reflexive tele es =>
     let m := tele.length
-    mkPis S.q (liftCtx (fun t T => atCtx nF k l o t T) tele)
+    mkPis (liftCtx (fun t T => atCtx nF k l o t T) tele)
       (mkAppN (.bvar (nF + l + o - 1 + m))
         (es.map (atCtx nF k l o m) ++ [mkAppN (.bvar (nF - 1 - k + l + m)) (varsAt 0 m)]))
   | .container => mkAppN (.bvar (nF + l + o - 2)) [.bvar (nF - 1 - k + l)]
@@ -251,12 +246,12 @@ def ihTy (nF k l o : Nat) : Field → Expr
 between the parameters and the fields, as a context (innermost
 first). -/
 def ihCtxAt (c : CtorSpec) (o : Nat) : List Expr :=
-  (c.recFields.mapIdx fun l kf => S.ihTy c.fields.length kf.1 l o kf.2).reverse
+  (c.recFields.mapIdx fun l kf => IndSpec.ihTy c.fields.length kf.1 l o kf.2).reverse
 
 /-- The inductive hypotheses of a constructor in minor premise `j`, as
 a context (innermost first). -/
 def ihCtx (c : CtorSpec) (j : Nat) : List Expr :=
-  (c.recFields.mapIdx fun l kf => S.ihTy c.fields.length kf.1 l (j + 1) kf.2).reverse
+  (c.recFields.mapIdx fun l kf => IndSpec.ihTy c.fields.length kf.1 l (j + 1) kf.2).reverse
 
 /-- **A minor premise** for constructor `j`, under the parameters, the
 motive and the `j` earlier minors:
@@ -264,7 +259,7 @@ motive and the `j` earlier minors:
 def minorTy (c : CtorSpec) (j : Nat) : Expr :=
   let nF := c.fields.length
   let nIh := c.recFields.length
-  mkPis S.q (S.ihCtx c j ++ S.fieldCtxAt c (j + 1))
+  mkPis (IndSpec.ihCtx c j ++ S.fieldCtxAt c (j + 1))
     (mkAppN (.bvar (nIh + nF + j))
       (c.idx.map (atCtx nF nF nIh (j + 1) 0) ++
         [mkAppN (.const c.name S.lvls) (varsAt (nIh + nF + j + 1) S.nP ++ varsAt nIh nF)]))
@@ -278,7 +273,7 @@ def minorsCtx : List Expr :=
 `∀ params (motive : motiveTy) minors indices (t : I params indices), motive indices t`
 (con-leche's `classGenRecTy`, `GenRec.lean:181`). -/
 def recType : Expr :=
-  mkPis S.q (S.famVars (S.n + 1) :: S.indicesAt (S.n + 1) ++ S.minorsCtx ++ [S.motiveTy] ++ S.params)
+  mkPis (S.famVars (S.n + 1) :: S.indicesAt (S.n + 1) ++ S.minorsCtx ++ [S.motiveTy] ++ S.params)
     (mkAppN (.bvar (1 + S.nI + S.n)) (varsAt 1 S.nI ++ [.bvar 0]))
 
 /-- **An inductive hypothesis' value** in a rule, for the field with
@@ -291,7 +286,7 @@ def ihVal (nF k : Nat) : Field → Expr
   | .container => .sort .zero
   | .reflexive tele es =>
     let m := tele.length
-    mkLams S.q (liftCtx (fun t T => atCtx nF k 0 (S.n + 1) t T) tele)
+    mkLams (liftCtx (fun t T => atCtx nF k 0 (S.n + 1) t T) tele)
       (mkAppN (.const S.recName S.recLvls)
         (varsAt (m + nF + S.n + 1) S.nP ++ [.bvar (m + nF + S.n)] ++ varsAt (m + nF) S.n ++
           es.map (atCtx nF k 0 (S.n + 1) m) ++ [mkAppN (.bvar (m + nF - 1 - k)) (varsAt 0 m)]))
@@ -314,22 +309,33 @@ def ruleBodyTy (c : CtorSpec) : Expr :=
 of the indices and the major (con-leche generates the rule and
 type-checks it, `classRuleOk`, `GenRec.lean:427`; the stream's rules
 are never read; the fragment infers the rule's type likewise). -/
-def ruleType (c : CtorSpec) : Expr := mkPis S.q (S.ruleCtx c) (S.ruleBodyTy c)
+def ruleType (c : CtorSpec) : Expr := mkPis (S.ruleCtx c) (S.ruleBodyTy c)
 
 /-- **A rule's right-hand side** for constructor `j`:
 `fun params motive minors fields => minor_j fields ihs`
 (con-leche's `classGenRule`, `GenRec.lean:193`). -/
 def ruleRhs (c : CtorSpec) (j : Nat) : Expr :=
   let nF := c.fields.length
-  mkLams S.q (S.ruleCtx c)
+  mkLams (S.ruleCtx c)
     (mkAppN (.bvar (nF + S.n - 1 - j))
       (varsAt 0 nF ++ c.recFields.map fun kf => S.ihVal nF kf.1 kf.2))
 
-/-- The recursor's rules, one per constructor. -/
+/-- **Is the block K-like?** (task #342 F2; Lean's kernel,
+`init_K_target`): one family, not nested (Lean elaborates a nested
+block into a mutual one, which is not K), whose sort is `Prop`
+syntactically, with exactly one constructor, which has no fields. -/
+def isK : Bool :=
+  S.nest.isNone && S.sort == .zero &&
+    match S.ctors with
+    | [c] => c.fields.isEmpty
+    | _ => false
+
+/-- The recursor's rules, one per constructor, flagged K when the
+block is (`isK`). -/
 def rules : List RecRule :=
   (List.range S.n).map fun j =>
     let c := S.ctors.getD j ⟨"", [], []⟩
-    ⟨c.name, c.fields.length, S.ruleRhs c j, none⟩
+    ⟨c.name, c.fields.length, S.ruleRhs c j, none, S.isK⟩
 
 /-! ### The nested block's recursors
 
@@ -388,7 +394,7 @@ def oN (N : NestInfo) : Nat := 2 + S.n + N.nK
 
 /-- **The class's motive's type**, under the parameters and the
 block's motive: `∀ (t : K args[nested]), Sort ℓ`. -/
-def motiveTy1 (N : NestInfo) : Expr := mkPis .never [S.classTy N 1] (.sort S.ℓ)
+def motiveTy1 (N : NestInfo) : Expr := mkPis [S.classTy N 1] (.sort S.ℓ)
 
 /-- **A minor premise of the block's constructor `j`** in a nested
 block: as `minorTy`, under the two motives and the `j` earlier minors. -/
@@ -396,7 +402,7 @@ def minorTyN (c : CtorSpec) (j : Nat) : Expr :=
   let nF := c.fields.length
   let nIh := c.recFields.length
   let o := 2 + j
-  mkPis S.q (S.ihCtxAt c o ++ S.fieldCtxAt c o)
+  mkPis (IndSpec.ihCtxAt c o ++ S.fieldCtxAt c o)
     (mkAppN (.bvar (nIh + nF + o - 1))
       (c.idx.map (atCtx nF nF nIh o 0) ++
         [mkAppN (.const c.name S.lvls) (varsAt (nIh + nF + o) S.nP ++ varsAt nIh nF)]))
@@ -411,7 +417,7 @@ def minorTyK (N : NestInfo) (c : CtorSpec) (j : Nat) : Expr :=
   let nF := c'.fields.length
   let nIh := c'.recFields.length
   let o := 2 + S.n + j
-  mkPis S.q (S.ihCtxAt c' o ++ S.fieldCtxAt c' o)
+  mkPis (IndSpec.ihCtxAt c' o ++ S.fieldCtxAt c' o)
     (mkAppN (.bvar (nIh + nF + o - 2))
       [mkAppN (.const c.name N.lsK) (S.classArgs N (nIh + nF + o) ++ varsAt nIh nF)])
 
@@ -438,7 +444,7 @@ def recCtxN (N : NestInfo) : List Expr :=
 /-- **`T.rec`'s type** in a nested block:
 `∀ params motive motive_1 minors minors_1 indices (t : I params indices), motive indices t`. -/
 def recTypeN (N : NestInfo) : Expr :=
-  mkPis S.q (S.recCtxN N) (mkAppN (.bvar (S.nI + S.oN N)) (varsAt 1 S.nI ++ [.bvar 0]))
+  mkPis (S.recCtxN N) (mkAppN (.bvar (S.nI + S.oN N)) (varsAt 1 S.nI ++ [.bvar 0]))
 
 /-- The context of `T.rec_1`: the major at the class, the extras, the
 parameters. -/
@@ -447,7 +453,7 @@ def rec1Ctx (N : NestInfo) : List Expr := S.classTy N (S.oN N) :: S.extrasN N ++
 /-- **`T.rec_1`'s type**: the same prefix, the major at the class,
 the class's motive at it. -/
 def rec1Type (N : NestInfo) : Expr :=
-  mkPis S.q (S.rec1Ctx N) (mkAppN (.bvar (S.oN N - 1)) [.bvar 0])
+  mkPis (S.rec1Ctx N) (mkAppN (.bvar (S.oN N - 1)) [.bvar 0])
 
 /-- **An inductive hypothesis' value** in a rule of a nested block:
 `T.rec` at the field (under its telescope) for a reflexive field,
@@ -457,7 +463,7 @@ def ihValN (N : NestInfo) (nF k : Nat) : Field → Expr
   | .ordinary _ => .sort .zero
   | .reflexive tele es =>
     let m := tele.length
-    mkLams S.q (liftCtx (fun t T => atCtx nF k 0 (S.oN N) t T) tele)
+    mkLams (liftCtx (fun t T => atCtx nF k 0 (S.oN N) t T) tele)
       (mkAppN (.const S.recName S.recLvls)
         (varsAt (m + nF + S.oN N) S.nP ++ varsAt (m + nF) (S.oN N) ++
           es.map (atCtx nF k 0 (S.oN N) m) ++ [mkAppN (.bvar (m + nF - 1 - k)) (varsAt 0 m)]))
@@ -479,7 +485,7 @@ def ruleBodyTyN (N : NestInfo) (c : CtorSpec) : Expr :=
       [mkAppN (.const c.name S.lvls) (varsAt (nF + S.oN N) S.nP ++ varsAt 0 nF)])
 
 /-- A `T.rec` rule's type. -/
-def ruleTypeN (N : NestInfo) (c : CtorSpec) : Expr := mkPis S.q (S.ruleCtxN N c) (S.ruleBodyTyN N c)
+def ruleTypeN (N : NestInfo) (c : CtorSpec) : Expr := mkPis (S.ruleCtxN N c) (S.ruleBodyTyN N c)
 
 /-- A `T.rec_1` rule's type body: `motive_1 (C.{lsK} args[nested] fields)`. -/
 def rule1BodyTy (N : NestInfo) (c : CtorSpec) : Expr :=
@@ -489,13 +495,13 @@ def rule1BodyTy (N : NestInfo) (c : CtorSpec) : Expr :=
 
 /-- A `T.rec_1` rule's type. -/
 def rule1Type (N : NestInfo) (c : CtorSpec) : Expr :=
-  mkPis S.q (S.ruleCtxN N (S.classCtor N c)) (S.rule1BodyTy N c)
+  mkPis (S.ruleCtxN N (S.classCtor N c)) (S.rule1BodyTy N c)
 
 /-- **A `T.rec` rule's right-hand side** for the block's constructor
 `j`: `fun params motives minors fields => minor_j fields ihs`. -/
 def ruleRhsN (N : NestInfo) (c : CtorSpec) (j : Nat) : Expr :=
   let nF := c.fields.length
-  mkLams S.q (S.ruleCtxN N c)
+  mkLams (S.ruleCtxN N c)
     (mkAppN (.bvar (nF + N.nK + S.n - 1 - j))
       (varsAt 0 nF ++ c.recFields.map fun kf => S.ihValN N nF kf.1 kf.2))
 
@@ -504,7 +510,7 @@ constructor `j`: `fun params motives minors fields => minor_1_j fields ihs`. -/
 def rule1Rhs (N : NestInfo) (c : CtorSpec) (j : Nat) : Expr :=
   let c' := S.classCtor N c
   let nF := c'.fields.length
-  mkLams S.q (S.ruleCtxN N c')
+  mkLams (S.ruleCtxN N c')
     (mkAppN (.bvar (nF + N.nK - 1 - j))
       (varsAt 0 nF ++ c'.recFields.map fun kf => S.ihValN N nF kf.1 kf.2))
 
@@ -512,7 +518,7 @@ def rule1Rhs (N : NestInfo) (c : CtorSpec) (j : Nat) : Expr :=
 def rulesN (N : NestInfo) : List RecRule :=
   (List.range S.n).map fun j =>
     let c := S.ctors.getD j ⟨"", [], []⟩
-    ⟨c.name, c.fields.length, S.ruleRhsN N c j, none⟩
+    ⟨c.name, c.fields.length, S.ruleRhsN N c j, none, false⟩
 
 /-- `T.rec_1`'s rules, one per constructor of the container, each
 with its stored instantiation: the container's levels and the class's
@@ -520,7 +526,7 @@ arguments. -/
 def rules1 (N : NestInfo) : List RecRule :=
   (List.range (N.nK)).map fun j =>
     let c := N.K.ctors.getD j ⟨"", [], []⟩
-    ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0)⟩
+    ⟨c.name, c.fields.length, S.rule1Rhs N c j, some (N.lsK, S.classArgs N 0), false⟩
 
 /-! ### What is stored -/
 
@@ -742,7 +748,7 @@ def Ok (env : Env) : Prop :=
   S.Scoped env ∧
   (∃ T, Infer env [] S.indType T) ∧
   (∀ c ∈ S.ctors,
-    (∃ T, Infer (S.envInd env) [] (S.ctorType c) T) ∧
+    (∃ T u, Infer (S.envInd env) [] (S.ctorType c) T ∧ Red (S.envInd env) [] T (.sort u)) ∧
     (∀ i A, (S.fieldCtx c.fields)[i]? = some A →
       ∃ s v, Infer (S.envInd env) ((S.fieldCtx c.fields).drop (i + 1) ++ S.params) A s ∧
         Red (S.envInd env) ((S.fieldCtx c.fields).drop (i + 1) ++ S.params) s (.sort v) ∧
@@ -781,7 +787,7 @@ def OkN (N : NestInfo) (env : Env) : Prop :=
   S.Scoped env ∧
   (∃ T, Infer env [] S.indType T) ∧
   (∀ c ∈ S.ctors,
-    (∃ T, Infer (S.envInd env) [] (S.ctorType c) T) ∧
+    (∃ T u, Infer (S.envInd env) [] (S.ctorType c) T ∧ Red (S.envInd env) [] T (.sort u)) ∧
     (∀ i A, (S.fieldCtx c.fields)[i]? = some A →
       ∃ s v, Infer (S.envInd env) ((S.fieldCtx c.fields).drop (i + 1) ++ S.params) A s ∧
         Red (S.envInd env) ((S.fieldCtx c.fields).drop (i + 1) ++ S.params) s (.sort v) ∧
@@ -796,7 +802,8 @@ def OkN (N : NestInfo) (env : Env) : Prop :=
   (∃ ci, env.find? N.K.name = some ci ∧ ci.kind = .induct N.nPK 0 (N.K.ctors.map (·.name)) N.K.spec) ∧
   LevelOracle.eq (N.K.sort.subst N.K.lparams N.lsK) S.sort = true ∧
   LevelOracle.eq (N.memberLevel.subst N.K.lparams N.lsK) S.sort = true ∧
-  (∃ T, Infer (S.envInd env) S.params (S.classTy N 0) T) ∧
+  (∃ T u, Infer (S.envInd env) S.params (S.classTy N 0) T ∧
+    Red (S.envInd env) S.params T (.sort u)) ∧
   (S.large = true → S.NeverProp) ∧
   (∀ c ∈ N.K.ctors, ∃ T, Infer (S.envCtors env) [] (S.rule1Type N c) T) ∧
   (∃ T, Infer (S.envCtors env) [] (S.recTypeN N) T) ∧

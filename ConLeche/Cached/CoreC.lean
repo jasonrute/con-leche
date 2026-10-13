@@ -19,8 +19,8 @@ ties them at a mode.  The verified core is this knot at `.verified`;
 the trusted core is this same knot at `.trusted` — there is no second
 implementation: what
 the trusted mode omits is exactly what `mode.verifiedChecks` gates
-here: group A (the λ-codomain sort check, the η body-type comparison,
-the λ/λ body-type comparison, the projection certificate) and the
+here: group A (the η body-type comparison, the λ/λ body-type
+comparison, the projection certificate) and the
 certificate families (every `certAtI` site), and
 nothing else (DESIGN.md, "CORET
 RETIRED").  Every read is a `match` on the two-constructor enum
