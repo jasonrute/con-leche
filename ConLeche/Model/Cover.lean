@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Env.EnvModelM
-public import ConLeche.Model.Reading.ConsCross
+public import ConLeche.Verify.Denote.ConsCross
 import ConLeche.Model.Install
 import ConLeche.Model.Env.CanonCrest
 
@@ -37,6 +37,7 @@ carrier with the input's recorded list, re-proved at the extension).
 -/
 
 namespace ConLeche.Model
+open ConLeche.Verify
 open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche (Env Name ConstantInfo)
@@ -540,7 +541,7 @@ theorem EnvModelM.keepLfpOf {env : Env} {mp : EnvModelM V μ env} {c₀ : Consta
     (hac : mp'.base2.acval = acvalWith mp.base2.acval c₀.name A) :
     ∃ mk : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mk.base2 = mp'.base2 ∧ mk.lfpBlocks = mp.lfpBlocks := by
-  have hbound := ConLeche.Semantics.envWF_constsBound mp.base2.wf
+  have hbound := ConLeche.Verify.envWF_constsBound mp.base2.wf
   have hok := mp.lfp_ok_transport (acval' := acvalWith mp.base2.acval c₀.name A)
     (fun _ _ hf _ => findPreserved_cons hfresh hf)
     (fun n _ hf _ => acvalWith_ne fun h => by

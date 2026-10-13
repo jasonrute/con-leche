@@ -6,11 +6,11 @@ module
 -- entry's reading live there, not here.
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.RedSoundKit
-import ConLeche.Model.Reading.Inst
-import ConLeche.Model.Reading.Shift
+import ConLeche.Verify.Denote.Inst
+import ConLeche.Verify.Denote.Depth
 import ConLeche.Verify.Denote.OpenRevDenote
 import ConLeche.Verify.Denote.OpenVars
-import ConLeche.Model.Reading.Closed
+import ConLeche.Verify.Denote.Closed
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Denote.Shift
 
@@ -20,13 +20,13 @@ public section
 # The ι kit (task #305)
 
 The spine, frame and fit lemmas the ι rule and the three stuck-major
-rescues need, stated over `Model/Reading/Lemmas.lean`'s
+rescues need, stated over `Verify/Denote/Lemmas.lean`'s
 `DenoteSpine` and the `Frame`/`Graded`/`LeavesSub` abbreviations
 of `Motive.lean`:
 
 * the `DenoteSpine` residue only the ι rules use
   (`exists_of_all`); the rest of the spine API is
-  `Model/Reading/Lemmas.lean`'s, shared;
+  `Verify/Denote/Lemmas.lean`'s, shared;
 * `interp_mkAppN_congrK`, `constTy_pkg`, `denote_const_arityK`;
 * the `take`/`drop`/`getD` list algebra over readings.
 -/
@@ -45,7 +45,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
 
 /-! ## The `DenoteSpine` API
 
-`mem` and `getD` are `Model/Reading/Lemmas.lean`'s; what is left here
+`mem` and `getD` are `Verify/Denote/Lemmas.lean`'s; what is left here
 is the residue only the ι rules use. -/
 
 namespace DenoteSpine

@@ -5,7 +5,7 @@ public import ConLeche.Model.Env.EnvModelM
 public import ConLeche.Verify.Close
 import ConLeche.Verify.Denote.VClosed
 import ConLeche.SetModel.TupleTower
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 
 public section
 

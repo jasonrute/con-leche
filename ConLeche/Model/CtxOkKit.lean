@@ -3,7 +3,7 @@ module
 import ConLeche.Verify.InferLeaves
 import ConLeche.Verify.Denote.OpenRevDenote
 public import ConLeche.Model.WellDenotedTransport
-import ConLeche.Model.Reading.Shift
+import ConLeche.Verify.Denote.Depth
 public section
 
 /-!

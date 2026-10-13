@@ -202,4 +202,62 @@ theorem ProjOkT.cons {env : Env} {c₀ : ConstantInfo} (h : ProjOkT env)
   · rw [Env.find?_cons, ite_eq_right hn] at hf
     exact TowerHead.mono hkeep (h n tbl hf i hi)
 
+/-! ## The one-name update -/
+
+/-- Extend a canonical constant reading at one name. -/
+@[expose] def acvalWith (acval : Name → (Name → Nat) → Term) (n : Name)
+    (A : (Name → Nat) → Term) : Name → (Name → Nat) → Term :=
+  fun c ψ => if c = n then A ψ else acval c ψ
+
+theorem acvalWith_ne {acval : Name → (Name → Nat) → Term}
+    {n : Name} {A : (Name → Nat) → Term} {c : Name} (h : c ≠ n) :
+    acvalWith acval n A c = acval c := by
+  funext ψ; simp [acvalWith, h]
+
+theorem acvalWith_self {acval : Name → (Name → Nat) → Term}
+    {n : Name} {A : (Name → Nat) → Term} :
+    acvalWith acval n A n = A := by
+  funext ψ; simp [acvalWith]
+
+/-! ## The syntactic fields, transported
+
+`acval_params` is a condition on an install-fixed object with no
+`interp` in it, so it extends by a case split on the updated name and
+nothing else. -/
+
+/-- `acval_params` extends across a `cons`: the stored entries are the
+old ones plus the installed one, and the new leaf answers for itself.
+
+Note the environment moves here — the field
+is indexed by `env.find?`.  Freshness is **not** needed: the `cons`
+shadows, so the installed entry answers first either way. -/
+theorem acvalWith_params {acval : Name → (Name → Nat) → Term}
+    {env : Env} {c₀ : ConLeche.ConstantInfo}
+    {A : (Name → Nat) → Term}
+    (h : ∀ (m : Name) (ci : ConLeche.ConstantInfo),
+      env.find? m = some ci →
+      ∀ ψ₁ ψ₂ : Name → Nat,
+        (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
+        acval m ψ₁ = acval m ψ₂)
+    (hA : ∀ ψ₁ ψ₂ : Name → Nat,
+      (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
+      A ψ₁ = A ψ₂) :
+    ∀ (m : Name) (ci : ConLeche.ConstantInfo),
+      (⟨c₀ :: env.consts⟩ : Env).find? m = some ci →
+      ∀ ψ₁ ψ₂ : Name → Nat,
+        (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
+        acvalWith acval c₀.name A m ψ₁
+          = acvalWith acval c₀.name A m ψ₂ := by
+  intro m ci hf ψ₁ ψ₂ hp
+  rw [Env.find?_cons] at hf
+  by_cases hm : c₀.name = m
+  · rw [ite_eq_left hm] at hf
+    obtain rfl := Option.some.inj hf
+    subst hm
+    rw [acvalWith_self]
+    exact hA ψ₁ ψ₂ hp
+  · rw [ite_eq_right hm] at hf
+    rw [acvalWith_ne (fun hh => hm hh.symm)]
+    exact h m ci hf ψ₁ ψ₂ hp
+
 end ConLeche.Verify

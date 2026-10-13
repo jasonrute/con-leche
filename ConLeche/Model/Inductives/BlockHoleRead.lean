@@ -3,7 +3,7 @@ module
 import ConLeche.Kernel.Inductives.Positivity
 public import ConLeche.Verify.Inductives.ReplaceApps
 public import ConLeche.Verify.Inductives.DirectGen
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Denote
 public section

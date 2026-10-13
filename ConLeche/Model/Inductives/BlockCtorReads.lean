@@ -2,10 +2,10 @@ module
 
 public import ConLeche.Model.Inductives.BlockStageCtors
 import ConLeche.Model.Inductives.BlockHoleRead
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Verify.EnvWF
 import ConLeche.Model.Env.CanonCrest
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 
 public section
 

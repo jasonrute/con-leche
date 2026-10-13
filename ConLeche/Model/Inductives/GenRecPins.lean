@@ -30,7 +30,7 @@ import ConLeche.Model.IndOpenRev
 import ConLeche.Model.IndFrame
 import ConLeche.Model.RecRulesCons
 import ConLeche.Model.Levels
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Tiers
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Semantics.Tower.SumTower

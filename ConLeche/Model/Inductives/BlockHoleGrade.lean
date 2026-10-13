@@ -6,7 +6,7 @@ public import ConLeche.Model.Inductives.BlockLfpHoles
 import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Model.IndDomGrade
 import ConLeche.Model.Inductives.BlockData
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 public import ConLeche.Verify.Inductives.NfMemberFree
 public section
 

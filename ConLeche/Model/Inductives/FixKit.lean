@@ -7,7 +7,7 @@ import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Kernel.Inductives.FieldTele
 import ConLeche.Model.Reading.Levels
 import ConLeche.Kernel.PropWhen
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Semantics.Frame
 import ConLeche.Semantics.NoBVar
 

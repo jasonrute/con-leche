@@ -19,6 +19,7 @@ three openings.
 -/
 
 namespace ConLeche.Model
+open ConLeche.Verify
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory

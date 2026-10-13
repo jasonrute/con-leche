@@ -1,10 +1,9 @@
 module
 
-public import ConLeche.Model.Reading.TowerExtend
-import ConLeche.Model.Reading.Install
+public import ConLeche.Verify.Denote.TowerExtend
+import ConLeche.Verify.Denote.AcvalCongr
 public import ConLeche.Verify.Denote.OpenVars
 import ConLeche.Verify.InferLemmas
-import ConLeche.Semantics.EnvFacts
 
 public section
 
@@ -12,7 +11,7 @@ public section
 # The P cons crossing at a tower head (task #175 W4c, P3 module 4)
 
 Consing a tower-backed entry `(T, i)` changes the reading of exactly
-one node shape, `.proj T i _` with no entry (`Reading/TowerExtend.lean`), so the
+one node shape, `.proj T i _` with no entry (`Verify/Denote/TowerExtend.lean`), so the
 readings the install kit and its law transports move across a cons
 survive whenever the moved subject has no such node.  This module
 packages that side condition at the granularity the transports
@@ -30,9 +29,7 @@ consume:
   their level instantiations and openings.
 -/
 
-namespace ConLeche.Model
-open ConLeche.Semantics
-open ConLeche.SetModel
+namespace ConLeche.Verify
 
 open ConLeche.Term ConLeche.Verify
 
@@ -106,7 +103,7 @@ theorem ConsCrossEnv.type {env : Env} {c₀ : ConstantInfo}
 theorem ConsCrossEnv.typeOf {env : Env} {c₀ : ConstantInfo}
     (h : ConsCrossEnv env c₀) {n : Name} {c : ConstantInfo}
     (hf : env.find? n = some c) : ConsCrossAt c₀ c.toConstantVal.type :=
-  h.type (ConLeche.Semantics.Env.find?_mem hf)
+  h.type (ConLeche.find?_mem hf)
 
 theorem ConsCrossEnv.defn {env : Env} {c₀ : ConstantInfo}
     (h : ConsCrossEnv env c₀) {cv : ConstantVal} {v : Expr}
@@ -120,7 +117,7 @@ theorem ConsCrossEnv.body {env : Env} {c₀ : ConstantInfo}
     (h : ConsCrossEnv env c₀) {n : Name} {tbl : ConLeche.ProjTable}
     (hf : env.find? n = some (.projInfo tbl)) {j : Nat} (hj : j < tbl.numFields) :
     ConsCrossAt c₀ (tbl.entry j).body := fun tbl' heq i =>
-  (h tbl' heq i).table tbl (ConLeche.Semantics.Env.find?_mem hf) j hj
+  (h tbl' heq i).table tbl (ConLeche.find?_mem hf) j hj
 
 theorem ConsCrossEnv.ruleRhs {env : Env} {c₀ : ConstantInfo}
     (h : ConsCrossEnv env c₀) {cv : ConstantVal} {mI rP : Nat}
@@ -154,4 +151,4 @@ theorem ConsCrossEnv.rulePinD {env : Env} {c₀ : ConstantInfo}
     show Expr.NoProjAt _ _ (Expr.bvar 0)
     simp
 
-end ConLeche.Model
+end ConLeche.Verify

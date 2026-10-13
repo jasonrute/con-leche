@@ -8,7 +8,7 @@ import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.CtxOkKit
 import ConLeche.Semantics.DefEqStep
 import ConLeche.Semantics.LitStep
-import ConLeche.Model.Reading.Shift
+import ConLeche.Verify.Denote.Depth
 
 public section
 

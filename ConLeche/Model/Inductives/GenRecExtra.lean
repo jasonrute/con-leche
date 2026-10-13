@@ -31,7 +31,7 @@ import ConLeche.Model.IndPointKit
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Verify.Denote.OpenVars
 import ConLeche.Verify.Denote.TeleOpen
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.ContInst
 import ConLeche.Model.Env.CanonCrest

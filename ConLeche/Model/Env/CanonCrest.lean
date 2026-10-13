@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Env.EnvModelM
-public import ConLeche.Model.Reading.ConsCross
+public import ConLeche.Verify.Denote.ConsCross
 import ConLeche.Verify.Inductives.ReplaceApps
 
 public section

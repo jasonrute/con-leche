@@ -7,8 +7,8 @@ import ConLeche.Model.Rules.Sound
 public import ConLeche.Model.CtxOkP
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Model.Rules.InferSoundKit
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.Shift
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Depth
 import ConLeche.Semantics.Frame
 import ConLeche.Verify.Denote.Shift
 import ConLeche.Verify.InferLemmas

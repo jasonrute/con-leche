@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Reading.Lemmas
+public import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Model.Rules.IORel
 
 public section

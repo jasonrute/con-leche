@@ -28,10 +28,10 @@ import ConLeche.Model.Inductives.TargetClasses
 import ConLeche.Model.Inductives.TargetGraph
 import ConLeche.Model.Inductives.NestedRecPins
 import ConLeche.Model.Env.BlockLfp
-import ConLeche.Model.Reading.Closed
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.Inst
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.Closed
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Inst
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Levels
 import ConLeche.Model.NatEqs
 import ConLeche.Model.IndOpenRev

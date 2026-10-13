@@ -13,8 +13,8 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructRecKit
 import ConLeche.Model.NatEqs
 import ConLeche.Model.Env.LfpFormer
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Semantics.Tower.FixTower
 import ConLeche.Semantics.Tower.TowerKit
 

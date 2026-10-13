@@ -3,7 +3,7 @@ module
 public import ConLeche.Model.Currency
 import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.Leaves
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 
 public section
 

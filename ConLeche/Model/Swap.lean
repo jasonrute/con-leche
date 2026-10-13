@@ -3,9 +3,9 @@ module
 import ConLeche.Verify.Denote.EnvExt
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Denote
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.Reading.Levels
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Tiers
 import ConLeche.Verify.BridgeWfImp

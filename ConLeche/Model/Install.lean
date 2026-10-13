@@ -1,9 +1,9 @@
 module
 
 public import ConLeche.Model.Tiers
-public import ConLeche.Model.Reading.EnvExtend
-public import ConLeche.Model.Reading.ConsCross
-public import ConLeche.Semantics.ConstsBound
+public import ConLeche.Verify.Denote.EnvExtend
+public import ConLeche.Verify.Denote.ConsCross
+public import ConLeche.Verify.Denote.ConstsBound
 public import ConLeche.Verify.Extend.Sibs
 import ConLeche.Model.Env.CanonCrest
 
@@ -213,6 +213,23 @@ theorem ConsHead.ofFresh {c₀ : ConstantInfo}
     ConsCrossEnv.ofNtc hprojTower,
     fun tbl heq => absurd heq (hprojTower tbl),
     hctors⟩
+
+/-- `acval_wellDenoted` extends. -/
+theorem acvalWith_wellDenoted
+    {acval : Name → (Name → Nat) → Term} {n : Name}
+    {A : (Name → Nat) → Term}
+    (h : ∀ (m : Name) (ψ : Name → Nat) (ρ : Nat → V),
+      WellDenoted V ρ (acval m ψ))
+    (hA : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ)) :
+    ∀ (m : Name) (ψ : Name → Nat) (ρ : Nat → V),
+      WellDenoted V ρ (acvalWith acval n A m ψ) := by
+  intro m ψ ρ
+  by_cases hm : m = n
+  · subst hm
+    rw [acvalWith_self]
+    exact hA ψ ρ
+  · rw [acvalWith_ne hm]
+    exact h m ψ ρ
 
 /-- **The core at a fresh cons** (task #161 S7).  Every field is the prefix's own, stepped by the
 head's obligation; nothing of the collapsed model is consulted. -/

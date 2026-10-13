@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Reading.Lemmas
+public import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Verify.Shift
 
 public section
@@ -16,9 +16,7 @@ shifts structurally, so each clause closes by the recursion alone.
 lift-invariant), which the constant and literal clauses need.
 -/
 
-namespace ConLeche.Model
-open ConLeche.Semantics
-open ConLeche.SetModel
+namespace ConLeche.Verify
 
 open ConLeche.Term ConLeche.Verify
 
@@ -219,4 +217,4 @@ theorem denote_weaken_top
   rw [ConLeche.Expr.shiftFrom_eq_self hw.fvarsBelow, Nat.sub_self] at h
   exact h
 
-end ConLeche.Model
+end ConLeche.Verify

@@ -170,7 +170,7 @@ theorem canonOcc_of_positivity {ops : ConLeche.CheckerOps ConLeche.CheckM} {env�
 
 omit [SetTheory V] in
 /-- Every constant bound before a cons is bound after it. -/
-theorem ConstsBound.mono_cons {env : Env} {c₀ : ConstantInfo} :
+theorem _root_.ConLeche.Verify.ConstsBound.mono_cons {env : Env} {c₀ : ConstantInfo} :
     ∀ {e : Expr}, ConstsBound env e → ConstsBound ⟨c₀ :: env.consts⟩ e := by
   intro e
   induction e with

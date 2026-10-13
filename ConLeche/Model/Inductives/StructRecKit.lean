@@ -5,7 +5,7 @@ import ConLeche.Semantics.Tower.TowerKit
 public import ConLeche.Model.Inductives.StructFrameKit
 public import ConLeche.Model.IndPinGrade
 public import ConLeche.Verify.Inductives.DirectGen
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 
 public section
 

@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Reading.EnvExtend
+public import ConLeche.Verify.Denote.EnvExtend
 public import ConLeche.Verify.ProjSlots
 
 public section
@@ -19,9 +19,7 @@ cover every stored expression).  Every other clause is
 `denote_envExtend_mono`'s verbatim.
 -/
 
-namespace ConLeche.Model
-open ConLeche.Semantics
-open ConLeche.SetModel
+namespace ConLeche.Verify
 
 open ConLeche.Term ConLeche.Verify
 
@@ -179,4 +177,4 @@ theorem findProj?_cons_tower {env : Env} {tbl₀ : ConLeche.ProjTable} :
   · rw [ConLeche.Env.findProj?_cons_ne hn, h0] at h1
     exact nomatch h1
 
-end ConLeche.Model
+end ConLeche.Verify

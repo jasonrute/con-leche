@@ -35,7 +35,7 @@ No field classification and no syntactic computation of the λ's type.
 -/
 
 namespace ConLeche.Model
-open ConLeche.Verify (denote)
+open ConLeche.Verify
 open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetModel

@@ -4,7 +4,7 @@ public import ConLeche.Model.Inductives.TargetCallTie
 public import ConLeche.Model.Inductives.TargetNodeRead
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.NestPosOut
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 public import ConLeche.Model.Reading.SubstFvars
 import ConLeche.Verify.InstList
 import ConLeche.Verify.InferLemmas
@@ -13,7 +13,7 @@ import ConLeche.Verify.SubstFvars
 import ConLeche.Semantics.SubstAV
 import ConLeche.Model.Inductives.BlockRecRule
 import ConLeche.Semantics.Tower.TowerKit
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Model.Inductives.PosFieldLeaf
 import ConLeche.Model.Inductives.TargetCallRead
 public import ConLeche.Model.Inductives.NestPosMono

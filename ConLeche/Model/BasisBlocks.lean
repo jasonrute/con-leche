@@ -2,7 +2,7 @@ module
 
 public import ConLeche.Model.Levels
 public import ConLeche.Semantics.BasisRules
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 
 import ConLeche.Model.BasisLfp
 import ConLeche.Model.Cover

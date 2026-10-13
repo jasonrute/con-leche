@@ -1,8 +1,8 @@
 module
 
-public import ConLeche.Model.Reading.Shift
-import ConLeche.Semantics.Tower.TowerKit
+public import ConLeche.Verify.Denote.Depth
 import ConLeche.Verify.Denote.Shift
+public import ConLeche.Verify.Denote.VClosed
 
 public section
 
@@ -13,12 +13,10 @@ public section
 (`Verify/Denote/Shift.lean`) composed with `Term.liftN_eq_self`.
 
 **The depth statement drops `EnvWF`**, following the shift it is built
-on (see `Reading/Shift.lean`).
+on (see `Verify/Denote/Depth.lean`).
 -/
 
-namespace ConLeche.Model
-open ConLeche.Semantics
-open ConLeche.SetModel
+namespace ConLeche.Verify
 
 open ConLeche.Term ConLeche.Verify
 
@@ -58,4 +56,4 @@ theorem denote_depth_of_closed {env : Env} {φ : Name → Nat}
     rw [hs]
     simp [hcl]
 
-end ConLeche.Model
+end ConLeche.Verify

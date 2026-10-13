@@ -12,11 +12,11 @@ public import ConLeche.Model.Inductives.NestPosMono
 import ConLeche.Model.Inductives.BlockHoleRead
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructEntryKit
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.IndPointKit
-import ConLeche.Model.Reading.ErasedEq
-public import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.ErasedEq
+public import ConLeche.Verify.Denote.Inst
 import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Verify.Inductives.DirectGen
 import ConLeche.Verify.Denote.TeleOpen

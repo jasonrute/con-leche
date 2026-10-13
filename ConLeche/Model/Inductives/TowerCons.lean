@@ -85,7 +85,7 @@ theorem NoProjHead.ofType {c₀ : ConstantInfo} {T : Name} {i : Nat}
     fun cv mI rP rules h => absurd h (hnotrec cv mI rP rules),
     fun tbl h => absurd h (hnottable tbl)⟩
 
-theorem NoProjEnv.cons {T : Name} {i : Nat} (h : NoProjEnv env T i)
+theorem _root_.ConLeche.Verify.NoProjEnv.cons {T : Name} {i : Nat} (h : NoProjEnv env T i)
     {c₀ : ConstantInfo} (hh : NoProjHead c₀ T i) :
     NoProjEnv ⟨c₀ :: env.consts⟩ T i where
   type c hc := by

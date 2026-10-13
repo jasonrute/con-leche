@@ -6,8 +6,8 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.ClassGenMinor
 import ConLeche.Model.Inductives.GenRuleSyn
 import ConLeche.Model.Inductives.GenRuleFree
-import ConLeche.Model.Reading.ErasedEq
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.ErasedEq
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Model.Env.LfpFormer
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Denote

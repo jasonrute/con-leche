@@ -7,9 +7,9 @@ import ConLeche.Model.Inductives.TargetFrame
 import ConLeche.Model.Inductives.TargetIhSlot
 import ConLeche.Model.Inductives.ContFrame
 import ConLeche.Model.Inductives.StructFrameKit
-import ConLeche.Model.Reading.Closed
-import ConLeche.Model.Reading.Inst
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.Closed
+import ConLeche.Verify.Denote.Inst
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Rules.Sound
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Semantics.Tower.SumTower

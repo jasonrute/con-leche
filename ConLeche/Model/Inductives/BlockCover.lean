@@ -85,7 +85,7 @@ theorem lfpCover_append {env env' : Env} {new : List ConstantInfo} (mp : EnvMode
   obtain ⟨cs⟩ := env'
   simp only at henv
   subst henv
-  have hbound := ConLeche.Semantics.envWF_constsBound mp.base2.wf
+  have hbound := ConLeche.Verify.envWF_constsBound mp.base2.wf
   have hden : ∀ (ψ : Name → Nat) (d : Nat) (e : Expr), ConstsBound env e →
       ∀ {ea : Term}, denote mp.base2.acval env ψ d e = some ea →
         denote mpX.base2.acval ⟨new ++ env.consts⟩ ψ d e = some ea := by

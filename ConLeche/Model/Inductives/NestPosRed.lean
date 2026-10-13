@@ -8,14 +8,14 @@ public import ConLeche.Model.CtxOkP
 import ConLeche.Model.Rules.Sound
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Model.Inductives.TypeStep
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Semantics.Frame
 import ConLeche.Verify.Leaves
 import ConLeche.Verify.Abstract
 import ConLeche.Verify.InferLeaves
 import ConLeche.Model.Inductives.TargetIhSlot
-public import ConLeche.Semantics.ConstsBound
+public import ConLeche.Verify.Denote.ConstsBound
 
 public section
 

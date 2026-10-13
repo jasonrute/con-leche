@@ -2,7 +2,7 @@ module
 
 public import ConLeche.Model.NatWf
 import ConLeche.Semantics.DivModEval
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 public section
 
 /-!

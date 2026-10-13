@@ -10,7 +10,7 @@ import ConLeche.Model.Env.CanonCrest
 import ConLeche.Model.Inductives.BlockHoleRead
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructRecKit
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Reading.Levels
 
 public section

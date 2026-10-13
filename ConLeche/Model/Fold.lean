@@ -10,7 +10,7 @@ public import ConLeche.Model.Inductives.DeclBlockStep
 import ConLeche.Kernel.Checker
 import ConLeche.Kernel.CheckerBase
 import ConLeche.Model.Reading.Levels
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Capstone
 import ConLeche.Model.IndCons
 import ConLeche.Model.BasisEq

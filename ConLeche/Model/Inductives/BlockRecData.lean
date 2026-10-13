@@ -40,7 +40,7 @@ namespace ConLeche.Model
 
 open ConLeche.Semantics SetTheory
 open ConLeche.Term
-open ConLeche.Verify (denote openRev)
+open ConLeche.Verify
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo RecRule BlockShape
   consBlockRecs)
 

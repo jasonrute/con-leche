@@ -12,12 +12,12 @@ import ConLeche.Model.Inductives.BlockRecTyShapeRun
 import ConLeche.Model.Inductives.BlockDeclRun
 import ConLeche.Model.Inductives.NestPosRed
 import ConLeche.Model.Inductives.ContFrame
-import ConLeche.Model.Reading.ErasedEq
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.ErasedEq
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Inductives.GenClsSem
 import ConLeche.Model.Inductives.ContLeaf
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Inductives.ClassMatchRun
 import ConLeche.Verify.Inductives.RecCheckScope

@@ -2,7 +2,7 @@ module
 
 public import ConLeche.Model.Env.Laws
 import ConLeche.Model.Reading.Levels
-import ConLeche.Model.Reading.Closed
+import ConLeche.Verify.Denote.Closed
 public import ConLeche.Semantics.EnvFacts
 public import ConLeche.Model.Env.BlockLfp
 public import ConLeche.Semantics.Inductives.FieldsEqOn

@@ -130,6 +130,20 @@ tier's carriers.  Depends only on the index. -/
   | 0, e => .fst e
   | i + 1, e => projNV i (.snd e)
 
+/-- `projNV` commutes with lifting (it introduces no binders). -/
+theorem projNV_liftN :
+    ∀ (i : Nat) (e : Term) (n k : Nat),
+      (projNV i e).liftN n k = projNV i (e.liftN n k)
+  | 0, _, _, _ => rfl
+  | i + 1, e, n, k => projNV_liftN i (.snd e) n k
+
+/-- `projNV` commutes with instantiation. -/
+theorem projNV_inst :
+    ∀ (i : Nat) (e a : Term) (k : Nat),
+      (projNV i e).inst a k = projNV i (e.inst a k)
+  | 0, _, _, _ => rfl
+  | i + 1, e, a, k => projNV_inst i (.snd e) a k
+
 /-- Denote an expression under constant valuation `cval` (each
 constant's term, level-polymorphically: a function of the
 level-parameter assignment), level assignment `φ` and binder depth

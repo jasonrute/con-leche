@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Env.EnvModelM
-public import ConLeche.Model.Reading.ConsCross
+public import ConLeche.Verify.Denote.ConsCross
 public import ConLeche.Semantics.IndBlockFacts
 import ConLeche.Model.Swap
 import ConLeche.Model.Inductives.StructFrameKit

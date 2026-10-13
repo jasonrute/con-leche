@@ -14,7 +14,7 @@ import ConLeche.Semantics.Tower.FixTower
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Semantics.Kit
 import ConLeche.Semantics.Tower.SumTower
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Inductives.BlockCtorReads
 import ConLeche.Model.Env.CanonCrest
 import ConLeche.Model.Env.LfpFormer

@@ -1,6 +1,6 @@
 module
 
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Verify.BinderLoop
 public import ConLeche.Model.Inductives.TowerCons
 public import ConLeche.Model.IndTowerRead
@@ -12,7 +12,7 @@ import ConLeche.Verify.InstLevels
 import ConLeche.Verify.Mono
 import ConLeche.Verify.Subst
 import ConLeche.Kernel.Inductives.StructParts
-import ConLeche.Model.Reading.Install
+import ConLeche.Verify.Denote.AcvalCongr
 import ConLeche.Verify.EnvWF
 import ConLeche.Model.IndFrame
 import ConLeche.Model.IndDomGrade

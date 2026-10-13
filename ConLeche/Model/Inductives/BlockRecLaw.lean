@@ -58,7 +58,7 @@ open ConLeche.Term (Term)
 open ConLeche.Semantics SetTheory
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo RecRule BlockShape
   consBlockRecs consBlockRecsR)
-open ConLeche.Verify (denote openRev)
+open ConLeche.Verify
 
 universe w
 

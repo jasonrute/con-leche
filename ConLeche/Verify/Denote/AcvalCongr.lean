@@ -1,7 +1,7 @@
 module
 
-public import ConLeche.Model.Reading.Closed
-public import ConLeche.Semantics.Install
+public import ConLeche.Verify.Denote.Closed
+public import ConLeche.Verify.Denote.Install
 import ConLeche.Verify.EnvGuards
 
 public section
@@ -19,9 +19,7 @@ binder clauses read no valuation, so:
   rides along on `rfl`.
 -/
 
-namespace ConLeche.Model
-open ConLeche.Semantics
-open ConLeche.SetModel
+namespace ConLeche.Verify
 
 open ConLeche.Term ConLeche.Verify
 
@@ -150,4 +148,4 @@ theorem denote_mkAppN_swap {acval : Name → (Name → Nat) → Term}
     rw [denote, hswap fx hf, ha]
     rfl
 
-end ConLeche.Model
+end ConLeche.Verify

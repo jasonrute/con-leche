@@ -6,10 +6,10 @@ module
 public import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.CtxOkKit
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Verify.PropRead
-import ConLeche.Model.Reading.Closed
+import ConLeche.Verify.Denote.Closed
 import ConLeche.Verify.InstLevels
 import ConLeche.Model.Reading.Levels
 import ConLeche.Rules.Rigid

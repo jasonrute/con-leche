@@ -6,7 +6,7 @@ import ConLeche.Model.Inductives.NestPosOut
 import ConLeche.Verify.Mono
 import ConLeche.Verify.Denote.IndFrame
 import ConLeche.Verify.Denote.Shift
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Verify.Rules.InferBridge
 public import ConLeche.Model.Inductives.ClassRecKit
 import ConLeche.Verify.Leaves

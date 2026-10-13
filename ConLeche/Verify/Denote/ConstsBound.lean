@@ -18,10 +18,10 @@ fact.
 
 `strLitSupported_listNames` comes with them: it is the same kind of
 fact (a guard inversion producing two `isSome` obligations) and
-`Model/Reading/TowerExtend` reads it at the same clause.
+`Verify/Denote/TowerExtend` reads it at the same clause.
 -/
 
-namespace ConLeche.Semantics
+namespace ConLeche.Verify
 
 open ConLeche.Verify
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo
@@ -241,4 +241,4 @@ theorem envWF_constsBound {env : Env} (hwf : EnvWF env) :
     fun cv value hint heq =>
       constsBound_of_constsResolve _ (hdefn cv value hint heq).2.2.1⟩
 
-end ConLeche.Semantics
+end ConLeche.Verify

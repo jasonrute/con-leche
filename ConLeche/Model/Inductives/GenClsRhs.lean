@@ -21,9 +21,9 @@ import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Inductives.BlockRecData
 import ConLeche.Model.Inductives.FixKit
-import ConLeche.Model.Reading.ErasedEq
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.ErasedEq
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Verify.Denote
 import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.Rules.InferSoundKit

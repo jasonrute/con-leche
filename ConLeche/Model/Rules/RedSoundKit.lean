@@ -1,16 +1,16 @@
 module
 
 public import ConLeche.Model.Rules.Inputs
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Verify.InferLeaves
 import ConLeche.Model.Reading.Levels
-import ConLeche.Model.Reading.Closed
-import ConLeche.Model.Reading.Install
+import ConLeche.Verify.Denote.Closed
+import ConLeche.Verify.Denote.AcvalCongr
 import ConLeche.Model.CtxOkKit
 import ConLeche.Verify.InstLevels
 import ConLeche.Verify.Denote.StrLit
 import ConLeche.Model.WellDenotedTransport
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 
 public section
 
@@ -34,7 +34,7 @@ Sections, in the order the rules consume them:
   is the LOWEST kit of the four, so a fact more than one rules file
   needs lives here and nowhere else.  `DenoteSpine`'s own list
   algebra, `denote_mkAppN(_inv)` and the tower entry's two
-  readings are `Model/Reading/Lemmas.lean`'s, imported.
+  readings are `Verify/Denote/Lemmas.lean`'s, imported.
 -/
 
 namespace ConLeche.Model.Rules
@@ -383,7 +383,7 @@ theorem slotTransfer {v v' : Nat} {A A' f a : V} {B B' : V → V}
     exact absurd (eq_pt_of_mem_piR_zero hslot) (mem_piR_pos hv hf).2.2.2
   · rw [piR_dom_unique hv hv' hf hslot]; exact ha
 
-/-! ## The spine kit — `Model/Reading/Lemmas.lean`, imported
+/-! ## The spine kit — `Verify/Denote/Lemmas.lean`, imported
 
 `DenoteSpine` and its list algebra (`length`, `getD_read`,
 `take`, `drop`, `append`, `map_list`, `snoc`, `getD`, `mem`),
@@ -472,7 +472,7 @@ theorem frame_spine {d : Nat} {Δa : List Term} {a : Expr}
     hC.of_subset (fun l hl => ConLeche.fvarLeaves_getAppArgs hx l hl)⟩
 
 /-! ## The tower entry's telescope (the entry's two READINGS are
-`Model/Reading/Lemmas.lean`'s) -/
+`Verify/Denote/Lemmas.lean`'s) -/
 
 /-- A stored tower entry's body telescope is closed. -/
 theorem towerEntry_tele_closed (hwf : ConLeche.EnvWF env) {T : Name} {i : Nat}
