@@ -54,6 +54,9 @@
 #                                                else in the battery
 #                                                builds that module
 #                      * the axiom pin (as the `axioms:` line)
+#                      * the self-check (`--selfcheck`,
+#                        scripts/selfcheck.sh): the tree's own
+#                        development exported and checked
 #                      * the vendored arena tutorial snapshot
 #                        (tests/arena/lean-arena-tests.tar.gz — pinned
 #                        and committed, so CI never depends on the live
@@ -193,10 +196,10 @@ jobs:
       # The standard battery.  It rebuilds nothing of consequence (the
       # step above already did) and runs every gate and suite listed at
       # the top of this file, including the `--trusted` sweep.
-      - name: tests/arena.sh (gates + arena/e2e suites + trusted sweep)
+      - name: tests/arena.sh (gates + arena/e2e suites + trusted sweep + self-check)
         run: |
           set -euo pipefail
-          bash tests/arena.sh 2>&1 | tee arena.log
+          bash tests/arena.sh --selfcheck 2>&1 | tee arena.log
           # arena.sh's exit code is the verdict; `pipefail` propagates it.
 
       - name: Upload logs
