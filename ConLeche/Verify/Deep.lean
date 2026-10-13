@@ -218,7 +218,7 @@ private theorem unfoldDefinition_shiftFrom {env : Env} (henv : EnvWF env)
       split
       · have hval : (value.instantiateLevelParams cv.levelParams
             us).hasFvar = false := by
-          obtain ⟨-, -, -, -, hvalwf, -⟩ := henv _ (find?_mem hf)
+          obtain ⟨-, -, -, -, hvalwf, -⟩ := henv _ (Env.find?_mem hf)
           obtain ⟨hvc, -, -, -⟩ := hvalwf cv value hint rfl
           rw [hasFvar_instantiateLevelParams]
           exact hvc
@@ -1059,7 +1059,7 @@ theorem iotaRec_WScoped (henv : EnvWF env)
     fun x hx => hw.getAppArgs x hx
   have hrhs : WScoped d
       (r.rhs.instantiateLevelParams cv.levelParams us) := by
-    obtain ⟨-, -, -, -, -, hrules, -⟩ := henv _ (find?_mem hfc)
+    obtain ⟨-, -, -, -, -, hrules, -⟩ := henv _ (Env.find?_mem hfc)
     obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules rfl r
       (List.mem_of_find?_eq_some hrule)
     exact WScoped.of_not_hasFvar
@@ -1338,7 +1338,7 @@ private theorem iotaRec_shift (henv : EnvWF env)
             ∀ pin ∈ pins, pin.hasFvar = false := by
           intro lvls pins hf' pin hpin
           obtain ⟨-, -, -, -, g5⟩ :=
-            (henv _ (find?_mem hfc)).2.2.2.2.2.1 cv mI rP rules rfl rl
+            (henv _ (Env.find?_mem hfc)).2.2.2.2.2.1 cv mI rP rules rfl rl
               (List.mem_of_find?_eq_some hrule)
           exact ((g5 lvls pins hf').2.2.1 pin hpin).1
         have h1 := defEqList_shift henv ih hpd
@@ -1355,7 +1355,7 @@ private theorem iotaRec_shift (henv : EnvWF env)
         have htel₂ : (cvj.type.instantiateLevelParams cvj.levelParams
             usj).hasFvar = false := by
           rw [hasFvar_instantiateLevelParams]
-          exact (henv _ (find?_mem hfj)).1
+          exact (henv _ (Env.find?_mem hfj)).1
         refine bind_rel_eq _ ?_ ?_
         · -- Task #342 (r1): the whole case-3 decision is now gated on
           -- `mode.verifiedChecks`, one `by_cases` outside the existing
@@ -1397,7 +1397,7 @@ private theorem iotaRec_shift (henv : EnvWF env)
         refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
         have hrhs : (rl.rhs.instantiateLevelParams cv.levelParams
             us).hasFvar = false := by
-          obtain ⟨-, -, -, -, -, hrules, -⟩ := henv _ (find?_mem hfc)
+          obtain ⟨-, -, -, -, -, hrules, -⟩ := henv _ (Env.find?_mem hfc)
           obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules rfl rl
             (List.mem_of_find?_eq_some hrule)
           rw [hasFvar_instantiateLevelParams]
@@ -1632,7 +1632,7 @@ private theorem infer_step (henv : EnvWF env)
       have hty : (ci.toConstantVal.type.instantiateLevelParams
           ci.toConstantVal.levelParams us).hasFvar = false := by
         rw [hasFvar_instantiateLevelParams]
-        exact (henv _ (find?_mem hf)).1
+        exact (henv _ (Env.find?_mem hf)).1
       simp only [pure, Except.pure, map_ok,
         shiftFrom_eq_self_of_not_hasFvar hty]
   | .forallE ty body =>
@@ -1814,7 +1814,7 @@ private theorem inferIOCore_step (henv : EnvWF env)
       have hty : (ci.toConstantVal.type.instantiateLevelParams
           ci.toConstantVal.levelParams us).hasFvar = false := by
         rw [hasFvar_instantiateLevelParams]
-        exact (henv _ (find?_mem hf)).1
+        exact (henv _ (Env.find?_mem hf)).1
       simp only [pure, Except.pure, map_ok,
         shiftFrom_eq_self_of_not_hasFvar hty]
   | .forallE ty body =>

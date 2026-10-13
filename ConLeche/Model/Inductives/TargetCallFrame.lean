@@ -8,7 +8,7 @@ import ConLeche.Verify.InferLeaves
 import ConLeche.Verify.InferLemmas
 import ConLeche.Verify.Denote.IndFrame
 import ConLeche.Semantics.Tower.FixTower
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Verify.BridgeWfImp
 import ConLeche.Model.Inductives.PosFieldLeaf
 import ConLeche.Model.Inductives.PosDerivMono
@@ -268,7 +268,7 @@ theorem dyn_ctorFit {F : Nat} {envI envC : Env} {mk : EnvModelM V μ envI}
   rw [hcr] at hcr'
   obtain rfl := Option.some.inj hcr'
   -- the crest: framed, in the frame's context, graded
-  have hcvwf := mk.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfc)
+  have hcvwf := mk.base2.wf _ (ConLeche.Env.find?_mem hfc)
   have hcl : (L[j].1.type.instantiateLevelParams L[j].1.levelParams u.key.lvls).hasFvar = false := by
     rw [Expr.hasFvar_instantiateLevelParams]; exact hcvwf.1
   have hbb : (L[j].1.type.instantiateLevelParams L[j].1.levelParams u.key.lvls).looseBVarsBounded 0

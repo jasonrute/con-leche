@@ -224,7 +224,4 @@ theorem isProofFast_inv (find? : Name → Option ConstantInfo) {a : Expr}
 
 @[simp] theorem PropWhen.isProp_never : PropWhen.isProp .never = false := by rfl
 
-@[simp] theorem Level.substPW_never (ks : List Name) (vs : List Level) :
-    Level.substPW ks vs .never = .never := by rfl
-
 end ConLeche

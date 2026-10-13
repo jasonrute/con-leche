@@ -85,7 +85,7 @@ theorem NoProjHead.ofType {c₀ : ConstantInfo} {T : Name} {i : Nat}
     fun cv mI rP rules h => absurd h (hnotrec cv mI rP rules),
     fun tbl h => absurd h (hnottable tbl)⟩
 
-theorem NoProjEnv.cons {T : Name} {i : Nat} (h : NoProjEnv env T i)
+theorem _root_.ConLeche.Verify.NoProjEnv.cons {T : Name} {i : Nat} (h : NoProjEnv env T i)
     {c₀ : ConstantInfo} (hh : NoProjHead c₀ T i) :
     NoProjEnv ⟨c₀ :: env.consts⟩ T i where
   type c hc := by
@@ -149,7 +149,7 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
     rw [denote_sort]
     rfl
   refine declStep_preserves_of_cons mp (c₀ := .projInfo tbl) (A := fun _ => .sort 0) hfresh hh
-    (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ => by rw [WellDenoted_sort]; trivial)
+    (fun _ _ _ => rfl) (fun _ _ => by rw [WellDenoted_sort]; trivial)
     (fun ψ => ⟨_, hreads ψ⟩)
     (fun ψ ta hta ρ => by
       obtain rfl := Option.some.inj ((hreads ψ).symm.trans hta)

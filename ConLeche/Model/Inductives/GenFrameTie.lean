@@ -12,12 +12,12 @@ import ConLeche.Model.Inductives.BlockRecTyShapeRun
 import ConLeche.Model.Inductives.BlockDeclRun
 import ConLeche.Model.Inductives.NestPosRed
 import ConLeche.Model.Inductives.ContFrame
-import ConLeche.Model.Reading.ErasedEq
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.ErasedEq
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Inductives.GenClsSem
 import ConLeche.Model.Inductives.ContLeaf
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Inductives.ClassMatchRun
 import ConLeche.Verify.Inductives.RecCheckScope
@@ -87,10 +87,6 @@ theorem readParams_lift {acval : Name → (Name → Nat) → Term} {env : Env} {
     rw [List.length_drop]
   simp only [Function.comp_apply]
   rw [hsplit, hdl, interp_liftN_consList]
-
-theorem getD_eq_of_map_eq {α : Type _} {g : Term → α} {o₁ o₂ : Option Term}
-    (h : o₁.map g = o₂.map g) : g (o₁.getD default) = g (o₂.getD default) := by
-  cases o₁ <;> cases o₂ <;> simp_all
 
 /-- **The frame tie at the generated stage** (see the module docstring). -/
 theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List ConstantInfo}
@@ -242,7 +238,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   obtain ⟨cvm, capsm, hfm, hab⟩ := hrd (mc c) hcl.hmm
   obtain ⟨ab, hta, hmap⟩ := hab ψc
   have hTy : SpineTy ρ ((Dc c).pars (mc c) ψc) := by
-    have hwd := (mpC.type_wellDenotedTy _ (ConLeche.Semantics.Env.find?_mem hfm) ψc _ hta ρ).1
+    have hwd := (mpC.type_wellDenotedTy _ (ConLeche.Env.find?_mem hfm) ψc _ hta ρ).1
     have := (spineTy_of_wellDenoted_mkPisAV hwd).take ((Dc c).pars (mc c) ψc).length
     rwa [hmap, List.take_left] at this
   have hparsL := hC.parsLen (mc c) hcl.hmm ψc

@@ -107,8 +107,7 @@ theorem no_constant_of_emptyPin (mp : EnvModelM V μ env) {n : Name} {u : Nat}
       have hmem := mp.mem_type c hc (fun _ => 0) _ hta0
         (fun _ => (SetTheory.empty : V))
       rw [interp_acval_emptyC mp.base2 (fun ψ =>
-        ⟨u, EnvModel.acval_pinned mp.base2 hres
-          (by rw [hf]; rfl) ψ (hpin ψ)⟩)] at hmem
+        ⟨u, EnvModel.acval_pinned mp.base2 hf hres (hpin ψ)⟩)] at hmem
       exact not_mem_empty _ hmem
     · rw [denote, hf] at hta
       dsimp only at hta

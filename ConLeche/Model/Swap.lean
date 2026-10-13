@@ -3,9 +3,9 @@ module
 import ConLeche.Verify.Denote.EnvExt
 import ConLeche.Semantics.Tower.TowerKit
 import ConLeche.Verify.Denote
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.Reading.Levels
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Model.Tiers
 import ConLeche.Verify.BridgeWfImp
@@ -204,7 +204,6 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
                 basis_pinned := hbp₃
                 proj_ok := hproj₃
                 rec_ctors := hctors₃
-                acval_closed := mp.base2.acval_closed
                 acval_params := by
                   intro n ci hf ψ₁ ψ₂ hp
                   rcases hcorr n with heq |

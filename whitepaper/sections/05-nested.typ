@@ -348,7 +348,7 @@ one support. Monotonicity follows from accessibility as in §4. For
 the recursor, con-leche also proves the walk's readings
 #src("ConLeche/Semantics/Inductives/HoleMono.lean", 17, 23)[monotone case by case]\;
 at a container that compares the container's least fixed points at
-two instantiations, #src("ConLeche/SetModel/HoleClose.lean", 17, 22)[by leastness].
+two instantiations, #src("ConLeche/SetModel/HoleClose.lean", 17, 20)[by leastness].
 Nothing about the container's parameter is recorded when it is
 installed. The walk at the instantiation is what makes the argument
 go through.

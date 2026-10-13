@@ -186,7 +186,7 @@ at `univ (s ψ)`. -/
   blockRecAcvOf acval (rs.map (·.1.name)) (blockRecLeafAV acval envC rs s eqs)
 
 /-- **The recursor family's leaf facts** at the equation list `eqs`:
-the leaf is closed, invariant under lifting, level-parametric in each
+the leaf is closed, level-parametric in each
 recursor's own parameters, graded, and the family premise
 `hpre` that grades it. -/
 structure BlockRecLeafOk {envC : Env} (mpC : EnvModelM V μ envC)
@@ -194,9 +194,6 @@ structure BlockRecLeafOk {envC : Env} (mpC : EnvModelM V μ envC)
     (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) : Prop where
   closed : ∀ (ψ : Name → Nat) (i : Nat),
     Term.Closed (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i)
-  liftN : ∀ (ψ : Name → Nat) (i k : Nat),
-    (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i).liftN 1 k
-      = blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i
   par : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
     rs[i]? = some r → ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) →
       blockRecLeafAV mpC.base2.acval envC rs s eqs ψ₁ i
@@ -238,15 +235,13 @@ theorem BlockRecLeafOk.stored {envC : Env} {mpC : EnvModelM V μ envC}
     (hleaf : BlockRecLeafOk mpC rs s eqs) (hnd : (rs.map (·.1.name)).Nodup)
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : r ∈ rs) :
     (∀ ψ, Term.Closed (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) ∧
-    (∀ ψ k, (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ).liftN 1 k
-      = blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ) ∧
     (∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) →
       blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ₁
         = blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ₂) ∧
     (∀ ψ (ρ : Nat → V), WellDenoted V ρ (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ)) := by
   obtain ⟨i, hi⟩ := List.getElem?_of_mem hr
   simp only [blockRecAcv_at hnd hi]
-  exact ⟨fun ψ => hleaf.closed ψ i, fun ψ k => hleaf.liftN ψ i k,
+  exact ⟨fun ψ => hleaf.closed ψ i,
     fun ψ₁ ψ₂ hq => hleaf.par i r hi ψ₁ ψ₂ hq,
     fun ψ ρ => hleaf.wd ψ i (List.getElem?_eq_some_iff.mp hi).1 ρ⟩
 
@@ -338,8 +333,8 @@ theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
     (fun r hr => (hcv r hr).1) (fun r hr => (hcv r hr).2.1) (fun r hr => (hcv r hr).2.2.1)
     (fun r hr => ⟨(hfacts r hr).1, (hfacts r hr).2.1, (hfacts r hr).2.2.1,
       (hfacts r hr).2.2.2.1⟩)
-    hag (fun r hr => (hL r hr).1) (fun r hr => (hL r hr).2.1) (fun r hr => (hL r hr).2.2.1)
-    (fun r hr => (hL r hr).2.2.2)
+    hag (fun r hr => (hL r hr).1) (fun r hr => (hL r hr).2.1)
+    (fun r hr => (hL r hr).2.2)
     (hrd_of_pre hμ mpC h rfl
       (fun i r hr ψ => by obtain ⟨-, -, -, hread, -⟩ := recStage_tyPis hμ mpC h hr ψ; exact hread)
       (fun i r hr ψ => blockRecAcv_at hnd hr ψ) hleaf.pre)

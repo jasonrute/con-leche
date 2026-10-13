@@ -20,7 +20,7 @@ the table]\; in the model a structure value is the tagged tuple of
 @sec:ext-eta and a projection reads a component, which
 #src("ConLeche/Model/Inductives/BlockStageTables.lean", 10, 12)[the
 install of the table] establishes
-(#src("ConLeche/Model/Inductives/FixKit.lean", 723, 728)[its typing
+(#src("ConLeche/Model/Inductives/FixKit.lean", 714, 719)[its typing
 and ι laws]).]
 
 #left-out[Mutual inductive types][Several types declared together,
@@ -39,7 +39,7 @@ constructor form when reduction needs it
 binary `Nat` operations] on literals with machine arithmetic. The folding is sound only for
 the operations as the toolchain defines them, so the checker compares
 each stream's definition against #src("ConLeche/Kernel/NatOpPins.lean", 8, 21)[a pinned copy] and the model
-#src("ConLeche/Model/NatEqs.lean", 1112, 1116)[establishes the operations' recurrences] from that comparison.]
+#src("ConLeche/Model/NatEqs.lean", 1101, 1105)[establishes the operations' recurrences] from that comparison.]
 
 #left-out[Quotients][`Quot`, `Quot.mk`, `Quot.lift`, `Quot.ind` and the
 axiom `Quot.sound` are installed from #src("ConLeche/Kernel/Basis/Quot.lean", 8, 14)[a built-in pin] and modelled by #src("ConLeche/SetTheory/Derive/Quot.lean", 65, 67)[the
@@ -115,7 +115,7 @@ checker's terms directly. It first reads a term into a smaller language,
 #src("ConLeche/Term/Syntax.lean", 187, 218)[`Term`]: de Bruijn
 indices, sorts at concrete numbers (the level valuation already
 applied), and built-in constants at concrete levels. That reading,
-#src("ConLeche/Verify/Denote.lean", 138, 139)[`denote`], is partial only for
+#src("ConLeche/Verify/Denote.lean", 152, 153)[`denote`], is partial only for
 syntactic reasons: an unknown constant, a wrong number of levels, or a
 projection with no table. The interpretation
 #src("ConLeche/Semantics/Interp.lean", 134, 145)[`interp`] then maps

@@ -57,26 +57,6 @@ theorem PosTree.mem_forest_iff {u : PosTree} :
     rw [PosTree.mem_forest_cons, PosTree.mem_forest_iff]
     simp
 
-/-- Every node below a reached node is reached. -/
-theorem PosTree.Reached.nodes {ts : List PosTree} :
-    ∀ (n : Nat) (t : PosTree), t.height ≤ n → PosTree.Reached ts t →
-      ∀ u ∈ t.nodes, PosTree.Reached ts u
-  | 0, t, hh, _, _, _ => by
-    cases t with
-    | node occ anc key grp kids => simp [PosTree.height] at hh
-  | n + 1, t, hh, hr, u, hu => by
-    rcases PosTree.mem_nodes.mp hu with rfl | hu
-    · exact hr
-    · obtain ⟨k, hk, hku⟩ := PosTree.mem_forest_iff.mp hu
-      have := PosTree.height_kid hk
-      exact PosTree.Reached.nodes n k (by omega) (.kid hr hk) u hku
-
-/-- **Every node of a forest is reached** from its roots. -/
-theorem PosTree.Reached.of_forest {ts : List PosTree} {u : PosTree}
-    (hu : u ∈ PosTree.forest ts) : PosTree.Reached ts u := by
-  obtain ⟨k, hk, hku⟩ := PosTree.mem_forest_iff.mp hu
-  exact PosTree.Reached.nodes k.height k (Nat.le_refl _) (.root hk) u hku
-
 /-! ## The seeds, read back -/
 
 /-- Spines of erasure-equal heads and arguments are erasure-equal. -/

@@ -8,8 +8,8 @@ import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.ClassGenMinor
 import ConLeche.Model.Inductives.GenRuleSyn
 import ConLeche.Model.Inductives.GenRuleFree
-import ConLeche.Model.Reading.ErasedEq
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.ErasedEq
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Verify.Inductives.ClassGenScope
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
 import ConLeche.Verify.Subst

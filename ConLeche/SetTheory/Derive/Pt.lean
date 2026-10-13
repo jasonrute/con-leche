@@ -95,10 +95,6 @@ in `Derive/Graphs.lean`, `pt ∉ ω` in `Derive/TypeU.lean`. -/
 theorem eq_of_mem_pt {x y : V} (hx : x ∈ˢ (pt : V)) (hy : y ∈ˢ (pt : V)) : x = y :=
   (mem_pt.mp hx).trans (mem_pt.mp hy).symm
 
-/-- No tagged value (Kuratowski pair) is a member of the point. -/
-theorem kpair_not_mem_pt (a b : V) : ¬ kpair a b ∈ˢ (pt : V) := fun h =>
-  ptTag_ne_kpair a b (mem_pt.mp h).symm
-
 /-- The canonical singleton `{pt}`: the true truth value. -/
 noncomputable def unitSet : V := sing pt
 

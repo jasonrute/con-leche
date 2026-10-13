@@ -105642,3 +105642,132 @@ the sections: 226 → 0.  Words (`wc -w`, sections): 29 297 → 28 262.
 OK after `--update` (467 links); `tests/overview-links.sh` OK after
 `--update` (the `Term/Syntax.lean` docstring); the document builds
 warning-free.
+
+## TASK #342 — R5: the remaining dead code (2026-10-13, agent/342-r5)
+
+The leftovers review's last lane: the census's deletion set, R3's two
+redundancies, the model-free half of `Model/Reading/*`, and what turned
+up on the way.  No checker behaviour changed (the checker lost one dead
+helper and some unused simp lemmas); verdicts unchanged.
+
+**1. The census** (`scripts/dead-census.py`, fresh on `port-342-r`
+658163a8e): 175 deletable owners (353 constants).  Deleted 135 owners
+and `Verify/ProjVerdict.lean` whole; the build asked back 36 that the
+census cannot see (rfl lemmas named in `simp`/`rw` lists): `Verify/Knot`'s
+28 folds and `inferTypeIO_def`, `Extend/Inversions`'
+three `fueledOps_*`, `Deep`'s `map_ok`, `FileFalse`'s `toString_id`,
+`RoundsWork`'s `idsT_nil`, `BridgeCSDecl`'s `throwC_bind_eq`.  Kept
+because a document names them (dead by the walk): `Denotes_functional`
+(the `Denotes.lean` reader's uniqueness statement), `trusted_agrees_skels_D`
+(OVERVIEW's naming table), `no_proof_of_Empty_checked` (pinned in
+`tests/ConLecheTests/Axioms.lean`).  What went, by tier:
+- *Verify*: the pair-monad records of `BridgeDecl` (`bridgeRel`, `OpsRel`,
+  `pairOps`, `wfOpsM`, `wfOpsM_whnf`, `checkDeclsPure_datF`,
+  `nestedBlockPositivity_datF`), `ProjVerdict` (the projection verdict
+  statements), `RecStage`'s `RuleTower`, `AgreeFloor`'s three
+  corollaries of `trusted_agrees_skels_D`, `MainC`'s and `Fold`'s
+  coverage corollaries (`checkDecls_cover`, `checkDeclsPure_cover`,
+  `fullyChecked_cover`);
+- *Model*: `CtxOkKit`'s ten `CtxOk`/`CtxOkS` accessors, `Cover`'s four,
+  `BlockHoleRead`'s `ErasedEq`/`replaceConsts` kit, `StoredShapes`'
+  `HoleLeafOk`, `TargetCallWalk`'s four, `Caps`' `unitNoFamily*` and
+  `etaFamilyStored_not_derivable`, `CanonCrest`'s two `replaceConsts`
+  transports, `BlockRecPreRun`'s `inferTypeCore_openPis_sortZ`, the
+  rules kits' `hoist_spine`/`graded_app`/`lamDomV`/`*K` congruences and
+  `DefEqListSemU`, and some forty one-off lemmas;
+- *Semantics/SetModel/SetTheory*: `Hoist`'s converses, head transfer and
+  trap-check example (`hoist_pi` is what is used), `FixTower`'s and
+  `BlockTower`'s strictness lemmas, `Derive/Univ`'s six `univ` lemmas,
+  `LfpFam`'s six, `Sigma`'s five, `Quot`'s three (with the
+  `untagged_quotSet_eq_pt_countermodel` remark), `set_choice` (uncited;
+  `schoice` is what the model uses), `mem_unitSet`, `maxOne_ne_zero`;
+- *Rules*: `DefEq.deltaL`/`deltaR`/`deltaBoth`;
+- *checker code*: `openPisParamsIdx` (`BlockInstall`, never called).
+
+**2. Simp lemmas the census holds back.**  A dead `@[simp]` lemma in a
+surviving module is held (a `simp` use leaves no trace); each of the 89
+was tried per module, then one by one, and 35 are gone where the build
+stays green and warning-free (`CoreC`'s `certAtI` pair, `ExprNodes`,
+`InstallSkel`, `IndTele`, `SumTower`, `Knot`'s `pureFns*`, `Modes`,
+`PropRead`, `Iter`, `TeleOpen`, `PairM`, `Verify/Subst`, `EnvWF`'s
+`ProjTable.entry_*`).  A census re-run then found three more:
+`Tower.iterF`, `instSeq_eq_self_of_closed`, `CtxOkS.nil`.
+
+**3. R3's redundancies.**  `EnvModel.acval_closed` is a lemma now
+(`Term.liftN_eq_self` at `cval_closed`), not a field; the `hAclosed`
+premise is gone from `coreCons`, `declStep_preserves_of_cons`, the four
+basis and three inductive wrappers, `harvestAxiom` and every call
+site, and with it `acvalWith_closed`,
+`BlockRecLeafOk.liftN`/`blockRecLeafAV_liftN` and the `hlift` premise
+threaded through the recursor chain (`envModelM_consBlockRecsBare`,
+`envModelM_consBlockRecsR`).  The `hAclosed` that `DivModCert`,
+`NatEqs` and `ReduceOps` take is a premise of their own (the value's
+reading at depth), not threaded from `coreCons`; it stays.
+`acval_basis_pinned` folded into `EnvModel.acval_pinned`, which now
+takes the lookup `env.find? n = some ci`, as every use has it.
+
+**4. `Model/Reading/*` → `Verify/Denote/*`.**  Nine of the twelve need
+no model and moved (namespace `ConLeche.Verify`): `Lemmas`, `Shift`
+(as `Depth`, `Verify/Denote/Shift` exists), `Inst`, `Closed`,
+`Install` (as `AcvalCongr`, beside the existing `Install`),
+`EnvExtend`, `TowerExtend`, `ConsCross`, `ErasedEq`.  So that no
+`Verify/*` module imports `Semantics/*`, their dependencies moved down
+too: `Semantics/ConstsBound` became `Verify/Denote/ConstsBound`;
+`acvalWith` and its V-free laws joined `Verify/Denote/Install` (the one
+`V` lemma, `acvalWith_wellDenoted`, moved to its one user,
+`Model/Install`; `Semantics/Install.lean` is gone); `projNV_liftN`/
+`projNV_inst` sit beside `projNV` in `Verify/Denote.lean`.
+`Reading/{Levels,LpDefF,SubstFvars}` read `EnvModel` and stay.  The
+umbrella imports moved from `ConLeche/Model.lean` to `ConLeche.lean`.
+
+**5. Other leftovers.**
+- *Identity helpers*: `AcvalParams`/`acvalParams` (EnvModel's "Residue
+  8") and `acvalParamsAt_of_core` restated the `acval_params` field;
+  gone (`AcvalParamsAt` is an `abbrev`, `acval_const_congr'` lost its
+  premise and its prime); `keyLeaf` was `keyLeafW` re-wrapped.
+- *Duplicated lemmas* (one kept each): `find?_mem` (`InferLemmas`) =
+  `Semantics.Env.find?_mem` (now `Env.find?_mem`/`find?_name` in
+  `Verify/EnvWF`); `IsTy_psigma_app`/`IsTy_quot_app` (Model) =
+  `IsTy_psigmaV_app`/`IsTy_quotV_app` (Semantics); `WellDenotedTy_pi_dom`
+  = `WellDenoted.pi_dom`; `frameIdx_eq_range_reverse` (SumKit) =
+  `frameIdx_eq_reverse_map` (FixKit), now beside `frameIdx`;
+  `piResult_of_stripPis_sort` (Model) = its primed Verify twin;
+  `spineFit_append_split` (SumTower) = `spineFit_append_inv`
+  (StructRecKit), now beside `SpineFit`; `natBinHead_app_package` =
+  `natBinHead_app`; `fueledOps_orElse'` (BridgeDecl) = `fueledOps_orElse`.
+- *Unused premises*: `hAclosed`/`hlift` above; no other pass-through
+  premise was found (the build is warning-free, so every named premise
+  is read; the recursion-only case was `hlift`).
+- *Kept, with reason*: `Rules/Derived`'s `Expr.mkAppN_append_one'`/
+  `mkAppN_getApp'` twin `InferLemmas`' (the rules tier does not import
+  the fueled entry points; its comment says so); `ContWalk`'s `…T`
+  lemmas restate the plain ones under fewer section premises (not
+  duplicates).
+- *Stale prose* repaired: `BridgeDecl`'s and `BridgeWfImp`'s module
+  docstrings (they described the deleted `wfOpsM` game), `Hoist`'s,
+  `Choice`'s, and about twenty comments naming deleted lemmas.
+
+**Size.**  `ConLeche/` 196 files, +683/−2904 (with renames detected).
+
+**Numbers** (`instructions:u`, `--verified --jobs=1`, one run each,
+under the RSS guard; base = `port-342-r` 658163a8e): init-full
+400.566G → 400.507G (−0.01 %), mathlib-prefix 547.837G → 547.832G
+(−0.00 %); 57 977 / 131 902 declarations accepted; peak RSS 0.30 /
+0.46 GiB.
+
+**Imports.**  The moved modules' allowlist lines follow them; seven
+new `shake` proposals the deletions exposed are allowlisted with their
+`--only` evidence; `FixKit`'s `NoBVar` import went (criterion clean).
+
+**Documents.**  OVERVIEW's module map (`Verify/`: the reading and its
+metatheory; `Model/Reading/`: the facts that read the invariant);
+anchors in OVERVIEW and the whitepaper repointed by content, two
+re-read; both link gates regenerated.  `scripts/dead-census.py`'s
+"results that are not corollaries" examples name live results.
+
+**Gates** (final tree): `lake build`, `lake test` warning-free; the
+full `tests/arena.sh` green — layering, pindump, trust surface, links
+(135 + 473), fragment, quote, challenge, shake (690 allowlisted;
+pub-imports none demotable), the self-check (46 898 accepted), axioms,
+arena 90/92, e2e 484/484, the trusted sweep (0 divergences), the
+`--jobs=1`/`--jobs=4` sweeps.

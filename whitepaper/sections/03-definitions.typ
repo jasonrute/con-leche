@@ -172,7 +172,7 @@ gains three cases, one per rule.
   $arrow(ell) eq.dot arrow(ell)'$ pointwise: \
   The oracle answers yes
   only if the levels agree at every valuation (@sec:levels), so the
-  two constants #src("ConLeche/Model/Rules/DefEqSound.lean", 70, 72)[read the same entry of $M$].
+  two constants #src("ConLeche/Model/Rules/DefEqSound.lean", 69, 71)[read the same entry of $M$].
 
   *#src("whitepaper/Fragment/Sound.lean", 276, 281)[Rule const, inference]*,
   $c.\{arrow(ell)\} => T[arrow(p) := arrow(ell)]$: \
@@ -185,7 +185,7 @@ gains three cases, one per rule.
   If the environment has a model and the definition $c$ passes the
   checks above, then the environment
   #src("whitepaper/Fragment/InstallDef.lean", 345, 350)[extended with $c$ has a model]
-  (#src("ConLeche/Model/Install.lean", 279, 282)[as in con-leche]).
+  (#src("ConLeche/Model/Install.lean", 294, 297)[as in con-leche]).
 ] <thm:install-def>
 
 #proof[

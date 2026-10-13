@@ -75,27 +75,12 @@ theorem Env.findProj?_off_eq {env : Env} {T : Name} {i j : Nat} {e e' : ProjEntr
   obtain rfl : tbl = tbl' := ConstantInfo.projInfo.inj (Option.some.inj (hf.symm.trans hf'))
   rfl
 
-/-- A stored table's view fixes the entry's data. -/
-@[simp] theorem ProjTable.entry_structName (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).structName = tbl.structName := rfl
-@[simp] theorem ProjTable.entry_idx (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).idx = i := rfl
 @[simp] theorem ProjTable.entry_levelParams (tbl : ProjTable) (i : Nat) :
     (tbl.entry i).levelParams = tbl.levelParams := rfl
 @[simp] theorem ProjTable.entry_numParams (tbl : ProjTable) (i : Nat) :
     (tbl.entry i).numParams = tbl.numParams := rfl
-@[simp] theorem ProjTable.entry_ctor (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).ctor = tbl.ctor := rfl
-@[simp] theorem ProjTable.entry_numFields (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).numFields = tbl.numFields := rfl
 @[simp] theorem ProjTable.entry_body (tbl : ProjTable) (i : Nat) :
     (tbl.entry i).body = tbl.bodies.getD i default := rfl
-@[simp] theorem ProjTable.entry_fieldSort (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).fieldSort = tbl.guards.getD i .zero := rfl
-@[simp] theorem ProjTable.entry_structSort (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).structSort = tbl.structSort := rfl
-@[simp] theorem ProjTable.entry_off (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).off = tbl.off := rfl
 /-- **The capability arities**: an inductive stored with the unit-like
 or the η capability has the `∀`-telescope its capability record's
 parameter count names.  A property of the stored declaration alone —
@@ -378,5 +363,20 @@ theorem nodup_of_nameNodup : ∀ {ns : List Name}, ConLeche.Name.nodup ns = true
     refine List.nodup_cons.mpr ⟨fun hm => ?_, nodup_of_nameNodup h.2⟩
     have := h.1
     simp [hm] at this
+
+/-! ## Two `find?` readings -/
+
+/-- A `find?` hit names the stored constant. -/
+theorem Env.find?_name {env : Env} {n : Name} {ci : ConstantInfo}
+    (h : env.find? n = some ci) : ci.name = n := by
+  unfold ConLeche.Env.find? at h
+  have := List.find?_some h
+  simpa using this
+
+/-- A `find?` hit is a stored constant. -/
+theorem Env.find?_mem {env : Env} {n : Name} {ci : ConstantInfo}
+    (h : env.find? n = some ci) : ci ∈ env.consts := by
+  unfold ConLeche.Env.find? at h
+  exact List.mem_of_find?_eq_some h
 
 end ConLeche

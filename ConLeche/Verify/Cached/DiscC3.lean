@@ -666,7 +666,7 @@ private theorem iotaRec_certs_case3 (ih : SSimC mode env f) (henv : EnvWF env)
         else pure false) := by
   have hwctorty : Expr.WScoped d
       (cvj.type.instantiateLevelParams cvj.levelParams usj) := by
-    obtain ⟨htf, -⟩ := henv _ (find?_mem hfj)
+    obtain ⟨htf, -⟩ := henv _ (Env.find?_mem hfj)
     exact wscoped_instLevels_of_not_hasFvar htf _ _
   refine SimC.bind_left (constTyAtM_eff hs hfj)
     (fun s₃ tyCtor hs₃ hQctor => ?_)
@@ -727,7 +727,7 @@ private theorem iotaRec_fire_tail (henv : EnvWF env)
     refine SimC.pure hs₈ ⟨hQred, ?_⟩
     refine Expr.WScoped.mkAppN ?_ ?_
     · obtain ⟨-, -, -, -, -, hrules, -⟩ :=
-        henv _ (find?_mem hfc)
+        henv _ (Env.find?_mem hfc)
       obtain ⟨hrf, -, -, -, -⟩ := hrules cv mI rP rules
         rfl rl (List.mem_of_find?_eq_some hrule)
       exact wscoped_instLevels_of_not_hasFvar hrf _ _
@@ -944,7 +944,7 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
                         ∀ pin ∈ pins, pin.hasFvar = false := by
                       intro lvls pins hf' pin hpin
                       obtain ⟨-, -, -, -, -, hrules, -⟩ :=
-                        henv _ (find?_mem hfc)
+                        henv _ (Env.find?_mem hfc)
                       obtain ⟨-, -, -, -, g5⟩ := hrules cv mI rP rules
                         rfl rl (List.mem_of_find?_eq_some hrule)
                       exact ((g5 lvls pins hf').2.2.1 pin hpin).1

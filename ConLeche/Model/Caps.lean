@@ -110,47 +110,7 @@ under a name that an `indInfo` entry's `caps` record merely *names*,
 and `EnvWF` relates the two not at all.  `blockCapsAt`
 (`Kernel/Inductives/BlockInstall.lean`) computes `eta` and `unitlike`
 by two independent checks, so a `unitlike`-but-not-`eta` family is
-exactly the shape the premise excludes and the certificate accepts.
-
-`etaFamilyStored_not_derivable` below is that gap, mechanized. -/
-
-/-- The witnessing capability record: `unitlike` without `eta`, naming
-a constructor that is stored nowhere. -/
-def unitNoFamilyCaps : IndCaps where
-  eta := false
-  etaCtor := Name.anonymous.str "ConLecheCapsWall.mk"
-  etaParams := 0
-  etaFields := 0
-  unitlike := true
-  unitParams := 0
-  ruleK := false
-
-/-- The witnessing environment: one non-reserved `unitlike` former
-carrying `unitNoFamilyCaps`. -/
-def unitNoFamilyEnv : Env :=
-  ⟨[.indInfo ⟨Name.anonymous.str "ConLecheCapsWall.T", [], .sort .zero⟩
-      unitNoFamilyCaps]⟩
-
-/-- A well-formed environment storing a non-reserved `unitlike` family
-for which `EtaFamilyStored` is FALSE.  Everything `structUnitCert`'s
-inversion can ever hand a consumer holds here. -/
-theorem etaFamilyStored_not_derivable :
-    ∃ (env : Env) (T : Name) (cvT : ConstantVal) (caps : IndCaps),
-      ConLeche.EnvWF env ∧
-      env.find? T = some (.indInfo cvT caps) ∧
-      caps.unitlike = true ∧
-      ConLeche.reservedBasisNames.contains T = false ∧
-      ¬ ConLeche.EtaFamilyStored env T caps := by
-  refine ⟨unitNoFamilyEnv, Name.anonymous.str "ConLecheCapsWall.T",
-    ⟨Name.anonymous.str "ConLecheCapsWall.T", [], .sort .zero⟩,
-    unitNoFamilyCaps, ?_, rfl, rfl, by decide, ?_⟩
-  · intro c hc
-    rcases List.mem_singleton.mp hc with rfl
-    exact ⟨rfl, rfl, rfl, rfl, by rintro _ _ _ ⟨⟩,
-      by rintro _ _ _ _ ⟨⟩, by rintro _ ⟨⟩,
-      ConLeche.IndCapsWF.of_caps (fun _ => rfl) (fun h => nomatch h)⟩
-  · rintro ⟨-, ⟨cvC, _, _, hfC⟩, -⟩
-    exact nomatch hfC
+exactly the shape the premise excludes and the certificate accepts. -/
 
 /-! ## The crossing -/
 
@@ -180,7 +140,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
       rw [hac, acvalWith_ne hnT] at hmem
       rw [hac, acvalWith_ne hnC]
@@ -193,7 +153,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
         exact denote_cons_mono hfresh
           ((hntc.typeOf hf).instantiateLevelParams _ _) _ 0
           (constsBound_instType mp.base2.wf
-            (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
+            (ConLeche.Env.find?_mem hf) us) hTCa
   · -- the unit-like half: no fabricated spine, one leaf to move
     -- (and, post-repair, no family premise: the former's freshness
     -- disequality comes from the cons head's non-inductive kind)
@@ -213,7 +173,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x y hlents hfit hmx hmy
       rw [hac, acvalWith_ne hnT] at hmx hmy
       exact hlaw ρ ts rest x y hlents hfit hmx hmy

@@ -51,12 +51,6 @@ universe uv
 
 variable {V : Type uv} [SetTheory V]
 
-/-! ## `Nat.max` at the pinned pair's levels -/
-
-omit [SetTheory V] in
-theorem natMax_self (n : Nat) : Nat.max n n = n := Nat.max_self n
-
-
 /-! ## The dependent pair `.psigma`, `choice` -/
 
 /-- `pt` witnesses the double negation of an inhabited set. -/
@@ -309,11 +303,6 @@ theorem sigChainV_univ :
     show interp V _ _ ∈ˢ _
     exact univ_mono (Nat.zero_le s) _ (by rw [univ_zero]; exact h.1)
   | _, _ :: _, _, h => sigChainV_tail_univ h
-
-/-- The chain is a type (task #342, L6). -/
-theorem IsTy_sigChainV {ρ : Nat → V} {Ts : List Term} {Q : Term}
-    (h : ChainOk s ρ Ts Q) : IsTy (sigChainV s ρ Ts Q) :=
-  IsTy_of_mem_univ (sigChainV_univ h)
 
 /-- The pair former's function-space membership at `[u, v]`. -/
 theorem psigmaV_uv_mem (u v : Nat) :
@@ -699,7 +688,6 @@ theorem blockRecAVI_facts (s k : Nat) (T : Nat → Term) (eqs : List Term) (ρ :
   · rw [range_map_getD hlen]
     exact (pt_mem_andChainAV_iff (heq rs hlen hmem)).mp hq
 
-
 /-!
 ## The recursor family of a k-member block: the leaf and its ι laws
 
@@ -744,7 +732,6 @@ and the residue `Rb`.  The Model tier supplies them as the readings of
 the stored forms, lifted by `K`; the ih terms' canonical shape is the
 curried λ-tower over the field's telescope of the guarded call.
 -/
-
 
 /-! ## Substituting a block of innermost binders
 
@@ -1223,7 +1210,6 @@ theorem towerWalkA_of_spines_body {C : Term} {g : List V → (Nat → V) → V} 
     rw [consList_cons] at this
     simpa using this
 
-
 /-!
 ## The recursor family's candidate from the GRAPH kit
 
@@ -1253,9 +1239,7 @@ law is then `GraphRecKit.rec_eq` at THAT decoding: no decoding is
 ever chosen.
 -/
 
-
 open ConLeche.SetTheory
-
 
 /-! ## The recursor's spine, decomposed
 

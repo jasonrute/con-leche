@@ -27,7 +27,6 @@ open ConLeche.SetModel
 
 open ConLeche.Term SetTheory
 
-
 universe w
 
 variable {V : Type w} [SetTheory V]
@@ -129,11 +128,6 @@ theorem bconst_app_data2 (c : BConst) (us : List Nat) (ρ : Nat → V)
   rw [interp_pi] at h1
   exact slot_of_mem_piV V h1 ha hS
 
-/-- A membership at a zero level lands in `univZero`. -/
-theorem mem_univZero_of_zero {u : Nat} {X : V} (hu : u = 0)
-    (h : X ∈ˢ (univ u : V)) : X ∈ˢ (univZero : V) := by
-  rw [hu, univ_zero] at h; exact h
-
 /-- Two binders in: the constant applied to its first two arguments. -/
 theorem bconst_app_data3 (c : BConst) (us : List Nat) (ρ : Nat → V)
     {A A2 A3 B3 : Term}
@@ -186,17 +180,6 @@ theorem quotMk_mem_quot {u : Nat} {A R a : V} (hA : A ∈ˢ (univ u : V))
   rw [quotMkV_app V hA hR ha, quotV_app V hA hR]
   exact quotClass_mem ha
 
-/-- A dependent pair type is a type. -/
-theorem IsTy_psigma_app {u v : Nat} {A B : V} (hA : A ∈ˢ (univ u : V))
-    (hB : B ∈ˢ psigmaFibreSpace V v A) : IsTy (app (app (psigmaV V u v) A) B) := by
-  rw [psigmaV_app V hA hB]
-  exact IsTy_of_mem_univ (sigma_mem_univ hA fun x hx => psigmaFibre_apply V hB hx)
-
-/-- A quotient is a type. -/
-theorem IsTy_quot_app {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V))
-    (hR : R ∈ˢ relSpace V A) : IsTy (app (app (quotV V u) A) R) := by
-  rw [quotV_app V hA hR]; exact IsTy_of_mem_univ (quotSet_mem_univ hA)
-
 set_option maxHeartbeats 4000000 in
 theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
     WellDenoted V ρ (BConst.typeAV c us) := by
@@ -221,8 +204,8 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
       | exact IsTy_eqv _ _
       | exact IsTy_of_mem_univ ‹_›
       | exact IsTy_of_mem_univ (unitSetAt_mem_univ _)
-      | exact IsTy_quot_app V ‹_› ‹_›
-      | exact IsTy_psigma_app V ‹_› ‹_›
+      | exact IsTy_quotV_app V ‹_› ‹_›
+      | exact IsTy_psigmaV_app V ‹_› ‹_›
       | exact IsTy_of_mem_univ (app_mem_piR_pos (Nat.succ_ne_zero _) ‹_› ‹_›)
       | exact IsTy_of_mem_univ (app_mem_piR_pos Nat.one_ne_zero ‹_› ‹_›)
       | exact IsTy_of_mem_univ (app_mem_piR_pos (Nat.succ_ne_zero _) ‹_› natzero_mem)
@@ -268,9 +251,9 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
       | trivial)
   -- `Quot.ind`'s motive applied at a `Quot.mk` spine, and at a class
   all_goals first
-    | exact slot_of_mem_piV V ‹_› (quotMk_mem_quot V ‹_› ‹_› ‹_›) (IsTy_quot_app V ‹_› ‹_›)
+    | exact slot_of_mem_piV V ‹_› (quotMk_mem_quot V ‹_› ‹_› ‹_›) (IsTy_quotV_app V ‹_› ‹_›)
     | exact IsTy_app_piV_univ V ‹_› (quotMk_mem_quot V ‹_› ‹_› ‹_›)
-    | exact slot_of_mem_piV V ‹_› ‹_› (IsTy_quot_app V ‹_› ‹_›)
+    | exact slot_of_mem_piV V ‹_› ‹_› (IsTy_quotV_app V ‹_› ‹_›)
 
 /-- **Every built-in constant's type reads to a type**: a
 dependent function space, a universe, `ω` (`Nat.zero : Nat`) or a unit type

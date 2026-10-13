@@ -218,9 +218,6 @@ theorem extendEq (mp : EnvModelM V μ env)
           = none from rfl] at hp
         exact nomatch hp)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun ψ k => Term.liftN_eq_self
-      (Term.bvarsBelow.mono (Nat.zero_le k)
-        (by exact eqValT_closed ψ)) 1)
     (fun ψ₁ ψ₂ hp => eqValT_congr
       (hp uN (by show uN ∈ [uN]; exact List.mem_cons_self)))
     (fun ψ ρ => eqValT_wellDenoted ψ ρ)
@@ -269,9 +266,6 @@ theorem extendEqRefl (mp : EnvModelM V μ env)
           = none from rfl] at hp
         exact nomatch hp)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun ψ k => Term.liftN_eq_self
-      (Term.bvarsBelow.mono (Nat.zero_le k)
-        (by exact eqReflValT_closed ψ)) 1)
     (fun ψ₁ ψ₂ hp => eqReflValT_congr
       (hp uN (by show uN ∈ [uN]; exact List.mem_cons_self)))
     (fun ψ ρ => eqReflValT_wellDenoted ψ ρ)
@@ -860,13 +854,13 @@ theorem eqRecExtra {m : EnvModel V env}
       (eqRecRule.rhs.instantiateLevelParams
         eqRecA.toConstantVal.levelParams us)
       = some (eqRecRa ψ) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_eqRec_rhs (m := m) _ hE hR hEv hRv]
   have hTyRead : denote m₂.acval ⟨eqRecA :: env.consts⟩ φ 0
       (eqRecA.toConstantVal.type.instantiateLevelParams
         eqRecA.toConstantVal.levelParams us)
       = some (eqRecTy ψ) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_eqRecA_type (m := m) _ hE hR hEv hRv]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
@@ -959,7 +953,7 @@ theorem eqRecLaw {m : EnvModel V env}
       (eqRecRule.rhs.instantiateLevelParams
         eqRecA.toConstantVal.levelParams us)
       = some (eqRecRa ψ) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_eqRec_rhs (m := m) _ hE hR hEv hRv]
   refine ⟨_, hRa, fun ρ => (eqRecRa_data ψ ρ).1, ?_, ?_⟩
   · intro _ _ h
@@ -991,7 +985,7 @@ theorem eqRecLaw {m : EnvModel V env}
       (eqRecA.toConstantVal.type.instantiateLevelParams
         eqRecA.toConstantVal.levelParams us)
       = some (eqRecTy ψ) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+    rw [denote_instLevels m₂.acval_params φ, hac, hψ,
       denote_eqRecA_type (m := m) _ hE hR hEv hRv]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
@@ -1000,7 +994,7 @@ theorem eqRecLaw {m : EnvModel V env}
         eqReflA.toConstantVal.levelParams usj)
       = some (eqReflTy
           (Level.substFn φ eqReflA.toConstantVal.levelParams usj)) := by
-    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+    rw [denote_instLevels m₂.acval_params φ, hac,
       denote_eqReflTy (m := m) _ (by decide) hE hEv]
   obtain rfl : TVja = _ :=
     (Option.some.inj (hCtorRead.symm.trans hTVja)).symm
@@ -1204,9 +1198,6 @@ theorem extendEqRec (mp : EnvModelM V μ env)
         · exact ⟨⟨_, _, _, hR⟩, fun _ => recRuleKOf_of hR rfl hE rfl,
             fun hb => Bool.noConfusion hb⟩
         · exact nomatch hr'))
-    (fun ψ k => Term.liftN_eq_self
-      (Term.bvarsBelow.mono (Nat.zero_le k)
-        (by exact eqRecValT_closed ψ)) 1)
     (fun ψ₁ ψ₂ hp => eqRecValT_congr
       (hp uN (by
         show uN ∈ [u1N, uN]

@@ -7,8 +7,8 @@ import ConLeche.Model.Rules.Sound
 public import ConLeche.Model.CtxOkP
 import ConLeche.Verify.Rules.Bridge
 import ConLeche.Model.Rules.InferSoundKit
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.Shift
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Depth
 import ConLeche.Semantics.Frame
 import ConLeche.Verify.Denote.Shift
 import ConLeche.Verify.InferLemmas
@@ -300,20 +300,6 @@ theorem constOn_spine {names : List Name} {lo hi d : Nat} {R : FrameRel V}
     · exact constOn_spine hR hd h (fun b hb => hall b (List.mem_cons_of_mem _ hb)) x hx
 
 /-! ## The relation the run is proved along -/
-
-/-- A spine of `d`-scoped terms read one level deeper is its depth-`d`
-reading, lifted. -/
-theorem DenoteSpine.weaken_top {d : Nat} :
-    ∀ {as : List Expr} {vs' : List Term}, (∀ x ∈ as, Expr.WScoped d x) →
-      DenoteSpine m.acval env φ (d + 1) as vs' →
-      ∃ vs, DenoteSpine m.acval env φ d as vs ∧ vs' = vs.map (Term.liftN 1 · 0)
-  | _, _, _, .nil => ⟨[], .nil, rfl⟩
-  | a :: as, _ :: _, hws, .cons ha h => by
-    obtain ⟨vs, hvs, rfl⟩ :=
-      DenoteSpine.weaken_top (fun x hx => hws x (List.mem_cons_of_mem _ hx)) h
-    rw [denote_weaken_top m.acval_closed (hws a List.mem_cons_self)] at ha
-    obtain ⟨v, hv, rfl⟩ := Option.map_eq_some_iff.mp ha
-    exact ⟨v :: vs, .cons hv hvs, rfl⟩
 
 /-- **The hole relation** at depth `d` under the frames `prog`: related
 frames satisfy the context, agree off the hole positions, the member

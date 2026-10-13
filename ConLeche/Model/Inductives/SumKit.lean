@@ -4,7 +4,7 @@ import ConLeche.Model.Inductives.StructRecKit
 import ConLeche.Semantics.Tower.SumTower
 public import ConLeche.Verify.Inductives.DirectInv
 public import ConLeche.Model.Inductives.StructEntryKit
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.Inductives.NestPosMono
 import ConLeche.Model.Reading.Levels
 import ConLeche.Model.IndPointKit
@@ -31,8 +31,6 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal PropWhen)
 universe w
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env} {φ : Name → Nat}
-
-/-! ## The sum leaves' P packages -/
 
 /-! ## `Term` bookkeeping -/
 
@@ -177,22 +175,13 @@ theorem IsTy_body_of_mkPisAV {R : Term} :
     rw [consList_cons]
     exact IsTy_body_of_mkPisAV (hok'.2.2.1 v hsp.1) (hok'.2.2.2 v hsp.1) hsp.2
 
-omit [SetTheory V] in
-private theorem frameIdx_eq_range_reverse (n : Nat) (σ : Nat → V) :
-    frameIdx n σ = (List.range n).reverse.map σ := by
-  apply List.ext_getElem
-  · simp [frameIdx]
-  · intro l h1 h2
-    simp only [frameIdx, List.getElem_map, List.getElem_reverse, List.getElem_range]
-    simp only [List.length_range]
-
 /-- The body of a closed graded Π-type is a type under every valuation
 satisfying the type's telescope. -/
 theorem IsTy_body_of_sat {R : Term} {ds : List Term} {σ : Nat → V}
     (hT : ∀ ρ : Nat → V, WellDenotedTy V ρ (mkPisAV ds R))
     (hsat : Sat V ((ds).reverse) σ) : IsTy (interp V σ R) := by
   have hsp := spineFit_of_sat (Ds := ds) (Δ₀ := []) (by simpa using hsat)
-  rw [← frameIdx_eq_range_reverse] at hsp
+  rw [← frameIdx_eq_reverse_map] at hsp
   have h := IsTy_body_of_mkPisAV (hT _).1 (hT _).2 hsp
   rwa [show (fun j => σ (j + (ds).length)) = shiftE (ds).length 0 σ from by
       funext j; simp [shiftE], consList_frameIdx] at h
@@ -678,7 +667,7 @@ theorem ctorFramesGen (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   have hbt' := hlbt
   have hlenP : fvsP.length = nP := openPisAtFvars_length _ hopC
   have hopAll := openPisAtFvars_add nP hopC (by rw [Nat.zero_add]; exact hopX)
-  obtain ⟨hTf, -, -, hTb, -⟩ := mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfT)
+  obtain ⟨hTf, -, -, hTb, -⟩ := mp.base2.wf _ (ConLeche.Env.find?_mem hfT)
   simp only [ConstantInfo.toConstantVal] at hTf hTb
   obtain ⟨hlenS, hfields⟩ := ConLeche.checkStructFieldSortsI_inv hsorts
   have hpins := ConLeche.checkStructDomsAt_inv hdoms
@@ -1148,8 +1137,6 @@ theorem stageCtorGen {T : Name}
     (ConsHead.ofFresh hwfC (fun ψ => hAbelow ψ) hnresC
       (fun _ h => nomatch h)
       (fun _ _ _ _ h => nomatch h))
-    (fun ψ k => Term.liftN_eq_self
-      (Term.bvarsBelow.mono (Nat.zero_le k) (hAbelow ψ)) 1)
     ?_ ?_ ?_ ?_ ?_ ?_
   · intro ψ₁ ψ₂ hφ
     have hφT : ∀ q ∈ cvTa.levelParams, ψ₁ q = ψ₂ q := by rw [hlpsT, ← hlpsC]; exact hφ

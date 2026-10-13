@@ -309,7 +309,7 @@ telescope coherence (`EtaCoherent`). -/
     ∀ φ' : Name → Nat, EtaLaw m φ' T cvT caps) ∧
   -- The unit half carries NO `EtaFamilyStored` premise: it would make
   -- the law vacuous at a WF environment with a non-reserved
-  -- unitlike-only family (`etaFamilyStored_not_derivable`).
+  -- unitlike-only family.
   (∀ (T : Name) (cvT : ConstantVal) (caps : IndCaps),
     env.find? T = some (.indInfo cvT caps) → caps.unitlike = true →
     ConLeche.reservedBasisNames.contains T = false →
@@ -549,9 +549,8 @@ recursor's levels:
 * **(U) coherence**: at a fired spine where the constructor application
   is the point (case 3, where the step compares the levels and
   parameters with the rule's comparands and the indices), the
-  conditional index comparison is an equation
-  (`blockRule_coherent`, read off the parameters' conditional
-  comparison).
+  conditional index comparison is an equation (read off the
+  parameters' conditional comparison).
 
 (P) and (U) are read only at case 3, so they take the level equation. -/
 @[expose] def RecRuleExtra {V : Type w} [SetTheory V] {env : Env}

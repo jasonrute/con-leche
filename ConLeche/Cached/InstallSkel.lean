@@ -63,10 +63,6 @@ def ciSkel : ConstantInfo → InstallSkel
   | .recInfo cv mI rP _ => .recr cv.name mI rP
   | .projInfo tbl => .proj (projTableName tbl.structName)
 
-@[simp] theorem skelName_ciSkel (ci : ConstantInfo) :
-    skelName (ciSkel ci) = ci.name := by
-  cases ci <;> rfl
-
 /-- The skeleton list of an environment (newest first, as `consts`). -/
 def envSkels (env : Env) : List InstallSkel := env.consts.map ciSkel
 

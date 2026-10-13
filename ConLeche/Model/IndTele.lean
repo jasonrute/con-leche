@@ -1,8 +1,8 @@
 module
 
 import ConLeche.Model.Env.Laws
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.ErasedEq
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.ErasedEq
 import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Shift
 import ConLeche.Kernel.Checker
@@ -72,9 +72,6 @@ theorem PiTeleAV.succ_inv {k : Nat} {T : Term} {Γ : List Term}
 @[expose] def consN : List V → (Nat → V) → (Nat → V)
   | [], ρ => ρ
   | t :: ts, ρ => consN ts (cons t ρ)
-
-omit [SetTheory V] in
-@[simp] theorem consN_nil (ρ : Nat → V) : consN [] ρ = ρ := rfl
 
 omit [SetTheory V] in
 @[simp] theorem consN_cons (t : V) (ts : List V) (ρ : Nat → V) :

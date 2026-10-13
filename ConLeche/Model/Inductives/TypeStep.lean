@@ -19,8 +19,6 @@ where the subject is not the point; a type never is ("not pt" source (1)),
 so the readers carry the walked types' `IsTy` (`GradedTy`) and read their
 steps through `red_sound_ty` (task #342, L12).
 
-* `whnf_ty` — a checker whnf run on a graded type: `red_sound_ty` through
-  the bridge;
 * `gradedTy_of_sort` — a term whose inferred type whnf's to a sort (the
   checker's `ensureSort`) reads as a graded type: its type reads as a
   universe ("not pt" source (1) for the type's own step), whose members are
@@ -38,17 +36,6 @@ open ConLeche (Env Expr Name Level)
 universe w
 
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name → Nat}
-
-/-- **A whnf run on a graded type** reads like its input, and its output is a
-graded type (`red_sound_ty`). -/
-theorem whnf_ty (hin : RulesInputs V m φ) {F d : Nat} {e w : Expr}
-    (hw : ConLeche.whnf .verified env F d e = .ok w) (hf : Frame d e)
-    {Δa : List Term} {ea : Term} (hC : CtxOk m φ d Δa e)
-    (hea : denote m.acval env φ d e = some ea) (hg : GradedTy V Δa ea) :
-    Frame d w ∧ LeavesSub w e ∧
-      ∃ wa, denote m.acval env φ d w = some wa ∧ GradedTy V Δa wa ∧
-        ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ wa :=
-  red_sound_ty hin (ConLeche.Rules.whnf_bridge hw) hf hC hea hg
 
 /-- **The `GradedTy` ∀-splitter**: both the domain and the body are graded
 TYPES (`WellDenoted.hoist_piTy` already gives the domain; the body's

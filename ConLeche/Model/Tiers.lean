@@ -2,8 +2,8 @@ module
 
 public import ConLeche.Model.CtxOkKit
 public import ConLeche.Model.Rules.Recompose
-import ConLeche.Model.Reading.Lemmas
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Lemmas
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Model.Rules.Sound
 import ConLeche.Model.CtxOkKit

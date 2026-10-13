@@ -2873,10 +2873,10 @@
    178      (h : Level.eqList ls ls' = true) : DefEqSem m φ Γ (.const c ls) (.const c ls') :=
    179    fun _ _ _ _ _ _ => by simp [(Level.eqList_iff ls ls').mp h φ]
 
-== ConLeche/Model/Rules/DefEqSound.lean#L70-L72
-    70  theorem DefEq.const_soundU {d : Nat} {n : Name} {us us' : List Level}
-    71      (h : Level.isEquivList us us' = some true) :
-    72      DefEqSemU m φ d (.const n us) (.const n us') := by
+== ConLeche/Model/Rules/DefEqSound.lean#L69-L71
+    69  theorem DefEq.const_soundU {d : Nat} {n : Name} {us us' : List Level}
+    70      (h : Level.isEquivList us us' = some true) :
+    71      DefEqSemU m φ d (.const n us) (.const n us') := by
 
 == whitepaper/Fragment/Sound.lean#L276-L281
    276  theorem const_sound {Γ : List Expr} {c : Name} {ls : List Level} {ci : ConstInfo}
@@ -2902,11 +2902,11 @@
    349      (m : EnvModel V env) (hok : DefOk env c ci) :
    350      ∃ m' : EnvModel V (env.add c ci), ∀ n, (env.find? n).isSome → ∀ ls, m'.M n ls = m.M n ls := by
 
-== ConLeche/Model/Install.lean#L279-L282
-   279  theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
-   280      {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
-   281      (hfresh : env.find? c₀.name = none)
-   282      (hh : ConsHead env c₀ A)
+== ConLeche/Model/Install.lean#L294-L297
+   294  theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
+   295      {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
+   296      (hfresh : env.find? c₀.name = none)
+   297      (hh : ConsHead env c₀ A)
 
 == whitepaper/Fragment/InstallDef.lean#L158-L161
    158  
@@ -3938,53 +3938,53 @@
    173  `ConLeche/SetModel/Access.lean`. -/
    174  theorem closedFam_zero {Φ : (ι → V) → ι → V} (hmaps : MapsFam 0 Φ) : ∃ L, IsClosedFam 0 Φ L := by
 
-== ConLeche/Model/Env/LfpHoleOp.lean#L115-L117
-   115  /-- **The hole operator**: the block operator at the hole chains. -/
-   116  @[expose] noncomputable def holeOp (ψ : Name → Nat) (ρp : Nat → V) : (Nat → V) → Nat → V :=
-   117    blockPhiG D.N (D.w ψ) ρp (fun c => D.u c ψ) (fun c => D.ids c ψ) (D.holeChains ψ)
+== ConLeche/Model/Env/LfpHoleOp.lean#L104-L106
+   104  /-- **The hole operator**: the block operator at the hole chains. -/
+   105  @[expose] noncomputable def holeOp (ψ : Name → Nat) (ρp : Nat → V) : (Nat → V) → Nat → V :=
+   106    blockPhiG D.N (D.w ψ) ρp (fun c => D.u c ψ) (fun c => D.ids c ψ) (D.holeChains ψ)
 
 == ConLeche/Semantics/Inductives/HoleMono.lean#L71-L73
     71  /-- **Hole-free**: the reading is the same at related frames. -/
     72  def ConstOn (R : FrameRel V) (a : Term) : Prop :=
     73    ∀ ρ ρ', R ρ ρ' → interp V ρ a = interp V ρ' a
 
-== ConLeche/Semantics/Inductives/HoleMono.lean#L140-L149
-   140  /-- **`pi`**: a Π-type with a hole-free domain and a positive codomain
-   141  is positive, as soon as its fibres are types at both frames (the
-   142  grading of the walked field: "not pt" source (1)) — `piV` is monotone in
-   143  fibres that are types (`piV_subset_mono`: a truth value included in a
-   144  type is a truth value, and a type with a fibre that is not one is
-   145  strict there). -/
-   146  theorem MonoOn.pi {R : FrameRel V} {A B : Term} (hA : ConstOn R A)
-   147      (hB : MonoOn (R.under A) B)
-   148      (hT : ∀ ρ ρ', R ρ ρ' → (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B)) ∧
-   149        (∀ x, x ∈ˢ interp V ρ' A → IsTy (interp V (cons x ρ') B))) :
+== ConLeche/Semantics/Inductives/HoleMono.lean#L130-L139
+   130  /-- **`pi`**: a Π-type with a hole-free domain and a positive codomain
+   131  is positive, as soon as its fibres are types at both frames (the
+   132  grading of the walked field: "not pt" source (1)) — `piV` is monotone in
+   133  fibres that are types (`piV_subset_mono`: a truth value included in a
+   134  type is a truth value, and a type with a fibre that is not one is
+   135  strict there). -/
+   136  theorem MonoOn.pi {R : FrameRel V} {A B : Term} (hA : ConstOn R A)
+   137      (hB : MonoOn (R.under A) B)
+   138      (hT : ∀ ρ ρ', R ρ ρ' → (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B)) ∧
+   139        (∀ x, x ∈ˢ interp V ρ' A → IsTy (interp V (cons x ρ') B))) :
 
-== ConLeche/Semantics/Inductives/HoleAcc.lean#L237-L247
-   237  /-- **Π over a hole-free domain**: the support of a member over a small
-   238  domain is the glued supports of its values, the body's items one binder
-   239  down (the bound variable is no admissible position); a member over a
-   240  domain that is not small (`w ≠ 0`) is the point, whose membership needs
-   241  no item (`PtOn`).  At the target frame the member lies in the Π by
-   242  `mem_piV_of_app`, the fibres at both frames being types (`hT`, the
-   243  grading: "not pt" source (1)). -/
-   244  theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : Term}
-   245      (hD : ConstOn R D)
-   246      {Bb : (Nat → V) → V} (hB : AccOn w (shiftQ Q) (R.underBoth D) Bb B)
-   247      (hT : FibTyOn R D B) (hP : w ≠ 0 → PtOn (R.underBoth D) B) :
+== ConLeche/Semantics/Inductives/HoleAcc.lean#L233-L243
+   233  /-- **Π over a hole-free domain**: the support of a member over a small
+   234  domain is the glued supports of its values, the body's items one binder
+   235  down (the bound variable is no admissible position); a member over a
+   236  domain that is not small (`w ≠ 0`) is the point, whose membership needs
+   237  no item (`PtOn`).  At the target frame the member lies in the Π by
+   238  `mem_piV_of_app`, the fibres at both frames being types (`hT`, the
+   239  grading: "not pt" source (1)). -/
+   240  theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : Term}
+   241      (hD : ConstOn R D)
+   242      {Bb : (Nat → V) → V} (hB : AccOn w (shiftQ Q) (R.underBoth D) Bb B)
+   243      (hT : FibTyOn R D B) (hP : w ≠ 0 → PtOn (R.underBoth D) B) :
 
-== ConLeche/Semantics/Inductives/HoleMono.lean#L168-L172
-   168  /-- **`holeApp`**: a hole applied to hole-free arguments, at its full
-   169  arity, is positive. -/
-   170  theorem MonoOn.holeApp {R : FrameRel V} {h : Nat} {es : List Term}
-   171      (hh : HoleOn R h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
-   172      MonoOn R (Term.mkAppN (.bvar h) es) := by
+== ConLeche/Semantics/Inductives/HoleMono.lean#L158-L162
+   158  /-- **`holeApp`**: a hole applied to hole-free arguments, at its full
+   159  arity, is positive. -/
+   160  theorem MonoOn.holeApp {R : FrameRel V} {h : Nat} {es : List Term}
+   161      (hh : HoleOn R h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
+   162      MonoOn R (Term.mkAppN (.bvar h) es) := by
 
-== ConLeche/Semantics/Inductives/HoleAcc.lean#L325-L328
-   325  /-- **A member hole at its full arity, at hole-free arguments.** -/
-   326  theorem AccOn.holeApp {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {h : Nat}
-   327      {es : List Term} (hQ : Q h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
-   328      AccOn w Q R (fun _ => unitSet) (Term.mkAppN (.bvar h) es) := by
+== ConLeche/Semantics/Inductives/HoleAcc.lean#L321-L324
+   321  /-- **A member hole at its full arity, at hole-free arguments.** -/
+   322  theorem AccOn.holeApp {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {h : Nat}
+   323      {es : List Term} (hQ : Q h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
+   324      AccOn w Q R (fun _ => unitSet) (Term.mkAppN (.bvar h) es) := by
 
 == ConLeche/Model/Inductives/BlockAccRunCont.lean#L310-L315
    310  /-- **The hole fit of a uniform block is accessible at every parameter
@@ -4274,17 +4274,17 @@
   1542      (hco : S.ContOk M ls ps) (hz : S.z ls = true) {is : List V} {t : V} :
   1543      t ∈ˢ S.Fam M ls ps is ↔ t = pt ∧ ∃ x, S.Mem M ls ps is x := by
 
-== ConLeche/SetTheory/Derive/LfpTuple.lean#L81-L90
-    81  /-- **The least pre-fixed tuple of `Φ`** — componentwise, fibrewise the
-    82  intersection of the closed tuples when there is one (separated from a
-    83  chosen closed tuple), dropped to `∅` if it left `strictU w`; the empty
-    84  tuple otherwise. -/
-    85  noncomputable def lfpTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Nat → V :=
-    86    fun m =>
-    87      if h : ∃ L, IsClosedTuple w k Is Φ L then
-    88        famOf (fun i => dropTo (strictU w) (sep (app (Classical.choose h m) i)
-    89          (fun x => ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i))) (Is m)
-    90      else famOf (fun _ => empty) (Is m)
+== ConLeche/SetTheory/Derive/LfpTuple.lean#L78-L87
+    78  /-- **The least pre-fixed tuple of `Φ`** — componentwise, fibrewise the
+    79  intersection of the closed tuples when there is one (separated from a
+    80  chosen closed tuple), dropped to `∅` if it left `strictU w`; the empty
+    81  tuple otherwise. -/
+    82  noncomputable def lfpTuple (w k : Nat) (Is : Nat → V) (Φ : (Nat → V) → Nat → V) : Nat → V :=
+    83    fun m =>
+    84      if h : ∃ L, IsClosedTuple w k Is Φ L then
+    85        famOf (fun i => dropTo (strictU w) (sep (app (Classical.choose h m) i)
+    86          (fun x => ∀ X, IsClosedTuple w k Is Φ X → x ∈ˢ app (X m) i))) (Is m)
+    87      else famOf (fun _ => empty) (Is m)
 
 == ConLeche/Model/Env/BlockLfp.lean#L388-L395
    388    /-- **`Φ` maps the tuple space into itself** -/
@@ -4657,7 +4657,7 @@
    834        WellDenoted m.M φ ρ (Expr.mkAppN f xs) → interp m.M φ ρ (Expr.mkAppN f xs) ≠ pt →
    835        TeleFit m.M φ ρ T xs
 
-== ConLeche/Model/Env/Laws.lean#L521-L556
+== ConLeche/Model/Env/Laws.lean#L521-L555
    521  /-- **The ι case split's environment facts, one rule**.
    522  `RecRuleLaw`'s main clause takes the levels, parameters and index
    523  comparisons as equations; under the conditional claims the ι step has
@@ -4689,11 +4689,10 @@
    549  * **(U) coherence**: at a fired spine where the constructor application
    550    is the point (case 3, where the step compares the levels and
    551    parameters with the rule's comparands and the indices), the
-   552    conditional index comparison is an equation
-   553    (`blockRule_coherent`, read off the parameters' conditional
-   554    comparison).
-   555  
-   556  (P) and (U) are read only at case 3, so they take the level equation. -/
+   552    conditional index comparison is an equation (read off the
+   553    parameters' conditional comparison).
+   554  
+   555  (P) and (U) are read only at case 3, so they take the level equation. -/
 
 == whitepaper/Fragment/EnvModel.lean#L119-L186
    119  /-- **The ι law of one recursor rule** (con-leche's `RecRuleLaw`,
@@ -5251,15 +5250,15 @@
    137    no_empty_inductive_inhabitant V hacc (S := IndSpec.falseSpec name recName elim) rfl rfl rfl rfl
    138      hrec e
 
-== ConLeche/Model/Fold.lean#L276-L283
-   276  theorem no_proof_of_False_pure (V : Type w) [SetTheory V]
-   277      {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
-   278      {ds : List Declaration} {env' : Env}
-   279      (h : checkDeclsPure μ (fueledOps μ F) pins ds = .ok env') :
-   280      ∀ c ∈ env'.consts,
-   281        c.toConstantVal.type = .const falseName [] → False := by
-   282    obtain ⟨mp⟩ := checkDeclsPure_sound_of (V := V) hμ h
-   283    exact fun c hc hty => no_constant_of_False mp c hc hty
+== ConLeche/Model/Fold.lean#L268-L275
+   268  theorem no_proof_of_False_pure (V : Type w) [SetTheory V]
+   269      {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
+   270      {ds : List Declaration} {env' : Env}
+   271      (h : checkDeclsPure μ (fueledOps μ F) pins ds = .ok env') :
+   272      ∀ c ∈ env'.consts,
+   273        c.toConstantVal.type = .const falseName [] → False := by
+   274    obtain ⟨mp⟩ := checkDeclsPure_sound_of (V := V) hμ h
+   275    exact fun c hc hty => no_constant_of_False mp c hc hty
 
 == ConLeche/Model/Fold.lean#L198-L200
    198  theorem foldPM (hμ : μ.verifiedChecks = true) {F : Nat} :
@@ -5875,13 +5874,11 @@
     22  | `holeApp`: a hole applied to hole-free arguments | `MonoOn.holeApp` |
     23  | `contApp`: a container instance | `Model/Env/BlockLfpMono.lean`'s container case, through the container's lfp clause |
 
-== ConLeche/SetModel/HoleClose.lean#L17-L22
-    17  * `tupleLe_of_fibre` — two tuples compare as soon as their components'
-    18    fibre laws' fit relations do;
-    19  * `lfpTuple_le_on` — the least tuple lies below `B` on a group `G` of
-    20    its components as soon as the operator, at the least tuple with its
-    21    `G`-components replaced by `B`'s, does: a container frame abstracts
-    22    only the reached part of its group, the rest is read concretely.
+== ConLeche/SetModel/HoleClose.lean#L17-L20
+    17  * `lfpTuple_le_on` — the least tuple lies below `B` on a group `G` of
+    18    its components as soon as the operator, at the least tuple with its
+    19    `G`-components replaced by `B`'s, does: a container frame abstracts
+    20    only the reached part of its group, the rest is read concretely.
 
 == ConLeche/SetModel/NestRec.lean#L8-L46
      8  /-!
@@ -6041,10 +6038,10 @@
    147  theorem mem_truthVal {p : Prop} {z : V} : z ∈ˢ truthVal p ↔ z = pt ∧ p := by
    148    unfold truthVal; rw [mem_sep, mem_one]
 
-== ConLeche/Model/Rules/DefEqSound.lean#L302-L304
-   302  theorem DefEq.proofIrrel_sound {d : Nat} {a ta b : Expr}
-   303      (hta : InferSemIO m φ d a ta) (hpt : PropPt m φ d ta) :
-   304      DefEqSem m φ d a b := by
+== ConLeche/Model/Rules/DefEqSound.lean#L301-L303
+   301  theorem DefEq.proofIrrel_sound {d : Nat} {a ta b : Expr}
+   302      (hta : InferSemIO m φ d a ta) (hpt : PropPt m φ d ta) :
+   303      DefEqSem m φ d a b := by
 
 == whitepaper/Fragment/Lib.lean#L173-L174
    173  theorem truthVal_congr {p q : Prop} (h : p ↔ q) : (truthVal p : V) = truthVal q :=
@@ -6136,10 +6133,10 @@
    468        {cvT : ConstantVal} {caps : IndCaps} :
    469        Infer env .io d b tb → Red env d tb wtb →
 
-== ConLeche/Model/Rules/DefEqSound.lean#L676-L678
-   676  theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
-   677      {a b tb wtb : Expr} {c : Name} {us : List Level} {cvc : ConstantVal}
-   678      {cnP cnF : Nat} {T : Name} {us' : List Level} {cvT : ConstantVal}
+== ConLeche/Model/Rules/DefEqSound.lean#L675-L677
+   675  theorem DefEq.structEta_sound (hin : RulesInputs V m φ) {d : Nat}
+   676      {a b tb wtb : Expr} {c : Name} {us : List Level} {cvc : ConstantVal}
+   677      {cnP cnF : Nat} {T : Name} {us' : List Level} {cvT : ConstantVal}
 
 == ConLeche/Rules/Rel.lean#L275-L285
    275    /-- **The structure-η rescue** (`majorToCtor`'s η branch,
@@ -6174,9 +6171,9 @@
     79        nparams := p.nP
     80        ctors := [c.1.name] }
 
-== ConLeche/Model/Inductives/FixKit.lean#L729-L730
-   729  * **(C) the η law** (`fixEntryEtaCore`): a member is the constructor at
-   730    the parameters and its own projections below the tag.
+== ConLeche/Model/Inductives/FixKit.lean#L720-L721
+   720  * **(C) the η law** (`fixEntryEtaCore`): a member is the constructor at
+   721    the parameters and its own projections below the tag.
 
 == ConLeche/Model/Inductives/BlockStageTables.lean#L10-L12
     10  `stageBlockTables`: the loop `checkBlockTables` runs — a table at
@@ -6191,13 +6188,13 @@
    498        env.find? T = some (.indInfo cvT caps) →
    499        caps.unitlike = true →
 
-== ConLeche/Model/Rules/DefEqSound.lean#L314-L315
-   314  theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
-   315      {a ta wta b tb wtb : Expr} {T : Name} {us' : List Level}
+== ConLeche/Model/Rules/DefEqSound.lean#L313-L314
+   313  theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
+   314      {a ta wta b tb wtb : Expr} {T : Name} {us' : List Level}
 
-== ConLeche/Model/Inductives/FixKit.lean#L1791-L1792
-  1791  /-- **Unit-likeness at a fieldless one-constructor block's leaf**: the
-  1792  fibre is the one tagged empty tuple (the point at a squash instance).
+== ConLeche/Model/Inductives/FixKit.lean#L1782-L1783
+  1782  /-- **Unit-likeness at a fieldless one-constructor block's leaf**: the
+  1783  fibre is the one tagged empty tuple (the point at a squash instance).
 
 >>> whitepaper/sections/07-left-out.typ
 
@@ -6244,13 +6241,13 @@
     11  every member with ONE constructor and no index, nothing at any other
     12  member — with `stageFixTable` at each table (abstract in the former's
 
-== ConLeche/Model/Inductives/FixKit.lean#L723-L728
-   723  * **(A) the typing law** (`fixEntryTypingCore`): a member projects at
-   724    `i + 1` into the body's residual — the graph regime by the tower's
-   725    projection membership below the tag, the squash regime by the point;
-   726  * **(B) the iota law** (`fixEntryIotaCore`/`fixEntryIotaCoreZero`): the
-   727    projection of a graded constructor application is the selected field
-   728    (`sumMkAV_fold`: the application folds to the tagged tuple);
+== ConLeche/Model/Inductives/FixKit.lean#L714-L719
+   714  * **(A) the typing law** (`fixEntryTypingCore`): a member projects at
+   715    `i + 1` into the body's residual — the graph regime by the tower's
+   716    projection membership below the tag, the squash regime by the point;
+   717  * **(B) the iota law** (`fixEntryIotaCore`/`fixEntryIotaCoreZero`): the
+   718    projection of a graded constructor application is the selected field
+   719    (`sumMkAV_fold`: the application folds to the tagged tuple);
 
 == ConLeche/SetTheory/Derive/LfpTuple.lean#L8-L12
      8  
@@ -6299,12 +6296,12 @@
     20  stored value and whose certificates check enables the operation's fast
     21  path.  The hand-pinned certificate *statements* the proofs are checked against
 
-== ConLeche/Model/NatEqs.lean#L1112-L1116
-  1112  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
-  1113      {F : Nat} (hde : DefEqClaim μ mp.base2 φ F)
-  1114      (hprev : NatOps mp.base2 φ)
-  1115      {c : Name} {lps : List Name} {type' value' : Expr}
-  1116      {hint : ReducibilityHint}
+== ConLeche/Model/NatEqs.lean#L1101-L1105
+  1101  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
+  1102      {F : Nat} (hde : DefEqClaim μ mp.base2 φ F)
+  1103      (hprev : NatOps mp.base2 φ)
+  1104      {c : Name} {lps : List Name} {type' value' : Expr}
+  1105      {hint : ReducibilityHint}
 
 == ConLeche/Kernel/Basis/Quot.lean#L8-L14
      8  # The pinned `Quot` basis block
@@ -6488,9 +6485,9 @@
    217    | prf
    218    deriving Repr, Inhabited
 
-== ConLeche/Verify/Denote.lean#L138-L139
-   138  @[expose] def denote (cval : Name → (Name → Nat) → Term) (env : Env)
-   139      (φ : Name → Nat) : (d : Nat) → Expr → Option Term
+== ConLeche/Verify/Denote.lean#L152-L153
+   152  @[expose] def denote (cval : Name → (Name → Nat) → Term) (env : Env)
+   153      (φ : Name → Nat) : (d : Nat) → Expr → Option Term
 
 == ConLeche/Semantics/Interp.lean#L134-L145
    134  noncomputable def interp : (Nat → V) → Term → V

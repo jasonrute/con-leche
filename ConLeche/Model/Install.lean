@@ -1,9 +1,9 @@
 module
 
 public import ConLeche.Model.Tiers
-public import ConLeche.Model.Reading.EnvExtend
-public import ConLeche.Model.Reading.ConsCross
-public import ConLeche.Semantics.ConstsBound
+public import ConLeche.Verify.Denote.EnvExtend
+public import ConLeche.Verify.Denote.ConsCross
+public import ConLeche.Verify.Denote.ConstsBound
 public import ConLeche.Verify.Extend.Sibs
 import ConLeche.Model.Env.CanonCrest
 
@@ -214,13 +214,29 @@ theorem ConsHead.ofFresh {c₀ : ConstantInfo}
     fun tbl heq => absurd heq (hprojTower tbl),
     hctors⟩
 
+/-- `acval_wellDenoted` extends. -/
+theorem acvalWith_wellDenoted
+    {acval : Name → (Name → Nat) → Term} {n : Name}
+    {A : (Name → Nat) → Term}
+    (h : ∀ (m : Name) (ψ : Name → Nat) (ρ : Nat → V),
+      WellDenoted V ρ (acval m ψ))
+    (hA : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ)) :
+    ∀ (m : Name) (ψ : Name → Nat) (ρ : Nat → V),
+      WellDenoted V ρ (acvalWith acval n A m ψ) := by
+  intro m ψ ρ
+  by_cases hm : m = n
+  · subst hm
+    rw [acvalWith_self]
+    exact hA ψ ρ
+  · rw [acvalWith_ne hm]
+    exact h m ψ ρ
+
 /-- **The core at a fresh cons** (task #161 S7).  Every field is the prefix's own, stepped by the
 head's obligation; nothing of the collapsed model is consulted. -/
 @[expose] def coreCons (m : EnvModel V env) {c₀ : ConstantInfo}
     (A : (Name → Nat) → Term)
     (hfresh : env.find? c₀.name = none)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -247,7 +263,6 @@ head's obligation; nothing of the collapsed model is consulted. -/
         exact (hh.pin hres).2 ψ t hp⟩)
   proj_ok := ProjOkT.cons m.proj_ok hfresh hh.projTowerHead
   rec_ctors := ConLeche.RecCtorsStored.cons m.rec_ctors hfresh hh.ctorsHead
-  acval_closed := acvalWith_closed m.acval_closed hAclosed
   acval_params := acvalWith_params m.acval_params hAparams
   acval_wellDenoted := acvalWith_wellDenoted m.acval_wellDenoted hAok
 
@@ -280,7 +295,6 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -305,21 +319,21 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
           ⟨c₀ :: env.consts⟩ ψ 0 value = some (A ψ))
     (hnh : ∀ φ : Name → Nat,
       NatHeads (V := V)
-        (coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) φ)
+        (coreCons mp.base2 A hfresh hh hAparams hAok) φ)
     (hnat_ops : ∀ φ : Name → Nat,
       NatOps (V := V)
-        ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ)
+        ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _) φ)
     (hdiv_mod : ∀ φ : Name → Nat,
-      DivMod (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ)
-    (heq_law : EqLaw (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _))
+      DivMod (V := V) ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _) φ)
+    (heq_law : EqLaw (V := V) ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _))
     (hcaps_ok : CapsOk (V := V)
-        ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _))
+        ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _))
     (hrec_rules : ∀ φ : Name → Nat,
-      RecRules (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ)
+      RecRules (V := V) ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _) φ)
     (hreduce_ops : ReduceOps (V := V)
-        ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _))
+        ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _))
     (htower_ok : ∀ φ : Name → Nat,
-      TowerOk (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ)
+      TowerOk (V := V) ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _) φ)
     -- the head's fibres above a proposition, if it is a former (task
     -- #342 L7); vacuous at every other head kind
     (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
@@ -408,7 +422,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
         (mp.defn_reads ψ cv value ⟨hint, h⟩)
   -- the stored formers' strict fibres: the head's is `hind`; a prefix
   -- former keeps its leaf and its type's reading
-  have hind' : IndStrictOk (V := V) (coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) := by
+  have hind' : IndStrictOk (V := V) (coreCons mp.base2 A hfresh hh hAparams hAok) := by
     intro I cv caps hf ψ ab n hread hn ρ vs hsp
     by_cases hI : I = c₀.name
     · subst hI
@@ -417,7 +431,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     · have hfE : env.find? I = some (.indInfo cv caps) := by
         rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh' => hI hh'.symm)] at hf
         exact hf
-      have hm := ConLeche.Semantics.Env.find?_mem hfE
+      have hm := ConLeche.Env.find?_mem hfE
       obtain ⟨ta, hta⟩ := mp.type_reads _ hm ψ
       have hcv : (ConstantInfo.indInfo cv caps).toConstantVal = cv := rfl
       rw [hcv] at hta
@@ -430,7 +444,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
       rw [acvalWith_ne hI]
       exact mp.ind_strict I cv caps hfE ψ ab n hta hn ρ vs hsp
   exact ⟨{
-    base2 := coreCons mp.base2 A hfresh hh hAclosed hAparams hAok
+    base2 := coreCons mp.base2 A hfresh hh hAparams hAok
     type_reads := htr
     type_wellDenotedTy := hto
     mem_type := hmt
@@ -450,13 +464,13 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
       (fun n _ hf _ => acvalWith_ne fun h => by
         rw [h, hfresh] at hf; exact nomatch hf)
       (fun _ _ _ hf ψ _ hta =>
-        have hm := ConLeche.Semantics.Env.find?_mem hf
+        have hm := ConLeche.Env.find?_mem hf
         hcompM ψ _ (hbound _ hm).1 (hh.projTower.type hm) hta)
       (fun _ _ _ _ hf ψ _ hta =>
-        have hm := ConLeche.Semantics.Env.find?_mem hf
+        have hm := ConLeche.Env.find?_mem hf
         hcompM ψ _ (hbound _ hm).1 (hh.projTower.type hm) hta)
       (fun _ _ hf _ _ hA ψ d _ hta =>
-        have hm := ConLeche.Semantics.Env.find?_mem hf
+        have hm := ConLeche.Env.find?_mem hf
         denote_cons_mono hfresh (canonOf_consCrossAt (hh.projTower.type hm) hA) ψ d
           (canonOf_constsBound (hbound _ hm).1 hA) hta) }, rfl⟩
 

@@ -27,7 +27,6 @@ open ConLeche.SetModel
 
 open ConLeche.Term SetTheory
 
-
 universe w
 
 variable {V : Type w} [SetTheory V]
@@ -63,15 +62,5 @@ theorem deqStep_piCong {ρ : Nat → V}
     interp V ρ (.pi Aa Ba) = interp V ρ (.pi Ab Bb) := by
   simp only [interp_pi, ← hA]
   exact piV_congr hB
-
-/-- **λ-congruence**: the regime is read off the values, so equal
-domains and bodies equal on the domain give equal abstractions. -/
-theorem deqStep_lamCong {ρ : Nat → V} {Aa Ab ba bb : Term}
-    (hA : interp V ρ Aa = interp V ρ Ab)
-    (hb : ∀ x, x ∈ˢ interp V ρ Aa →
-      interp V (cons x ρ) ba = interp V (cons x ρ) bb) :
-    interp V ρ (.lam Aa ba) = interp V ρ (.lam Ab bb) := by
-  simp only [interp_lam, ← hA]
-  exact lamV_congr hb
 
 end ConLeche.Semantics

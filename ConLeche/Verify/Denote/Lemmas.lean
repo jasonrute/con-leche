@@ -1,7 +1,6 @@
 module
 
-public import ConLeche.Semantics.Tower.TowerKit
-import ConLeche.Verify.Denote
+public import ConLeche.Verify.Denote
 
 public section
 
@@ -17,9 +16,7 @@ is one the *reading itself* needs (`hacl`: leaf lift-invariance;
 the environment).
 -/
 
-namespace ConLeche.Model
-open ConLeche.Semantics
-open ConLeche.SetModel
+namespace ConLeche.Verify
 
 open ConLeche.Term ConLeche.Verify
 
@@ -306,4 +303,4 @@ theorem _root_.ConLeche.Term.Term.mkAppN_append (f : Term) :
   | [], _ => rfl
   | _ :: as, bs => mkAppN_append _ as bs
 
-end ConLeche.Model
+end ConLeche.Verify

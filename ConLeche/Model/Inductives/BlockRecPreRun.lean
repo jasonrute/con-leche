@@ -3,7 +3,7 @@ module
 import ConLeche.Verify.Inductives.RecStage
 import ConLeche.Model.Inductives.BlockRecTyping
 public import ConLeche.Semantics.Tower.BlockRecTower
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Verify.Subst
 import ConLeche.Model.Inductives.BlockRecRead
 public import ConLeche.Model.Inductives.BlockRecData
@@ -975,7 +975,6 @@ theorem blockRecPdomsK_run (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V �
 
 end Run
 
-
 /-! ## 38. A Π-tower's inferred sort follows its CONCLUSION's sort
 
 Facts about the check's ∀ clause: the checker-side runs the
@@ -985,10 +984,7 @@ Two steps:
 
 * `inferTypeCore_forallE_peel` — one ∀ binder of a successful
   inference: the codomain's sort `v` and the node's own sort
-  `imax u v`;
-* `inferTypeCore_openPis_sortZ` — the tower's inferred sort has the
-  CONCLUSION's zero-ness (`zeronessOf (imax u v) = zeronessOf v` is
-  the whole content, carried down the openers).
+  `imax u v`.
 
 Both take the conclusion's inference at a SECOND fuel `G ≥ F`:
 the check runs it twice — once inside the tower's own recursion, at
@@ -997,17 +993,6 @@ the fuel left after the peel, and once on its own
 `Verify/Mono.lean`) is what identifies the two. -/
 
 section BitsLaw
-
-/-- `ensureSort` on a BUILT sort — `whnf_sort` at the two fuel steps
-the reduction pays. -/
-theorem ensureSortCore_sort (envK : Env) {G : Nat} (d : Nat) (u : Level) (hG : 2 ≤ G) :
-    ConLeche.ensureSortCore μ envK G d (.sort u) = .ok u := by
-  obtain ⟨G', rfl⟩ : ∃ G', G = G' + 2 := ⟨G - 2, by omega⟩
-  show ConLeche.ensureSort (ConLeche.pureFns μ envK (G' + 2)) envK d (.sort u) = .ok u
-  unfold ConLeche.ensureSort
-  rw [show (ConLeche.pureFns μ envK (G' + 2)).whnf d (Expr.sort u)
-      = ConLeche.whnf μ envK (G' + 2) d (.sort u) from rfl, ConLeche.whnf_sort]
-  rfl
 
 /-- A successful inference at fuel `0` is impossible. -/
 theorem inferTypeCore_pos {envK : Env} {d : Nat} {e r : Expr} {F : Nat}
@@ -1045,55 +1030,6 @@ theorem inferTypeCore_forallE_peel {envK : Env}
       refine ⟨F₀, udom, v, bt₁, rfl, inferTypeCore_pos hbt₁, hbt₁, hv, ?_⟩
       simpa [pure, Except.pure] using h.symm
     | _ => simp [throw, throwThe, MonadExceptOf.throw] at h
-
-/-- **A Π-tower's inferred sort has its CONCLUSION's zero-ness.** -/
-theorem inferTypeCore_openPis_sortZ (hμ : μ.verifiedChecks = true) {envK : Env} :
-    ∀ (n : Nat) {d F G : Nat} {e : Expr} {fvs : List Expr} {o s bt : Expr} {u : Level},
-      F ≤ G → openPisAtFvars n e d = some (fvs, o) →
-      ConLeche.inferTypeCore μ envK F d e = .ok s →
-      ConLeche.inferTypeCore μ envK G (d + n) o = .ok bt →
-      ConLeche.ensureSortCore μ envK G (d + n) bt = .ok u →
-      ∃ w, ConLeche.ensureSortCore μ envK G d s = .ok w ∧
-        Level.zeronessOf w = Level.zeronessOf u
-  | 0, d, F, G, e, fvs, o, s, bt, u, hFG, hop, hinf, hcon, hsort => by
-    simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at hop
-    obtain ⟨-, rfl⟩ := hop
-    rw [Nat.add_zero] at hcon hsort
-    obtain rfl : bt = s := by
-      have hh := hcon.symm.trans (ConLeche.inferTypeCore_mono hFG hinf)
-      simpa using hh
-    exact ⟨u, hsort, rfl⟩
-  | n + 1, d, F, G, e, fvs, o, s, bt, u, hFG, hop, hinf, hcon, hsort => by
-    match e, hop with
-    | .forallE ty bd, hop =>
-      simp only [openPisAtFvars] at hop
-      split at hop
-      · next fvs' o' hop' =>
-        simp only [Option.some.injEq, Prod.mk.injEq] at hop
-        obtain ⟨-, rfl⟩ := hop
-        obtain ⟨F₀, udom, v, bt₁, rfl, hF₀, hbt₁, hv, rfl⟩ :=
-          inferTypeCore_forallE_peel hinf
-        have hcon' : ConLeche.inferTypeCore μ envK G (d + 1 + n) o' = .ok bt := by
-          rw [show d + 1 + n = d + (n + 1) from by omega]; exact hcon
-        have hsort' : ConLeche.ensureSortCore μ envK G (d + 1 + n) bt = .ok u := by
-          rw [show d + 1 + n = d + (n + 1) from by omega]; exact hsort
-        obtain ⟨w', hw', hzw'⟩ :=
-          inferTypeCore_openPis_sortZ hμ n (by omega) hop' hbt₁ hcon' hsort'
-        obtain rfl : w' = v := by
-          have hh := hw'.symm.trans (ConLeche.ensureSortCore_mono (f := F₀) (f' := G)
-            (by omega) hv)
-          simpa using hh
-        exact ⟨.imax udom w', ensureSortCore_sort envK d _ (by omega), hzw'⟩
-      · exact nomatch hop
-    | .bvar _, hop => nomatch hop
-    | .fvar _ _, hop => nomatch hop
-    | .sort _, hop => nomatch hop
-    | .const _ _, hop => nomatch hop
-    | .app _ _, hop => nomatch hop
-    | .lam _ _, hop => nomatch hop
-    | .letE _ _ _, hop => nomatch hop
-    | .proj _ _ _, hop => nomatch hop
-    | .lit _, hop => nomatch hop
 
 end BitsLaw
 
@@ -1526,7 +1462,6 @@ theorem blockRuleHclF_of {rP nF nR : Nat}
     · exact List.mem_append_left _ (hfv₃ l h')
     · exact List.mem_append_right _ h'
 
-
 /-! ### 40.4 `hokA`, segment by segment
 
 `hokA` is stated at the ASCENDING frame, so its three segments are a
@@ -1734,7 +1669,6 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
   exact fun ρ hρ => (sortSemAt_of_claims ihw ihi
     (inferReads_of hμ (Rules.RulesInputs.ofSem mpC ψ))
     hctx hwsC hbC hLC hinf (ConLeche.ensureSortCore_inv hens) hconclRead ρ hρ).2
-
 
 /-- **THE `univZero` PRODUCER**, in its general form: the recursor's
 conclusion reads into `univ (u.eval ψ)` at every frame satisfying the

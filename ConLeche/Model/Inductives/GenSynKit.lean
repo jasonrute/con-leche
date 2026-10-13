@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.TargetOutIdx
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Model.IndPointKit
 import ConLeche.Verify.InferLemmas
 import ConLeche.Verify.Subst

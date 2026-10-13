@@ -309,9 +309,9 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
     exact denote_pinnedBinTy mp.base2 φ hfN
       (show (ConstantInfo.indInfo cvN caps).toConstantVal.levelParams = [] from hlpN)
       hcodF hcodLp
-  have hmem := mp.mem_type _ (ConLeche.Semantics.Env.find?_mem hf) φ _ hta ρ
+  have hmem := mp.mem_type _ (ConLeche.Env.find?_mem hf) φ _ hta ρ
   rw [show (ConstantInfo.defnInfo cv v hh).name = c from
-    ConLeche.Semantics.Env.find?_name hf, interp_pi] at hmem
+    ConLeche.Env.find?_name hf, interp_pi] at hmem
   rw [substFn_nil]
   have hfib : (fun x => interp V (cons x ρ)
         ((.pi (mp.base2.acval ConLeche.natName φ)

@@ -58,7 +58,7 @@ open ConLeche.Term (Term)
 open ConLeche.Semantics SetTheory
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo RecRule BlockShape
   consBlockRecs consBlockRecsR)
-open ConLeche.Verify (denote openRev)
+open ConLeche.Verify
 
 universe w
 
@@ -141,13 +141,13 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
     exact denote_consBlockRecsR_mono hfr hpsh hag ψ d e hcb h
   obtain ⟨-, hlaw0, hextra⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
-    mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
+    mpC.base2.wf _ (ConLeche.Env.find?_mem hfE)
   obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
   intro us hlen TVa hTVa
   obtain ⟨TVa', hTVa', -, -⟩ := mpC.constType 0 n _ us hfE rfl (by exact hlen)
   obtain rfl : TVa' = TVa :=
     Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
-      (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa').symm.trans hTVa)
+      (ConLeche.Env.find?_mem hfE) us) hTVa').symm.trans hTVa)
   have hpinCB : ∀ lvls pins, RecRule.fire rl = .nested lvls pins → ∀ i : Nat,
       ConstsBound envC (openRev 0 rP
         ((pins.getD i default).instantiateLevelParams cv.levelParams us)) := by
@@ -196,7 +196,7 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
         mpC.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact husj)
       obtain rfl : TVja' = TVja :=
         Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm.trans hTVja)
+          (ConLeche.Env.find?_mem hfcjE) usj) hTVja').symm.trans hTVja)
       exact hTVja'
     -- (S)/(T)'s `iotaCtorNeverProp` guard is the prefix's
     have hlicE : ∀ lvs : List Level,
@@ -204,7 +204,7 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
           = ConLeche.iotaCtorNeverProp envC.find? cvj lvs := by
       intro lvs
       obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
-        mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfcjE)
+        mpC.base2.wf _ (ConLeche.Env.find?_mem hfcjE)
       dsimp only [ConLeche.ConstantInfo.toConstantVal] at hresolve
       have hTiso : ∀ T us', cvj.type.piResult.getAppFn = .const T us' →
           (envC.find? T).isSome = true :=
@@ -222,7 +222,7 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
           hfitR hfitC hxwd hywd hne
       refine ⟨usj', ys', TVja', restC', h1, h2,
         hmono _ 0 _ (constsBound_instType mpC.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfcjE) usj') h3, h4, h5, h6, h7, ?_⟩
+          (ConLeche.Env.find?_mem hfcjE) usj') h3, h4, h5, h6, h7, ?_⟩
       rw [hacvC]
       exact h8
     intro usj husj heq TVja hTVja
@@ -282,7 +282,7 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
     recRuleExtra_consBlockRecsR_prefix mpC hfr hpsh hag m₃ hac φ hfE hmem⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
-    mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfE)
+    mpC.base2.wf _ (ConLeche.Env.find?_mem hfE)
   obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
   -- a rule pin's subject resolves at the constructors' environment
   have hpinCB : ∀ (lvls : List Level) (pins : List Expr),
@@ -308,7 +308,7 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
     obtain ⟨TVa', hTVa', -, -⟩ := mpC.constType 0 n _ us hfE rfl (by exact hlen)
     obtain rfl : TVa' = TVa :=
       Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
-        (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa').symm.trans hTVa)
+        (ConLeche.Env.find?_mem hfE) us) hTVa').symm.trans hTVa)
     exact hok ρ zs TVa' restR hzl hzok hTVa' hfit
   · intro cvj cnP cnF hfcj usj ρ xs ys TVa TVja restR restC hxl hyl hujl
       hψ hyWD hpin hTVa hTVja hfitR hfitC
@@ -329,12 +329,12 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
     obtain ⟨TVa', hTVa', -, -⟩ := mpC.constType 0 n _ us hfE rfl (by exact hlen)
     obtain rfl : TVa' = TVa :=
       Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
-        (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa').symm.trans hTVa)
+        (ConLeche.Env.find?_mem hfE) us) hTVa').symm.trans hTVa)
     obtain ⟨TVja', hTVja', -, -⟩ :=
       mpC.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact hujl)
     obtain rfl : TVja' = TVja :=
       Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
-        (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm.trans hTVja)
+        (ConLeche.Env.find?_mem hfcjE) usj) hTVja').symm.trans hTVja)
     rw [hacvC] at hfitR hpin
     rw [hacvR, hacvC]
     exact hlaw cvj cnP cnF hfcjE usj ρ xs ys _ _ restR restC hxl hyl

@@ -1181,7 +1181,7 @@ theorem nestCrest_occDeep {names : List Name} {us : List Level} {ds holes : List
 
 /-! ## Part 3: the formers' environment -/
 
-theorem piResult_of_stripPis_sort' :
+theorem piResult_of_stripPis_sort :
     ∀ (n : Nat) {e : Expr} {bs : List Expr} {s : Level},
       e.stripPis n = some (bs, .sort s) → e.piResult = .sort s
   | 0, e, bs, s, h => by
@@ -1195,7 +1195,7 @@ theorem piResult_of_stripPis_sort' :
       simp only [Prod.mk.injEq] at heq
       obtain ⟨-, rfl⟩ := heq
       show b.piResult = _
-      exact piResult_of_stripPis_sort' n hr
+      exact piResult_of_stripPis_sort n hr
     | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _
     | .letE _ _ _ | .proj _ _ _ => exact absurd h (by simp [Expr.stripPis])
 
@@ -1311,7 +1311,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     intro n hn
     obtain ⟨cvTb, hcv, rfl⟩ := (hnames n).mp hn
     obtain ⟨⟨caps, hf⟩, k, bs, s, hs⟩ := hfindM cvTb hcv
-    exact ⟨cvTb, caps, s, hf, piResult_of_stripPis_sort' k hs, hfresh cvTb hcv⟩
+    exact ⟨cvTb, caps, s, hf, piResult_of_stripPis_sort k hs, hfresh cvTb hcv⟩
   have hmemE : ∀ n ∈ names, env.find? n = none := fun n hn => by
     obtain ⟨-, -, -, -, -, h⟩ := hmem n hn
     exact h
@@ -1342,15 +1342,15 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
   · -- stored types
     intro n ci hf hn
     rw [hnon n hn] at hf
-    exact hres _ (hwf ci (find?_mem hf)).2.2.1
+    exact hres _ (hwf ci (Env.find?_mem hf)).2.2.1
   · -- definition values
     intro n cv v hint hf hn
     rw [hnon n hn] at hf
-    exact hres _ ((hwf _ (find?_mem hf)).2.2.2.2.1 cv v hint rfl).2.2.1
+    exact hres _ ((hwf _ (Env.find?_mem hf)).2.2.2.2.1 cv v hint rfl).2.2.1
   · -- recursor rules
     intro n cv mI rP rules hf hn r hr
     rw [hnon n hn] at hf
-    refine ⟨hres _ ((hwf _ (find?_mem hf)).2.2.2.2.2.1 cv mI rP rules rfl r hr).2.2.1, ?_⟩
+    refine ⟨hres _ ((hwf _ (Env.find?_mem hf)).2.2.2.2.2.1 cv mI rP rules rfl r hr).2.2.1, ?_⟩
     intro heta
     obtain ⟨cvj, cnP, cnF, T, us, cvT, caps, h1, h2, h3, h4, h5, h7⟩ :=
       recRuleEtaOf_inv (hRecEta n cv mI rP rules hf r hr heta)
@@ -1363,7 +1363,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     have hnm : projTableName T ∉ names :=
       hnotInd _ _ hft (fun cv caps h => nomatch h)
     rw [hnon _ hnm] at hft
-    obtain ⟨hsz, hb⟩ := (hwf _ (find?_mem hft)).2.2.2.2.2.2.1 tbl rfl
+    obtain ⟨hsz, hb⟩ := (hwf _ (Env.find?_mem hft)).2.2.2.2.2.2.1 tbl rfl
     have hlt : i < tbl.bodies.size := hsz ▸ hi
     have hget : tbl.bodies[i]? = some (tbl.bodies.getD i default) := by
       rw [Array.getElem?_eq_getElem hlt, Array.getD_eq_getD_getElem?,
@@ -1378,7 +1378,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     obtain ⟨-, -, cv0, i0, j0, -, -, -, -, h0, -, -, -, -, -, hty0, -⟩ := natLitSupported_inv hs
     have hz : natZeroName ∉ names := hnotInd _ _ h0 (fun cv caps h => nomatch h)
     rw [hnon _ hz] at h0
-    have hr := (hwf _ (find?_mem h0)).2.2.1
+    have hr := (hwf _ (Env.find?_mem h0)).2.2.1
     change cv0.type.constsResolve env = true at hr
     rw [hty0] at hr
     exact hold _ (by simpa [Expr.constsResolve] using hr)
@@ -1413,7 +1413,7 @@ theorem whnfNamesFree_formers {env envI : Env} (hwf : EnvWF env)
     -- `String.ofList : List Char → String` is older than the block, and
     -- so are the `String` and `Char` it mentions
     rw [hnon _ hO'] at hfO
-    have hrO := (hwf _ (find?_mem hfO)).2.2.1
+    have hrO := (hwf _ (Env.find?_mem hfO)).2.2.1
     rw [htyO] at hrO
     simp only [Expr.constsResolve, Bool.and_eq_true] at hrO
     exact ⟨hold _ hrO.2, hO', hNil', hCons', hold _ hrO.1.2, hCO'⟩

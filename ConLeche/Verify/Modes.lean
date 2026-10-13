@@ -21,11 +21,6 @@ namespace ConLeche
 
 variable {mode : CheckMode}
 
-@[simp] theorem verifiedChecks_verified :
-    CheckMode.verifiedChecks .verified = true := rfl
-@[simp] theorem verifiedChecks_trusted :
-    CheckMode.verifiedChecks .trusted = false := rfl
-
 /-- **A mode running the verified checks is `.verified`** — the enum has
 two constructors and the other one does not.  This is the simulation
 tower's way through a cached body's certificate switches: after

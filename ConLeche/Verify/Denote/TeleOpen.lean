@@ -52,22 +52,6 @@ the term-side counterpart of `ConLeche.Expr.instSeq`. -/
 theorem instSeq_cons (a : Term) (as : List Term) (t : Nat) (e : Term) :
     instSeq (a :: as) t e = instSeq as (t - 1) (e.inst a t) := rfl
 
-/-- A closed term is untouched. -/
-theorem instSeq_eq_self_of_closed {e : Term} (h : Closed e) :
-    ∀ (as : List Term) (t : Nat), instSeq as t e = e := by
-  intro as
-  induction as with
-  | nil => intro t; rfl
-  | cons a as ih => intro t; rw [instSeq_cons, inst_eq_self_of_closed h, ih]
-
-@[simp] theorem instSeq_sort (as : List Term) (t u : Nat) :
-    instSeq as t (.sort u) = .sort u :=
-  instSeq_eq_self_of_closed (e := .sort u) trivial as t
-
-@[simp] theorem instSeq_const (as : List Term) (t : Nat) (c : BConst)
-    (us : List Nat) : instSeq as t (.const c us) = .const c us :=
-  instSeq_eq_self_of_closed (e := .const c us) trivial as t
-
 end Term
 end ConLeche.Term
 

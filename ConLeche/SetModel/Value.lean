@@ -224,12 +224,6 @@ theorem psigmaMkV_mem (u v : Nat) :
 
 /-! ## `Quot` -/
 
-theorem maxOne_ne_zero (u : Nat) : Nat.max u 1 ≠ 0 := by
-  intro h
-  have h1 : (1 : Nat) ≤ Nat.max u 1 := Nat.le_max_right u 1
-  rw [h] at h1
-  exact absurd (Nat.le_zero.mp h1) Nat.one_ne_zero
-
 /-- `A → A → Prop`.  Over an inhabited `A` both function spaces are
 graph spaces (`Prop` is a type, not a truth value); over an empty `A`
 the space is `{pt}`. -/

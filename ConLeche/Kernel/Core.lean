@@ -1221,7 +1221,7 @@ def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
       -- official's `infer_lambda` skips it at `infer_only`
       -- (`type_checker.cpp:131`), and the model proof
       -- never consumes it: the domain's grading comes from the
-      -- premise (`WellDenoted.hoist_lam`).
+      -- λ node's own `WellDenoted` premise.
       let bt ← r.infer (depth + 1)
         (body.instantiate1 (.fvar depth ty))
       pure (.forallE ty (bt.abstract1 depth))

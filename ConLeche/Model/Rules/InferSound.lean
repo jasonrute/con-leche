@@ -4,7 +4,7 @@ public import ConLeche.Model.Rules.Inputs
 import ConLeche.Semantics.LitParams
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Model.CtxOkKit
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Semantics.Frame
 import ConLeche.Semantics.LitStep

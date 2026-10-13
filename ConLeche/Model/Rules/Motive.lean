@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Model.Reading.Lemmas
+public import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Model.Rules.IORel
 
 public section
@@ -284,20 +284,6 @@ second spine. -/
       ∀ p ∈ (asa.map (interp V ρ)).zip (bsa.map (interp V ρ)),
         p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2
 
-/-- `DefEqListSem` without the point condition (a strengthening some rules conclude). -/
-@[expose] def DefEqListSemU {env : Env} (m : EnvModel V env) (φ : Name → Nat)
-    (d : Nat) (as bs : List Expr) : Prop :=
-  as.length = bs.length ∧
-  ∀ {Δa : List Term} {asa bsa : List Term},
-    (∀ x ∈ as, Frame d x ∧ CtxOkS m φ d Δa x) →
-    (∀ x ∈ bs, Frame d x ∧ CtxOkS m φ d Δa x) →
-    DenoteSpine m.acval env φ d as asa →
-    DenoteSpine m.acval env φ d bs bsa →
-    ∀ ρ : Nat → V, Sat V Δa ρ →
-      (∀ x ∈ as, LeavesGr m φ d x ρ) → (∀ x ∈ bs, LeavesGr m φ d x ρ) →
-      (∀ x ∈ asa, WellDenoted V ρ x) → (∀ x ∈ bsa, WellDenoted V ρ x) →
-      asa.map (interp V ρ) = bsa.map (interp V ρ)
-
 /-! ### The unconditional motives weaken to the conditional ones -/
 
 theorem RedSemU.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
@@ -315,13 +301,5 @@ theorem DefEqLamsSem.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     {d : Nat} {a b : Expr} (h : DefEqLamsSem m φ d a b) : DefEqSem m φ d a b :=
   fun hfa hfb _ _ _ hCa hCb haa hba ρ hρ hLa hLb hwa hwb _ _ =>
     h hfa hfb hCa hCb haa hba ρ hρ hLa hLb hwa hwb
-
-theorem DefEqListSemU.cond {env : Env} {m : EnvModel V env} {φ : Name → Nat}
-    {d : Nat} {as bs : List Expr} (h : DefEqListSemU m φ d as bs) :
-    DefEqListSem m φ d as bs := by
-  refine ⟨h.1, fun hfa hfb hsa hsb ρ hρ hLa hLb hga hgb p hp _ _ => ?_⟩
-  rw [h.2 hfa hfb hsa hsb ρ hρ hLa hLb hga hgb] at hp
-  obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hp
-  simp
 
 end ConLeche.Model.Rules

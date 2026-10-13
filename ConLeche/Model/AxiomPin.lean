@@ -20,7 +20,7 @@ public section
 side is harvested from `ConstantValRun`'s own run, and what the branch
 must supply is the leaf `A` with
 
-* `hAclosed`/`hAparams` — syntactic, from the branch key and
+* `hAvclosed`/`hAparams` — syntactic, from the branch key and
   the `EnvModel` fields;
 * `hAok` — free at a `BConst` or `acval` leaf (`WellDenoted`'s
   `.const`/`.prf` clauses are `True`, and an `acval` leaf carries it as
@@ -124,12 +124,10 @@ theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
   -- the leaf: the stored `True.intro`'s leaf valuation
   refine harvestAxiom (V := V) hμ mp hcv
     (A := fun ψ => mp.base2.acval ConLeche.trueIntroName ψ)
-    (fun ψ => mp.base2.cval_closed _ ψ) ?_ ?_ ?_ ?_
+    (fun ψ => mp.base2.cval_closed _ ψ) ?_ ?_ ?_
     -- `trustCompiler` is not a compiler-trust *operation*: the pin
     -- fixes the name, and the two operations are installed as opaques
     (by rw [hname]; decide)
-  · -- `hAclosed`
-    exact fun ψ k => mp.base2.acval_closed _ ψ k
   · -- `hAparams`: `True.intro` is level-monomorphic, so the premise is
     -- vacuous
     intro ψ₁ ψ₂ _
@@ -180,7 +178,7 @@ theorem axiomStd (hμ : μ.verifiedChecks = true)
   by_cases hn : cv.name = propextName
   · refine harvestAxiom (V := V) hμ mp hcv
       (A := fun _ => .const .propext []) (fun _ => trivial)
-      (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ => by simp)
+      (fun _ _ _ => rfl) (fun _ _ => by simp)
       ?_ (by rw [hn]; decide)
     intro ψ ta hta ρ
     exact propext_mem mp hok hn ψ ta hta ρ
@@ -199,7 +197,6 @@ theorem axiomStd (hμ : μ.verifiedChecks = true)
       refine harvestAxiom (V := V) hμ mp hcv
         (A := fun ψ => .const .choice [ψ uN])
         (fun _ => trivial)
-        (fun _ _ => rfl)
         (fun ψ₁ ψ₂ hp => by
           show Term.const .choice [ψ₁ uN] = Term.const .choice [ψ₂ uN]
           rw [huN ψ₁ ψ₂ hp])

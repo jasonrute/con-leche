@@ -16,7 +16,7 @@ substitution.  Walking a substituted tree with the `denote` clause
 equations is possible but miserable: every `.sort` carries a
 `Level.subst`, every `.const` a `List.map (Level.subst …)`, and every
 binder a `Level.substPW`, so the clause equations no longer see
-constructor applications and the `acval_basis_pinned` leaves no longer
+constructor applications and the `EnvModel.acval_pinned` leaves no longer
 match.
 
 The fix is the crossing law, and for `denote` it is **pure algebra**:
@@ -51,16 +51,12 @@ variable {env : Env}
 
 /-- A leaf reads only its own level parameters — `EnvModel.acval_params`
 as a standalone predicate, so the crossing does not need a carrier. -/
-def AcvalParamsAt (env : Env)
+abbrev AcvalParamsAt (env : Env)
     (acval : Name → (Name → Nat) → Term) : Prop :=
   ∀ (n : Name) (ci : ConstantInfo), env.find? n = some ci →
     ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       acval n ψ₁ = acval n ψ₂
-
-/-- Every core carrier has it. -/
-theorem acvalParamsAt_of_core (m : EnvModel V env) :
-    AcvalParamsAt env m.acval := m.acval_params
 
 variable {acval : Name → (Name → Nat) → Term}
 

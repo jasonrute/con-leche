@@ -157,17 +157,4 @@ theorem interp_mkPisAV_congr :
   | _, [], _ :: _, _, h, _, _ => h.elim
   | _, _ :: _, [], _, h, _, _ => h.elim
 
-/-- The relation under a binder depends only on the binder's reading at
-the relation's frames. -/
-theorem under_eq_of_eqOn {Δ : List Term} {A B : Term} {R : FrameRel V}
-    (h : ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ A = interp V ρ B)
-    (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δ ρ ∧ Sat V Δ ρ') : R.under A = R.under B := by
-  funext σ σ'
-  apply propext
-  constructor
-  · rintro ⟨x, ρ, ρ', rfl, rfl, hR, hx⟩
-    exact ⟨x, ρ, ρ', rfl, rfl, hR, by rwa [← h ρ (hdom ρ ρ' hR).1]⟩
-  · rintro ⟨x, ρ, ρ', rfl, rfl, hR, hx⟩
-    exact ⟨x, ρ, ρ', rfl, rfl, hR, by rwa [h ρ (hdom ρ ρ' hR).1]⟩
-
 end ConLeche.Semantics

@@ -66,30 +66,6 @@ universe w
 variable {V : Type w} [SetTheory V]
 variable {μ : CheckMode} {env : Env}
 
-/-! ## The P basis leaves are pinned FOR FREE
-
-The P tier needs no "basis constants are valued by their direct pins"
-field of its own beside `EnvModel.basis_pinned`: that field states the
-leaf equation `acval n ψ = .const c us` outright.
-
-Every downstream basis obligation reads the leaf through this — the
-type readings are `BConst.typeAV` towers over the *pinned* leaves, and
-`BasisOk.lean`'s `bval2_mem_*` memberships are stated at exactly those
-towers.  Recording it here because the missing bridge between the
-checker's pinned `ConstantInfo` blocks and the TT `BConst` alphabet is
-the basis tier's structural crux, and this is its P half. -/
-
-/-- **A stored reserved-basis constant's leaf is its direct
-pin.**  `EnvModel.basis_pinned`'s second component. -/
-theorem acval_basis_pinned {m : EnvModel V env}
-    {n : Name} {ci : ConstantInfo} (hf : env.find? n = some ci)
-    (hres : ConLeche.reservedBasisNames.contains n = true)
-    {c : ConLeche.Term.BConst} {us : List Nat} {ψ : Name → Nat}
-    (hd : ConLeche.Verify.pinnedStructT n ψ
-      = some (Term.const c us)) :
-    m.acval n ψ = .const c us :=
-  (m.basis_pinned n ci hf hres).2 _ ψ hd
-
 /-- **`nat_heads` at a cons that is none of the three literal
 heads.**  The guard reads `natName`, `natZeroName` and `natSuccName`
 and nothing else, so a cons named otherwise moves neither the guard
@@ -186,7 +162,7 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
       rw [hac, acvalWith_ne hnT] at hmem
       rw [hac, acvalWith_ne hnC]
@@ -199,7 +175,7 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
         exact denote_cons_mono hfresh
           ((hntc.typeOf hf).instantiateLevelParams _ _) _ 0
           (constsBound_instType mp.base2.wf
-            (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
+            (ConLeche.Env.find?_mem hf) us) hTCa
   · -- the unit-like half: one leaf to move, the disequality off the
     -- law's own non-reserved premise
     intro T cvT caps hf hcapu hres φ' us hlen
@@ -215,7 +191,7 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
       exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
-          (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
+          (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x y hlents hfit hx hy
       rw [hac, acvalWith_ne hnT] at hx hy
       exact hlaw ρ ts rest x y hlents hfit hx hy

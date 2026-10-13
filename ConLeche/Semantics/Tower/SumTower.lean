@@ -18,10 +18,8 @@ leaf; the sum leaves' syntactic battery.
 /-!
 ## The tower leaves' syntactic battery
 
-The `hAclosed` row of an install-step leaf is
-`Term.liftN 1 (leaf) k = leaf`, and by `Term.liftN_eq_self`
-(`Verify/Denote/VClosed.lean`) that follows from the leaf's
-boundedness.  So this
+The closedness row of an install-step leaf (`ConsHead.vclosed`) is
+`Term.bvarsBelow 0 (leaf)`.  So this
 section is a bvar-bound walk per leaf former, plus the peel lemma that
 produces the binder domains' bounds from the (closed) type reading
 (`stripPisAV_below`).  No semantics, no `V`.
@@ -60,7 +58,6 @@ theorem DomsBelow.getD_below {K : Nat} :
     simp only [List.getD_cons_succ]
     have := DomsBelow.getD_below (K := K + 1) (ds := ds) h.2 k (by simpa using hk)
     rwa [show K + 1 + k = K + (k + 1) from by omega] at this
-
 
 /-! ## The `Term`-side helpers -/
 
@@ -235,10 +232,9 @@ theorem stripPisAV_below :
       rw [show k + (n + 1) = k + 1 + n by omega]
       exact hb⟩
 
-/-! ## The `hAclosed` packages
+/-! ## Lift-invariance of a closed leaf
 
-The install rows want `Term.liftN 1 (leaf) k = leaf` for every cut
-`k`; a leaf bounded at `0` is bounded at every cut
+A leaf bounded at `0` is bounded at every cut
 (`Term.bvarsBelow.mono`), and a lift below the bound is the identity
 (`Term.liftN_eq_self`). -/
 
@@ -247,7 +243,6 @@ theorem liftN_eq_self_of_closed {e : Term}
     (h : Term.bvarsBelow 0 e) (k n : Nat) :
     Term.liftN n e k = e :=
   Term.liftN_eq_self (Term.bvarsBelow.mono (Nat.zero_le k) h) n
-
 
 /-!
 ## The numeral case split, spelled
@@ -270,7 +265,6 @@ them back.
   level), so the reading is stated at the retracted environment
   `shiftE d 0 σ` — no capture-avoiding substitution anywhere.
 -/
-
 
 open SetTheory
 open ConLeche.SetTheory.Tower
@@ -549,7 +543,6 @@ theorem caseAVAt_facts {w : Nat} :
           rw [hin b hb]
           exact lamR_mem fun a _ => (hinner a b hb).1
 
-
 /-!
 ## The tagged sum carrier, spelled
 
@@ -570,7 +563,6 @@ domains with this body; its laws consume one hereditary premise,
 `ParamsOkS` — the parameter domains graded, with the per-constructor
 chain grading `SumFieldsOkB` at the base.
 -/
-
 
 /-! ## The semantic fibres -/
 
@@ -879,7 +871,6 @@ theorem sumTyAV_fold_strictU {w : Nat} {Fss : List (List Term)} :
     rw [List.foldl_cons, happ]
     exact sumTyAV_fold_strictU (h.2.2 a ha) hsp.2
 
-
 /-!
 ## The index equation, spelled
 
@@ -903,7 +894,6 @@ construction consumes: a fitting spine of the restricted chain is a
 fitting spine of the fields followed by the point, with the equations
 holding at the fields.
 -/
-
 
 /-! ## The spelling -/
 
@@ -1056,18 +1046,6 @@ theorem FieldsOkB_append_idxEq {w : Nat} {eqs : List (Term × Term)} :
     have := hE (a :: bs) ⟨ha, hsp⟩
     rwa [consList_cons] at this
 
-/-- A fit of an appended chain splits (the `SpineFit` twin of the
-Model tier's `spineFit_append_inv`, restated here below it). -/
-theorem spineFit_append_split :
-    ∀ {Ds₁ Ds₂ : List Term} {ρ : Nat → V} {as : List V},
-      SpineFit ρ (Ds₁ ++ Ds₂) as →
-      ∃ as₁ as₂, as = as₁ ++ as₂ ∧ SpineFit ρ Ds₁ as₁ ∧ SpineFit (consList as₁ ρ) Ds₂ as₂
-  | [], _, ρ, as, h => ⟨[], as, rfl, trivial, h⟩
-  | _ :: _, _, _, [], h => h.elim
-  | D :: Ds₁, Ds₂, ρ, a :: as, h => by
-    obtain ⟨as₁, as₂, rfl, h1, h2⟩ := spineFit_append_split (Ds₁ := Ds₁) h.2
-    exact ⟨a :: as₁, as₂, rfl, ⟨h.1, h1⟩, by rw [consList_cons]; exact h2⟩
-
 /-- A spine fits the restricted chain exactly when it is a fitting
 field spine followed by the point, with every equation holding at the
 fields. -/
@@ -1077,7 +1055,7 @@ theorem spineFit_append_idxEq {Fs : List Term} {eqs : List (Term × Term)}
       ∃ bs, as = bs ++ [pt] ∧ SpineFit ρ Fs bs ∧ EqAll (consList bs ρ) eqs := by
   constructor
   · intro h
-    obtain ⟨bs, cs, rfl, hsp, hE⟩ := spineFit_append_split h
+    obtain ⟨bs, cs, rfl, hsp, hE⟩ := spineFit_append_inv h
     match cs, hE with
     | [], hE => exact hE.elim
     | [c], hE =>
@@ -1086,7 +1064,6 @@ theorem spineFit_append_idxEq {Fs : List Term} {eqs : List (Term × Term)}
     | _ :: _ :: _, hE => exact hE.2.elim
   · rintro ⟨bs, rfl, hsp, hall⟩
     exact hsp.append ⟨pt_mem_idxEqAV.mpr hall, trivial⟩
-
 
 /-- The restricted tower's intro: a fitting field spine at which the
 equations hold puts the point-terminated tuple in the tower (graph
@@ -1140,7 +1117,6 @@ def liftFields (n : Nat) : Nat → List Term → List Term
   | _, [] => []
   | k, F :: Fs => F.liftN n k :: liftFields n (k + 1) Fs
 
-@[simp] theorem liftFields_nil (n k : Nat) : liftFields n k [] = [] := rfl
 @[simp] theorem liftFields_cons (n k : Nat) (F : Term) (Fs : List Term) :
     liftFields n k (F :: Fs) = F.liftN n k :: liftFields n (k + 1) Fs := rfl
 
@@ -1210,7 +1186,6 @@ def rChains (d nIdx : Nat) (Fss : List (List Term)) (Ess : List (List Term)) :
     List (List Term) :=
   List.zipWith (rChain d nIdx) Fss Ess
 
-
 theorem rChains_getElem? (d nIdx : Nat) (Fss Ess : List (List Term)) (j : Nat) :
     (rChains d nIdx Fss Ess)[j]? = match Fss[j]?, Ess[j]? with
       | some Fs, some Es => some (rChain d nIdx Fs Es)
@@ -1218,11 +1193,19 @@ theorem rChains_getElem? (d nIdx : Nat) (Fss Ess : List (List Term)) (j : Nat) :
   simp only [rChains, List.getElem?_zipWith]
   cases Fss[j]? <;> cases Ess[j]? <;> rfl
 
-
 /-- The frame's index tuple: the last `nIdx` binders' values, the first
 index first. -/
 def frameIdx (nIdx : Nat) (σ : Nat → V) : List V :=
   (List.range nIdx).map fun l => σ (nIdx - 1 - l)
+
+omit [SetTheory V] in
+theorem frameIdx_eq_reverse_map (n : Nat) (σ : Nat → V) :
+    frameIdx n σ = (List.range n).reverse.map σ := by
+  apply List.ext_getElem
+  · simp [frameIdx]
+  · intro l h1 h2
+    simp only [frameIdx, List.getElem_map, List.getElem_reverse, List.getElem_range]
+    simp only [List.length_range]
 
 /-- A constructor's index tuple at a field spine, read at the
 parameter frame. -/
@@ -1249,7 +1232,6 @@ theorem getD_mem_of_lt {l : Nat} {Es : List Term} (hl : l < Es.length) :
     Es.getD l default ∈ Es := by
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl, Option.getD_some]
   exact List.getElem_mem hl
-
 
 /-- **The index equation at a fitting spine**: every `e_l = ı_l` holds
 exactly when the constructor's index tuple at the fields is the
@@ -1302,7 +1284,6 @@ theorem EqAll_idxEqsAt {d nIdx nF : Nat} {Es : List Term} (hEs : Es.length = nId
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
     exact this
 
-
 /-!
 ## The sum constructor leaf
 
@@ -1322,7 +1303,6 @@ body is only required to read to SOME tagged union whose `j`-th fibre
 holds the tuple (at an indexed family that fibre is the restricted
 tower at the constructor's own index tuple).
 -/
-
 
 /-! ## The injection, spelled at a frame -/
 
@@ -1544,7 +1524,7 @@ theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : Term} :
         ∈ˢ SetTheory.app (lamR (w + 1) (interp V ρp F)
           fun x => interp V (cons x ρp) (towerBodyAV w (Fs ++ [E]))) b := by
       rw [hfib]
-      refine mkTower_mem_teleOfFields hw (spineFit_append_split_mpr hsp.2 ?_)
+      refine mkTower_mem_teleOfFields hw (spineFit_append_inv_mpr hsp.2 ?_)
       show SpineFit (consList bs (cons b ρp)) [E] [pt]
       exact ⟨hpt, trivial⟩
     show SetTheory.app (SetTheory.app (SetTheory.app (SetTheory.app
@@ -1572,7 +1552,7 @@ theorem mkTowerGoUPos_interp {w : Nat} (hw : w ≠ 0) {E : Term} :
       show Nat.max w w = w from Nat.max_self w, ite_eq_right hw]
     rfl
 where
-  spineFit_append_split_mpr {ρ : Nat → V} {Fs Gs : List Term} {as bs : List V}
+  spineFit_append_inv_mpr {ρ : Nat → V} {Fs Gs : List Term} {as bs : List V}
       (h1 : SpineFit ρ Fs as) (h2 : SpineFit (consList as ρ) Gs bs) :
       SpineFit ρ (Fs ++ Gs) (as ++ bs) := h1.append h2
 
@@ -1927,7 +1907,6 @@ theorem sumMkAV_zero {j : Nat} {ds : List Term} {Fs : List Term}
 
 /-! ## Application chains -/
 
-
 /-- The application chain `M i₀ … i_{k-1}` is graded: each prefix is a
 member of a function space the next index inhabits. -/
 def AppChainOk (M : V) (is : List V) : Prop :=
@@ -1966,7 +1945,6 @@ namespace RecHypCore
 variable {ℓ w : Nat} {ρ₀ : Nat → V} {Fss Ess : List (List Term)} {Ids : List Term}
   {famAt : List V → V}
 
-
 end RecHypCore
 
 /-! ## The sources -/
@@ -1977,16 +1955,14 @@ noncomputable def srcVals (is : List V) (src : List (Option Nat)) : List V :=
     | some l => is.getD l pt
     | none => pt
 
-
 /-!
 ## The sum leaves' syntactic battery
 
-The `hAclosed` rows of the sum leaves: bound-variable bounds of their
+The closedness rows of the sum leaves: bound-variable bounds of their
 erasures, one structural walk per spelled former.  The tower bodies
 are scoped at the frame `K` and lifted by the depth `d` where they are
 used, so every lifted use is bounded at `K + d` (`bvarsBelow_liftN`).
 -/
-
 
 /-! ## The case split -/
 

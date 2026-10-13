@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Env.EnvModelM
-public import ConLeche.Model.Reading.ConsCross
+public import ConLeche.Verify.Denote.ConsCross
 import ConLeche.Model.Install
 import ConLeche.Model.Env.CanonCrest
 
@@ -37,6 +37,7 @@ carrier with the input's recorded list, re-proved at the extension).
 -/
 
 namespace ConLeche.Model
+open ConLeche.Verify
 open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche (Env Name ConstantInfo)
@@ -68,11 +69,6 @@ container name `C` (its `filterMap` function, verbatim). -/
       | _ => none
     | none => none
   | _ => none
-
-/-- The kernel's constructor entry is `ctorEntry`. -/
-theorem nestCtorEntry_eq (C : Name) (ci : ConstantInfo) :
-    ConLeche.nestCtorEntry C ci = ctorEntry C ci := by
-  cases ci <;> rfl
 
 /-- The environment as a walk context: `nestContainer` reads only its
 `find?`. -/
@@ -218,61 +214,6 @@ theorem LfpOwn.mono {env env' : Env} {D : LfpDatum V} (h : LfpOwn env D)
     exact ⟨cv, nPc, nF, hfwd _ _ hf, hsh⟩
 
 /-! ### Constructor entries, computed -/
-
-theorem constsBound_stripPis {env : Env} :
-    ∀ {k : Nat} {e : Expr} {bs : List Expr} {b : Expr},
-      ConstsBound env e → e.stripPis k = some (bs, b) → ConstsBound env b
-  | 0, e, bs, b, h, hs => by
-    simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at hs
-    obtain ⟨-, rfl⟩ := hs
-    exact h
-  | k + 1, .forallE ty body, bs, b, h, hs => by
-    simp only [Expr.stripPis, Option.map_eq_some_iff] at hs
-    obtain ⟨⟨bs', b'⟩, hs', he⟩ := hs
-    simp only [Prod.mk.injEq] at he
-    obtain ⟨-, rfl⟩ := he
-    exact constsBound_stripPis ((constsBound_forallE).mp h).2 hs'
-  | _ + 1, .bvar _, _, _, _, hs | _ + 1, .fvar _ _, _, _, _, hs
-  | _ + 1, .sort _, _, _, _, hs | _ + 1, .const _ _, _, _, _, hs
-  | _ + 1, .app _ _, _, _, _, hs | _ + 1, .lam _ _, _, _, _, hs
-  | _ + 1, .letE _ _ _, _, _, _, hs | _ + 1, .lit _, _, _, _, hs
-  | _ + 1, .proj _ _ _, _, _, _, hs => by simp [Expr.stripPis] at hs
-
-theorem constsBound_getAppFn {env : Env} :
-    ∀ {e : Expr} {n : Name} {us : List Level},
-      ConstsBound env e → e.getAppFn = .const n us → (env.find? n).isSome = true
-  | .app f _, n, us, h, hg => constsBound_getAppFn ((constsBound_app).mp h).1 hg
-  | .const n' us', n, us, h, hg => by
-    simp only [Expr.getAppFn, Expr.const.injEq] at hg
-    obtain ⟨rfl, -⟩ := hg
-    exact (constsBound_const).mp h
-  | .bvar _, _, _, _, hg | .fvar _ _, _, _, _, hg | .sort _, _, _, _, hg
-  | .lam _ _, _, _, _, hg | .forallE _ _, _, _, _, hg | .letE _ _ _, _, _, _, hg
-  | .lit _, _, _, _, hg | .proj _ _ _, _, _, _, hg => by simp [Expr.getAppFn] at hg
-
-/-- A stored constant's constructor entry at `C` names a stored head. -/
-theorem ctorEntry_isSome_found {env : Env} {ci : ConstantInfo} {C : Name}
-    (hb : ConstsBound env ci.toConstantVal.type) (h : (ctorEntry C ci).isSome = true) :
-    (env.find? C).isSome = true := by
-  cases ci with
-  | ctorInfo cv nPc nF =>
-    dsimp only [ctorEntry] at h
-    cases hs : cv.type.stripPis (nPc + nF) with
-    | none => rw [hs] at h; exact nomatch h
-    | some p =>
-      obtain ⟨bs, body⟩ := p
-      rw [hs] at h
-      dsimp only at h
-      cases hg : body.getAppFn with
-      | const n us =>
-        rw [hg] at h
-        dsimp only at h
-        by_cases hn : n = C
-        · subst hn
-          exact constsBound_getAppFn (constsBound_stripPis hb hs) hg
-        · rw [ite_eq_right (by simpa using hn)] at h; exact nomatch h
-      | _ => rw [hg] at h; exact nomatch h
-  | _ => exact nomatch h
 
 /-- A constructor's entry at its own head. -/
 theorem ctorEntry_self {c₀ : ConstantInfo} {cv : ConstantVal} {nPc nF : Nat}
@@ -600,19 +541,19 @@ theorem EnvModelM.keepLfpOf {env : Env} {mp : EnvModelM V μ env} {c₀ : Consta
     (hac : mp'.base2.acval = acvalWith mp.base2.acval c₀.name A) :
     ∃ mk : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mk.base2 = mp'.base2 ∧ mk.lfpBlocks = mp.lfpBlocks := by
-  have hbound := ConLeche.Semantics.envWF_constsBound mp.base2.wf
+  have hbound := ConLeche.Verify.envWF_constsBound mp.base2.wf
   have hok := mp.lfp_ok_transport (acval' := acvalWith mp.base2.acval c₀.name A)
     (fun _ _ hf _ => findPreserved_cons hfresh hf)
     (fun n _ hf _ => acvalWith_ne fun h => by
       rw [h, hfresh] at hf; exact nomatch hf)
     (fun _ _ _ hf ψ _ hta =>
-      have hm := ConLeche.Semantics.Env.find?_mem hf
+      have hm := ConLeche.Env.find?_mem hf
       denote_cons_mono hfresh (hcross.type hm) ψ 0 (hbound _ hm).1 hta)
     (fun _ _ _ _ hf ψ _ hta =>
-      have hm := ConLeche.Semantics.Env.find?_mem hf
+      have hm := ConLeche.Env.find?_mem hf
       denote_cons_mono hfresh (hcross.type hm) ψ 0 (hbound _ hm).1 hta)
     (fun _ _ hf _ _ hA ψ d _ hta =>
-      have hm := ConLeche.Semantics.Env.find?_mem hf
+      have hm := ConLeche.Env.find?_mem hf
       denote_cons_mono hfresh (canonOf_consCrossAt (hcross.type hm) hA) ψ d
         (canonOf_constsBound (hbound _ hm).1 hA) hta)
   exact ⟨{ mp' with

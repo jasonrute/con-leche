@@ -31,7 +31,6 @@ open ConLeche.SetTheory
 open SetTheory
 open ConLeche.SetTheory.Tower (projS)
 
-
 open ConLeche (Name Level)
 
 universe w
@@ -61,16 +60,6 @@ theorem holeFam_liftFields (n : Nat) :
     congr 1
     funext a
     rw [holeFam_liftFields n Ts (k + 1) (cons a σ), cons_shiftE]
-
-theorem holeFam_append :
-    ∀ (A B : List Term) (ρ : Nat → V) (g : List V → V),
-      holeFam ρ (A ++ B) g = holeFam ρ A fun as => holeFam (consList as ρ) B fun bs => g (as ++ bs)
-  | [], _, _, _ => rfl
-  | T :: A, B, ρ, g => by
-    show lamV _ _ = lamV _ _
-    congr 1
-    funext a
-    exact holeFam_append A B (cons a ρ) fun vs => g (a :: vs)
 
 theorem holeFam_congr :
     ∀ {ρ : Nat → V} {Ts : List Term} {g g' : List V → V},

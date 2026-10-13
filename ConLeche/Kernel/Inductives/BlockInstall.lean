@@ -350,22 +350,4 @@ def consBlockRecsBare (p : BlockShape) : Nat → List (ConstantVal × Nat) → E
     consBlockRecsBare p (m + 1) rest
       ⟨.recInfo cvRa (p.majorIdxAt m) (p.rulePrefixAt m) [] :: env.consts⟩
 
-/-- **The member's parameter-and-index telescope, opened at the
-RECURSOR's own binder numbering**.
-
-The parameters take fvars `0 … nP-1` — the recursor's own first `nP`
-binders — and the INDEX telescope takes `rP … rP+nIdx-1`, which is
-where the recursor binds its indices.  Without that offset the two
-telescopes are not comparable at all: an index domain that mentions an
-earlier index names fvar `nP+i` on the member's side and fvar `rP+i`
-on the recursor's, so a binder-by-binder `isDefEq` would fail on every
-family whose indices depend on one another. -/
-def openPisParamsIdx (nP nIdx rP : Nat) (ty : Expr) : Option (List Expr × Expr) :=
-  match openPisAtFvars nP ty 0 with
-  | none => none
-  | some (pfvs, body) =>
-    match openPisAtFvars nIdx body rP with
-    | none => none
-    | some (ifvs, rest) => some (pfvs ++ ifvs, rest)
-
 end ConLeche

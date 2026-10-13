@@ -41,7 +41,6 @@ open ConLeche.SetModel
 
 open SetTheory
 
-
 universe w
 
 variable (V : Type w) [SetTheory V]
@@ -289,17 +288,6 @@ slot's function space is in the graph regime; the graph fixes its
 domain (`piR_dom_unique`), so the argument lies in the λ's domain, and
 β is `app_lamV`.  At the point there is nothing to show: the claims
 that read this are conditional on "not the point". -/
-
-/-- The λ's own membership, read off its clause: an abstraction whose
-body is bounded by a family of types is a member of that family's
-function space. -/
-theorem WellDenoted_lam_mem {A b : Term} {ρ : Nat → V}
-    (h : WellDenoted V ρ (.lam A b)) :
-    ∃ B : V → V, interp V ρ (.lam A b) ∈ˢ piV (interp V ρ A) B ∧
-      (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) := by
-  rw [WellDenoted_lam] at h
-  obtain ⟨-, -, -, B, hfib, hty⟩ := h
-  exact ⟨B, by rw [interp_lam]; exact lamV_mem hfib hty, hty⟩
 
 /-- **The graded β step** at a redex that is not the point. -/
 theorem WellDenoted_beta {A b a : Term} {ρ : Nat → V}

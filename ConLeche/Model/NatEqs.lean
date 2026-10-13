@@ -529,8 +529,8 @@ theorem natBinHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
     (hcodLp : codCi.toConstantVal.levelParams = []) :
     NatBinHead mp.base2 ψ (.const o [])
       (fun ρ => interp V ρ (mp.base2.acval codN ψ)) := by
-  have hmemE := ConLeche.Semantics.Env.find?_mem hf
-  have hnm : cvo.name = o := ConLeche.Semantics.Env.find?_name hf
+  have hmemE := ConLeche.Env.find?_mem hf
+  have hnm : cvo.name = o := ConLeche.Env.find?_name hf
   have hta : denote mp.base2.acval env ψ 0
       (ConstantInfo.defnInfo cvo vo ho).toConstantVal.type
       = some (.pi (mp.base2.acval ConLeche.natName ψ)
@@ -561,8 +561,8 @@ theorem natUnHead_of_stored (mp : EnvModelM V μ env) {ψ : Name → Nat}
     (hlpN : ciN.toConstantVal.levelParams = []) :
     NatUnHead mp.base2 ψ (.const o [])
       (fun ρ => interp V ρ (mp.base2.acval ConLeche.natName ψ)) := by
-  have hmemE := ConLeche.Semantics.Env.find?_mem hf
-  have hnm : cvo.name = o := ConLeche.Semantics.Env.find?_name hf
+  have hmemE := ConLeche.Env.find?_mem hf
+  have hnm : cvo.name = o := ConLeche.Env.find?_name hf
   have hta : denote mp.base2.acval env ψ 0
       (ConstantInfo.defnInfo cvo vo ho).toConstantVal.type
       = some (.pi (mp.base2.acval ConLeche.natName ψ)
@@ -762,17 +762,6 @@ theorem NatArg.package (m : EnvModel V env) {ψ : Name → Nat}
           interp V ρ ea ∈ˢ interp V ρ (m.acval ConLeche.natName ψ) :=
   h
 
-/-- A `Bool`-codomain application's package (comparison sides): the
-grading and the membership in the codomain. -/
-theorem natBinHead_app_package (m : EnvModel V env) {ψ : Name → Nat}
-    {f x y : Expr} {codS : (Nat → V) → V}
-    (hh : NatBinHead m ψ f codS) (hx : NatArg m ψ x)
-    (hy : NatArg m ψ y) :
-    ∃ ea, denote m.acval env ψ 2 (.app (.app f x) y) = some ea ∧
-      ∀ ρ : Nat → V, Sat V (natCtx2 m ψ) ρ →
-        WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ codS ρ :=
-  natBinHead_app m hh hx hy
-
 /-- A stored `Bool` constructor's package (the comparison right-hand
 sides): the natOp guard stores it at the type `Bool` itself, so its
 reading is a member of the stored `Bool`'s. -/
@@ -788,14 +777,14 @@ theorem natBoolConst_package (mp : EnvModelM V μ env) {ψ : Name → Nat}
       ∀ ρ : Nat → V, Sat V (natCtx2 mp.base2 ψ) ρ →
         WellDenoted V ρ ea ∧
           interp V ρ ea ∈ˢ interp V ρ (mp.base2.acval ConLeche.boolName ψ) := by
-  have hmemE := ConLeche.Semantics.Env.find?_mem hf
+  have hmemE := ConLeche.Env.find?_mem hf
   have hta : denote mp.base2.acval env ψ 0 ci.toConstantVal.type
       = some (mp.base2.acval ConLeche.boolName ψ) := by
     rw [hty]; exact denote_levelless_const hfB hlpB
   refine ⟨mp.base2.acval n ψ, denote_levelless_const hf hlp,
     fun ρ _ => ⟨mp.base2.acval_wellDenoted _ _ ρ, ?_⟩⟩
   have h := mp.mem_type _ hmemE ψ _ hta ρ
-  rwa [ConLeche.Semantics.Env.find?_name hf] at h
+  rwa [ConLeche.Env.find?_name hf] at h
 
 /-- The stored `Bool` is a type: a `Bool` constructor's stored type. -/
 theorem natBool_isTy (mp : EnvModelM V μ env) {ψ : Name → Nat}
@@ -809,7 +798,7 @@ theorem natBool_isTy (mp : EnvModelM V μ env) {ψ : Name → Nat}
   have hta : denote mp.base2.acval env ψ 0 ci.toConstantVal.type
       = some (mp.base2.acval ConLeche.boolName ψ) := by
     rw [hty]; exact denote_levelless_const hfB hlpB
-  exact (mp.type_wellDenotedTy _ (ConLeche.Semantics.Env.find?_mem hf) ψ _ hta ρ).2
+  exact (mp.type_wellDenotedTy _ (ConLeche.Env.find?_mem hf) ψ _ hta ρ).2
 
 /-! ## Descending the extension's storedness facts -/
 
@@ -1335,13 +1324,13 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- add x 0 = x
       obtain ⟨la, hla, hga⟩ :=
-        natBinHead_app_package mp.base2 hbin hvx hz
+        natBinHead_app mp.base2 hbin hvx hz
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2 hvx
       refine close hSN ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- add x (succ y) = succ (add x y)
-      obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
+      obtain ⟨la, hla, hga⟩ := natBinHead_app mp.base2 hbin
         hvx (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
         (natArg_succ mp.base2 hnh hs
@@ -1363,13 +1352,13 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- sub x 0 = x
       obtain ⟨la, hla, hga⟩ :=
-        natBinHead_app_package mp.base2 hbin hvx hz
+        natBinHead_app mp.base2 hbin hvx hz
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2 hvx
       refine close hSN ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- sub x (succ y) = pred (sub x y)
-      obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
+      obtain ⟨la, hla, hga⟩ := natBinHead_app mp.base2 hbin
         hvx (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
         (natArg_of_un mp.base2 hpred
@@ -1392,13 +1381,13 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- mul x 0 = 0
       obtain ⟨la, hla, hga⟩ :=
-        natBinHead_app_package mp.base2 hbin hvx hz
+        natBinHead_app mp.base2 hbin hvx hz
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2 hz
       refine close hSN ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- mul x (succ y) = add (mul x y) x
-      obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
+      obtain ⟨la, hla, hga⟩ := natBinHead_app mp.base2 hbin
         hvx (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
         (natArg_of_bin mp.base2 hadd
@@ -1421,14 +1410,14 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- pow x 0 = 1
       obtain ⟨la, hla, hga⟩ :=
-        natBinHead_app_package mp.base2 hbin hvx hz
+        natBinHead_app mp.base2 hbin hvx hz
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
         (natArg_succ mp.base2 hnh hs hz)
       refine close hSN ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- pow x (succ y) = mul (pow x y) x
-      obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
+      obtain ⟨la, hla, hga⟩ := natBinHead_app mp.base2 hbin
         hvx (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ := NatArg.package mp.base2
         (natArg_of_bin mp.base2 hmul
@@ -1467,14 +1456,14 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- beq 0 0 = true
       obtain ⟨la, hla, hga⟩ :=
-        natBinHead_app_package mp.base2 hbin hz hz
+        natBinHead_app mp.base2 hbin hz hz
       obtain ⟨ra, hra, hgr⟩ :=
         natBoolConst_package mp hfT hlpT htyT2 hfB hlpB
       refine close hSB ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- beq 0 (succ y) = false
-      obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
+      obtain ⟨la, hla, hga⟩ := natBinHead_app mp.base2 hbin
         hz (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ :=
         natBoolConst_package mp hfF hlpF htyF2 hfB hlpB
@@ -1482,7 +1471,7 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- beq (succ x) 0 = false
-      obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
+      obtain ⟨la, hla, hga⟩ := natBinHead_app mp.base2 hbin
         (natArg_succ mp.base2 hnh hs hvx) hz
       obtain ⟨ra, hra, hgr⟩ :=
         natBoolConst_package mp hfF hlpF htyF2 hfB hlpB
@@ -1490,11 +1479,11 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- beq (succ x) (succ y) = beq x y
-      obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
+      obtain ⟨la, hla, hga⟩ := natBinHead_app mp.base2 hbin
         (natArg_succ mp.base2 hnh hs hvx)
         (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ :=
-        natBinHead_app_package mp.base2 hbin hvx hvy
+        natBinHead_app mp.base2 hbin hvx hvy
       refine close hSB ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
@@ -1529,14 +1518,14 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
     rcases hq with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
     · -- ble 0 y = true
       obtain ⟨la, hla, hga⟩ :=
-        natBinHead_app_package mp.base2 hbin hz hvy
+        natBinHead_app mp.base2 hbin hz hvy
       obtain ⟨ra, hra, hgr⟩ :=
         natBoolConst_package mp hfT hlpT htyT2 hfB hlpB
       refine close hSB ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- ble (succ x) 0 = false
-      obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
+      obtain ⟨la, hla, hga⟩ := natBinHead_app mp.base2 hbin
         (natArg_succ mp.base2 hnh hs hvx) hz
       obtain ⟨ra, hra, hgr⟩ :=
         natBoolConst_package mp hfF hlpF htyF2 hfB hlpB
@@ -1544,11 +1533,11 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra
     · -- ble (succ x) (succ y) = ble x y
-      obtain ⟨la, hla, hga⟩ := natBinHead_app_package mp.base2 hbin
+      obtain ⟨la, hla, hga⟩ := natBinHead_app mp.base2 hbin
         (natArg_succ mp.base2 hnh hs hvx)
         (natArg_succ mp.base2 hnh hs hvy)
       obtain ⟨ra, hra, hgr⟩ :=
-        natBinHead_app_package mp.base2 hbin hvx hvy
+        natBinHead_app mp.base2 hbin hvx hvy
       refine close hSB ?_ hga ?_ hgr
       · simpa +decide [Expr.substConst0] using hla
       · simpa +decide [Expr.substConst0] using hra

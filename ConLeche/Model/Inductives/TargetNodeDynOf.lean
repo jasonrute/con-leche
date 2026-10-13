@@ -334,39 +334,6 @@ end Pos
 
 /-! ## Owners -/
 
-/-- **Every hole of a listed node's stack has a listed OWNER above it**,
-whose group and frames are a suffix of the stack. -/
-theorem dyn_owner {F : Nat} {envI envC : Env} {mk : EnvModelM V μ envI}
-    {mpC : EnvModelM V μ envC} {ctx : NestCtx} {d : BlockData V} {ns : List PosTree}
-    (H : DynCtx F mk mpC ctx d ns) :
-    ∀ (n : Nat) (t : PosTree), t ∈ ns → nlDd ns - t.height ≤ n → ∀ hk ∈ t.anc,
-      ∃ u ∈ ns, t.height < u.height ∧
-        hk ∈ ConLeche.grpNews u.key.lvls u.key.ds (ctx.hiAt u.anc.length) u.grp ∧
-        ∃ X, t.anc = X ++ (ConLeche.grpNews u.key.lvls u.key.ds (ctx.hiAt u.anc.length)
-          u.grp).reverse ++ u.anc
-  | 0, t, ht, hn, hk, hkm => by
-    have := height_le_nlDd ht
-    have := PosTree.height_pos t
-    omega
-  | n + 1, t, ht, hn, hk, hkm => by
-    obtain ⟨-, -, -, -, -, hanc⟩ := H.hok t ht
-    rcases hanc with ⟨hao, -⟩ | ⟨han, -⟩
-    · have hne : t.occ ≠ [] := by
-        intro h; rw [hao, h] at hkm; exact nomatch hkm
-      obtain ⟨p, hp, htp⟩ := H.hpar t ht hne
-      have hocc := (H.hok p hp).2.2.1 t htp
-      have hlt := PosTree.height_kid htp
-      rw [hao, hocc, List.mem_append, List.mem_reverse] at hkm
-      rcases hkm with hkm | hkm
-      · exact ⟨p, hp, hlt, hkm, [], by rw [hao, hocc, List.nil_append]⟩
-      · have hpd := height_le_nlDd hp
-        obtain ⟨u, hu, hlt', hmem, X, hX⟩ := dyn_owner H n p hp (by omega) hk hkm
-        refine ⟨u, hu, Nat.lt_trans hlt hlt', hmem,
-          (ConLeche.grpNews p.key.lvls p.key.ds (ctx.hiAt p.anc.length) p.grp).reverse ++ X, ?_⟩
-        rw [hao, hocc, hX]
-        simp only [List.append_assoc]
-    · rw [han] at hkm; exact nomatch hkm
-
 /-! ## A listed node's true frame -/
 
 section Frames

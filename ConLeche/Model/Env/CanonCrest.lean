@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Model.Env.EnvModelM
-public import ConLeche.Model.Reading.ConsCross
+public import ConLeche.Verify.Denote.ConsCross
 import ConLeche.Verify.Inductives.ReplaceApps
 
 public section
@@ -26,87 +26,6 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.Verify
 open ConLeche (Env Expr Name Level ConstantInfo instPisWith)
-
-/-! ## Constant replacement -/
-
-theorem constsBound_replaceConsts {env₀ : Env} {f : Name → List Level → Option Expr}
-    (hf : ∀ c us e, f c us = some e → ConstsBound env₀ e) :
-    ∀ (e : Expr), ConstsBound env₀ e → ConstsBound env₀ (e.replaceConsts f) := by
-  intro e
-  induction e with
-  | bvar i => intro _; simp [ConLeche.Expr.replaceConsts]
-  | fvar i ty ih =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, constsBound_fvar] at h ⊢
-    exact ih h
-  | sort u => intro _; simp [ConLeche.Expr.replaceConsts]
-  | const c us =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts]
-    cases hc : f c us with
-    | none => exact h
-    | some e => exact hf c us e hc
-  | lit l => intro _; simp [ConLeche.Expr.replaceConsts]
-  | app a b iha ihb =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, constsBound_app] at h ⊢
-    exact ⟨iha h.1, ihb h.2⟩
-  | lam ty b iht ihb =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, constsBound_lam] at h ⊢
-    exact ⟨iht h.1, ihb h.2⟩
-  | forallE ty b iht ihb =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, constsBound_forallE] at h ⊢
-    exact ⟨iht h.1, ihb h.2⟩
-  | letE ty v b iht ihv ihb =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, constsBound_letE] at h ⊢
-    exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
-  | proj s i e ih =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, constsBound_proj] at h ⊢
-    exact ih h
-
-theorem noProjAt_replaceConsts {T : Name} {q : Nat} {f : Name → List Level → Option Expr}
-    (hf : ∀ c us e, f c us = some e → ConLeche.Expr.NoProjAt T q e) :
-    ∀ (e : Expr), ConLeche.Expr.NoProjAt T q e →
-      ConLeche.Expr.NoProjAt T q (e.replaceConsts f) := by
-  intro e
-  induction e with
-  | bvar i => intro _; simp [ConLeche.Expr.replaceConsts]
-  | fvar i ty ih =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, ConLeche.Expr.noProjAt_fvar] at h ⊢
-    exact ih h
-  | sort u => intro _; simp [ConLeche.Expr.replaceConsts]
-  | const c us =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts]
-    cases hc : f c us with
-    | none => exact h
-    | some e => exact hf c us e hc
-  | lit l => intro _; simp [ConLeche.Expr.replaceConsts]
-  | app a b iha ihb =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, ConLeche.Expr.noProjAt_app] at h ⊢
-    exact ⟨iha h.1, ihb h.2⟩
-  | lam ty b iht ihb =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, ConLeche.Expr.noProjAt_lam] at h ⊢
-    exact ⟨iht h.1, ihb h.2⟩
-  | forallE ty b iht ihb =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, ConLeche.Expr.noProjAt_forallE] at h ⊢
-    exact ⟨iht h.1, ihb h.2⟩
-  | letE ty v b iht ihv ihb =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, ConLeche.Expr.noProjAt_letE] at h ⊢
-    exact ⟨iht h.1, ihv h.2.1, ihb h.2.2⟩
-  | proj s i e ih =>
-    intro h
-    simp only [ConLeche.Expr.replaceConsts, ConLeche.Expr.noProjAt_proj] at h ⊢
-    exact ⟨h.1, ih h.2⟩
 
 /-! ## Instantiation along a telescope -/
 

@@ -220,7 +220,6 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → Term} {F g :
     rw [hav, hbv]
     rfl
 
-
 /-!
 ## The type-former leaf of a BLOCK of `k` recursive families
 
@@ -245,7 +244,6 @@ block's semantic operator, and the leaf's three laws
 (`blockTyG_mem/_wellDenoted/_fold`) under one hereditary premise
 (`ParamsOkG`); the functor's laws and the hole chains follow below.
 -/
-
 
 open SetTheory SetTheory.Tower
 open ConLeche.Term (Term lv tupleIdxSort tupleFamSort)
@@ -284,7 +282,6 @@ theorem blockR_ne_zero (k w : Nat) (uf : Nat → Nat) : blockR k w uf ≠ 0 :=
 
 theorem blockS_ne_zero (k w : Nat) (uf : Nat → Nat) : blockS k w uf ≠ 0 :=
   tupleIdxSort_ne_zero _
-
 
 /-! ## The operator, the carrier tuple, and the leaf -/
 
@@ -446,15 +443,6 @@ theorem IsTy_famsSpaceB (hI : BlockIdxOk (V := V) k uf ρp Idss) :
     IsTy (famsSpaceB k w ρp uf Idss) :=
   IsTy_of_mem_univ (ndTowerSet_mem_univ V k 0
     (fun m hm => famSpace_mem_blockR (by omega) (idxTyAV_facts (hI m (by omega))).2.1))
-
-/-- The family tuples are strict, with no premise: the block's tuple
-sort is positive (task #342, L6). -/
-theorem strict_famsSpaceB (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
-    (Idss : Nat → List Term) : Strict (famsSpaceB k w ρp uf Idss) := by
-  have h := Fib_ndTowerSet V (blockR k w uf)
-    (fun m => lfpFamSpace V w (idxSet (uf m) ρp (Idss m))) 0 k
-  simp only [blockR_ne_zero k w uf, decide_false, Fib_false] at h
-  exact h
 
 /-- The index-set tuple's components are the members' index sets. -/
 theorem projS_idxTup {m : Nat} (hm : m < k) :
@@ -908,7 +896,6 @@ the tagged union of its STORED constructors is read at them by the
 override law (`Model/Inductives/BlockHoleFold.lean`).
 -/
 
-
 /-! ## The recursive slot at a family tuple -/
 
 section Slot
@@ -993,7 +980,6 @@ the hole terms' values (`spineFit_holeEntsAV`, `eqAll_holeEqsAV`), and
 the operator's fibre is the injections of the spines fitting them
 (`blockStepG_termChs_mem_iff`, generic in terminated chains).
 -/
-
 
 /-! ## Grading crosses a parallel substitution -/
 
@@ -1098,7 +1084,6 @@ theorem holeEntsAV_length (k : Nat) (H : Nat → Term) :
     ∀ (i : Nat) (Fs : List Term), (holeEntsAV k H i Fs).length = Fs.length
   | _, [] => rfl
   | i, _ :: Fs => by simp [holeEntsAV, holeEntsAV_length k H (i + 1) Fs]
-
 
 /-! ## Reading the hole chains -/
 
@@ -1385,14 +1370,6 @@ theorem FieldsOkB_zero_of {w : Nat} :
   | [], _, _ => trivial
   | _ :: _, _, h => ⟨h.1, h.2.1, fun h0 => absurd rfl h0,
       fun a ha => FieldsOkB_zero_of (h.2.2.2 a ha)⟩
-
-theorem FieldsOkB_append_iff {w : Nat} :
-    ∀ {A B : List Term} {ρ : Nat → V},
-      FieldsOkB w ρ A → (∀ vs, SpineFit ρ A vs → FieldsOkB w (consList vs ρ) B) →
-      FieldsOkB w ρ (A ++ B)
-  | [], _, _, _, hB => hB [] trivial
-  | _ :: _, _, _, hA, hB => ⟨hA.1, hA.2.1, hA.2.2.1, fun a ha =>
-      FieldsOkB_append_iff (hA.2.2.2 a ha) fun vs hvs => hB (a :: vs) ⟨ha, hvs⟩⟩
 
 theorem fieldsBound_liftFields {w n : Nat} :
     ∀ {Fs : List Term} {k : Nat} {σ : Nat → V},

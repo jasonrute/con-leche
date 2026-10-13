@@ -38,26 +38,6 @@ universe w
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env}
   {φ : Name → Nat}
 
-/-- The leaves of an application built over leaves-graded parts are
-graded (the `LeavesGr` mirror of `frame_mkAppN`). -/
-theorem leavesGr_mkAppN {d : Nat} {f : Expr} {as : List Expr} {ρ : Nat → V}
-    (hf : LeavesGr m φ d f ρ) (has : ∀ x ∈ as, LeavesGr m φ d x ρ) :
-    LeavesGr m φ d (Expr.mkAppN f as) ρ := by
-  intro l hl
-  rcases ConLeche.fvarLeaves_mkAppN hl with hl' | ⟨y, hy, hly⟩
-  · exact hf l hl'
-  · exact has y hy l hly
-
-/-- The structural context of an application built over
-structurally-tracked parts (the `CtxOkS` mirror of `frame_mkAppN`). -/
-theorem ctxOkS_mkAppN {d : Nat} {Δa : List Term} {f : Expr} {as : List Expr}
-    (hf : CtxOkS m φ d Δa f) (has : ∀ x ∈ as, CtxOkS m φ d Δa x) :
-    CtxOkS m φ d Δa (Expr.mkAppN f as) := by
-  refine ⟨hf.1, fun l hl => ?_⟩
-  rcases ConLeche.fvarLeaves_mkAppN hl with hl' | ⟨y, hy, hly⟩
-  · exact hf.2 l hl'
-  · exact (has y hy).2 l hly
-
 /-- **The parameter spine of a stored family's graded instance fits the
 former's telescope**, wherever the instance is not the point ("not pt"
 source (1) at the consumers: the instance is a reduced inferred type):

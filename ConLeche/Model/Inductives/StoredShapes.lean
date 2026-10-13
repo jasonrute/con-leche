@@ -12,14 +12,15 @@ public import ConLeche.Model.Inductives.NestPosMono
 import ConLeche.Model.Inductives.BlockHoleRead
 import ConLeche.Model.Inductives.StructFrameKit
 import ConLeche.Model.Inductives.StructEntryKit
-import ConLeche.Model.Reading.Lemmas
+import ConLeche.Verify.Denote.Lemmas
 import ConLeche.Model.Env.LfpFormer
 import ConLeche.Model.IndPointKit
-import ConLeche.Model.Reading.ErasedEq
-public import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.ErasedEq
+public import ConLeche.Verify.Denote.Inst
 import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Verify.Inductives.DirectGen
 import ConLeche.Verify.Denote.TeleOpen
+import ConLeche.Verify.Inductives.NfMemberFree
 
 public section
 
@@ -156,24 +157,6 @@ theorem Expr.readsAt_of_nestOcc {names : List Name} {lo hi : Nat} {env : Env}
       obtain ⟨h1, h2, h3, h4, h5⟩ := hstr hs
       exact ⟨h1, h2, h3, h4, h5, (hnat hn).1, (hnat hn).2⟩
   | _ => intro _; trivial
-
-theorem piResult_of_stripPis_sort :
-    ∀ (n : Nat) {e : Expr} {bs : List Expr} {s : Level},
-      e.stripPis n = some (bs, .sort s) → e.piResult = .sort s
-  | 0, e, bs, s, h => by
-    simp only [Expr.stripPis, Option.some.injEq, Prod.mk.injEq] at h
-    rw [h.2]; rfl
-  | n + 1, e, bs, s, h => by
-    match e with
-    | .forallE ty b =>
-      simp only [Expr.stripPis, Option.map_eq_some_iff] at h
-      obtain ⟨⟨bs', r⟩, hr, heq⟩ := h
-      simp only [Prod.mk.injEq] at heq
-      obtain ⟨-, rfl⟩ := heq
-      show b.piResult = _
-      exact piResult_of_stripPis_sort n hr
-    | .bvar _ | .sort _ | .const _ _ | .lit _ | .fvar _ _ | .app _ _ | .lam _ _
-    | .letE _ _ _ | .proj _ _ _ => exact absurd h (by simp [Expr.stripPis])
 
 /-- **No literal-support constant a reading consults is a block member**
 (see the section docstring): the members are `indInfo`s of the block's
@@ -368,37 +351,6 @@ end Read
 
 /-! ## The producer's syntactic lemmas -/
 
-/-- Two telescopes erasure-equal open to erasure-equal bodies. -/
-theorem openPisAtFvars_erasedEq_body :
-    ∀ (n : Nat) {e e' : Expr} {d : Nat} {xs xs' : List Expr} {r r' : Expr},
-      Expr.ErasedEq e e' → openPisAtFvars n e d = some (xs, r) →
-      openPisAtFvars n e' d = some (xs', r') → Expr.ErasedEq r r'
-  | 0, e, e', d, xs, xs', r, r', he, h, h' => by
-    simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at h h'
-    obtain ⟨-, rfl⟩ := h
-    obtain ⟨-, rfl⟩ := h'
-    exact he
-  | n + 1, e, e', d, xs, xs', r, r', he, h, h' => by
-    cases e with
-    | forallE t b =>
-      cases e' with
-      | forallE t' b' =>
-        obtain ⟨-, hb⟩ := he
-        simp only [openPisAtFvars] at h h'
-        split at h
-        · rename_i fvs o hop
-          split at h'
-          · rename_i fvs' o' hop'
-            simp only [Option.some.injEq, Prod.mk.injEq] at h h'
-            obtain ⟨-, rfl⟩ := h
-            obtain ⟨-, rfl⟩ := h'
-            exact openPisAtFvars_erasedEq_body n
-              (Expr.ErasedEq.instantiate1 (v := .fvar d t) (v' := .fvar d t') hb rfl) hop hop'
-          · exact nomatch h'
-        · exact nomatch h
-      | _ => simp [Expr.ErasedEq] at he
-    | _ => simp [openPisAtFvars] at h
-
 /-- A telescope opening `n` binders strips every shorter prefix. -/
 theorem stripPis_of_openPis :
     ∀ (n : Nat) {e : Expr} {d : Nat} {fvs : List Expr} {body : Expr},
@@ -483,58 +435,6 @@ theorem erasedEq_fvarsBelow {d : Nat} :
     exact ih e' h.2.2 ha
 
 /-! ## The members' holes, as leaves -/
-
-/-- **Every leaf at a member hole's index carries that member's hole
-type** — its former at the canonical parameters (the walked term's hole
-variables are `nestHoles`'). -/
-@[expose] def HoleLeafOk (ctx : NestCtx) (e : Expr) : Prop :=
-  ∀ l ∈ e.fvarLeaves, ctx.nP ≤ l.1 → l.1 < ctx.hiAt 0 →
-    ∃ cv caps ty, ctx.find? (ctx.names.getD (l.1 - ctx.nP) .anonymous) = some (.indInfo cv caps) ∧
-      instPisWith ctx.params cv.type = some ty ∧ l.2 = ty
-
-theorem HoleLeafOk.open {ctx : NestCtx} {n : Nat} {e : Expr} {d : Nat} {fvs : List Expr}
-    {body : Expr} (h : HoleLeafOk ctx e) (hd : ctx.hiAt 0 ≤ d)
-    (hop : openPisAtFvars n e d = some (fvs, body)) :
-    HoleLeafOk ctx body ∧ ∀ x ∈ fvs, HoleLeafOk ctx x.fvarTypeD := by
-  have hidx := ConLeche.openPisAtFvars_index n e d hop
-  have key : ∀ l, (l ∈ body.fvarLeaves ∨ ∃ x ∈ fvs, l ∈ x.fvarLeaves) → l.1 < ctx.hiAt 0 →
-      l ∈ e.fvarLeaves := by
-    intro l hl hlt
-    rcases ConLeche.Verify.openPisAtFvars_leaves n hop l hl with h1 | h1
-    · exact h1
-    · obtain ⟨j, hj⟩ := List.getElem?_of_mem h1
-      obtain ⟨ty, hty⟩ := hidx j _ hj
-      simp only [Expr.fvar.injEq] at hty
-      omega
-  refine ⟨fun l hl h1 h2 => h l (key l (Or.inl hl) h2) h1 h2,
-    fun x hx l hl h1 h2 => h l (key l (Or.inr ⟨x, hx, ?_⟩) h2) h1 h2⟩
-  obtain ⟨j, hj⟩ := List.getElem?_of_mem hx
-  obtain ⟨ty, rfl⟩ := hidx j x hj
-  simp only [Expr.fvarTypeD] at hl
-  simp [Expr.fvarLeaves, hl]
-
-/-- The walked term's leaves: the parameters' (below `nP`) and the holes'. -/
-theorem holeLeafOk_crest {ctx : NestCtx} {holes : List Expr} {cty crest : Expr}
-    (hholes : nestHoles ctx = some holes)
-    (hcl : ∀ n ci, ctx.find? n = some ci → ci.toConstantVal.type.hasFvar = false)
-    (hparW : ∀ x ∈ ctx.params, Expr.WScoped ctx.nP x) (hcf : cty.hasFvar = false)
-    (hcrest : ConLeche.nestCrest ctx.names (ctx.lps.map .param) ctx.params holes cty = some crest) :
-    HoleLeafOk ctx crest := by
-  intro l hl h1 h2
-  have hlenH := ConLeche.nestHoles_length hholes
-  obtain ⟨a, ha, hla⟩ := ConLeche.fvarLeaves_nestCrest hcf (by omega) hcrest l hl
-  rcases List.mem_append.mp ha with ha | ha
-  · have := Expr.fvarLeaves_lt_of_wscoped (hparW a ha) l hla
-    omega
-  · obtain ⟨i, cv, caps, ty, hf, hty, rfl⟩ := ConLeche.nestHoles_mem hholes a ha
-    simp only [Expr.fvarLeaves, List.mem_cons] at hla
-    rcases hla with rfl | hla
-    · exact ⟨cv, caps, ty, by simpa using hf, hty, rfl⟩
-    · -- a leaf of the hole's type is a parameter's
-      have hwt : Expr.WScoped ctx.nP ty :=
-        ConLeche.wscoped_instPisWith hparW (Expr.WScoped.of_not_hasFvar (hcl _ _ hf)) hty
-      have := Expr.fvarLeaves_lt_of_wscoped hwt l hla
-      omega
 
 /-! ## The producer's reading lemmas -/
 

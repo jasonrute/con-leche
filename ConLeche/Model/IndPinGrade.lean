@@ -1,7 +1,7 @@
 module
 
 import ConLeche.Kernel.PropWhen
-import ConLeche.Model.Reading.Inst
+import ConLeche.Verify.Denote.Inst
 import ConLeche.Model.Reading.Levels
 import ConLeche.Model.Rules.IotaSoundKit
 import ConLeche.Verify.Denote.OpenRevDenote
