@@ -49,7 +49,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
   BlockShape BlockParts MemberShape RecRule TargetMajor NestCtx PosTree fueledOps)
 
@@ -673,9 +673,9 @@ theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
         exact Or.inr hD
     · rw [hbk]; exact hcore.holeCtx hlpsA hparsT
     · intro ψ dd e ea h
-      refine denoteMeta_envExtend_mono_ok (fun hf => hfwdC _ _ hf)
+      refine denote_envExtend_mono_ok (fun hf => hfwdC _ _ hf)
         ⟨natLitSupported_mono_of_keep hfwdC, strLitSupported_mono_of_keep hfwdC⟩ hprojC dd e ?_
-      rw [denoteMeta_acval_congr (env := env₁) (acval₂ := mk.base2.acval) hagk]
+      rw [denote_acval_congr (env := env₁) (acval₂ := mk.base2.acval) hagk]
       exact h
   -- ## the recursors' stage, and the tables' invariant across it
   -- the block's constructors' heads, and the stage's run with the pass's classes and walk

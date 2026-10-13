@@ -13,10 +13,10 @@ public section
 The recipe for a basis constant's type, in three moves:
 
 1. `show` the pinned `ConstantInfo`'s type as a literal `Expr` tree
-   (`show … from rfl`) — the `denoteMeta` clauses are `match`es and will
+   (`show … from rfl`) — the `denote` clauses are `match`es and will
    not reduce until the scrutinee is a constructor application;
-2. walk it with `denoteMeta_forallE`/`denoteMeta_sort`/`denoteMeta_app`/
-   `denoteMeta_fvar` and `Expr.instantiate1_eq_self` at every closed
+2. walk it with `denote_forallE`/`denote_sort`/`denote_app`/
+   `denote_fvar` and `Expr.instantiate1_eq_self` at every closed
    binder body, with the constant leaves supplied by
    `acval_basis_pinned` (`Model/BasisCons.lean`);
 3. the reading is `BConst.typeAV` on the nose, so `WellDenotedTy_bconst_type` grades it and
@@ -28,7 +28,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   emptyA emptyRecA emptyName uN)
 
@@ -41,12 +41,12 @@ variable {μ : CheckMode} {env : Env}
 
 /-- The `Empty` former's type reading: `Sort 1`, which is
 `BConst.typeAV .empty [1]` on the nose. -/
-theorem denoteMeta_emptyA_type
-    {acval : Name → (Name → Nat) → ITerm} (ψ : Name → Nat) :
-    denoteMeta acval ⟨emptyA :: env.consts⟩ ψ 0 emptyA.toConstantVal.type
+theorem denote_emptyA_type
+    {acval : Name → (Name → Nat) → Term} (ψ : Name → Nat) :
+    denote acval ⟨emptyA :: env.consts⟩ ψ 0 emptyA.toConstantVal.type
       = some (BConst.typeAV .empty [1]) := by
   rw [show emptyA.toConstantVal.type = Expr.sort (.succ .zero) from rfl,
-    denoteMeta_sort]
+    denote_sort]
   rfl
 
 /-- **`Empty`, installed at the P tier.** -/
@@ -58,9 +58,9 @@ theorem extendEmpty (mp : EnvModelM V μ env)
   refine coverTo_addLfp (D := emptyLfp emptyName 1)
     (hL := emptyLfp_clause 1 (fun _ _ => by unfold acvalWith; split; rfl; exact absurd rfl ‹_›)) (hst := lfp0_stored)
     (hrd := lfp0_reads (by rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl)
-      (fun ψ => by show denoteMeta _ _ _ 0 (.sort _) = _; rw [denoteMeta_sort]; rfl))
+      (fun ψ => by show denote _ _ _ 0 (.sort _) = _; rw [denote_sort]; rfl))
     (hrdC := lfp0_ctorReads (by rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl)
-      (fun ψ => ⟨_, by show denoteMeta _ _ _ 0 (.sort _) = _; rw [denoteMeta_sort]⟩) fun j hj => absurd hj (Nat.not_lt_zero j))
+      (fun ψ => ⟨_, by show denote _ _ _ 0 (.sort _) = _; rw [denote_sort]⟩) fun j hj => absurd hj (Nat.not_lt_zero j))
     (hcaps := lfp0_caps (by rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl)
       (fun _ h => absurd h Nat.one_ne_zero) (fun h => absurd h (by decide))
       (fun j hj => absurd hj (Nat.not_lt_zero j)))
@@ -71,7 +71,7 @@ theorem extendEmpty (mp : EnvModelM V μ env)
     (hown := lfpOwn_former0 (c₀ := emptyA) rfl rfl rfl rfl rfl (by decide) fun _ => rfl)
     (hex := filter_not_mem_self _)
     (coverA_pend hfresh <| declStep_preserves_of_basis_cons mp
-    (A := fun _ => ITerm.const .empty [1]) hfresh
+    (A := fun _ => Term.const .empty [1]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (fun _ _ _ _ h => nomatch h)
@@ -80,23 +80,22 @@ theorem extendEmpty (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT emptyA.name ψ
           = some (Term.const .empty [1]) from rfl] at hp
-        rw [← Option.some.inj hp]
-        rfl)
+        rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) (fun _ _ _ => rfl)
     (fun _ _ => trivial)
-    (fun ψ => ⟨_, denoteMeta_emptyA_type ψ⟩) ?_ ?_
+    (fun ψ => ⟨_, denote_emptyA_type ψ⟩) ?_ ?_
     (hind := indStrictHead_cons (ab := fun _ => []) (s := fun _ => 1)
-      (fun ψ => denoteMeta_emptyA_type ψ) fun _ _ ρ vs hsp => by
+      (fun ψ => denote_emptyA_type ψ) fun _ _ ρ vs hsp => by
         cases vs with
         | nil => exact strict_empty
         | cons _ _ => exact hsp.elim))
   · intro ψ ta h ρ
-    rw [denoteMeta_emptyA_type ψ] at h
+    rw [denote_emptyA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
     exact WellDenotedTy_bconst_type V .empty [1] ρ
   · intro ψ ta h ρ
-    rw [denoteMeta_emptyA_type ψ] at h
+    rw [denote_emptyA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
     exact bval_mem_type V .empty [1] ρ
 
@@ -104,10 +103,10 @@ theorem extendEmpty (mp : EnvModelM V μ env)
 
 /-- **`Empty.rec`'s type reading.**  The four moves of the module
 docstring; the leaves are `acval_basis_pinned` at `Empty`. -/
-theorem denoteMeta_emptyRecA_type {m : EnvModel V env}
-    {A : (Name → Nat) → ITerm} (ψ : Name → Nat)
+theorem denote_emptyRecA_type {m : EnvModel V env}
+    {A : (Name → Nat) → Term} (ψ : Name → Nat)
     (hE : env.find? emptyName = some emptyA) :
-    denoteMeta (acvalWith m.acval emptyRecA.name A)
+    denote (acvalWith m.acval emptyRecA.name A)
         ⟨emptyRecA :: env.consts⟩ ψ 0 emptyRecA.toConstantVal.type
       = some (.pi (.pi (.const .empty [1]) (.sort (ψ uN)))
           (.pi (.const .empty [1])
@@ -116,30 +115,30 @@ theorem denoteMeta_emptyRecA_type {m : EnvModel V env}
       = some (Term.const .empty [1]) := by
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hleaf : acvalWith m.acval emptyRecA.name A emptyName ψ
-      = ITerm.const .empty [1] := by
+      = Term.const .empty [1] := by
     rw [acvalWith_ne (by decide)]
     exact acval_basis_pinned hE (by decide) hpd
   have hEc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval emptyRecA.name A)
+      denote (acvalWith m.acval emptyRecA.name A)
           ⟨emptyRecA :: env.consts⟩ ψ d (.const emptyName [])
-        = some (ITerm.const .empty [1]) := by
+        = some (Term.const .empty [1]) := by
     intro d
     have hf : (⟨emptyRecA :: env.consts⟩ : Env).find? emptyName
         = some emptyA := by
       rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hE
-    rw [denoteMeta_levelless_const hf (by rfl), hleaf]
+    rw [denote_levelless_const hf (by rfl), hleaf]
   rw [show emptyRecA.toConstantVal.type
       = Expr.forallE
           (Expr.forallE (.const emptyName [])
             (.sort (.param uN)))
           (Expr.forallE (.const emptyName [])
             (.app (.bvar 1) (.bvar 0))) from rfl]
-  simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+  simp [denote_forallE, denote_sort, denote_app, denote_fvar,
     Expr.instantiate1, hEc, Level.eval]
 
 /-- **The reading is `BConst.typeAV`.** -/
 theorem emptyRecA_reading_eq (ψ : Name → Nat) :
-    (ITerm.pi (.pi (.const .empty [1]) (.sort (ψ uN)))
+    (Term.pi (.pi (.const .empty [1]) (.sort (ψ uN)))
         (.pi (.const .empty [1])
           (.app (.bvar 1) (.bvar 0))))
       = BConst.typeAV .emptyRec [1, ψ uN] := rfl
@@ -151,10 +150,10 @@ theorem extendEmptyRec (mp : EnvModelM V μ env)
     (hwf : EnvWF ⟨emptyRecA :: env.consts⟩) {ex : List Name} :
     CoverTo mp ex ⟨emptyRecA :: env.consts⟩ ex := by
   have hty := fun ψ =>
-    denoteMeta_emptyRecA_type (m := mp.base2)
-      (A := fun ψ => ITerm.const .emptyRec [1, ψ uN]) ψ hE
+    denote_emptyRecA_type (m := mp.base2)
+      (A := fun ψ => Term.const .emptyRec [1, ψ uN]) ψ hE
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_basis_cons mp
-    (A := fun ψ => ITerm.const .emptyRec [1, ψ uN]) hfresh
+    (A := fun ψ => Term.const .emptyRec [1, ψ uN]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (fun _ _ _ _ h => by injection h with _ _ _ h4; exact h4 ▸ rfl)
@@ -163,8 +162,7 @@ theorem extendEmptyRec (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT emptyRecA.name ψ
           = some (Term.const .emptyRec [1, ψ uN]) from rfl] at hp
-        rw [← Option.some.inj hp]
-        rfl)
+        rw [← Option.some.inj hp])
       (fun _ h => nomatch h)
       (fun _ _ _ _ h => by injection h with _ _ _ h4
                            intro r hr; rw [← h4] at hr; exact nomatch hr))

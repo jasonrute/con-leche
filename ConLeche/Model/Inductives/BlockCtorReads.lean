@@ -26,7 +26,7 @@ the member's index tower (`formerHoleTy_read`).
 namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts instPisWith)
 
 universe w
@@ -36,13 +36,13 @@ variable {V : Type w} [SetTheory V]
 /-- **A former's hole type, read**: a closed type reading as a Π-tower
 whose first `n` binders it binds syntactically, instantiated at the
 canonical parameters, reads at depth `n` as the rest of the tower. -/
-theorem formerHoleTy_read {env : Env} {acval : Name → (Name → Nat) → ITerm}
+theorem formerHoleTy_read {env : Env} {acval : Name → (Name → Nat) → Term}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (acval n ψ).liftN 1 k = acval n ψ)
     {ψ : Name → Nat} {T : Expr} {n : Nat} (hcl : T.hasFvar = false)
-    (hstrip : (T.stripPis n).isSome = true) {ab : List ITerm} {B : ITerm}
-    (hn : n ≤ ab.length) (hr : denoteMeta acval env ψ 0 T = some (mkPisAV ab B)) :
+    (hstrip : (T.stripPis n).isSome = true) {ab : List Term} {B : Term}
+    (hn : n ≤ ab.length) (hr : denote acval env ψ 0 T = some (mkPisAV ab B)) :
     ∃ ty, instPisWith (canonParams n) T = some ty ∧ Expr.WScoped n ty ∧
-      ∀ d, n ≤ d → denoteMeta acval env ψ d ty = some ((mkPisAV (ab.drop n) B).liftN (d - n) 0) := by
+      ∀ d, n ≤ d → denote acval env ψ d ty = some ((mkPisAV (ab.drop n) B).liftN (d - n) 0) := by
   obtain ⟨fvs, o, hop⟩ := openPisAtFvars_of_stripPis_isSome n 0 hstrip
   have hio := instPisWith_of_openPis n hop
   have hEq : Expr.ErasedEqL fvs (canonParams n) :=
@@ -50,7 +50,7 @@ theorem formerHoleTy_read {env : Env} {acval : Name → (Name → Nat) → ITerm
       (fun i x hx => ⟨.sort .zero, by rw [canonParams_getElem? hx, Nat.zero_add]⟩)
       (by rw [openPisAtFvars_length _ hop, canonParams_length])
   obtain ⟨A, hA, hoA⟩ := instPisWith_erasedEq hEq (Expr.ErasedEq.rfl _) hio
-  obtain ⟨pps, b, hst, hb, -, -⟩ := denoteMeta_openPis n hop hr
+  obtain ⟨pps, b, hst, hb, -, -⟩ := denote_openPis n hop hr
   rw [stripPisAV_mkPisAV_take _ _ _ hn] at hst
   obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj hst)
   have hAw : Expr.WScoped n A := by
@@ -60,16 +60,16 @@ theorem formerHoleTy_read {env : Env} {acval : Name → (Name → Nat) → ITerm
       have := (List.getElem?_eq_some_iff.mp hi').1; rwa [canonParams_length] at this
     rw [canonParams_getElem? hi']
     simp [Expr.WScoped, hlt]
-  have hAr : denoteMeta acval env ψ n A = some (mkPisAV (ab.drop n) B) := by
-    rw [← denoteMeta_erasedEq hoA]; simpa using hb
+  have hAr : denote acval env ψ n A = some (mkPisAV (ab.drop n) B) := by
+    rw [← denote_erasedEq hoA]; simpa using hb
   refine ⟨A, hA, hAw, fun d hd => ?_⟩
-  rw [denoteMeta_lift hacl hAw d hd, hAr]
+  rw [denote_lift hacl hAw d hd, hAr]
   rfl
 
 /-- **M2 at a uniform block** (see the module docstring). -/
 theorem blockCtorReads_of {env : Env} {m : EnvModel V env} {d : BlockData V} {lps : List Name}
     {cvTas : List ConstantVal} {p₁ : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → ITerm}
+    {A : Nat → (Name → Nat) → Term}
     (hN : BlockNamesOk (V := V) d cvTas) (hcore : BlockCtorsCore m d lps cvTas p₁ isRec A d.k)
     (hk : d.k = d.memberNames.length)
     (hlpsT : ∀ (c : Nat) (cvTb : ConstantVal), c < d.k → cvTas[c]? = some cvTb →

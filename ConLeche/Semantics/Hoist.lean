@@ -18,10 +18,11 @@ consume them at every congruence.
 -/
 
 namespace ConLeche.Semantics
+open ConLeche.Term (Term)
 open ConLeche.SetModel
 
 open SetTheory
-open ConLeche.Semantics (ITerm)
+
 
 universe w
 
@@ -32,7 +33,7 @@ hoisted `WellDenoted` of the node gives the domain's hoisted form and the
 codomain's *in the extended context*, which is exactly the pair the
 recursive call needs.  So paying the repair at the congruence costs
 nothing beyond restating it. -/
-theorem WellDenoted.hoist_pi {Δa : List ITerm} {A B : ITerm}
+theorem WellDenoted.hoist_pi {Δa : List Term} {A B : Term}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenoted V ρ B) := by
@@ -46,7 +47,7 @@ theorem WellDenoted.hoist_pi {Δa : List ITerm} {A B : ITerm}
 
 /-- The same at a `λ`, where the node's second component has the same
 shape.  Together these cover all five congruence sites. -/
-theorem WellDenoted.hoist_lam {Δa : List ITerm} {A b : ITerm}
+theorem WellDenoted.hoist_lam {Δa : List Term} {A b : Term}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.lam A b)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenoted V ρ b) := by
@@ -62,7 +63,7 @@ theorem WellDenoted.hoist_lam {Δa : List ITerm} {A b : ITerm}
 
 /-- **The converse at a `Π`.**  `Sat_cons` is the whole content: an
 inhabitant of the domain extends the valuation into `A :: Δa`. -/
-theorem WellDenoted.of_pi {Δa : List ITerm} {A B : ITerm}
+theorem WellDenoted.of_pi {Δa : List Term} {A B : Term}
     (hA : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ A)
     (hB : ∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenoted V ρ B)
     (hAt : ∀ ρ : Nat → V, Sat V Δa ρ → IsTy (interp V ρ A))
@@ -82,7 +83,7 @@ fact over `ta₂ :: Δa`, and the recursive call runs in `ta₁ :: Δa`. -/
 /-- **A satisfying valuation transfers across a head equality.**
 `Sat` reads the head at the *tail* valuation, which is exactly where
 the domains' agreement is stated, so the transfer is immediate. -/
-theorem Sat.head_congr {Δa : List ITerm} {A B : ITerm}
+theorem Sat.head_congr {Δa : List Term} {A B : Term}
     {ρ : Nat → V}
     (heq : ∀ ρ' : Nat → V, Sat V Δa ρ' →
       interp V ρ' A = interp V ρ' B)
@@ -109,11 +110,11 @@ satisfiable, so neither direction is a vacuous implication. -/
 /-- `ρ ≡ ∅` satisfies `[⟪Sort 0⟫]`: the context used below is
 genuinely inhabited. -/
 private theorem sat_sort0_empty :
-    Sat V [ITerm.sort 0] (fun _ => (empty : V)) := by
+    Sat V [Term.sort 0] (fun _ => (empty : V)) := by
   intro i Aa hi
   cases i with
   | zero =>
-    obtain rfl : ITerm.sort 0 = Aa := by simpa using hi
+    obtain rfl : Term.sort 0 = Aa := by simpa using hi
     simpa using empty_mem_univ (V := V) 0
   | succ i => simp at hi
 
@@ -123,9 +124,9 @@ implication. -/
 example :
     WellDenoted V (fun _ => (empty : V))
       (.pi (.sort 0) (.sort 1)) ∧
-    (∀ ρ : Nat → V, Sat V [ITerm.sort 0] ρ →
-      WellDenoted V ρ (ITerm.sort 0)) := by
-  have hpi : ∀ ρ : Nat → V, Sat V [ITerm.sort 0] ρ →
+    (∀ ρ : Nat → V, Sat V [Term.sort 0] ρ →
+      WellDenoted V ρ (Term.sort 0)) := by
+  have hpi : ∀ ρ : Nat → V, Sat V [Term.sort 0] ρ →
       WellDenoted V ρ (.pi (.sort 0) (.sort 1)) :=
     WellDenoted.of_pi (fun _ _ => by simp) (fun _ _ => by simp)
       (fun _ _ => IsTy_univ 0) (fun _ _ => IsTy_univ 1)

@@ -141,7 +141,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo BlockParts BlockShape
   TargetMajor FEnv GenRecRun ClassMajorRun NestState)
 
@@ -155,7 +155,7 @@ variable {F : Nat} {fe₁ : FEnv} {env₁ : Env} {envC : Env} {pp : BlockParts} 
   {pos : NestState} {cvTas : List ConstantVal} {block : List ConstantInfo}
   {ctorsAs : List (List (ConstantVal × Nat))} {out : List (ConstantVal × TargetMajor × List Expr)}
   {mpC : EnvModelM V μ envC} {dR : BlockData V} {isRec : Bool}
-  {A : Nat → (Name → Nat) → ITerm}
+  {A : Nat → (Name → Nat) → Term}
 
 /-- The `j`-th stored record, as `out`'s `j`-th entry. -/
 theorem tgtRs_getElem? {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
@@ -181,7 +181,7 @@ theorem genRecCtor_find
     (hcore : BlockCtorsCore mpC.base2 dR pp.lps cvTas pp.toBlockShape isRec A dR.k)
     (hctorsAs : ∀ c, c < ctorsAs.length → ctorsAs[c]? = some (dR.ctorsM c))
     (hdR : ∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List ITerm),
+      (ppsOf : Nat → (Name → Nat) → List Term),
       dR = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
     (hcov : LfpCover mpC []) :
     ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
@@ -228,7 +228,7 @@ theorem genRecCtor_in
     (hcore : BlockCtorsCore mpC.base2 dR pp.lps cvTas pp.toBlockShape isRec A dR.k)
     (hctorsAs : ∀ c, c < ctorsAs.length → ctorsAs[c]? = some (dR.ctorsM c))
     (hdR : ∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List ITerm),
+      (ppsOf : Nat → (Name → Nat) → List Term),
       dR = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
     (hcov : LfpCover mpC []) :
     ∀ r ∈ tgtRs out, ∀ cA ∈ r.2.2.2,
@@ -247,7 +247,7 @@ theorem genRecCtor_seam
     (hcore : BlockCtorsCore mpC.base2 dR pp.lps cvTas pp.toBlockShape isRec A dR.k)
     (hctorsAs : ∀ c, c < ctorsAs.length → ctorsAs[c]? = some (dR.ctorsM c))
     (hdR : ∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List ITerm),
+      (ppsOf : Nat → (Name → Nat) → List Term),
       dR = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
     (hcov : LfpCover mpC []) :
     ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
@@ -255,7 +255,7 @@ theorem genRecCtor_seam
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2) ∧
         ConstsBound envC cA.1.type ∧
         ∀ ψ : Name → Nat,
-          denoteMeta mpC.base2.acval envC ψ 0 cA.1.type
+          denote mpC.base2.acval envC ψ 0 cA.1.type
             = some (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) :=
   tgtRecCtor_seam_of_find (genRecCtor_find R hN hcore hctorsAs hdR hcov)
 

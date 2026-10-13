@@ -22,7 +22,7 @@ public section
 /-!
 # The reading's ∀-telescope (task #161, IND TIER part 2)
 
-`PiTeleAV`: a reading's ∀-telescope (`denoteMeta` reads a `∀` to
+`PiTeleAV`: a reading's ∀-telescope (`denote` reads a `∀` to
 `.pi`); its consumers are `TeleFitPA` and `wellDenoted_mkAppN_of_fit`.
 
 `consN` names the environment a fit ends in.
@@ -41,27 +41,27 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 variable {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → ITerm}
+variable {acval : Name → (Name → Nat) → Term}
 
 /-! ## The reading's telescope -/
 
 /-- **A reading's ∀-telescope.** -/
-inductive PiTeleAV : Nat → ITerm → List ITerm → ITerm → Prop
-  | nil {T : ITerm} : PiTeleAV 0 T [] T
-  | cons {k : Nat} {A B R : ITerm} {Γ : List ITerm} :
+inductive PiTeleAV : Nat → Term → List Term → Term → Prop
+  | nil {T : Term} : PiTeleAV 0 T [] T
+  | cons {k : Nat} {A B R : Term} {Γ : List Term} :
       PiTeleAV k B Γ R → PiTeleAV (k + 1) (.pi A B) (Γ ++ [A]) R
 
-theorem PiTeleAV.length : ∀ {k : Nat} {T : ITerm} {Γ : List ITerm}
-    {R : ITerm}, PiTeleAV k T Γ R → Γ.length = k := by
+theorem PiTeleAV.length : ∀ {k : Nat} {T : Term} {Γ : List Term}
+    {R : Term}, PiTeleAV k T Γ R → Γ.length = k := by
   intro k T Γ R h
   induction h with
   | nil => rfl
   | cons _ ih => simp [ih]
 
 /-- A telescope of positive length exposes its head `.pi`. -/
-theorem PiTeleAV.succ_inv {k : Nat} {T : ITerm} {Γ : List ITerm}
-    {R : ITerm} (h : PiTeleAV (k + 1) T Γ R) :
-    ∃ (A B : ITerm) (Γ' : List ITerm),
+theorem PiTeleAV.succ_inv {k : Nat} {T : Term} {Γ : List Term}
+    {R : Term} (h : PiTeleAV (k + 1) T Γ R) :
+    ∃ (A B : Term) (Γ' : List Term),
       T = .pi A B ∧ Γ = Γ' ++ [A] ∧ PiTeleAV k B Γ' R := by
   cases h with
   | cons h' => exact ⟨_, _, _, rfl, rfl, h'⟩

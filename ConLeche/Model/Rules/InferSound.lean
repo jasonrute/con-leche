@@ -38,7 +38,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -75,11 +75,11 @@ context is satisfied and the subject's leaves are graded, the subject's
 grading, the type's grading and the membership.  The io grade's claim
 is the hereditary `IORel` instead (task #342 L18), read case by case. -/
 theorem InferSem.apply {d : Nat} {e t : Expr}
-    (h : InferSem m φ .full d e t) (hfe : Frame d e) {Δa : List ITerm}
-    {ea : ITerm} (hC : CtxOkS m φ d Δa e)
-    (hea : denoteMeta m.acval env φ d e = some ea) :
+    (h : InferSem m φ .full d e t) (hfe : Frame d e) {Δa : List Term}
+    {ea : Term} (hC : CtxOkS m φ d Δa e)
+    (hea : denote m.acval env φ d e = some ea) :
     Frame d t ∧ LeavesSub t e ∧
-      ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
+      ∃ ta, denote m.acval env φ d t = some ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
           (Grade.full = .io → WellDenoted V ρ ea) →
           WellDenoted V ρ ea ∧ WellDenotedTy V ρ ta ∧
@@ -90,10 +90,10 @@ theorem InferSem.apply {d : Nat} {e t : Expr}
 /-- `InferSem.apply`'s converse: the uniform statement builds the
 motive at either grade. -/
 theorem InferSem.of_uniform {g : Grade} {d : Nat} {e t : Expr}
-    (h : ∀ {Δa : List ITerm} {ea : ITerm}, Frame d e →
-      CtxOkS m φ d Δa e → denoteMeta m.acval env φ d e = some ea →
+    (h : ∀ {Δa : List Term} {ea : Term}, Frame d e →
+      CtxOkS m φ d Δa e → denote m.acval env φ d e = some ea →
       Frame d t ∧ LeavesSub t e ∧
-        ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
+        ∃ ta, denote m.acval env φ d t = some ta ∧
           ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
             (g = .io → WellDenoted V ρ ea) →
             WellDenoted V ρ ea ∧ WellDenotedTy V ρ ta ∧
@@ -123,9 +123,9 @@ sort, and a ∀ reduces only to itself (`Red.rigid`) — so it is a member. -/
 theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
     (hs : InferSem m φ g d e s) (hu : RedSem m φ d s (.sort u))
     (hur : g = .io → Red env d s (.sort u))
-    (hfe : Frame d e) {Δa : List ITerm} {ea : ITerm}
+    (hfe : Frame d e) {Δa : List Term} {ea : Term}
     (hC : CtxOkS m φ d Δa e)
-    (hea : denoteMeta m.acval env φ d e = some ea) :
+    (hea : denote m.acval env φ d e = some ea) :
     ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →
       (g = .io → WellDenotedTy V ρ ea) →
       WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) := by
@@ -133,7 +133,7 @@ theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
   | full =>
     obtain ⟨hfs, hsub, sa, hsa, hrow⟩ := hs.apply hfe hC hea
     obtain ⟨-, -, ua, hua, hred⟩ := hu hfs (hC.of_subset hsub) hsa
-    rw [denoteMeta] at hua
+    rw [denote] at hua
     obtain rfl : ua = .sort (u.eval φ) := (Option.some.inj hua).symm
     intro ρ hρ hL _
     obtain ⟨hge, hgs, hm⟩ := hrow ρ hρ hL (fun hg => nomatch hg)
@@ -145,7 +145,7 @@ theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
   | io =>
     obtain ⟨hfs, hsub, sa, hsa, hrow⟩ := hs hfe hC hea
     obtain ⟨-, -, ua, hua, hred⟩ := hu hfs (hC.of_subset hsub) hsa
-    rw [denoteMeta] at hua
+    rw [denote] at hua
     obtain rfl : ua = .sort (u.eval φ) := (Option.some.inj hua).symm
     intro ρ hρ hL hgr
     have hty := hgr rfl
@@ -165,10 +165,10 @@ theorem Infer.sort_sound {g : Grade} {d : Nat} {u : Level} :
     InferSem m φ g d (.sort u) (.sort (.succ u)) := by
   refine InferSemFull.toSem ?_
   intro hf Δa ea hC hea
-  rw [denoteMeta] at hea
+  rw [denote] at hea
   obtain rfl : ea = .sort (u.eval φ) := (Option.some.inj hea).symm
-  have hty : denoteMeta m.acval env φ d (.sort (.succ u))
-      = some (.sort (Level.eval φ (.succ u))) := by rw [denoteMeta]
+  have hty : denote m.acval env φ d (.sort (.succ u))
+      = some (.sort (Level.eval φ (.succ u))) := by rw [denote]
   refine ⟨⟨by simp [Expr.WScoped], by simp [Expr.looseBVarsBounded],
       fun l hl => by simp [Expr.fvarLeaves] at hl⟩,
     fun l hl => by simp [Expr.fvarLeaves] at hl,
@@ -187,13 +187,13 @@ theorem Infer.fvar_sound {g : Grade} {d idx : Nat} {ty : Expr} (h : idx < d) :
   obtain ⟨-, -, tya, Aa, hden, hi, hlink⟩ :
       idx < d ∧ Expr.fvarsBelow idx ty ∧
         ∃ tya Aa,
-          denoteMeta m.acval env φ d ty = some tya ∧
+          denote m.acval env φ d ty = some tya ∧
           Δa[d - 1 - idx]? = some Aa ∧
           (∀ ρ : Nat → V, Sat V Δa ρ →
             interp V ρ tya
               = interp V (fun j => ρ (j + (d - 1 - idx) + 1)) Aa) :=
     hC.2 _ hleaf
-  rw [denoteMeta] at hea
+  rw [denote] at hea
   obtain rfl : ea = .bvar (d - 1 - idx) := (Option.some.inj hea).symm
   simp only [Expr.WScoped] at hws
   have hmem : ∀ l ∈ ty.fvarLeaves, l ∈ (Expr.fvar idx ty).fvarLeaves := by
@@ -215,7 +215,7 @@ theorem Infer.const_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
       (ci.toConstantVal.type.instantiateLevelParams ci.toConstantVal.levelParams us) := by
   refine InferSemFull.toSem ?_
   intro _ Δa ea hC hea
-  rw [denoteMeta, hf] at hea
+  rw [denote, hf] at hea
   dsimp only at hea
   rw [ite_eq_left hus] at hea
   obtain rfl : ea = m.acval n
@@ -240,8 +240,8 @@ theorem Infer.natLit_sound (hin : RulesInputs V m φ) {g : Grade} {d n : Nat}
     InferSem m φ g d (.lit (.natVal n)) (.const natName []) := by
   refine InferSemFull.toSem ?_
   intro _ Δa ea _ hea
-  rw [denoteMeta, ite_eq_left h] at hea
-  obtain rfl : ea = natLitAV
+  rw [denote, ite_eq_left h] at hea
+  obtain rfl : ea = natLitT
       (m.acval natZeroName (Level.substFn φ [] []))
       (m.acval natSuccName (Level.substFn φ [] [])) n :=
     (Option.some.inj hea).symm
@@ -254,16 +254,16 @@ theorem Infer.natLit_sound (hin : RulesInputs V m φ) {g : Grade} {d n : Nat}
   | some ci =>
     have hlp : ci.toConstantVal.levelParams = [] :=
       natName_levelParams_nil h hf
-    have hta : denoteMeta m.acval env φ d (.const natName [])
+    have hta : denote m.acval env φ d (.const natName [])
         = some (m.acval natName (Level.substFn φ [] [])) := by
-      rw [denoteMeta, hf]
+      rw [denote, hf]
       dsimp only
       rw [ite_eq_left (by simp [hlp]), hlp]
     have hrow : ∀ ρ : Nat → V,
-        WellDenoted V ρ (natLitAV
+        WellDenoted V ρ (natLitT
             (m.acval natZeroName (Level.substFn φ [] []))
             (m.acval natSuccName (Level.substFn φ [] [])) n) ∧
-          interp V ρ (natLitAV
+          interp V ρ (natLitT
               (m.acval natZeroName (Level.substFn φ [] []))
               (m.acval natSuccName (Level.substFn φ [] [])) n)
             ∈ˢ interp V ρ (m.acval natName (Level.substFn φ [] [])) :=
@@ -288,9 +288,9 @@ theorem Infer.strLit_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
   obtain ⟨-, ciS, -, -, -, -, -, -, -, -, -, hfS, -,
     -, -, -, -, -, hlpS, -, -, -, -, -, -, -, -, -, -, -, -, -⟩ :=
     ConLeche.strLitSupported_inv h
-  have hta : denoteMeta m.acval env φ d (.const stringName [])
+  have hta : denote m.acval env φ d (.const stringName [])
       = some (m.acval ConLeche.stringName (Level.substFn φ [] [])) := by
-    have hc := denoteMeta_const (acval := m.acval) (φ := φ) (d := d)
+    have hc := denote_const (acval := m.acval) (φ := φ) (d := d)
       (us := []) hfS (by simp [hlpS])
     rwa [hlpS] at hc
   exact ⟨⟨by simp [Expr.WScoped], by simp [Expr.looseBVarsBounded],
@@ -322,7 +322,7 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
     hLb l (by simp [Expr.fvarLeaves, hl])
   obtain ⟨hwopen, hbopen, hLopen⟩ :=
     frame_open2 hws.1 hb.1 hws.2 hb.2 hLty hLbody
-  obtain ⟨tyA, baA, htyA, hbaA, rfl⟩ := denoteMeta_forallE_inv hea
+  obtain ⟨tyA, baA, htyA, hbaA, rfl⟩ := denote_forallE_inv hea
   have hdomU := sortSem_of hs hu hur ⟨hws.1, hb.1, hLty⟩ hC.forallE_ty htyA
   have hCop : CtxOkS m φ (d + 1) (tyA :: Δa)
       (body.instantiate1 (.fvar d ty)) :=
@@ -331,7 +331,7 @@ theorem Infer.forallE_sound {g : Grade} {d : Nat}
   refine ⟨⟨by simp [Expr.WScoped], by simp [Expr.looseBVarsBounded],
       fun l hl => by simp [Expr.fvarLeaves] at hl⟩,
     (fun l hl => by simp [Expr.fvarLeaves] at hl),
-    _, by rw [denoteMeta], ?_⟩
+    _, by rw [denote], ?_⟩
   intro ρ hρ hL hgr
   -- the domain: its own sort run; at the io grade off the subject
   have hdom := hdomU ρ hρ hL.forallE_ty (fun hg => (hgr hg).pi_dom)
@@ -368,11 +368,11 @@ theorem Infer.lam_soundFull {d : Nat}
   have hLbody : Expr.LeavesBounded body := fun l hl =>
     hLb l (by simp [Expr.fvarLeaves, hl])
   -- the subject's reading
-  rw [denoteMeta] at hea
-  rcases htyA : denoteMeta m.acval env φ d ty with _ | tyA
+  rw [denote] at hea
+  rcases htyA : denote m.acval env φ d ty with _ | tyA
   · rw [htyA] at hea; exact nomatch hea
   rw [htyA] at hea
-  rcases hba : denoteMeta m.acval env φ (d + 1)
+  rcases hba : denote m.acval env φ (d + 1)
       (body.instantiate1 (.fvar d ty)) with _ | ba
   · rw [hba] at hea; exact nomatch hea
   rw [hba] at hea
@@ -404,9 +404,9 @@ theorem Infer.lam_soundFull {d : Nat}
     Expr.fvarConsistent_of_leafCond bt (fun l hl => hleaf l (hbtsub l hl))
   have hround : (bt.abstract1 d).instantiate1 (.fvar d ty) = bt :=
     ConLeche.abstract1_instantiate1 bt 0 hcons hbtb
-  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d))
+  have hta : denote m.acval env φ d (.forallE ty (bt.abstract1 d))
       = some (.pi tyA btA) := by
-    rw [denoteMeta, htyA, hround, hbtA]
+    rw [denote, htyA, hround, hbtA]
     rfl
   have hCbt : CtxOkS m φ (d + 1) (tyA :: Δa) bt := hCop.of_subset hbtsub
   -- the conclusion's frame and leaves
@@ -483,7 +483,7 @@ theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr}
     hLb l (by simp [Expr.fvarLeaves, hl])
   have hLbody : Expr.LeavesBounded body := fun l hl =>
     hLb l (by simp [Expr.fvarLeaves, hl])
-  obtain ⟨tyA, ba, htyA, hba, rfl⟩ := denoteMeta_lam_inv hea
+  obtain ⟨tyA, ba, htyA, hba, rfl⟩ := denote_lam_inv hea
   obtain ⟨hwopen, hbopen, hLopen⟩ :=
     frame_open2 hws.1 hb.1 hws.2 hb.2 hLty hLbody
   have hCop : CtxOkS m φ (d + 1) (tyA :: Δa)
@@ -510,9 +510,9 @@ theorem Infer.lam_soundIO {d : Nat} {ty body bt : Expr}
     Expr.fvarConsistent_of_leafCond bt (fun l hl => hleaf l (hbtsub l hl))
   have hround : (bt.abstract1 d).instantiate1 (.fvar d ty) = bt :=
     ConLeche.abstract1_instantiate1 bt 0 hcons hbtb
-  have hta : denoteMeta m.acval env φ d (.forallE ty (bt.abstract1 d))
+  have hta : denote m.acval env φ d (.forallE ty (bt.abstract1 d))
       = some (.pi tyA btA) := by
-    rw [denoteMeta, htyA, hround, hbtA]
+    rw [denote, htyA, hround, hbtA]
     rfl
   have hsubT : ∀ l ∈ (Expr.forallE ty (bt.abstract1 d)).fvarLeaves,
       l ∈ (Expr.lam ty body).fvarLeaves := by
@@ -589,11 +589,11 @@ theorem Infer.app_soundCert {d : Nat}
   have hLa : Expr.LeavesBounded a := fun l hl =>
     hLb l (by simp [Expr.fvarLeaves, hl])
   -- the subject's reading splits
-  rw [denoteMeta] at hea
-  rcases hfa : denoteMeta m.acval env φ d f with _ | fa
+  rw [denote] at hea
+  rcases hfa : denote m.acval env φ d f with _ | fa
   · rw [hfa] at hea; exact nomatch hea
   rw [hfa] at hea
-  rcases haa : denoteMeta m.acval env φ d a with _ | aa
+  rcases haa : denote m.acval env φ d a with _ | aa
   · rw [haa] at hea; exact nomatch hea
   rw [haa] at hea
   obtain rfl : ea = .app fa aa := (Option.some.inj hea).symm
@@ -609,14 +609,14 @@ theorem Infer.app_soundCert {d : Nat}
     hLfe l (by simp [Expr.fvarLeaves, hl])
   have hCpi : CtxOkS m φ d Δa (.forallE ty body) :=
     (hC.app_fn.of_subset htfsub).of_subset hpisub
-  obtain ⟨Aa, Ba, hAa, hBa, rfl⟩ := denoteMeta_forallE_inv hpa
+  obtain ⟨Aa, Ba, hAa, hBa, rfl⟩ := denote_forallE_inv hpa
   -- the argument's type (reading)
   obtain ⟨htaf, htasub, tyaA, htyaA, hrowA⟩ :=
     hta.apply ⟨hws.2, hb.2, hLa⟩ hC.app_arg haa
-  -- the returned type's reading, `denoteMeta_beta` backwards
-  have hcross : denoteMeta m.acval env φ d (body.instantiate1 a)
+  -- the returned type's reading, `denote_beta` backwards
+  have hcross : denote m.acval env φ d (body.instantiate1 a)
       = some (Ba.inst aa) := by
-    rw [denoteMeta_beta (ty := ty) m.acval_closed
+    rw [denote_beta (ty := ty) m.acval_closed
       (acval_inst_self m) hwfe.2.fvarsBelow hws.2 hb.2 haa 0, hBa]
     rfl
   refine ⟨⟨Expr.WScoped.instantiate1_gen hws.2 0 hwfe.2,
@@ -678,7 +678,7 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
   | full =>
     refine InferSem.of_uniform ?_
     intro Δa ea hfr hC hea
-    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hea
+    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denote_letE_inv hea
     obtain ⟨hfr', hsub, hred⟩ := zeta_syntax hfr hva hba
     obtain ⟨hfv, hsubv⟩ := letE_val_frame hfr
     obtain ⟨hft, htsub, ta, hta, hrow⟩ :=
@@ -694,7 +694,7 @@ theorem Infer.letE_sound {g : Grade} {d : Nat} {ty v body tv t : Expr}
     exact hmem
   | io =>
     intro hfr Δa ea hC hea
-    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv hea
+    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denote_letE_inv hea
     obtain ⟨hfr', hsub, hred⟩ := zeta_syntax hfr hva hba
     obtain ⟨hft, htsub, ta, hta, hrow⟩ := hb hfr' (hC.of_subset hsub) hred
     refine ⟨hft, fun l hl => hsub l (htsub l hl), ta, hta, ?_⟩
@@ -731,11 +731,11 @@ theorem Infer.app_soundIO {d : Nat}
   have hLa : Expr.LeavesBounded a := fun l hl =>
     hLb l (by simp [Expr.fvarLeaves, hl])
   -- the subject's reading splits
-  rw [denoteMeta] at hea
-  rcases hfa : denoteMeta m.acval env φ d f with _ | fa
+  rw [denote] at hea
+  rcases hfa : denote m.acval env φ d f with _ | fa
   · rw [hfa] at hea; exact nomatch hea
   rw [hfa] at hea
-  rcases haa : denoteMeta m.acval env φ d a with _ | aa
+  rcases haa : denote m.acval env φ d a with _ | aa
   · rw [haa] at hea; exact nomatch hea
   rw [haa] at hea
   obtain rfl : ea = .app fa aa := (Option.some.inj hea).symm
@@ -746,10 +746,10 @@ theorem Infer.app_soundIO {d : Nat}
   obtain ⟨hwfe, hbfe, hLfe⟩ := hpif
   simp only [Expr.WScoped] at hwfe
   simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbfe
-  obtain ⟨Aa, Ba, hAa, hBa, rfl⟩ := denoteMeta_forallE_inv hpa
-  have hcross : denoteMeta m.acval env φ d (body.instantiate1 a)
+  obtain ⟨Aa, Ba, hAa, hBa, rfl⟩ := denote_forallE_inv hpa
+  have hcross : denote m.acval env φ d (body.instantiate1 a)
       = some (Ba.inst aa) := by
-    rw [denoteMeta_beta (ty := ty) m.acval_closed
+    rw [denote_beta (ty := ty) m.acval_closed
       (acval_inst_self m) hwfe.2.fvarsBelow hws.2 hb.2 haa 0, hBa]
     rfl
   refine ⟨⟨Expr.WScoped.instantiate1_gen hws.2 0 hwfe.2,
@@ -853,7 +853,7 @@ theorem Infer.proj_soundFull (hin : RulesInputs V m φ) {d : Nat}
   have hLpe : Expr.LeavesBounded pe := fun l hl =>
     hLb l (by simpa [Expr.fvarLeaves] using hl)
   have hCpe : CtxOkS m φ d Δa pe := hC.proj_arg
-  obtain ⟨vp, hvp, rfl⟩ := denoteMeta_proj_inv_tower hent hea
+  obtain ⟨vp, hvp, rfl⟩ := denote_proj_inv_tower hent hea
   -- the scrutinee's inferred type, and its reduct (readings)
   obtain ⟨htpef, htpesub, tpea, htpea, hrowP⟩ :=
     htpe.apply ⟨hws, hb, hLpe⟩ hCpe hvp
@@ -867,12 +867,12 @@ theorem Infer.proj_soundFull (hin : RulesInputs V m φ) {d : Nat}
   -- the reduced type's spine, at the former's leaf
   rw [show te = Expr.mkAppN te.getAppFn te.getAppArgs from
     (Expr.mkAppN_getApp te).symm, hhead] at htea
-  obtain ⟨vT, vs, hvT, hspt, hteq⟩ := denoteMeta_mkAppN_inv htea
+  obtain ⟨vT, vs, hvT, hspt, hteq⟩ := denote_mkAppN_inv htea
   have hlenT : us.length
       = (ConstantInfo.indInfo cvT capsT).toConstantVal.levelParams.length := by
     show us.length = cvT.levelParams.length
     rw [hlpsT]; exact hus
-  rw [denoteMeta_const hfT hlenT] at hvT
+  rw [denote_const hfT hlenT] at hvT
   have hvT' : vT = m.acval sn (Level.substFn φ entry.levelParams us) := by
     rw [← hlpsT]; exact (Option.some.inj hvT).symm
   subst hvT'
@@ -887,7 +887,7 @@ theorem Infer.proj_soundFull (hin : RulesInputs V m φ) {d : Nat}
     · rcases List.mem_singleton.mp hx' with rfl
       exact ⟨hws, hb⟩
   obtain ⟨restA, hrest, hpeel⟩ :=
-    denoteMeta_typeAt_peel hent hTa hlen hframes (hspt.snoc hvp)
+    denote_typeAt_peel hent hTa hlen hframes (hspt.snoc hvp)
   have hlenVs : vs.length = entry.numParams := by
     rw [← hspt.length]; exact hlen
   -- the returned type's leaves: the spine's or the subject's
@@ -955,7 +955,7 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
   have hLpe : Expr.LeavesBounded pe := fun l hl =>
     hLb l (by simpa [Expr.fvarLeaves] using hl)
   have hCpe : CtxOkS m φ d Δa pe := hC.proj_arg
-  obtain ⟨vp, hvp, rfl⟩ := denoteMeta_proj_inv_tower hent hea
+  obtain ⟨vp, hvp, rfl⟩ := denote_proj_inv_tower hent hea
   -- the scrutinee's inferred type, and its reduct (readings)
   obtain ⟨htpef, htpesub, tpea, htpea, hrowP⟩ :=
     htpe ⟨hws, hb, hLpe⟩ hCpe hvp
@@ -969,12 +969,12 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
   -- the reduced type's spine, at the former's leaf
   rw [show te = Expr.mkAppN te.getAppFn te.getAppArgs from
     (Expr.mkAppN_getApp te).symm, hhead] at htea
-  obtain ⟨vT, vs, hvT, hspt, hteq⟩ := denoteMeta_mkAppN_inv htea
+  obtain ⟨vT, vs, hvT, hspt, hteq⟩ := denote_mkAppN_inv htea
   have hlenT : us.length
       = (ConstantInfo.indInfo cvT capsT).toConstantVal.levelParams.length := by
     show us.length = cvT.levelParams.length
     rw [hlpsT]; exact hus
-  rw [denoteMeta_const hfT hlenT] at hvT
+  rw [denote_const hfT hlenT] at hvT
   have hvT' : vT = m.acval sn (Level.substFn φ entry.levelParams us) := by
     rw [← hlpsT]; exact (Option.some.inj hvT).symm
   subst hvT'
@@ -989,7 +989,7 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
     · rcases List.mem_singleton.mp hx' with rfl
       exact ⟨hws, hb⟩
   obtain ⟨restA, hrest, hpeel⟩ :=
-    denoteMeta_typeAt_peel hent hTa hlen hframes (hspt.snoc hvp)
+    denote_typeAt_peel hent hTa hlen hframes (hspt.snoc hvp)
   have hlenVs : vs.length = entry.numParams := by
     rw [← hspt.length]; exact hlen
   -- the returned type's leaves: the spine's or the subject's
@@ -1023,7 +1023,7 @@ theorem Infer.proj_soundIO (hin : RulesInputs V m φ) {d : Nat}
   have hokPe : WellDenoted V σ vp := ProjAV.hoistV hgr
   rcases (hrowP σ hσ hLpe' hokPe).1 with h | h | h
   · -- the scrutinee is the point, and so is its projection
-    rw [projAV_interp, h, ConLeche.SetTheory.Tower.projS_pt]
+    rw [projNV_interp, h, ConLeche.SetTheory.Tower.projS_pt]
     exact IORelN.pt
   · obtain ⟨hokTpe, hmemPe⟩ := h.of_reading htpea
     -- "not pt" source (1): the scrutinee's inferred type `tpea` is a type

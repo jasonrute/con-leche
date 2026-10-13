@@ -19,8 +19,8 @@ this module builds one from the graded invariant `EnvModelM`
 * **the leaves become sets**: `cvalOf acval n ψ` is the interpretation
   of the (closed) leaf `acval n ψ` — under every variable
   environment the same set (`interp_cvalOf`);
-* **the bridge** `Denotes_of_denoteMeta`: wherever the invariant's
-  reading `denoteMeta` reads a term at depth `d`, `interp` of the
+* **the bridge** `Denotes_of_denote`: wherever the invariant's
+  reading `denote` reads a term at depth `d`, `interp` of the
   reading is a `Denotes`-denotation of the term's CLOSURE
   (`Expr.closeN`, the checker's opened `fvar`s turned back into the de
   Bruijn indices the relation reads) at the interpreted leaves.  Both
@@ -29,20 +29,20 @@ this module builds one from the graded invariant `EnvModelM`
 * **the model** `Model.ofEnvModelM`: `mem` from `type_reads` and
   `mem_type` at depth `0` (a stored type has no `fvar`, so it is its
   own closure); `false_empty` from the pinned `False` leaf
-  (`EnvModel.cvalE_pinned`: the leaf is `.const .empty [0]`, whose
+  (`EnvModel.acval_pinned`: the leaf is `.const .empty [0]`, whose
   interpretation is the empty set); `eq_equality` from the invariant's
   `eq_law` field, whose value clause is exactly the three-fold
   application the statement asks about.  `eq_law` is premised on the
   *pinned* `Eq` being stored, and the `Denotes` hypothesis supplies
   only that *something* is stored at `eqName`; the two are joined by
-  `basis_pinnedL`'s declaration clause, which since task #283 holds of
+  `basis_pinned`'s declaration clause, which since task #283 holds of
   a stored reserved name whatever its kind.
 -/
 
 namespace ConLeche.Model
 
 open ConLeche.Semantics ConLeche.SetModel ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche.Term
 open ConLeche.SetTheory.Tower (projS)
 open ConLeche (Env Expr Name Level ConstantInfo)
@@ -53,13 +53,13 @@ universe w
 variable {V : Type w} [SetTheory V]
 
 /-- The set-valued leaf of a leaf valuation. -/
-noncomputable def cvalOf (acval : Name → (Name → Nat) → ITerm)
+noncomputable def cvalOf (acval : Name → (Name → Nat) → Term)
     (n : Name) (ψ : Name → Nat) : V :=
   interp V (fun _ => SetTheory.empty) (acval n ψ)
 
 /-- A closed leaf interprets to its `cvalOf` under every environment. -/
-theorem interp_cvalOf {acval : Name → (Name → Nat) → ITerm}
-    (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) (n : Name) (ψ : Name → Nat)
+theorem interp_cvalOf {acval : Name → (Name → Nat) → Term}
+    (hcl : ∀ n ψ, Term.Closed (acval n ψ)) (n : Name) (ψ : Name → Nat)
     (ρ : Nat → V) : interp V ρ (acval n ψ) = cvalOf acval n ψ :=
   interp_closed (V := V) (hcl n ψ) ρ _
 
@@ -84,7 +84,7 @@ private theorem Denotes_const_nil {cval : Name → (Name → Nat) → V} {env : 
   rwa [h0] at h
 
 /-- A constant stored with one universe parameter, at `[.zero]`, valued
-at the stored parameter list as `denoteMeta` spells it. -/
+at the stored parameter list as `denote` spells it. -/
 private theorem Denotes_const_one {cval : Name → (Name → Nat) → V} {env : Env}
     {φ : Name → Nat} {ρ : Nat → V} {n : Name} {ci : ConstantInfo} {p : Name}
     (hf : env.find? n = some ci) (h1 : ci.toConstantVal.levelParams = [p]) :
@@ -97,28 +97,28 @@ private theorem Denotes_const_one {cval : Name → (Name → Nat) → V} {env : 
   exact h
 
 /-- Under the `Nat`-literal guard, the constructor form of a literal
-denotes the numeral spine `denoteMeta` reads. -/
-theorem Denotes_natLitToConstructor {acval : Name → (Name → Nat) → ITerm}
-    (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat}
+denotes the numeral spine `denote` reads. -/
+theorem Denotes_natLitToConstructor {acval : Name → (Name → Nat) → Term}
+    (hcl : ∀ n ψ, Term.Closed (acval n ψ)) {env : Env} {φ : Name → Nat}
     (hsup : ConLeche.natLitSupported env = true) (ρ : Nat → V) :
     ∀ k, Denotes (cvalOf (V := V) acval) env φ ρ (ConLeche.natLitToConstructor k)
-      (interp V ρ (natLitAV (acval natZeroName (Level.substFn φ [] []))
+      (interp V ρ (natLitT (acval natZeroName (Level.substFn φ [] []))
         (acval natSuccName (Level.substFn φ [] [])) k)) := by
   obtain ⟨-, -, cv0, i0, j0, cv1, i1, j1, -, hz, hs, -, hz0, hs0, -, -, -⟩ :=
     natLitSupported_inv hsup
   intro k
   induction k with
   | zero =>
-    rw [ConLeche.natLitToConstructor, natLitAV, interp_cvalOf hcl]
+    rw [ConLeche.natLitToConstructor, natLitT, interp_cvalOf hcl]
     exact Denotes_const_nil hz hz0
   | succ k ih =>
-    rw [ConLeche.natLitToConstructor, natLitAV, interp_app, interp_cvalOf hcl]
+    rw [ConLeche.natLitToConstructor, natLitT, interp_app, interp_cvalOf hcl]
     exact Denotes.app (Denotes_const_nil hs hs0) (Denotes.natLit ih)
 
 /-- Under the `String`-literal guard, the character-list spine of a
-literal's constructor form denotes the spine `denoteMeta` reads. -/
-private theorem Denotes_charList {acval : Name → (Name → Nat) → ITerm}
-    (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat}
+literal's constructor form denotes the spine `denote` reads. -/
+private theorem Denotes_charList {acval : Name → (Name → Nat) → Term}
+    (hcl : ∀ n ψ, Term.Closed (acval n ψ)) {env : Env} {φ : Name → Nat}
     (hsup : ConLeche.strLitSupported env = true) (ρ : Nat → V) :
     ∀ l : List Char,
       Denotes (cvalOf (V := V) acval) env φ ρ
@@ -127,7 +127,7 @@ private theorem Denotes_charList {acval : Name → (Name → Nat) → ITerm}
           fun c e =>
             .app (.app (.app (.const listConsName [.zero]) (.const charName []))
               (.app (.const charOfNatName []) (.lit (.natVal c.toNat)))) e)
-        (interp V ρ (charListAV
+        (interp V ρ (charListT
           (.app (acval listNilName
               (Level.substFn φ (levelParamsAt env listNilName) [.zero]))
             (acval charName (Level.substFn φ [] [])))
@@ -144,10 +144,10 @@ private theorem Denotes_charList {acval : Name → (Name → Nat) → ITerm}
   intro l
   induction l with
   | nil =>
-    simp only [List.foldr_nil, charListAV, interp_app, interp_cvalOf hcl]
+    simp only [List.foldr_nil, charListT, interp_app, interp_cvalOf hcl]
     exact Denotes.app (Denotes_const_one hN hN1) (Denotes_const_nil hH hH0)
   | cons c cs ih =>
-    simp only [List.foldr_cons, charListAV, interp_app, interp_cvalOf hcl]
+    simp only [List.foldr_cons, charListT, interp_app, interp_cvalOf hcl]
     exact Denotes.app
       (Denotes.app (Denotes.app (Denotes_const_one hC hC1) (Denotes_const_nil hH hH0))
         (Denotes.app (Denotes_const_nil hF hF0)
@@ -155,13 +155,13 @@ private theorem Denotes_charList {acval : Name → (Name → Nat) → ITerm}
       ih
 
 /-- Under the `String`-literal guard, the constructor form of a literal
-denotes what `denoteMeta` reads for the literal. -/
-theorem Denotes_strLitToConstructor {acval : Name → (Name → Nat) → ITerm}
-    (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat}
+denotes what `denote` reads for the literal. -/
+theorem Denotes_strLitToConstructor {acval : Name → (Name → Nat) → Term}
+    (hcl : ∀ n ψ, Term.Closed (acval n ψ)) {env : Env} {φ : Name → Nat}
     (hsup : ConLeche.strLitSupported env = true) (ρ : Nat → V) (s : String) :
     Denotes (cvalOf (V := V) acval) env φ ρ (ConLeche.strLitToConstructor s)
       (interp V ρ (.app (acval stringOfListName (Level.substFn φ [] []))
-        (charListAV
+        (charListT
           (.app (acval listNilName
               (Level.substFn φ (levelParamsAt env listNilName) [.zero]))
             (acval charName (Level.substFn φ [] [])))
@@ -186,50 +186,50 @@ private theorem fvarsBelow_zero_of_not_hasFvar :
   intro e
   induction e <;> simp_all [Expr.fvarsBelow, Expr.hasFvar]
 
-/-- **The bridge**: wherever `denoteMeta` reads a term, `interp` of the
+/-- **The bridge**: wherever `denote` reads a term, `interp` of the
 reading is a denotation of the term's closure under `Denotes` at the
 interpreted leaves. -/
-theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → ITerm}
-    (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat} :
-    ∀ (d : Nat) (e : Expr) {ta : ITerm},
-      denoteMeta acval env φ d e = some ta →
+theorem Denotes_of_denote {acval : Name → (Name → Nat) → Term}
+    (hcl : ∀ n ψ, Term.Closed (acval n ψ)) {env : Env} {φ : Name → Nat} :
+    ∀ (d : Nat) (e : Expr) {ta : Term},
+      denote acval env φ d e = some ta →
       Expr.fvarsBelow d e → e.looseBVarsBounded 0 = true →
       ∀ ρ : Nat → V,
         Denotes (cvalOf (V := V) acval) env φ ρ (closeN d e) (interp V ρ ta) := by
   intro d e
-  induction d, e using denoteMeta.induct (env := env) with
+  induction d, e using denote.induct (env := env) with
   | case1 d u =>
     intro ta h _ _ ρ
-    rw [denoteMeta_sort] at h
+    rw [denote_sort] at h
     obtain rfl := Option.some.inj h
     rw [interp_sort]
     exact Denotes.sort
   | case2 d idx ty =>
     intro ta h _ _ ρ
-    rw [denoteMeta_fvar] at h
+    rw [denote_fvar] at h
     obtain rfl := Option.some.inj h
     show Denotes _ _ _ _ (Expr.bvar (0 + (d - 1 - idx))) _
     rw [Nat.zero_add, interp_bvar]
     exact Denotes.bvar
   | case3 d n us ci hf hlen =>
     intro ta h _ _ ρ
-    rw [denoteMeta_const hf hlen] at h
+    rw [denote_const hf hlen] at h
     obtain rfl := Option.some.inj h
     rw [interp_cvalOf hcl]
     exact Denotes.const hf hlen
   | case4 d n us ci hf hlen =>
     intro ta h
-    rw [denoteMeta, hf] at h
+    rw [denote, hf] at h
     dsimp only at h
     rw [ite_eq_right hlen] at h
     exact nomatch h
   | case5 d n us hf =>
     intro ta h
-    rw [denoteMeta, hf] at h
+    rw [denote, hf] at h
     exact nomatch h
   | case6 d ty body ihty ihbody =>
     intro ta h hfb hlb ρ
-    obtain ⟨tA, bA, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
+    obtain ⟨tA, bA, hta, hba, rfl⟩ := denote_forallE_inv h
     have hfb' : Expr.fvarsBelow d ty ∧ Expr.fvarsBelow d body := hfb
     have hlb' : (ty.looseBVarsBounded 0 && body.looseBVarsBounded 1) = true := hlb
     rw [Bool.and_eq_true] at hlb'
@@ -242,7 +242,7 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → ITerm}
     rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2] at hb
   | case7 d ty body ihty ihbody =>
     intro ta h hfb hlb ρ
-    obtain ⟨tA, bA, hta, hba, rfl⟩ := denoteMeta_lam_inv h
+    obtain ⟨tA, bA, hta, hba, rfl⟩ := denote_lam_inv h
     have hfb' : Expr.fvarsBelow d ty ∧ Expr.fvarsBelow d body := hfb
     have hlb' : (ty.looseBVarsBounded 0 && body.looseBVarsBounded 1) = true := hlb
     rw [Bool.and_eq_true] at hlb'
@@ -255,7 +255,7 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → ITerm}
     rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2] at hb
   | case8 d fe a ihf iha =>
     intro ta h hfb hlb ρ
-    obtain ⟨fA, aA, hfa, haa, rfl⟩ := denoteMeta_app_inv h
+    obtain ⟨fA, aA, hfa, haa, rfl⟩ := denote_app_inv h
     have hfb' : Expr.fvarsBelow d fe ∧ Expr.fvarsBelow d a := hfb
     have hlb' : (fe.looseBVarsBounded 0 && a.looseBVarsBounded 0) = true := hlb
     rw [Bool.and_eq_true] at hlb'
@@ -264,7 +264,7 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → ITerm}
     exact Denotes.app (ihf hfa hfb'.1 hlb'.1 ρ) (iha haa hfb'.2 hlb'.2 ρ)
   | case9 d ty val body ihty ihv ihbody =>
     intro ta h hfb hlb ρ
-    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denoteMeta_letE_inv h
+    obtain ⟨-, va, ba, -, hva, hba, rfl⟩ := denote_letE_inv h
     have hfb' : Expr.fvarsBelow d ty ∧ Expr.fvarsBelow d val ∧
         Expr.fvarsBelow d body := hfb
     have hlb' : (ty.looseBVarsBounded 0 && val.looseBVarsBounded 0 &&
@@ -281,13 +281,13 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → ITerm}
     rwa [Expr.closeN_instantiate1 body 0 hlb'.2 hfb'.2.2] at hb
   | case10 d sn i e ihe =>
     intro ta h hfb hlb ρ
-    obtain ⟨ia, hia, hcase⟩ := denoteMeta_proj_inv h
+    obtain ⟨ia, hia, hcase⟩ := denote_proj_inv h
     have hfb' : Expr.fvarsBelow d e := hfb
     have hlb' : e.looseBVarsBounded 0 = true := hlb
     show Denotes _ _ _ _ (Expr.proj sn i (closeN d e 0)) _
     rcases hcase with ⟨entry, hfp, rfl⟩ | ⟨hfp, hdec⟩
     · have hie := ihe hia hfb' hlb' ρ
-      rw [projAV_interp, ← field_eq_projS]
+      rw [projNV_interp, ← field_eq_projS]
       exact Denotes.proj_table hfp hie
     · match i, hdec with
       | 0, hdec =>
@@ -303,26 +303,26 @@ theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → ITerm}
       | _ + 2, hdec => exact nomatch hdec
   | case11 d k hsup =>
     intro ta h _ _ ρ
-    rw [denoteMeta, ite_eq_left hsup] at h
+    rw [denote, ite_eq_left hsup] at h
     obtain rfl := Option.some.inj h
     exact Denotes.natLit (Denotes_natLitToConstructor hcl hsup ρ k)
   | case12 d k hsup =>
     intro ta h
-    rw [denoteMeta, ite_eq_right hsup] at h
+    rw [denote, ite_eq_right hsup] at h
     exact nomatch h
   | case13 d s hsup =>
     intro ta h _ _ ρ
-    rw [denoteMeta, ite_eq_left hsup] at h
+    rw [denote, ite_eq_left hsup] at h
     obtain rfl := Option.some.inj h
     exact Denotes.strLit (Denotes_strLitToConstructor hcl hsup ρ s)
   | case14 d s hsup =>
     intro ta h
-    rw [denoteMeta, ite_eq_right hsup] at h
+    rw [denote, ite_eq_right hsup] at h
     exact nomatch h
   | case15 d x hxs hfv hc hpi hlam happ hlet hproj hnat hstr =>
     intro ta h
     cases x with
-    | bvar i => rw [denoteMeta.eq_def] at h; exact nomatch h
+    | bvar i => rw [denote.eq_def] at h; exact nomatch h
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)
@@ -349,11 +349,11 @@ noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
     have hwf := m.base2.wf c hc
     have hnf : c.toConstantVal.type.hasFvar = false := hwf.1
     have hlb : c.toConstantVal.type.looseBVarsBounded 0 = true := hwf.2.2.2.1
-    have hbr := Denotes_of_denoteMeta (V := V) m.base2.cval_closedL 0
+    have hbr := Denotes_of_denote (V := V) m.base2.cval_closed 0
       c.toConstantVal.type hta (fvarsBelow_zero_of_not_hasFvar hnf) hlb ρ
     rw [Expr.closeN_of_hasFvar _ 0 0 hnf] at hbr
     refine ⟨interp V ρ ta, hbr, ?_⟩
-    rw [← interp_cvalOf m.base2.cval_closedL]
+    rw [← interp_cvalOf m.base2.cval_closed]
     exact m.mem_type c hc φ ta hta ρ
   false_empty := by
     intro φ ρ F h
@@ -366,9 +366,9 @@ noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
     have hpd : ConLeche.Verify.pinnedStructT falseName ψ
         = some (Term.const .empty [0]) := by
       simp +decide [ConLeche.Verify.pinnedStructT]
-    have he : (m.base2.acval falseName ψ).erase = Term.const .empty [0] :=
-      m.base2.cvalE_pinned (n := falseName) (by decide) (by rw [hf]; rfl) ψ hpd
-    rw [cvalOf, erase_eq_const he, interp_const]
+    have he : (m.base2.acval falseName ψ) = Term.const .empty [0] :=
+      m.base2.acval_pinned (n := falseName) (by decide) (by rw [hf]; rfl) ψ hpd
+    rw [cvalOf, he, interp_const]
     rfl
   eq_equality := by
     intro u φ ρ E A a b h hA ha hb
@@ -384,7 +384,7 @@ noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
         simp [Level.substFn]
       have hlaw := (m.eq_law hf (Level.substFn φ [ConLeche.uN] [u])).1 ρ A a b
         (by rw [hψ]; exact hA) ha hb
-      rw [interp_cvalOf m.base2.cval_closedL] at hlaw
+      rw [interp_cvalOf m.base2.cval_closed] at hlaw
       exact hlaw
 
 end ConLeche.Model

@@ -67,7 +67,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
@@ -96,7 +96,7 @@ guard. -/
 
 /-- A fit splits at a cutoff: the prefix fits the domains' prefix and
 the suffix fits the rest at the prefix's own frame. -/
-theorem spineFit_split {Fs : List ITerm} {ρ : Nat → V} {as : List V}
+theorem spineFit_split {Fs : List Term} {ρ : Nat → V} {as : List V}
     (h : SpineFit ρ Fs as) {n : Nat} (hn : n ≤ Fs.length) :
     SpineFit ρ (Fs.take n) (as.take n) ∧
       SpineFit (consList (as.take n) ρ) (Fs.drop n) (as.drop n) := by
@@ -124,7 +124,7 @@ constructor's reading is `mkPisAV (d.dsF …)`.
 constructor's first `nP` binders are satisfied by the same frames. -/
 theorem blockCtorSpine_split {mm j : Nat} {cA : ConstantVal × Nat}
     (hcj : (d.ctorsM mm)[j]? = some cA) {ψ : Name → Nat} {ρ : Nat → V}
-    {ys : List ITerm}
+    {ys : List Term}
     (hdsLen : (d.dsF mm j ψ).length = d.nP + cA.2)
     (hfitC : SpineFit ρ ((d.dsF mm j ψ)) (ys.map (interp V ρ)))
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
@@ -174,20 +174,20 @@ theorem blockRuleStoredFit_run (hM : BlockModelAt mpC.base2 names d)
     (hfind : envC.find? cA.1.name = some (.ctorInfo cA.1 d.nP cA.2))
     (hmemk : mm < d.k) {ψ ψj : Name → Nat}
     (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q) (hw : d.w ψ ≠ 0)
-    {ρ : Nat → V} {ps is : List V} {ys : List ITerm}
+    {ρ : Nat → V} {ps is : List V} {ys : List Term}
     (hps : SpineFit ρ (d.params ψ) ps)
     (hidx : SpineFit (consList ps ρ) (d.IdsM mm ψ) is)
     (hqs : SpineFit ρ (d.params ψ) ((ys.take d.nP).map (interp V ρ)))
     (hfq : SpineFit (consList ((ys.take d.nP).map (interp V ρ)) ρ)
       ((d.Fss mm ψ).getD j []) ((ys.drop d.nP).map (interp V ρ)))
-    (hmaj : interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
+    (hmaj : interp V ρ (Term.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
       ∈ˢ (ps ++ is).foldl app (interp V ρ (mpC.base2.acval (d.memberName mm) ψ))) :
     d.StoredFit ψ (consList ps ρ) (d.tup ψ mm is) mm j ((ys.drop d.nP).map (interp V ρ)) := by
   have hmN : mm < d.N := Nat.lt_of_lt_of_le hmemk (Nat.le_add_right _ _)
   have hjl : j < (d.ctorsM mm).length := (List.getElem?_eq_some_iff.mp hcj).1
   have hacv : mpC.base2.acval cA.1.name ψj = mpC.base2.acval cA.1.name ψ :=
     mpC.base2.acval_params cA.1.name _ hfind ψj ψ hlv
-  have hval : interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
+  have hval : interp V ρ (Term.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
       = d.inj ψ mm j ((ys.drop d.nP).map (interp V ρ)) := by
     rw [hacv, interp_mkAppN_foldl,
       show ys.map (interp V ρ)
@@ -287,7 +287,7 @@ theorem blockRuleStoredFit_sq (hM : BlockModelAt mpC.base2 names d)
     (hlarge : d.large = true) (hct1 : (d.ctorsM mm).length ≤ 1)
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
       ↔ Sat V (((d.dsF mm j ψ).take d.nP)).reverse σ)
-    {ρ : Nat → V} {ps is : List V} {ys : List ITerm}
+    {ρ : Nat → V} {ps is : List V} {ys : List Term}
     (hps : SpineFit ρ (d.params ψ) ps)
     (hidx : SpineFit (consList ps ρ) (d.IdsM mm ψ) is)
     (hqs : SpineFit ρ (d.params ψ) ((ys.take d.nP).map (interp V ρ)))
@@ -296,14 +296,14 @@ theorem blockRuleStoredFit_sq (hM : BlockModelAt mpC.base2 names d)
     (hpin : ((d.Ess mm ψ).getD j []).map
         (interp V (consList ((ys.drop d.nP).map (interp V ρ))
           (consList ((ys.take d.nP).map (interp V ρ)) ρ))) = is)
-    (hmaj : interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
+    (hmaj : interp V ρ (Term.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
       ∈ˢ (ps ++ is).foldl app (interp V ρ (mpC.base2.acval (d.memberName mm) ψ))) :
     d.StoredFit ψ (consList ps ρ) (d.tup ψ mm is) mm j ((ys.drop d.nP).map (interp V ρ)) := by
   have hmN : mm < d.N := Nat.lt_of_lt_of_le hmemk (Nat.le_add_right _ _)
   have hjl : j < (d.ctorsM mm).length := (List.getElem?_eq_some_iff.mp hcj).1
   have hacv : mpC.base2.acval cA.1.name ψj = mpC.base2.acval cA.1.name ψ :=
     mpC.base2.acval_params cA.1.name _ hcf.1 ψj ψ hlv
-  have hval : interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
+  have hval : interp V ρ (Term.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
       = d.inj ψ mm j ((ys.drop d.nP).map (interp V ρ)) := by
     rw [hacv, interp_mkAppN_foldl,
       show ys.map (interp V ρ)
@@ -363,10 +363,10 @@ theorem blockRuleIdxPin_run {mm j : Nat} {cA : ConstantVal × Nat}
     (hcj : (d.ctorsM mm)[j]? = some cA)
     (hcf : BlockCtorFacts mpC.base2 d lps mm j cA)
     {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
-    {ρ : Nat → V} {ys xs : List ITerm} {ctorTy restC : ITerm} {mI rP : Nat}
+    {ρ : Nat → V} {ys xs : List Term} {ctorTy restC : Term} {mI rP : Nat}
     (hys : ys.length = d.nP + cA.2) (hxl : xs.length = mI) (hrP : rP ≤ mI)
     (hnI : (d.esF mm j ψ).length = mI - rP)
-    (hctorRead : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some ctorTy)
+    (hctorRead : denote mpC.base2.acval envC ψj 0 cA.1.type = some ctorTy)
     (hfitC : TeleFitPA V ρ ctorTy ys restC)
     (hpinC : IotaIndexPin (V := V) ρ restC d.nP mI rP xs) :
     ((d.Ess mm ψ).getD j []).map
@@ -389,12 +389,12 @@ theorem blockRuleIdxPin_run {mm j : Nat} {cA : ConstantVal × Nat}
   have hrest := teleFitPA_rest_eq (d.nP + cA.2) hteleC (by rw [hys]) hfitC
   obtain ⟨Ha, cargsa, hrestEq, hcarLen, hcarInterp⟩ := hpinC
   -- the residual's arguments are the parameter variables and the index readings
-  have hrest2 : ITerm.mkAppN Ha cargsa
-      = ITerm.mkAppN
-          (ConLeche.Model.ITerm.instSeq ys (d.nP + cA.2 - 1)
+  have hrest2 : Term.mkAppN Ha cargsa
+      = Term.mkAppN
+          (Term.instSeq ys (d.nP + cA.2 - 1)
             (mpC.base2.acval (d.memberName mm) ψj))
           ((paramBvars d.nP cA.2 ++ d.esF mm j ψj).map
-            (ConLeche.Model.ITerm.instSeq ys (d.nP + cA.2 - 1))) := by
+            (Term.instSeq ys (d.nP + cA.2 - 1))) := by
     rw [← hrestEq, hrest]
     unfold ctorBodyAVI
     rw [instSeqAV_mkAppN]
@@ -407,11 +407,11 @@ theorem blockRuleIdxPin_run {mm j : Nat} {cA : ConstantVal × Nat}
     rcases hcarLen with hcase | hq
     · omega
     · exact hq
-  obtain ⟨-, hcargs⟩ := ITerm.mkAppN_inj hrest2
+  obtain ⟨-, hcargs⟩ := Term.mkAppN_inj hrest2
     (by rw [hcarLen', List.length_map, List.length_append, paramBvars, List.length_map,
       List.length_range, hlenE])
   have hcel : cargsa.getD (d.nP + i) default
-      = ConLeche.Model.ITerm.instSeq ys (d.nP + cA.2 - 1) ((d.esF mm j ψj).getD i default) := by
+      = Term.instSeq ys (d.nP + cA.2 - 1) ((d.esF mm j ψj).getD i default) := by
     have hq := congrArg (fun l => l[d.nP + i]?) hcargs
     simp only [List.getElem?_map,
       List.getElem?_append_right
@@ -480,7 +480,7 @@ theorem blockRule_coherent (hM : BlockModelAt mpC.base2 names d)
 /-- **The block's parameter telescope is a telescope of types**, read
 off member `0`'s stored type: a graded Π-tower over the parameters and
 indices, ending in a sort. -/
-theorem blockParams_spineTy {ψ : Name → Nat} {B : ITerm} {ρ : Nat → V}
+theorem blockParams_spineTy {ψ : Name → Nat} {B : Term} {ρ : Nat → V}
     (hok : WellDenoted V ρ (mkPisAV (d.ppsM 0 ψ) B)) : SpineTy ρ (d.params ψ) := by
   have h := (spineTy_of_wellDenoted_mkPisAV hok).take d.nP
   rwa [BlockData.params]
@@ -553,7 +553,7 @@ theorem blockRuleStoredFit_any (hM : BlockModelAt mpC.base2 names d)
     (hct1 : d.w ψ = 0 → (d.ctorsM mm).length ≤ 1)
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
       ↔ Sat V (((d.dsF mm j ψ).take d.nP)).reverse σ)
-    {ρ : Nat → V} {ps is : List V} {ys : List ITerm}
+    {ρ : Nat → V} {ps is : List V} {ys : List Term}
     (hps : SpineFit ρ (d.params ψ) ps)
     (hidx : SpineFit (consList ps ρ) (d.IdsM mm ψ) is)
     (hqs : SpineFit ρ (d.params ψ) ((ys.take d.nP).map (interp V ρ)))
@@ -563,7 +563,7 @@ theorem blockRuleStoredFit_any (hM : BlockModelAt mpC.base2 names d)
       ((d.Ess mm ψ).getD j []).map
         (interp V (consList ((ys.drop d.nP).map (interp V ρ))
           (consList ((ys.take d.nP).map (interp V ρ)) ρ))) = is)
-    (hmaj : interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
+    (hmaj : interp V ρ (Term.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
       ∈ˢ (ps ++ is).foldl app (interp V ρ (mpC.base2.acval (d.memberName mm) ψ))) :
     d.StoredFit ψ (consList ps ρ) (d.tup ψ mm is) mm j ((ys.drop d.nP).map (interp V ρ)) := by
   by_cases hw : d.w ψ = 0
@@ -581,11 +581,11 @@ theorem blockCtorMajor_value (hM : BlockModelAt mpC.base2 names d)
     (hfind : envC.find? cA.1.name = some (.ctorInfo cA.1 d.nP cA.2))
     (hcN : mm < d.N) {ψ ψj : Name → Nat}
     (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
-    {ρ : Nat → V} {ys : List ITerm}
+    {ρ : Nat → V} {ys : List Term}
     (hqs : SpineFit ρ (d.params ψ) ((ys.take d.nP).map (interp V ρ)))
     (hfq : SpineFit (consList ((ys.take d.nP).map (interp V ρ)) ρ)
       ((d.Fss mm ψ).getD j []) ((ys.drop d.nP).map (interp V ρ))) :
-    interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
+    interp V ρ (Term.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
       = d.inj ψ mm j ((ys.drop d.nP).map (interp V ρ)) := by
   rw [mpC.base2.acval_params cA.1.name _ hfind ψj ψ hlv, interp_mkAppN_foldl,
     show ys.map (interp V ρ)
@@ -630,9 +630,9 @@ theorem blockRuleCtorFit_run {mm j : Nat} {cA : ConstantVal × Nat}
     (hlenP : (d.params ψ).length = d.nP)
     (hparamsC : ∀ σ : Nat → V, Sat V (d.params ψ).reverse σ
       ↔ Sat V (((d.dsF mm j ψ).take d.nP)).reverse σ)
-    {ρ : Nat → V} {ys : List ITerm} {ctorTy restC : ITerm}
+    {ρ : Nat → V} {ys : List Term} {ctorTy restC : Term}
     (hys : ys.length = d.nP + cA.2)
-    (hctorRead : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some ctorTy)
+    (hctorRead : denote mpC.base2.acval envC ψj 0 cA.1.type = some ctorTy)
     (hfitC : TeleFitPA V ρ ctorTy ys restC) :
     SpineFit ρ (d.params ψ) ((ys.take d.nP).map (interp V ρ)) ∧
       SpineFit (consList ((ys.take d.nP).map (interp V ρ)) ρ)
@@ -664,15 +664,15 @@ binders the contract's residue and tower statements carry are TIED
 and not free.  (Two spellings, two names: this is about `mkLamsAV`;
 `lamTele_mkLamsAV` is the one about `LamTele`.) -/
 theorem mkLamsAV_length_inj :
-    ∀ {lds lds' : List ITerm} {A A' : ITerm},
+    ∀ {lds lds' : List Term} {A A' : Term},
       lds.length = lds'.length → mkLamsAV lds A = mkLamsAV lds' A' →
         lds = lds' ∧ A = A'
   | [], [], _, _, _, h => ⟨rfl, h⟩
   | [], _ :: _, _, _, hl, _ => nomatch hl
   | _ :: _, [], _, _, hl, _ => nomatch hl
   | ld :: lds, ld' :: lds', A, A', hl, h => by
-    have h' : ITerm.lam ld (mkLamsAV lds A)
-        = ITerm.lam ld' (mkLamsAV lds' A') := h
+    have h' : Term.lam ld (mkLamsAV lds A)
+        = Term.lam ld' (mkLamsAV lds' A') := h
     obtain ⟨h2, h3⟩ : ld = ld' ∧ mkLamsAV lds A = mkLamsAV lds' A' := by
       injection h' with b c
       exact ⟨b, c⟩
@@ -690,15 +690,15 @@ section DomsBounded
 
 variable {envC : Env} {pp : ConLeche.BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {mpC : EnvModelM V μ envC} {F : Nat}
-  {isRec : Bool} {A : Nat → (Name → Nat) → ITerm}
+  {isRec : Bool} {A : Nat → (Name → Nat) → Term}
   {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List ITerm}
+  {ppsOf : Nat → (Name → Nat) → List Term}
 
 omit [SetTheory V] in
 /-- A bounded field chain's entries, one by one. -/
 theorem domsBelow_getD :
-    ∀ {m : Nat} {Fs : List ITerm}, DomsBelow m Fs → ∀ q, q < Fs.length →
-      Term.bvarsBelow (m + q) (Fs.getD q default).erase
+    ∀ {m : Nat} {Fs : List Term}, DomsBelow m Fs → ∀ q, q < Fs.length →
+      Term.bvarsBelow (m + q) (Fs.getD q default)
   | _, [], _, _, hq => absurd hq (Nat.not_lt_zero _)
   | m, _ :: _, h, 0, _ => by simpa using h.1
   | m, _ :: Fs, h, q + 1, hq => by

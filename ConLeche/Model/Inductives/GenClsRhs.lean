@@ -24,9 +24,8 @@ import ConLeche.Model.Inductives.FixKit
 import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Reading.Lemmas
 import ConLeche.Model.Reading.Inst
-import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Verify.Denote
 import ConLeche.Model.Env.LfpFormer
-import ConLeche.Model.Reading.DenoteMeta
 import ConLeche.Model.Rules.InferSoundKit
 import ConLeche.Verify.Inductives.ClassGenScope
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
@@ -55,7 +54,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
@@ -86,7 +85,7 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
     (ψ : Name → Nat) (ρ : Nat → V) {c j : Nat} (hc : c < (tgtRs out).length)
     (hj : j < blockRecNCt (tgtRs out) c) {xs : List V}
     (hxs : SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs) :
-    ∃ (bs : List ITerm) (b : ITerm),
+    ∃ (bs : List Term) (b : Term),
       xs.getD (R.g.nP + genMinorSlot R.g R.rd c j) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) ∧
       WellDenoted V (consList xs ρ) (mkPisAV bs b) ∧
       ∀ fs, SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
@@ -119,7 +118,7 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
   have hyE := hE _ y T hy (by
     rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT])
   obtain ⟨pd, hpd, hrd⟩ := hdomsR _ y hy
-  rw [denoteMeta_erasedEq hyE] at hrd
+  rw [denote_erasedEq hyE] at hrd
   -- the prefix's entry: the minor's value, valid there
   have hlenPd := blockRulePdomsAV_length (V := V) hμ mpC h hr ψ
   have hPdget : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
@@ -129,7 +128,7 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
   have hmem := FixKI.spineFit_getD_mem' hxs (l := R.g.nP + s) (by rw [hlenPd]; omega)
   rw [hPdget] at hmem
   -- read at the rule prefix
-  have hlift := denoteMeta_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hTs.1 R.g.pre.length
+  have hlift := denote_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hTs.1 R.g.pre.length
     (by omega)
   rw [hrd, Option.map_some] at hlift
   -- the pieces are bounded
@@ -185,7 +184,7 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
         obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
         rw [hxe]; exact ConLeche.ScB.fvar (by omega) (hty.mono (by omega))
   obtain ⟨bs, b, hBE, hbl, hbs, hb⟩ :=
-    denoteMeta_closeTelescope_read _ _ _ T hcl hbbS.2 (by rw [← hTE]; exact Expr.ErasedEq.rfl _)
+    denote_closeTelescope_read _ _ _ T hcl hbbS.2 (by rw [← hTE]; exact Expr.ErasedEq.rfl _)
       hlift
   -- the frames
   have hlenPd' : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
@@ -282,8 +281,8 @@ section Ih
 /-- `UnderTowerOk` from its spine form: the domains graded along their
 fitting spines, and at every full spine the body graded, in the result,
 the result a type. -/
-theorem underTowerOk_of_spines {b T : ITerm} :
-    ∀ {ds : List ITerm} {σ : Nat → V},
+theorem underTowerOk_of_spines {b T : Term} :
+    ∀ {ds : List Term} {σ : Nat → V},
       (∀ k, k < ds.length → ∀ zs : List V, SpineFit σ (ds.take k) zs →
         WellDenoted V (consList zs σ) (ds.getD k default) ∧
           IsTy (interp V (consList zs σ) (ds.getD k default))) →
@@ -307,12 +306,10 @@ theorem underTowerOk_of_spines {b T : ITerm} :
 
 /-- A generated `ih` binder type is bound by its frame. -/
 theorem genIhDomAV_below {D mt : Nat} {q : IhDatum} (hq : IhDatumBelow D q) (hmt : mt < D) :
-    Term.bvarsBelow D (genIhDomAV D mt q).erase := by
+    Term.bvarsBelow D (genIhDomAV D mt q) := by
   unfold genIhDomAV
   refine mkPisAV_below_of (hq.1) ?_
-  rw [ITerm.erase_mkAppN]
-  refine VExprAux.bvarsBelow_mkAppN (by show _ < _; omega) fun a ha => ?_
-  obtain ⟨e, he, rfl⟩ := List.mem_map.mp ha
+  refine VExprAux.bvarsBelow_mkAppN (by show _ < _; omega) fun e he => ?_
   exact hq.2 e he
 
 end Ih
@@ -344,11 +341,11 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
       ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys)
     {q : IhDatum} (hq : q ∈ genIhdAV mpC.base2.acval envC R.g R.rd ψ c j) :
     UnderTowerOk (consList ys (consList rs ρ))
-      (ITerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
+      (Term.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
           + ((tgtRs out).length - 1 - q.1)))
         (prefVarsAV R.g.pre.length ((genCtorAt R.g R.rd c j).nF + q.2.1.length)
           ++ (q.2.2.1 ++ [q.2.2.2])))
-      (ITerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
+      (Term.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
           - 1 - classMotPos R.g (genClsOf R.rd q.1)))
         (q.2.2.1 ++ [q.2.2.2]))
       q.2.1 := by
@@ -460,7 +457,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
       (interp V (consList zs (consList (xs ++ fs) ρ)) q.2.2.2) (by rw [hxl, hRPT])
       (by rw [List.length_map, hcnt, hMT, ← hgcT, hcls])
     have hT0 : interp V (consList zs (consList (xs ++ fs) (consList rs ρ)))
-        (ITerm.mkAppN (.bvar (D + q.2.1.length - 1 - classMotPos R.g (genClsOf R.rd q.1)))
+        (Term.mkAppN (.bvar (D + q.2.1.length - 1 - classMotPos R.g (genClsOf R.rd q.1)))
           (q.2.2.1 ++ [q.2.2.2]))
         = interp V (consList (xs ++ (q.2.2.1.map (interp V (consList zs (consList (xs ++ fs) ρ)))
             ++ [interp V (consList zs (consList (xs ++ fs) ρ)) q.2.2.2])) ρ)
@@ -478,7 +475,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
 /-- `genIhAV` IS a λ-tower over the `ih` datum's telescope. -/
 theorem genIhAV_eq_mkLamsAV {K rP D : Nat} {q : IhDatum} :
     genIhAV K rP D q = mkLamsAV q.2.1
-      (ITerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
+      (Term.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
         (prefVarsAV rP (D - rP + q.2.1.length) ++ (q.2.2.1 ++ [q.2.2.2]))) :=
   rfl
 

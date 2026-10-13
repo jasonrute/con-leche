@@ -25,6 +25,7 @@ constructor ownership at its constructors' environment
 -/
 
 namespace ConLeche.Model
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.Verify
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape)
@@ -86,13 +87,13 @@ theorem lfpCover_append {env env' : Env} {new : List ConstantInfo} (mp : EnvMode
   subst henv
   have hbound := ConLeche.Semantics.envWF_constsBound mp.base2.wf
   have hden : ∀ (ψ : Name → Nat) (d : Nat) (e : Expr), ConstsBound env e →
-      ∀ {ea : ITerm}, denoteMeta mp.base2.acval env ψ d e = some ea →
-        denoteMeta mpX.base2.acval ⟨new ++ env.consts⟩ ψ d e = some ea := by
+      ∀ {ea : Term}, denote mp.base2.acval env ψ d e = some ea →
+        denote mpX.base2.acval ⟨new ++ env.consts⟩ ψ d e = some ea := by
     intro ψ d e hcb ea h
-    refine denoteMeta_envExtend_mono (fun hf => hfwd _ _ hf)
+    refine denote_envExtend_mono (fun hf => hfwd _ _ hf)
       ⟨natLitSupported_mono_of_keep hfwd, strLitSupported_mono_of_keep hfwd⟩
       (findProj?_append_none hntc) d e hcb ?_
-    rw [denoteMeta_acval_congr (env := env) hag]
+    rw [denote_acval_congr (env := env) hag]
     exact h
   have hok := mp.lfp_ok_transport (acval' := mpX.base2.acval)
     (fun n ci hf _ => hfwd n ci hf) (fun n _ hf _ => hag n (by rw [hf]; rfl))

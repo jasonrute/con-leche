@@ -15,7 +15,7 @@ value-kind harvest discharges.
 
 The law **carries the instantiated former type's reading**, so the
 crossing must move that reading forward too
-(`denoteMeta_cons_fresh_mono`, on `ConstsBound` of the instantiated type
+(`denote_cons_fresh_mono`, on `ConstsBound` of the instantiated type
 — `constsBound_instType`).  Everything else is `acvalWith_ne` at the
 two leaves the law mentions (the former and the capability
 constructor), each `≠` the fresh name because `EtaFamilyStored`
@@ -33,7 +33,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   IndCaps)
 
@@ -160,7 +160,7 @@ here.  (An `indInfo`/`ctorInfo` cons may *complete* a family
 and so genuinely owes the law; those installs supply it bespoke.) -/
 theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
     (hprev : CapsOk mp.base2)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
     (hnotind : ∀ cv caps, c₀ ≠ .indInfo cv caps)
@@ -177,7 +177,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
       hprev.1 T cvT caps hfE hcape hres hfam₀ φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_, ?_⟩
     · rw [hac]
-      exact denoteMeta_cons_mono hfresh
+      exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
@@ -190,7 +190,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
         (fun _ _ _ => rfl)
       · rwa [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnC hh.symm)] at hf₂
       · rw [hac]
-        exact denoteMeta_cons_mono hfresh
+        exact denote_cons_mono hfresh
           ((hntc.typeOf hf).instantiateLevelParams _ _) _ 0
           (constsBound_instType mp.base2.wf
             (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
@@ -210,7 +210,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
       hprev.2 T cvT caps hfE hcapu hres φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_⟩
     · rw [hac]
-      exact denoteMeta_cons_mono hfresh
+      exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa

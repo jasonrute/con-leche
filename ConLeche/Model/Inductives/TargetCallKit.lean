@@ -14,10 +14,12 @@ Generic facts the call's typing (`TargetCallCore.lean`) is read with:
 -/
 
 namespace ConLeche.Model
+open ConLeche.Verify (denote denote_const denote_fvar projNV)
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal CheckMode)
 
 universe w
@@ -38,19 +40,19 @@ theorem mem_dom_of_mem_piSet_two {A A' f x : V} {B B' : V → V} (hf : f ∈ˢ p
   exact hx'
 
 theorem WellDenoted_mkAppN_head {ρ : Nat → V} :
-    ∀ (as : List ITerm) {g : ITerm},
-      WellDenoted V ρ (ITerm.mkAppN g as) → WellDenoted V ρ g
+    ∀ (as : List Term) {g : Term},
+      WellDenoted V ρ (Term.mkAppN g as) → WellDenoted V ρ g
   | [], _, h => h
   | a :: as, g, h => by
     have h1 := WellDenoted_mkAppN_head as (g := .app g a) h
     exact (cast (WellDenoted_app V ρ g a) h1).1
 
 /-- A spine headed by the point is the point. -/
-theorem interp_mkAppN_pt {ρ : Nat → V} {f : ITerm} (hf : interp V ρ f = pt) :
-    ∀ (as : List ITerm), interp V ρ (ITerm.mkAppN f as) = pt
+theorem interp_mkAppN_pt {ρ : Nat → V} {f : Term} (hf : interp V ρ f = pt) :
+    ∀ (as : List Term), interp V ρ (Term.mkAppN f as) = pt
   | [] => hf
   | a :: as => by
-    rw [ITerm.mkAppN_cons]
+    rw [Term.mkAppN_cons]
     exact interp_mkAppN_pt (by rw [interp_app, hf, app_pt]) as
 
 /-- **A graded application spine that is not the point, of a value of a
@@ -58,11 +60,11 @@ theorem interp_mkAppN_pt {ρ : Nat → V} {f : ITerm} (hf : interp V ρ f = pt) 
 (`mem_piSet_of_mem_piV`); each application node's package puts its
 argument in a domain the head inhabits as a graph, and a graph's domain
 is rigid. -/
-theorem spineFit_of_wellDenoted_mkAppN_pi {R : ITerm} :
-    ∀ {pds : List ITerm} {h : ITerm} {args : List ITerm}
+theorem spineFit_of_wellDenoted_mkAppN_pi {R : Term} :
+    ∀ {pds : List Term} {h : Term} {args : List Term}
       {τ σ : Nat → V},
-      interp V τ (ITerm.mkAppN h args) ≠ pt →
-      WellDenoted V τ (ITerm.mkAppN h args) →
+      interp V τ (Term.mkAppN h args) ≠ pt →
+      WellDenoted V τ (Term.mkAppN h args) →
       interp V τ h ∈ˢ interp V σ (mkPisAV pds R) →
       args.length = pds.length →
       SpineFit σ (pds) (args.map (interp V τ))
@@ -71,7 +73,7 @@ theorem spineFit_of_wellDenoted_mkAppN_pi {R : ITerm} :
   | _ :: _, _, [], _, _, _, _, _, hlen => by simp at hlen
   | d :: pds, h, a :: args, τ, σ, hne, hwd, hmem, hlen => by
     simp only [List.map_cons, SpineFit]
-    rw [ITerm.mkAppN_cons] at hwd hne
+    rw [Term.mkAppN_cons] at hwd hne
     have hwdA := WellDenoted_mkAppN_head args hwd
     obtain ⟨-, -, v, A, Bf, hf, ha, -⟩ := cast (WellDenoted_app V τ h a) hwdA
     have hhne : interp V τ h ≠ pt := fun h0 =>
@@ -99,24 +101,24 @@ theorem spineFit_of_wellDenoted_mkAppN_pi {R : ITerm} :
 
 /-- Two optional readings agree: both absent, or both present and
 related. -/
-@[expose] def ReadAgree (P : ITerm → ITerm → Prop) : Option ITerm → Option ITerm → Prop
+@[expose] def ReadAgree (P : Term → Term → Prop) : Option Term → Option Term → Prop
   | some a2, some a1 => P a2 a1
   | none, none => True
   | _, _ => False
 
 /-- A projection spelling keeps a value and a truthfulness transfer. -/
-theorem projAV_agree {ρ : Nat → V} :
-    ∀ (n : Nat) {e2 e1 : ITerm}, interp V ρ e2 = interp V ρ e1 →
+theorem projNV_agree {ρ : Nat → V} :
+    ∀ (n : Nat) {e2 e1 : Term}, interp V ρ e2 = interp V ρ e1 →
       (WellDenoted V ρ e2 → WellDenoted V ρ e1) →
-      interp V ρ (projAV n e2) = interp V ρ (projAV n e1) ∧
-        (WellDenoted V ρ (projAV n e2) → WellDenoted V ρ (projAV n e1))
+      interp V ρ (projNV n e2) = interp V ρ (projNV n e1) ∧
+        (WellDenoted V ρ (projNV n e2) → WellDenoted V ρ (projNV n e1))
   | 0, e2, e1, hv, hw => by
-    refine ⟨by simp [projAV, hv], fun h => ?_⟩
-    simp only [projAV, WellDenoted_fst] at h ⊢
+    refine ⟨by simp [projNV, hv], fun h => ?_⟩
+    simp only [projNV, WellDenoted_fst] at h ⊢
     obtain ⟨h1, u, v, A, Bf, h2, h3, h4⟩ := h
     exact ⟨hw h1, u, v, A, Bf, hv ▸ h2, h3, h4⟩
   | n + 1, e2, e1, hv, hw => by
-    refine projAV_agree n (e2 := .snd e2) (e1 := .snd e1) (by simp [hv]) fun h => ?_
+    refine projNV_agree n (e2 := .snd e2) (e1 := .snd e1) (by simp [hv]) fun h => ?_
     simp only [WellDenoted_snd] at h ⊢
     obtain ⟨h1, u, v, A, Bf, h2, h3, h4⟩ := h
     exact ⟨hw h1, u, v, A, Bf, hv ▸ h2, h3, h4⟩
@@ -130,12 +132,12 @@ variable {env : Env} {m : EnvModel V env} {φ : Name → Nat}
 hole slots carry the members' values, the abstract reading has the
 concrete one's value, and its truthfulness gives the concrete one's. -/
 @[expose] def AbsAgree (V : Type w) [SetTheory V] (k d : Nat) (hvC : Nat → V)
-    (a2 a1 : ITerm) : Prop :=
+    (a2 a1 : Term) : Prop :=
   ∀ (vals : List V) (τ : Nat → V), vals.length = d → (∀ t, t < k → τ (k - 1 - t) = hvC t) →
     interp V (consList vals τ) a2 = interp V (consList vals τ) a1 ∧
       (WellDenoted V (consList vals τ) a2 → WellDenoted V (consList vals τ) a1)
 
-theorem readAgree_refl {k d : Nat} (o : Option ITerm) :
+theorem readAgree_refl {k d : Nat} (o : Option Term) :
     ReadAgree (AbsAgree V k d hvC) o o := by
   cases o with
   | none => trivial
@@ -156,21 +158,21 @@ theorem targetAbs_read
     ∀ (e : Expr) (d : Nat) (as2 as1 : List Expr),
       LocList (B + formerTys.length) d as2 → LocList (B + formerTys.length) d as1 →
       ReadAgree (AbsAgree V formerTys.length d hvC)
-        (denoteMeta m.acval env φ (B + formerTys.length + d)
+        (denote m.acval env φ (B + formerTys.length + d)
           ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) e).instantiateList
             as2 0))
-        (denoteMeta m.acval env φ (B + formerTys.length + d) (e.instantiateList as1 0))
+        (denote m.acval env φ (B + formerTys.length + d) (e.instantiateList as1 0))
   | .bvar j, d, as2, as1, h2, h1 => by
     simp only [ConLeche.targetAbs]
     rcases Nat.lt_or_ge j d with hjd | hjd
     · obtain ⟨ty1, he1⟩ := h1.bvar_lt hjd
       obtain ⟨ty2, he2⟩ := h2.bvar_lt hjd
-      rw [he1, he2, denoteMeta_fvar, denoteMeta_fvar]
+      rw [he1, he2, denote_fvar, denote_fvar]
       exact readAgree_refl (V := V) _
     · rw [h1.bvar_ge hjd, h2.bvar_ge hjd]
       exact readAgree_refl (V := V) _
   | .fvar i ty, d, as2, as1, _, _ => by
-    simp only [ConLeche.targetAbs, Expr.instantiateList, denoteMeta_fvar]
+    simp only [ConLeche.targetAbs, Expr.instantiateList, denote_fvar]
     exact readAgree_refl (V := V) _
   | .sort u, d, as2, as1, _, _ => by
     simp only [ConLeche.targetAbs, Expr.instantiateList]
@@ -181,14 +183,14 @@ theorem targetAbs_read
   | .letE ty v b, d, as2, as1, h2, h1 => by
     have iht := targetAbs_read hnames ty d as2 as1 h2 h1
     have ihv := targetAbs_read hnames v d as2 as1 h2 h1
-    simp only [ConLeche.targetAbs, Expr.instantiateList, denoteMeta]
+    simp only [ConLeche.targetAbs, Expr.instantiateList, denote]
     revert iht ihv
-    cases hT2 : denoteMeta m.acval env φ (B + formerTys.length + d)
+    cases hT2 : denote m.acval env φ (B + formerTys.length + d)
         ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) ty).instantiateList as2 0)
-      <;> cases hT1 : denoteMeta m.acval env φ (B + formerTys.length + d) (ty.instantiateList as1 0)
-      <;> cases hA2 : denoteMeta m.acval env φ (B + formerTys.length + d)
+      <;> cases hT1 : denote m.acval env φ (B + formerTys.length + d) (ty.instantiateList as1 0)
+      <;> cases hA2 : denote m.acval env φ (B + formerTys.length + d)
         ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) v).instantiateList as2 0)
-      <;> cases hA1 : denoteMeta m.acval env φ (B + formerTys.length + d) (v.instantiateList as1 0)
+      <;> cases hA1 : denote m.acval env φ (B + formerTys.length + d) (v.instantiateList as1 0)
       <;> simp [ReadAgree]
     rename_i T2 T1 A2 A1
     intro _ hA
@@ -201,12 +203,12 @@ theorem targetAbs_read
       (Expr.fvar (B + formerTys.length + d) (ty.instantiateList as1 0) :: as1)
       (h2.cons _) (h1.cons _)
     revert ihb
-    cases denoteMeta m.acval env φ (B + formerTys.length + (d + 1))
+    cases denote m.acval env φ (B + formerTys.length + (d + 1))
         ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) b).instantiateList
           (Expr.fvar (B + formerTys.length + d)
             ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) ty).instantiateList
               as2 0) :: as2) 0)
-      <;> cases denoteMeta m.acval env φ (B + formerTys.length + (d + 1))
+      <;> cases denote m.acval env φ (B + formerTys.length + (d + 1))
         (b.instantiateList (Expr.fvar (B + formerTys.length + d) (ty.instantiateList as1 0) :: as1) 0)
       <;> simp [ReadAgree]
     rename_i b2 b1
@@ -234,8 +236,8 @@ theorem targetAbs_read
         subst hus'
         rw [List.getD_eq_getElem?_getD, ConLeche.targetHoles, List.getElem?_map,
           List.getElem?_range htk, Option.map_some, Option.getD_some]
-        simp only [Expr.instantiateList, denoteMeta_fvar]
-        rw [denoteMeta_const hfind hlen]
+        simp only [Expr.instantiateList, denote_fvar]
+        rw [denote_const hfind hlen]
         intro vals τ hvl hτ
         rw [interp_bvar, show B + formerTys.length + d - 1 - (B + t)
             = (formerTys.length - 1 - t) + vals.length from by omega, consList_apply_add,
@@ -246,14 +248,14 @@ theorem targetAbs_read
   | .app f a, d, as2, as1, h2, h1 => by
     have ihf := targetAbs_read hnames f d as2 as1 h2 h1
     have iha := targetAbs_read hnames a d as2 as1 h2 h1
-    simp only [ConLeche.targetAbs, Expr.instantiateList, denoteMeta]
+    simp only [ConLeche.targetAbs, Expr.instantiateList, denote]
     revert ihf iha
-    cases denoteMeta m.acval env φ (B + formerTys.length + d)
+    cases denote m.acval env φ (B + formerTys.length + d)
         ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) f).instantiateList as2 0)
-      <;> cases denoteMeta m.acval env φ (B + formerTys.length + d) (f.instantiateList as1 0)
-      <;> cases denoteMeta m.acval env φ (B + formerTys.length + d)
+      <;> cases denote m.acval env φ (B + formerTys.length + d) (f.instantiateList as1 0)
+      <;> cases denote m.acval env φ (B + formerTys.length + d)
         ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) a).instantiateList as2 0)
-      <;> cases denoteMeta m.acval env φ (B + formerTys.length + d) (a.instantiateList as1 0)
+      <;> cases denote m.acval env φ (B + formerTys.length + d) (a.instantiateList as1 0)
       <;> simp [ReadAgree]
     intro hf ha vals τ hvl hτ
     obtain ⟨hfv, hfw⟩ := hf vals τ hvl hτ
@@ -264,11 +266,11 @@ theorem targetAbs_read
     exact ⟨hfw w1, haw w2, v, A, Bf, hfv ▸ h3, hav ▸ h4, h5⟩
   | .proj sn i e, d, as2, as1, h2, h1 => by
     have ihe := targetAbs_read hnames e d as2 as1 h2 h1
-    simp only [ConLeche.targetAbs, Expr.instantiateList, denoteMeta]
+    simp only [ConLeche.targetAbs, Expr.instantiateList, denote]
     revert ihe
-    cases denoteMeta m.acval env φ (B + formerTys.length + d)
+    cases denote m.acval env φ (B + formerTys.length + d)
         ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) e).instantiateList as2 0)
-      <;> cases denoteMeta m.acval env φ (B + formerTys.length + d) (e.instantiateList as1 0)
+      <;> cases denote m.acval env φ (B + formerTys.length + d) (e.instantiateList as1 0)
       <;> simp [ReadAgree]
     rename_i e2 e1
     intro he
@@ -276,12 +278,12 @@ theorem targetAbs_read
     | some entry =>
       intro vals τ hvl hτ
       obtain ⟨hv, hw⟩ := he vals τ hvl hτ
-      exact projAV_agree (i + entry.off) hv hw
+      exact projNV_agree (i + entry.off) hv hw
     | none =>
       rcases i with _ | _ | i
       · intro vals τ hvl hτ
         obtain ⟨hv, hw⟩ := he vals τ hvl hτ
-        exact projAV_agree 0 hv hw
+        exact projNV_agree 0 hv hw
       · intro vals τ hvl hτ
         obtain ⟨hv, hw⟩ := he vals τ hvl hτ
         refine ⟨by simp [hv], fun h => ?_⟩
@@ -291,11 +293,11 @@ theorem targetAbs_read
       · trivial
   | .lam ty b, d, as2, as1, h2, h1 | .forallE ty b, d, as2, as1, h2, h1 => by
     have iht := targetAbs_read hnames ty d as2 as1 h2 h1
-    simp only [ConLeche.targetAbs, Expr.instantiateList, denoteMeta]
+    simp only [ConLeche.targetAbs, Expr.instantiateList, denote]
     revert iht
-    cases hA2 : denoteMeta m.acval env φ (B + formerTys.length + d)
+    cases hA2 : denote m.acval env φ (B + formerTys.length + d)
         ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) ty).instantiateList as2 0)
-      <;> cases hA1 : denoteMeta m.acval env φ (B + formerTys.length + d) (ty.instantiateList as1 0)
+      <;> cases hA1 : denote m.acval env φ (B + formerTys.length + d) (ty.instantiateList as1 0)
       <;> simp [ReadAgree]
     rename_i A2 A1
     intro hA
@@ -308,12 +310,12 @@ theorem targetAbs_read
       (Expr.fvar (B + formerTys.length + d) (ty.instantiateList as1 0) :: as1)
       (h2.cons _) (h1.cons _)
     revert ihb
-    cases denoteMeta m.acval env φ (B + formerTys.length + (d + 1))
+    cases denote m.acval env φ (B + formerTys.length + (d + 1))
         ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) b).instantiateList
           (Expr.fvar (B + formerTys.length + d)
             ((ConLeche.targetAbs names lvls (ConLeche.targetHoles formerTys B) ty).instantiateList
               as2 0) :: as2) 0)
-      <;> cases denoteMeta m.acval env φ (B + formerTys.length + (d + 1))
+      <;> cases denote m.acval env φ (B + formerTys.length + (d + 1))
         (b.instantiateList (Expr.fvar (B + formerTys.length + d) (ty.instantiateList as1 0) :: as1) 0)
       <;> simp [ReadAgree]
     rename_i b2 b1

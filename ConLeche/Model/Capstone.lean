@@ -14,9 +14,9 @@ harvest layer builds toward them:
 
 * **the business end, proved now**: `no_constant_of_Empty` — an
   environment carrying the P invariant stores no constant of type
-  `Empty`.  The membership is `mem_type` (the `denoteMeta` reading),
+  `Empty`.  The membership is `mem_type` (the `denote` reading),
   the reading of `.const emptyName []` is the leaf by the
-  `denoteMeta` constant clause, and the leaf's `interp` value is the
+  `denote` constant clause, and the leaf's `interp` value is the
   empty set by erasure injectivity at the constant constructor + the
   carrier's `Empty` pin.
 * **the final statement, frozen** (checked against the goal's letter —
@@ -37,7 +37,7 @@ harvest layer builds toward them:
 **The semantic bill is empty** (task #161): no environment-tier
 hypothesis remains.  `acceptedReads_of` (`Model/Tiers.lean`) is a
 syntactic totality walk over `inferBody`'s clauses, where every
-`denoteMeta` failure mode is one of the front door's own acceptance
+`denote` failure mode is one of the front door's own acceptance
 guards, and the harvest layer proves: accepted stream ⇒
 `Nonempty (EnvModelM …)` at the final environment; this file's
 `no_constant_of_Empty` then closes the capstone.
@@ -48,7 +48,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo)
 
 universe w
@@ -59,20 +59,20 @@ variable {μ : CheckMode} {env : Env}
 /-! ## The Empty pin, at the core carrier -/
 
 /-- The `Empty` leaf is the pinned constant.  The pin is a
-premise (`∀ ψ, ∃ u, cvalE n ψ = emptyT u`), discharged by projection
+premise (`∀ ψ, ∃ u, acval n ψ = emptyT u`), discharged by projection
 from the carrier. -/
 theorem acval_empty_pinnedC (m : EnvModel V env) {n : Name}
-    (hpin : ∀ ψ : Name → Nat, ∃ u, m.cvalE n ψ = emptyT u)
+    (hpin : ∀ ψ : Name → Nat, ∃ u, m.acval n ψ = emptyT u)
     (ψ : Name → Nat) :
     ∃ u, m.acval n ψ = .const .empty [u] := by
   obtain ⟨u, hu⟩ := hpin ψ
-  exact ⟨u, erase_eq_const (by rw [m.acval_erase, hu]; rfl)⟩
+  exact ⟨u, hu⟩
 
 /-- …so its `interp` reading is the empty set, at every
 assignment.  Stated at any name whose leaf is an `emptyT` pin (task
 #181): `Empty`'s is `emptyT 1`, `False`'s is `emptyT 0`. -/
 theorem interp_acval_emptyC (m : EnvModel V env) {n : Name}
-    (hpin : ∀ ψ : Name → Nat, ∃ u, m.cvalE n ψ = emptyT u)
+    (hpin : ∀ ψ : Name → Nat, ∃ u, m.acval n ψ = emptyT u)
     (ψ : Name → Nat) (ρ : Nat → V) :
     interp V ρ (m.acval n ψ) = SetTheory.empty := by
   obtain ⟨u, hu⟩ := acval_empty_pinnedC m hpin ψ
@@ -82,9 +82,9 @@ theorem interp_acval_emptyC (m : EnvModel V env) {n : Name}
 /-- **The empty-pin argument, at any pinned name** (task #181): an
 environment carrying the P invariant stores no constant whose type is
 a reserved constant whose direct pin is `emptyT u` — the membership is
-`mem_type` at the `denoteMeta` reading, the reading of `.const n []` is
+`mem_type` at the `denote` reading, the reading of `.const n []` is
 the leaf by the constant clause, and the leaf's `interp` value is the
-empty set by erasure injectivity plus `basis_pinnedL`.  The `Empty` and
+empty set by erasure injectivity plus `basis_pinned`.  The `Empty` and
 `False` capstones are its two instances. -/
 theorem no_constant_of_emptyPin (mp : EnvModelM V μ env) {n : Name} {u : Nat}
     (hres : ConLeche.reservedBasisNames.contains n = true)
@@ -96,11 +96,11 @@ theorem no_constant_of_emptyPin (mp : EnvModelM V μ env) {n : Name} {u : Nat}
   have hta := hta0
   rw [hty] at hta
   cases hf : env.find? n with
-  | none => rw [denoteMeta, hf] at hta; exact nomatch hta
+  | none => rw [denote, hf] at hta; exact nomatch hta
   | some ci =>
     by_cases hlen :
         ([] : List Level).length = ci.toConstantVal.levelParams.length
-    · rw [denoteMeta_const hf hlen] at hta
+    · rw [denote_const hf hlen] at hta
       obtain rfl : ta = mp.base2.acval n
           (Level.substFn (fun _ => 0)
             ci.toConstantVal.levelParams []) :=
@@ -108,10 +108,10 @@ theorem no_constant_of_emptyPin (mp : EnvModelM V μ env) {n : Name} {u : Nat}
       have hmem := mp.mem_type c hc (fun _ => 0) _ hta0
         (fun _ => (SetTheory.empty : V))
       rw [interp_acval_emptyC mp.base2 (fun ψ =>
-        ⟨u, EnvModel.cvalE_pinned mp.base2 hres
+        ⟨u, EnvModel.acval_pinned mp.base2 hres
           (by rw [hf]; rfl) ψ (hpin ψ)⟩)] at hmem
       exact not_mem_empty _ hmem
-    · rw [denoteMeta, hf] at hta
+    · rw [denote, hf] at hta
       dsimp only at hta
       rw [ite_eq_right hlen] at hta
       exact nomatch hta
@@ -119,12 +119,12 @@ theorem no_constant_of_emptyPin (mp : EnvModelM V μ env) {n : Name} {u : Nat}
 /-- **The capstone's business end**: an environment carrying the P
 invariant stores no constant of type `Empty` — the membership read
 entirely at the stored-term reading (`mem_type` over
-`denoteMeta`/`interp`). -/
+`denote`/`interp`). -/
 theorem no_constant_of_Empty (mp : EnvModelM V μ env)
     (c : ConstantInfo) (hc : c ∈ env.consts)
     (hty : c.toConstantVal.type = .const emptyName []) : False :=
   -- **the pin, discharged by the carrier itself** (task #161 S7):
-  -- `Empty` is stored, so `basis_pinnedL` — the core's own field since
+  -- `Empty` is stored, so `basis_pinned` — the core's own field since
   -- S3 — gives the leaf its direct pin.  This is the S3 seal's
   -- prediction cashed: the premise dies with `EnvModelM.base`, it is
   -- not replaced.

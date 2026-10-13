@@ -56,7 +56,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   IndCaps RecRule)
 
@@ -69,10 +69,10 @@ variable {μ : CheckMode} {env : Env}
 /-! ## The P basis leaves are pinned FOR FREE
 
 The P tier needs no "basis constants are valued by their direct pins"
-field of its own beside `EnvModel.basis_pinnedL`, and the reason is one
-line of `ITerm.erase`'s definition: the erasure is structural and
+field of its own beside `EnvModel.basis_pinned`, and the reason is one
+line of `Term`'s definition: the erasure is structural and
 maps `.const` to `.const` and *nothing else* to `.const`.  So the
-erased equation `(acval n ψ).erase = .const c us` is the `ITerm`
+erased equation `(acval n ψ) = .const c us` is the `Term`
 equation `acval n ψ = .const c us` outright.
 
 Every downstream basis obligation reads the leaf through this — the
@@ -83,7 +83,7 @@ checker's pinned `ConstantInfo` blocks and the TT `BConst` alphabet is
 the basis tier's structural crux, and this is its P half. -/
 
 /-- **A stored reserved-basis constant's leaf is its direct
-pin.**  From `EnvModel.basis_pinnedL`, by injectivity of
+pin.**  From `EnvModel.basis_pinned`, by injectivity of
 `erase` at a constant head. -/
 theorem acval_basis_pinned {m : EnvModel V env}
     {n : Name} {ci : ConstantInfo} (hf : env.find? n = some ci)
@@ -91,16 +91,8 @@ theorem acval_basis_pinned {m : EnvModel V env}
     {c : ConLeche.Term.BConst} {us : List Nat} {ψ : Name → Nat}
     (hd : ConLeche.Verify.pinnedStructT n ψ
       = some (Term.const c us)) :
-    m.acval n ψ = .const c us := by
-  have h1 := (m.basis_pinned n ci hf hres).2 _ ψ hd
-  have h2 := m.acval_erase n ψ
-  rw [h1] at h2
-  cases hh : m.acval n ψ with
-  | const c' us' =>
-    rw [hh] at h2
-    simp only [ConLeche.Semantics.ITerm.erase, Term.const.injEq] at h2
-    rw [h2.1, h2.2]
-  | _ => rw [hh] at h2; exact nomatch h2
+    m.acval n ψ = .const c us :=
+  (m.basis_pinned n ci hf hres).2 _ ψ hd
 
 /-- **`nat_heads` at a cons that is none of the three literal
 heads.**  The guard reads `natName`, `natZeroName` and `natSuccName`
@@ -110,7 +102,7 @@ their obligation here, and so would any inductive-kind cons.  (The
 `Nat` block itself is where the guard *becomes* true; it supplies
 `nat_heads` bespoke, and no back-transfer exists.) -/
 theorem natHeads_cons_offNat (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hnN : c₀.name ≠ natName) (hnZ : c₀.name ≠ natZeroName)
     (hnS : c₀.name ≠ natSuccName)
     (m2 : EnvModel V ⟨c₀ :: env.consts⟩)
@@ -179,7 +171,7 @@ stored family can be completed here and the law's leaves are all
 prefix leaves. -/
 theorem capsOk_cons_basis (mp : EnvModelM V μ env)
     (hprev : CapsOk mp.base2)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
     (hres₀ : ConLeche.reservedBasisNames.contains c₀.name = true)
@@ -195,7 +187,7 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
       hprev.1 T cvT caps hfE hcape hres hfam₀ φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_, ?_⟩
     · rw [hac]
-      exact denoteMeta_cons_mono hfresh
+      exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
@@ -208,7 +200,7 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
         (fun _ _ _ => rfl)
       · rwa [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnC hh.symm)] at hf₂
       · rw [hac]
-        exact denoteMeta_cons_mono hfresh
+        exact denote_cons_mono hfresh
           ((hntc.typeOf hf).instantiateLevelParams _ _) _ 0
           (constsBound_instType mp.base2.wf
             (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
@@ -224,7 +216,7 @@ theorem capsOk_cons_basis (mp : EnvModelM V μ env)
       hprev.2 T cvT caps hfE hcapu hres φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_⟩
     · rw [hac]
-      exact denoteMeta_cons_mono hfresh
+      exact denote_cons_mono hfresh
         ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa

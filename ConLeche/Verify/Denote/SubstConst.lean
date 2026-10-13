@@ -15,7 +15,7 @@ replaced by its stored value (`Expr.substConst0`); the div/mod
 certificates make the same move with `substConstAll`.  Verifying an
 install therefore has to move facts across that substitution — from
 "`⟦substConst0 c v e⟧` in `env`" to "`⟦e⟧` in `c₀ :: env` under
-`acvalWith acval c A`" (`denoteMeta_substConst0`, `Model/NatEqs.lean`).
+`acvalWith acval c A`" (`denote_substConst0`, `Model/NatEqs.lean`).
 The two sides denote to the *same* term, because `acvalWith` sends `c`
 to `v`'s denotation, which is what `substConst0` writes in its place.
 This module holds the lemma's fragment predicate.

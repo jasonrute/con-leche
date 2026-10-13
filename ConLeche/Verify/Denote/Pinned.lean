@@ -66,7 +66,7 @@ constructor head matched by name denotes the pinned built-in.
 reserved name holds the pin whatever its kind — which is what lets
 `Model.eq_equality` (`ConLeche/Denotes.lean`)
 speak about the stored `Eq` without hypothesising its declaration. -/
-@[expose] def BasisPinnedTT (env : Env) (cval : TConstVal) : Prop :=
+@[expose] def BasisPinnedTT (env : Env) (cval : Name → (Name → Nat) → Term) : Prop :=
   ∀ (n : Name) (ci : ConstantInfo),
     env.find? n = some ci →
     reservedBasisNames.contains n = true →
@@ -74,7 +74,7 @@ speak about the stored `Eq` without hypothesising its declaration. -/
     ∀ (t : Term) (ψ : Name → Nat), pinnedStructT n ψ = some t →
       cval n ψ = t
 
-theorem BasisPinnedTT.empty (cval : TConstVal) :
+theorem BasisPinnedTT.empty (cval : Name → (Name → Nat) → Term) :
     BasisPinnedTT Env.empty cval := by
   intro n ci h
   simp [Env.find?, Env.empty] at h

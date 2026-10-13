@@ -37,7 +37,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo FEnv BlockParts TargetMajor)
 
 universe w
@@ -56,8 +56,8 @@ theorem memberHoles_ty (hmr : BlockMembersRun mpC.base2 d pp.toBlockShape cvTas)
     (ψ : Name → Nat) (ρ : Nat → V) {hv : List V}
     (hvget : ∀ t, t < cvTas.length →
       hv.getD t pt = interp V ρ (mpC.base2.acval (d.memberName t) ψ)) :
-    ∀ t, t < cvTas.length → ∃ T : ITerm,
-      denoteMeta mpC.base2.acval envC ψ 0 (cvTas.getD t default).type = some T ∧
+    ∀ t, t < cvTas.length → ∃ T : Term,
+      denote mpC.base2.acval envC ψ 0 (cvTas.getD t default).type = some T ∧
       hv.getD t pt ∈ˢ interp V ρ T := by
   intro t ht
   obtain ⟨cv, hcv⟩ : ∃ cv, cvTas[t]? = some cv := ⟨_, List.getElem?_eq_getElem ht⟩

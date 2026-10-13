@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Semantics.Syntax
+public import ConLeche.Term.Subst
 public import ConLeche.Semantics.Interp
 public import ConLeche.Semantics.Kit
 public import ConLeche.Semantics.WellDenoted
@@ -11,9 +11,9 @@ public import ConLeche.Semantics.Frame
 public import ConLeche.Semantics.LitParams
 public import ConLeche.Semantics.Sat
 public import ConLeche.Semantics.DefEqStep
-public import ConLeche.Semantics.Canon
+public import ConLeche.Verify.Denote
 public import ConLeche.Semantics.LitStep
-public import ConLeche.Semantics.DenoteClosed
+public import ConLeche.Verify.Denote.Shift
 public import ConLeche.Semantics.Install
 public import ConLeche.Semantics.ConstsBound
 public import ConLeche.Semantics.BasisType

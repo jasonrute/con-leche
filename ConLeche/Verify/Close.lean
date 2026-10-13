@@ -8,7 +8,7 @@ public section
 # Closing free variables as de Bruijn indices
 
 The checker opens a binder with a fresh `fvar d` and reads the body at
-depth `d + 1` (`denoteMeta`, `denote`); the statement's relation
+depth `d + 1` (`denote`, `denote`); the statement's relation
 `Denotes` (`ConLeche/Denotes.lean`) reads the body under its binder
 with `bvar 0` for the bound variable.  `closeN d e k` translates: every
 `fvar idx` with `idx < d` becomes the de Bruijn index `k + (d - 1 - idx)`

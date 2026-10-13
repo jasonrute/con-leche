@@ -35,7 +35,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level NestCtx NestKey NestHole)
 
 universe w
@@ -51,7 +51,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name 
 
 omit [SetTheory V] in
 theorem noBVar_exists' {α : Type} :
-    ∀ {e : ITerm} {P : α → Nat → Prop}, (∀ a, NoBVar (P a) e) →
+    ∀ {e : Term} {P : α → Nat → Prop}, (∀ a, NoBVar (P a) e) →
       NoBVar (fun i => ∃ a, P a i) e := by
   intro e
   induction e with
@@ -87,13 +87,13 @@ theorem noBVar_exists' {α : Type} :
 
 /-- **A hole-free domain inside the output reads only mentioned non-hole
 positions.** -/
-theorem noBVar_not_mentNH {lo hi d : Nat} {a nf : Expr} {ta : ITerm}
+theorem noBVar_not_mentNH {lo hi d : Nat} {a nf : Expr} {ta : Term}
     (hws : Expr.WScoped d a) (hb : a.looseBVarsBounded 0 = true)
     (hholes : NoBVar (holeP d lo hi) ta)
     (hsub : ∀ s, s < d → nf.nestOcc [] s (s + 1) = false → a.nestOcc [] s (s + 1) = false)
-    (hta : denoteMeta m.acval env φ d a = some ta) :
+    (hta : denote m.acval env φ d a = some ta) :
     NoBVar (fun i => ¬ MentNH lo hi d nf i) ta := by
-  have hbb := denote_bvarsBelow m.cval_closedL d a hws hb (denoteMeta_erase m.acval_erase d a hta)
+  have hbb := denote_bvarsBelow m.cval_closed d a hws hb hta
   have hbelow : NoBVar (fun i => d ≤ i) ta := NoBVar_of_bvarsBelow hbb fun _ h => h
   have hnone : NoBVar (fun _ => False) ta := NoBVar_of_bvarsBelow hbb fun _ h => h.elim
   have hun : NoBVar (fun i => ∃ s, s < d ∧ nf.nestOcc [] s (s + 1) = false ∧ holeP d s (s + 1) i)
@@ -102,7 +102,7 @@ theorem noBVar_not_mentNH {lo hi d : Nat} {a nf : Expr} {ta : ITerm}
       holeP d s (s + 1) i) fun s => ?_
     by_cases hs : s < d ∧ nf.nestOcc [] s (s + 1) = false
     · exact NoBVar.mono (fun i hn => hn.2.2)
-        (denoteMeta_noBVar_of_nestOcc (m := m) (names := []) (lo := s) (hi := s + 1) d a hws
+        (denote_noBVar_of_nestOcc (m := m) (names := []) (lo := s) (hi := s + 1) d a hws
           (by omega) (hsub s hs.1 hs.2) hta)
     · exact NoBVar.mono (fun i hn => absurd ⟨hn.1, hn.2.1⟩ hs) hnone
   have hall := noBVar_exists' (α := Fin 3) (P := fun k i => match k with
@@ -258,7 +258,7 @@ theorem PtFreeOn.congrQ {Q Q' : Nat → Nat → Prop} (hQ : ∀ i n, Q i n ↔ Q
   fun ρ ρ₀ hR i vs hq => h ρ ρ₀ hR i vs ((hQ _ _).mpr hq)
 
 theorem AccOn.congrQ {w : Nat} {Q Q' : Nat → Nat → Prop} (hQ : ∀ i n, Q i n ↔ Q' i n)
-    {R : FrameRel V} {A : (Nat → V) → V} {a : ITerm} (h : AccOn w Q R A a) :
+    {R : FrameRel V} {A : (Nat → V) → V} {a : Term} (h : AccOn w Q R A a) :
     AccOn w Q' R A a := by
   intro ρ ρ₀ hR x hxw hx
   obtain ⟨B, g, hB, hg, hs⟩ := h ρ ρ₀ hR x hxw hx
@@ -272,7 +272,7 @@ positions; the relation is symmetric and left-reflexive, and at a
 parameters, and its values are strict sets or `∅`). -/
 structure HoleRelA (m : EnvModel V env) (φ : Name → Nat) (w : Nat) (ctx : NestCtx)
     (prog : List NestHole)
-    (d : Nat) (Δa : List ITerm) (R : FrameRel V) : Prop where
+    (d : Nat) (Δa : List Term) (R : FrameRel V) : Prop where
   dom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ'
   agree : R.AgreesOff (holeP d ctx.nP (ctx.hiAt prog.length))
   dsScoped : ∀ (i : Nat) (hk : NestHole), prog.reverse[i]? = some hk → ∀ x ∈ hk.key.ds,
@@ -285,9 +285,9 @@ structure HoleRelA (m : EnvModel V env) (φ : Name → Nat) (w : Nat) (ctx : Nes
 /-- **Under a binder** (a hole-free domain, or an earlier field): the
 relation one level deeper, the bound value in the domain at both
 frames. -/
-theorem HoleRelA.underBoth {w : Nat} {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List ITerm}
+theorem HoleRelA.underBoth {w : Nat} {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List Term}
     {R : FrameRel V} (h : HoleRelA m φ w ctx prog d Δa R) (hd : ctx.hiAt prog.length ≤ d)
-    (ta : ITerm) :
+    (ta : Term) :
     HoleRelA m φ w ctx prog (d + 1) (ta :: Δa) (R.underBoth ta) where
   dom := by
     rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx, hx'⟩
@@ -310,7 +310,7 @@ relation: the point's stability (at a `Type`-valued block), and
 accessibility with a bound of the level reading only the non-hole
 positions the output mentions. -/
 @[expose] def AccConcl (w : Nat) (ctx : NestCtx) (prog : List NestHole) (dep : Nat) (e nf : Expr)
-    (R : FrameRel V) (ea : ITerm) : Prop :=
+    (R : FrameRel V) (ea : Term) : Prop :=
   (w ≠ 0 → PtOn R ea) ∧ (∃ A, AccOn w (HoleQ ctx prog dep) R A ea ∧ SizeOn w R A ∧
     InvOn (MentP ctx.nP (ctx.hiAt prog.length) dep nf) A) ∧ OutMent dep e nf
 
@@ -321,14 +321,14 @@ frame needs to run its per-constructor telescope over the walk's normal
 form (the input may mention a non-ordinary field or a hole inside a
 redex whnf drops, `corner_nestw_u4frame_beta`). -/
 @[expose] def OutOk (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx) (prog : List NestHole)
-    (dep : Nat) (Δa : List ITerm) (k : ConLeche.NestFieldKind) (nf : Expr) (ea : ITerm) : Prop :=
+    (dep : Nat) (Δa : List Term) (k : ConLeche.NestFieldKind) (nf : Expr) (ea : Term) : Prop :=
   nf.looseBVarsBounded 0 = true ∧ Expr.WScoped dep nf ∧
   (k = .ordinary → nf.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false) ∧
-  ∃ na, denoteMeta m.acval env φ dep nf = some na ∧
+  ∃ na, denote m.acval env φ dep nf = some na ∧
     ∀ ρ, Sat V Δa ρ → interp V ρ na = interp V ρ ea
 
 theorem OutOk.congr_read {m : EnvModel V env} {ctx : NestCtx} {prog : List NestHole} {dep : Nat}
-    {Δa : List ITerm} {k : ConLeche.NestFieldKind} {nf : Expr} {ea ea' : ITerm}
+    {Δa : List Term} {k : ConLeche.NestFieldKind} {nf : Expr} {ea ea' : Term}
     (h : OutOk m φ ctx prog dep Δa k nf ea)
     (heq : ∀ ρ, Sat V Δa ρ → interp V ρ ea = interp V ρ ea') :
     OutOk m φ ctx prog dep Δa k nf ea' := by
@@ -336,7 +336,7 @@ theorem OutOk.congr_read {m : EnvModel V env} {ctx : NestCtx} {prog : List NestH
   exact ⟨h1, h2, h3, na, hna, fun ρ hρ => (hr ρ hρ).trans (heq ρ hρ)⟩
 
 /-- A Π reads alike when its bodies read alike over its domain. -/
-theorem interp_pi_congr_body {A B B' : ITerm} {ρ : Nat → V}
+theorem interp_pi_congr_body {A B B' : Term} {ρ : Nat → V}
     (h : ∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) B = interp V (cons x ρ) B') :
     interp V ρ (.pi A B) = interp V ρ (.pi A B') := by
   rw [interp_pi, interp_pi]
@@ -349,8 +349,8 @@ earlier ones (`underBoth`), with a bound of the level reading only the
 non-hole positions of its walk's output (`nds`, one per field, at their
 depths from `d`), and `Q` of the relation and the reading below them. -/
 @[expose] def PiAccThen (w : Nat) (ctx : NestCtx) (prog : List NestHole)
-    (Q : FrameRel V → ITerm → Prop) :
-    Nat → Nat → List Expr → FrameRel V → ITerm → Prop
+    (Q : FrameRel V → Term → Prop) :
+    Nat → Nat → List Expr → FrameRel V → Term → Prop
   | 0, _, _, R, r => Q R r
   | n + 1, d, nd :: nds, R, .pi A B =>
     (∃ Af, AccOn w (HoleQ ctx prog d) R Af A ∧ SizeOn w R Af ∧
@@ -362,16 +362,16 @@ depths from `d`), and `Q` of the relation and the reading below them. -/
 `OutOk` of its field's reading at its kind. -/
 @[expose] def OutTele (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx)
     (prog : List NestHole) :
-    List ConLeche.NestFieldKind → List Expr → Nat → List ITerm → ITerm → Prop
+    List ConLeche.NestFieldKind → List Expr → Nat → List Term → Term → Prop
   | [], [], _, _, _ => True
   | k :: ks, nd :: nds, d, Δ, .pi A B =>
     OutOk m φ ctx prog d Δ k nd A ∧ OutTele m φ ctx prog ks nds (d + 1) (A :: Δ) B
   | _, _, _, _, _ => False
 
 theorem PiAccThen.mono {w : Nat} {ctx : NestCtx} {prog : List NestHole}
-    {Q Q' : FrameRel V → ITerm → Prop}
+    {Q Q' : FrameRel V → Term → Prop}
     (hQ : ∀ R r, Q R r → Q' R r) :
-    ∀ (n d : Nat) (nds : List Expr) (R : FrameRel V) (r : ITerm),
+    ∀ (n d : Nat) (nds : List Expr) (R : FrameRel V) (r : Term),
       PiAccThen w ctx prog Q n d nds R r → PiAccThen w ctx prog Q' n d nds R r
   | 0, _, _, R, r, h => hQ R r h
   | n + 1, d, _ :: nds, _, .pi _ B, h => ⟨h.1, PiAccThen.mono hQ n (d + 1) nds _ B h.2⟩

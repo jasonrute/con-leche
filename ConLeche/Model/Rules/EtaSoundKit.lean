@@ -29,7 +29,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -50,7 +50,7 @@ theorem leavesGr_mkAppN {d : Nat} {f : Expr} {as : List Expr} {ρ : Nat → V}
 
 /-- The structural context of an application built over
 structurally-tracked parts (the `CtxOkS` mirror of `frame_mkAppN`). -/
-theorem ctxOkS_mkAppN {d : Nat} {Δa : List ITerm} {f : Expr} {as : List Expr}
+theorem ctxOkS_mkAppN {d : Nat} {Δa : List Term} {f : Expr} {as : List Expr}
     (hf : CtxOkS m φ d Δa f) (has : ∀ x ∈ as, CtxOkS m φ d Δa x) :
     CtxOkS m φ d Δa (Expr.mkAppN f as) := by
   refine ⟨hf.1, fun l hl => ?_⟩
@@ -65,17 +65,17 @@ every prefix is then in the graph regime (`teleFitPA_of_graded_ne_pt`).
 No certificate. -/
 theorem formerFit (hin : RulesInputs V m φ) {d : Nat} {T : Name}
     {cvT : ConstantVal} {caps : IndCaps} {us' : List Level} {n : Nat}
-    {targs : List Expr} {tsa : List ITerm} {TVa : ITerm}
+    {targs : List Expr} {tsa : List Term} {TVa : Term}
     (hind : env.find? T = some (.indInfo cvT caps))
     (hlv : us'.length = cvT.levelParams.length)
     (hstrip : (cvT.type.stripPis n).isSome = true) (htlen : targs.length = n)
-    (hspt : DenoteMetaSpine m.acval env φ d targs tsa)
-    (hTVa : denoteMeta m.acval env φ 0
+    (hspt : DenoteSpine m.acval env φ d targs tsa)
+    (hTVa : denote m.acval env φ 0
       (cvT.type.instantiateLevelParams cvT.levelParams us') = some TVa)
     (ρ : Nat → V)
-    (hok : WellDenoted V ρ (ITerm.mkAppN
+    (hok : WellDenoted V ρ (Term.mkAppN
       (m.acval T (Level.substFn φ cvT.levelParams us')) tsa))
-    (hne : interp V ρ (ITerm.mkAppN
+    (hne : interp V ρ (Term.mkAppN
       (m.acval T (Level.substFn φ cvT.levelParams us')) tsa) ≠ pt) :
     ∃ rest, TeleFit V ρ TVa (tsa.map (interp V ρ)) rest := by
   obtain ⟨ta, hta, hokta, hmemT, -, -⟩ :=
@@ -99,10 +99,10 @@ type is graded and not the point and `b` is a graded member of it, the
 projections are graded, `b` is the η constructor at `tsa ++ ps`
 (the η law), and that spine fits the constructor's type reading `TCa`
 (the coherence law). -/
-theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List ITerm}
+theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List Term}
     {T : Name} {cvT : ConstantVal} {caps : IndCaps} {us' : List Level}
     {cvC : ConstantVal} {nPc nFc : Nat}
-    {targs : List Expr} {b : Expr} {tsa : List ITerm} {ba : ITerm}
+    {targs : List Expr} {b : Expr} {tsa : List Term} {ba : Term}
     (hind : env.find? T = some (.indInfo cvT caps)) (heta : caps.eta = true)
     (hresT : ConLeche.reservedBasisNames.contains T = false)
     (hresC : ConLeche.reservedBasisNames.contains caps.etaCtor = false)
@@ -111,25 +111,25 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List ITerm}
     (htlen : targs.length = caps.etaParams)
     (htowS : ConLeche.towerSlotsAll env T caps.etaFields = true)
     (hfb : Frame d b) (hCb : CtxOkS m φ d Δa b)
-    (hdb : denoteMeta m.acval env φ d b = some ba)
-    (hspt : DenoteMetaSpine m.acval env φ d targs tsa) :
-    ∃ ps : List ITerm,
-      DenoteMetaSpine m.acval env φ d
+    (hdb : denote m.acval env φ d b = some ba)
+    (hspt : DenoteSpine m.acval env φ d targs tsa) :
+    ∃ ps : List Term,
+      DenoteSpine m.acval env φ d
         (ConLeche.etaProjs T b caps.etaFields) ps ∧
       (∀ x ∈ ConLeche.etaProjs T b caps.etaFields,
         Frame d x ∧ CtxOkS m φ d Δa x ∧
           ∀ l ∈ x.fvarLeaves, l ∈ b.fvarLeaves) ∧
-      ∃ TCa : ITerm,
-        denoteMeta m.acval env φ 0
+      ∃ TCa : Term,
+        denote m.acval env φ 0
           (cvC.type.instantiateLevelParams cvC.levelParams us') = some TCa ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d b ρ →
           (∀ x ∈ targs, LeavesGr m φ d x ρ) →
-          WellDenoted V ρ (ITerm.mkAppN
+          WellDenoted V ρ (Term.mkAppN
             (m.acval T (Level.substFn φ cvT.levelParams us')) tsa) →
-          interp V ρ (ITerm.mkAppN
+          interp V ρ (Term.mkAppN
             (m.acval T (Level.substFn φ cvT.levelParams us')) tsa) ≠ pt →
           WellDenoted V ρ ba →
-          interp V ρ ba ∈ˢ interp V ρ (ITerm.mkAppN
+          interp V ρ ba ∈ˢ interp V ρ (Term.mkAppN
             (m.acval T (Level.substFn φ cvT.levelParams us')) tsa) →
           (∀ x ∈ ConLeche.etaProjs T b caps.etaFields,
             LeavesGr m φ d x ρ) ∧
@@ -140,7 +140,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List ITerm}
           ∃ restC : V, TeleFit V ρ TCa ((tsa ++ ps).map (interp V ρ)) restC := by
   have hstrip : (cvT.type.stripPis caps.etaParams).isSome = true :=
     (m.wf.indCaps hind).2 heta
-  have hfold : ∀ (ρ : Nat → V) (l : List ITerm) (x : V),
+  have hfold : ∀ (ρ : Nat → V) (l : List Term) (x : V),
       l.foldl (fun r y => SetTheory.app r (interp V ρ y)) x
         = (l.map (interp V ρ)).foldl SetTheory.app x := by
     intro ρ l x; rw [List.foldl_map]
@@ -164,13 +164,13 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List ITerm}
       fun j entry hfe => ConLeche.Env.findProj?_off_eq hfe hfe0
     have hslotE : ∀ j, j < caps.etaFields → ∃ entry : ProjEntry,
         env.findProj? T j = some entry := ConLeche.towerSlotsAll_slot htow
-    refine ⟨(List.range caps.etaFields).map fun j => projAV (j + e0.off) ba,
+    refine ⟨(List.range caps.etaFields).map fun j => projNV (j + e0.off) ba,
       ?_, ?_, TCa, hTCa, fun ρ hρ hLb hLt hokW hneW hokB hmemB => ?_⟩
     · rw [etaProjs_eq]
-      refine DenoteMetaSpine.map_list _ fun j hj => ?_
+      refine DenoteSpine.map_list _ fun j hj => ?_
       obtain ⟨entry, hfe⟩ := hslotE j (List.mem_range.mp hj)
       rw [← hoffE j entry hfe]
-      exact denoteMeta_proj_tower hfe hdb
+      exact denote_proj_tower hfe hdb
     · intro x hx
       rw [etaProjs_eq] at hx
       obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
@@ -190,13 +190,13 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List ITerm}
       have hb := hlaw ρ (tsa.map (interp V ρ)) rest (interp V ρ ba) hlenP hfit hmemFam
       obtain ⟨restC, hfC'⟩ := hfitC ρ (tsa.map (interp V ρ)) rest (interp V ρ ba)
         hlenP hfit hmemFam
-      have hps : ((List.range caps.etaFields).map fun j => projAV (j + e0.off) ba).map
+      have hps : ((List.range caps.etaFields).map fun j => projNV (j + e0.off) ba).map
             (interp V ρ)
           = (List.range e0.numFields).map fun j =>
               ConLeche.SetTheory.Tower.projS (j + e0.off) (interp V ρ ba) := by
         rw [List.map_map, hfld']
         refine List.map_congr_left fun j _ => ?_
-        rw [Function.comp_apply, projAV_interp]
+        rw [Function.comp_apply, projNV_interp]
       refine ⟨fun x hx => ?_, fun x hx => ?_, ?_, restC, ?_⟩
       · rw [etaProjs_eq] at hx
         obtain ⟨j, -, rfl⟩ := List.mem_map.mp hx
@@ -236,7 +236,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List ITerm}
       hin.caps_ok.1 T cvT caps hind heta hresT hfam φ us' hlv
     obtain ⟨TCa, hTCa, hfitC⟩ := hcoh cvC nPc nFc hfC
     refine ⟨[], ?_, ?_, TCa, hTCa, fun ρ _ _ _ hokW hneW _ hmemB => ?_⟩
-    · rw [hetaP]; exact DenoteMetaSpine.nil
+    · rw [hetaP]; exact DenoteSpine.nil
     · intro x hx
       rw [hetaP] at hx
       exact absurd hx List.not_mem_nil

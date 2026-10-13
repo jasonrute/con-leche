@@ -4,7 +4,8 @@ import ConLeche.Kernel.Inductives.Positivity
 public import ConLeche.Verify.Inductives.ReplaceApps
 public import ConLeche.Verify.Inductives.DirectGen
 import ConLeche.Model.Reading.Lemmas
-public import ConLeche.Model.Reading.DenoteMeta
+public import ConLeche.Semantics.Tower.TowerKit
+public import ConLeche.Verify.Denote
 public section
 
 /-!
@@ -33,7 +34,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal NestCtx instPisWith nestCanonSub)
 
 universe w
@@ -392,13 +393,13 @@ theorem holeAbs_memberApp {ctx : NestCtx} (hnd : ctx.names.Nodup) {t : Nat}
 
 /-- **A read telescope, peeled along its opening**: the body reads as
 the reading's body, every opened variable's annotation as its domain. -/
-theorem denoteMeta_peel {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat} :
+theorem denote_peel {acval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat} :
     ∀ (n : Nat) {e : Expr} {D : Nat} {xs : List Expr} {rest : Expr}
-      {gds : List ITerm} {B : ITerm},
+      {gds : List Term} {B : Term},
       openPisAtFvars n e D = some (xs, rest) → gds.length = n →
-      denoteMeta acval env φ D e = some (mkPisAV gds B) →
-      denoteMeta acval env φ (D + n) rest = some B ∧
-      ∀ l x, xs[l]? = some x → denoteMeta acval env φ (D + l) x.fvarTypeD = some (gds.getD l default)
+      denote acval env φ D e = some (mkPisAV gds B) →
+      denote acval env φ (D + n) rest = some B ∧
+      ∀ l x, xs[l]? = some x → denote acval env φ (D + l) x.fvarTypeD = some (gds.getD l default)
   | 0, e, D, xs, rest, gds, B, h, hl, hr => by
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
@@ -412,10 +413,10 @@ theorem denoteMeta_peel {acval : Name → (Name → Nat) → ITerm} {env : Env} 
       · next fvs r hop =>
         simp only [Option.some.injEq, Prod.mk.injEq] at h
         obtain ⟨rfl, rfl⟩ := h
-        obtain ⟨ta, ba, hta, hba, heq⟩ := denoteMeta_forallE_inv hr
-        simp only [mkPisAV, ITerm.pi.injEq] at heq
+        obtain ⟨ta, ba, hta, hba, heq⟩ := denote_forallE_inv hr
+        simp only [mkPisAV, Term.pi.injEq] at heq
         obtain ⟨hg, rfl⟩ := heq
-        obtain ⟨hB, hdoms⟩ := denoteMeta_peel n hop (by simpa using hl) hba
+        obtain ⟨hB, hdoms⟩ := denote_peel n hop (by simpa using hl) hba
         refine ⟨by rwa [show D + 1 + n = D + (n + 1) by omega] at hB, fun l x hx => ?_⟩
         cases l with
         | zero =>

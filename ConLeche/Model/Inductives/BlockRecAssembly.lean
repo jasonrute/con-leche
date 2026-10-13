@@ -34,7 +34,7 @@ What the run supplies, and where it comes from:
 
 namespace ConLeche.Model
 
-open ConLeche.Semantics (ITerm)
+
 open ConLeche.Semantics SetTheory
 open ConLeche.Term
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo RecRule BlockShape BlockParts
@@ -114,17 +114,17 @@ are about the LEAF and belong beside `blockRecAV_facts`. -/
 /-- **The recursors' cons's valuation**: the block's recursors read as
 the family's leaves, everything else as the constructors' environment
 reads it. -/
-@[expose] noncomputable def blockRecAcvOf (base : Name → (Name → Nat) → ITerm)
-    (names : List Name) (leaf : (Name → Nat) → Nat → ITerm) :
-    Name → (Name → Nat) → ITerm :=
+@[expose] noncomputable def blockRecAcvOf (base : Name → (Name → Nat) → Term)
+    (names : List Name) (leaf : (Name → Nat) → Nat → Term) :
+    Name → (Name → Nat) → Term :=
   fun n ψ =>
     match names.findIdx? (· == n) with
     | some i => leaf ψ i
     | none => base n ψ
 
 /-- Off the block's recursors the valuation is the constructors'. -/
-theorem blockRecAcvOf_of_ne {base : Name → (Name → Nat) → ITerm} {names : List Name}
-    {leaf : (Name → Nat) → Nat → ITerm} {n : Name} (hne : ∀ m ∈ names, n ≠ m) :
+theorem blockRecAcvOf_of_ne {base : Name → (Name → Nat) → Term} {names : List Name}
+    {leaf : (Name → Nat) → Nat → Term} {n : Name} (hne : ∀ m ∈ names, n ≠ m) :
     blockRecAcvOf base names leaf n = base n := by
   have h : names.findIdx? (· == n) = none :=
     List.findIdx?_eq_none_iff.mpr (fun x hx => by
@@ -135,8 +135,8 @@ theorem blockRecAcvOf_of_ne {base : Name → (Name → Nat) → ITerm} {names : 
 /-- At the `i`-th stored recursor the valuation IS the `i`-th leaf —
 the names being pairwise distinct is what makes the lookup land on
 `i`. -/
-theorem blockRecAcvOf_at {base : Name → (Name → Nat) → ITerm} {names : List Name}
-    {leaf : (Name → Nat) → Nat → ITerm} (hnd : names.Nodup) {i : Nat} {n : Name}
+theorem blockRecAcvOf_at {base : Name → (Name → Nat) → Term} {names : List Name}
+    {leaf : (Name → Nat) → Nat → Term} (hnd : names.Nodup) {i : Nat} {n : Name}
     (hi : names[i]? = some n) :
     blockRecAcvOf base names leaf n = fun ψ => leaf ψ i := by
   have hlt : i < names.length := (List.getElem?_eq_some_iff.mp hi).1
@@ -172,17 +172,17 @@ family's chosen tuple, at the recursor types the run reads.
 its own level parameter, so a block's recursor types are sets of a
 level that MOVES with the valuation, and `BlockRecPre.hTy` is stated
 at `univ (s ψ)`. -/
-@[expose] noncomputable def blockRecLeafAV (acval : Name → (Name → Nat) → ITerm)
+@[expose] noncomputable def blockRecLeafAV (acval : Name → (Name → Nat) → Term)
     (envC : Env) (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List ITerm) (ψ : Name → Nat)
-    (i : Nat) : ITerm :=
+    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) (ψ : Name → Nat)
+    (i : Nat) : Term :=
   ConLeche.Semantics.blockRecAV (s ψ) rs.length (blockRecTyAV acval envC rs ψ) (eqs ψ) i
 
 /-- The recursors' cons's valuation, at the block's own leaves. -/
-@[expose] noncomputable def blockRecAcv (acval : Name → (Name → Nat) → ITerm) (envC : Env)
+@[expose] noncomputable def blockRecAcv (acval : Name → (Name → Nat) → Term) (envC : Env)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List ITerm) :
-    Name → (Name → Nat) → ITerm :=
+    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) :
+    Name → (Name → Nat) → Term :=
   blockRecAcvOf acval (rs.map (·.1.name)) (blockRecLeafAV acval envC rs s eqs)
 
 /-- **The recursor family's leaf facts** at the equation list `eqs`:
@@ -191,9 +191,9 @@ recursor's own parameters, graded, and the family premise
 `hpre` that grades it. -/
 structure BlockRecLeafOk {envC : Env} (mpC : EnvModelM V μ envC)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List ITerm) : Prop where
+    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) : Prop where
   closed : ∀ (ψ : Name → Nat) (i : Nat),
-    Term.Closed ((blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i).erase)
+    Term.Closed ((blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i))
   liftN : ∀ (ψ : Name → Nat) (i k : Nat),
     (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i).liftN 1 k
       = blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i
@@ -208,9 +208,9 @@ structure BlockRecLeafOk {envC : Env} (mpC : EnvModelM V μ envC)
       (blockRecTyAV mpC.base2.acval envC rs ψ) (eqs ψ) ρ
 
 /-- Off the stored recursors' names the valuation is the base one. -/
-theorem blockRecAcv_of_notin {acval : Name → (Name → Nat) → ITerm} {envC : Env}
+theorem blockRecAcv_of_notin {acval : Name → (Name → Nat) → Term} {envC : Env}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm} {n : Name}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term} {n : Name}
     (hne : ∀ r ∈ rs, n ≠ r.1.name) : blockRecAcv acval envC rs s eqs n = acval n := by
   refine blockRecAcvOf_of_ne (fun m hm => ?_)
   obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hm
@@ -218,9 +218,9 @@ theorem blockRecAcv_of_notin {acval : Name → (Name → Nat) → ITerm} {envC :
 
 /-- At the `i`-th stored recursor's name the valuation is the family's
 `i`-th leaf. -/
-theorem blockRecAcv_at {acval : Name → (Name → Nat) → ITerm} {envC : Env}
+theorem blockRecAcv_at {acval : Name → (Name → Nat) → Term} {envC : Env}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term}
     (hnd : (rs.map (·.1.name)).Nodup) {i : Nat}
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : rs[i]? = some r)
     (ψ : Name → Nat) :
@@ -234,10 +234,10 @@ theorem blockRecAcv_at {acval : Name → (Name → Nat) → ITerm} {envC : Env}
 /-- The leaf facts, at a stored recursor's name of the valuation. -/
 theorem BlockRecLeafOk.stored {envC : Env} {mpC : EnvModelM V μ envC}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term}
     (hleaf : BlockRecLeafOk mpC rs s eqs) (hnd : (rs.map (·.1.name)).Nodup)
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : r ∈ rs) :
-    (∀ ψ, Term.Closed ((blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ).erase)) ∧
+    (∀ ψ, Term.Closed ((blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ))) ∧
     (∀ ψ k, (blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ).liftN 1 k
       = blockRecAcv mpC.base2.acval envC rs s eqs r.1.name ψ) ∧
     (∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q) →
@@ -286,7 +286,7 @@ rule bits. -/
 abbrev AtStoredRules {envC : Env} (mpC : EnvModelM V μ envC)
     (R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule)
     (p : BlockParts) (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List ITerm) (nPc : Nat → Nat)
+    (s : (Name → Nat) → Nat) (eqs : (Name → Nat) → List Term) (nPc : Nat → Nat)
     (fireOf : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) →
       ConLeche.RecRuleFire)
     (P : EnvModel V (ConLeche.consBlockRecsR R p.toBlockShape 0 rs envC) → (Name → Nat) →
@@ -311,7 +311,7 @@ stored names distinct (`hnd`), the LEAF's facts with the family premise
 theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : BlockParts} {cvTas : List ConstantVal}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term}
     (h : ConLeche.RecStageG μ F envC p cvTas rs)
     (hnd : (rs.map (·.1.name)).Nodup)
     {R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}

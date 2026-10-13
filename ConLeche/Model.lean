@@ -137,7 +137,8 @@ public import ConLeche.Model.Harvest
 public import ConLeche.Model.Fold
 public import ConLeche.Model.InstallRun
 public import ConLeche.Model.StreamConsts
-public import ConLeche.Model.Reading.DenoteMeta
+public import ConLeche.Semantics.Tower.TowerKit
+public import ConLeche.Verify.Denote
 public import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Model.Reading.Shift
 public import ConLeche.Model.Reading.Inst

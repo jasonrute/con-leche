@@ -35,7 +35,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level NestCtx NestHole)
 
 universe w
@@ -52,14 +52,14 @@ theorem callSubst_reads {env : Env} (m : EnvModel V env) (ψ : Name → Nat) {ct
     ∀ v, v < ctx.hiAt prog.length + i →
       Expr.WScoped (rP + fvsF.length) (callSubst ctx prog fvsF v) ∧
       (callSubst ctx prog fvsF v).looseBVarsBounded 0 = true ∧
-      denoteMeta m.acval env ψ (rP + fvsF.length) (callSubst ctx prog fvsF v)
-        = some ((denoteMeta m.acval env ψ (rP + fvsF.length) (callSubst ctx prog fvsF v)).getD
+      denote m.acval env ψ (rP + fvsF.length) (callSubst ctx prog fvsF v)
+        = some ((denote m.acval env ψ (rP + fvsF.length) (callSubst ctx prog fvsF v)).getD
           default) := by
   intro v hv
   by_cases h1 : v < ctx.nP
   · simp only [callSubst, ite_eq_left h1]
     refine ⟨by simp [Expr.WScoped]; omega, rfl, ?_⟩
-    rw [denoteMeta_fvar]; rfl
+    rw [denote_fvar]; rfl
   by_cases h2 : v < ctx.hiAt prog.length
   · have he : callSubst ctx prog fvsF v = nodeImg ctx prog v := by
       simp only [callSubst, nodeImg, ite_eq_right h1, ite_eq_left h2]
@@ -70,7 +70,7 @@ theorem callSubst_reads {env : Env} (m : EnvModel V env) (ψ : Name → Nat) {ct
     obtain ⟨ty, hty⟩ := hfvF _ hl
     simp only [callSubst, ite_eq_right h1, ite_eq_right h2, hty, Option.getD_some]
     refine ⟨hfvW _ (List.mem_of_getElem? hty), rfl, ?_⟩
-    rw [denoteMeta_fvar]; rfl
+    rw [denote_fvar]; rfl
 
 set_option maxHeartbeats 1600000 in
 /-- **A field's call, read** (see the module docstring). -/
@@ -94,8 +94,8 @@ theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     (hfvF : ∀ l, l < fvsF.length → ∃ ty, fvsF[l]? = some (.fvar (rP + l) ty))
     (hfvW : ∀ x ∈ fvsF, Expr.WScoped (rP + fvsF.length) x)
     (hread : NodeHolesRead m.acval env ctx prog) (hi : i < fvsF.length)
-    {nda : ITerm}
-    (hnda : denoteMeta m.acval env ψ (ctx.hiAt prog.length + i) (Expr.mkPisOf teleW leafC)
+    {nda : Term}
+    (hnda : denote m.acval env ψ (ctx.hiAt prog.length + i) (Expr.mkPisOf teleW leafC)
       = some nda)
     {xs fs : List V} {ρ σN : Nat → V} (hxl : xs.length = rP) (hfl : fs.length = fvsF.length)
     (hpar : ∀ v, v < ctx.nP → σN (ctx.hiAt prog.length - 1 - v) = xs.getD v pt)
@@ -105,34 +105,34 @@ theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     (hbs : SpineFit (consList (xs ++ fs) ρ)
       ((teleDoms m.acval env ψ (rP + fvsF.length) [] tele).getD []) bs) :
     bs.length = tele.length ∧
-    ∃ (ha : ITerm) (argsA : List ITerm),
-      denoteMeta m.acval env ψ (ctx.hiAt prog.length + i + bs.length) w.getAppFn = some ha ∧
-      DenoteMetaSpine m.acval env ψ (ctx.hiAt prog.length + i + bs.length) w.getAppArgs argsA ∧
+    ∃ (ha : Term) (argsA : List Term),
+      denote m.acval env ψ (ctx.hiAt prog.length + i + bs.length) w.getAppFn = some ha ∧
+      DenoteSpine m.acval env ψ (ctx.hiAt prog.length + i + bs.length) w.getAppArgs argsA ∧
       bs.foldl app (fs.getD i pt) ∈ˢ
         (argsA.map (interp V (consList bs (consList (fs.take i) σN)))).foldl app
           (interp V (consList bs (consList (fs.take i) σN)) ha) ∧
-      (∀ (l : Nat) (xR xW : Expr) (xa : ITerm), idxR[l]? = some xR →
+      (∀ (l : Nat) (xR xW : Expr) (xa : Term), idxR[l]? = some xR →
         w.getAppArgs[off + l]? = some xW → argsA[off + l]? = some xa →
         xW.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false →
         interp V (consList bs (consList (xs ++ fs) ρ))
-            ((denoteMeta m.acval env ψ (rP + fvsF.length + bs.length) xR).getD default)
+            ((denote m.acval env ψ (rP + fvsF.length + bs.length) xR).getD default)
           = interp V (consList bs (consList (fs.take i) σN)) xa) := by
   have hs := callSubst_reads m ψ (prog := prog) hnP hfvF hfvW hread (Nat.le_of_lt hi)
   have hnh : ctx.nP ≤ ctx.hiAt prog.length := by simp [ConLeche.NestCtx.hiAt]; omega
   have hag := wStar_agree (nP := ctx.nP) (hiP := ctx.hiAt prog.length) (i := i) (rP := rP)
     (B := rP + fvsF.length)
-    (x := fun v => (denoteMeta m.acval env ψ (rP + fvsF.length) (callSubst ctx prog fvsF v)).getD
+    (x := fun v => (denote m.acval env ψ (rP + fvsF.length) (callSubst ctx prog fvsF v)).getD
       default)
     (xs := xs) (fs := fs) (by rw [hfl]) hxl hnP (by omega) hnh
     (fun v hv => by
       simp only [callSubst, ite_eq_left hv]
-      rw [denoteMeta_fvar]; rfl)
+      rw [denote_fvar]; rfl)
     (fun l hl => by
       have h1 : ¬ ctx.hiAt prog.length + l < ctx.nP := by omega
       have h2 : ¬ ctx.hiAt prog.length + l < ctx.hiAt prog.length := by omega
       obtain ⟨ty, hty⟩ := hfvF l (by omega)
       simp only [callSubst, ite_eq_right h1, ite_eq_right h2, Nat.add_sub_cancel_left, hty, Option.getD_some]
-      rw [denoteMeta_fvar]; rfl)
+      rw [denote_fvar]; rfl)
     (ρ := ρ) (σW := σN) hpar htail
   exact callWalkSem m ψ htl htel hteleHF hopen hwF hargs hs hnda hf hag hbs
 
@@ -140,31 +140,31 @@ theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
 scoped at `D0`, read at the valuation below the extension `L`; the rest
 as given. -/
 theorem argsA_split {env : Env} (m : EnvModel V env) (ψ : Name → Nat) {D0 D' : Nat}
-    {args : List Expr} {argsA : List ITerm}
-    (hsp : DenoteMetaSpine m.acval env ψ D' args argsA) {n : Nat} (hn : n ≤ args.length)
+    {args : List Expr} {argsA : List Term}
+    (hsp : DenoteSpine m.acval env ψ D' args argsA) {n : Nat} (hn : n ≤ args.length)
     (hpre : ∀ x ∈ args.take n, Expr.WScoped D0 x)
     {L : List V} (hL : D' = D0 + L.length) (σ : Nat → V)
     {isR : List V} (hlen : isR.length = args.length - n)
-    (htail : ∀ (l : Nat) (xa : ITerm), argsA[n + l]? = some xa →
+    (htail : ∀ (l : Nat) (xa : Term), argsA[n + l]? = some xa →
       isR[l]? = some (interp V (consList L σ) xa)) :
     argsA.map (interp V (consList L σ))
-      = (args.take n).map (fun x => interp V σ ((denoteMeta m.acval env ψ D0 x).getD default))
+      = (args.take n).map (fun x => interp V σ ((denote m.acval env ψ D0 x).getD default))
         ++ isR := by
   have hl := hsp.length
-  have hmap := denoteMetaSpine_eq_map hsp
+  have hmap := denoteSpine_eq_map hsp
   apply List.ext_getElem?
   intro q
   by_cases hq : q < n
   · rw [List.getElem?_append_left (by simp; omega), List.getElem?_map, List.getElem?_map,
       List.getElem?_take_of_lt hq]
     obtain ⟨x, hx⟩ : ∃ x, args[q]? = some x := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    obtain ⟨v, hv, hdv⟩ := denoteMetaSpine_getElem?' hsp q x hx
+    obtain ⟨v, hv, hdv⟩ := denoteSpine_getElem?' hsp q x hx
     rw [hv, hx, Option.map_some, Option.map_some]
     have hw : Expr.WScoped D0 x :=
       hpre x (List.mem_of_getElem? (by rw [List.getElem?_take_of_lt hq]; exact hx))
-    have hlift := denoteMeta_lift (env := env) (φ := ψ) m.acval_closed hw D' (by omega)
+    have hlift := denote_lift (env := env) (φ := ψ) m.acval_closed hw D' (by omega)
     rw [hdv] at hlift
-    cases h0 : denoteMeta m.acval env ψ D0 x with
+    cases h0 : denote m.acval env ψ D0 x with
     | none => rw [h0] at hlift; exact nomatch hlift
     | some a =>
       rw [h0, Option.map_some, Option.some.injEq] at hlift
@@ -181,12 +181,12 @@ theorem argsA_split {env : Env} (m : EnvModel V env) (ψ : Name → Nat) {D0 D' 
       rfl
 
 /-- **A head variable reads as the walk valuation's entry.** -/
-theorem headRead_fvar {env : Env} {acval : Name → (Name → Nat) → ITerm} {ψ : Name → Nat}
-    {D0 D' v : Nat} {ty : Expr} {ha : ITerm}
-    (h : denoteMeta acval env ψ D' (.fvar v ty) = some ha) (hv : v < D0)
+theorem headRead_fvar {env : Env} {acval : Name → (Name → Nat) → Term} {ψ : Name → Nat}
+    {D0 D' v : Nat} {ty : Expr} {ha : Term}
+    (h : denote acval env ψ D' (.fvar v ty) = some ha) (hv : v < D0)
     {L : List V} (hL : D' = D0 + L.length) (σ : Nat → V) :
     interp V (consList L σ) ha = σ (D0 - 1 - v) := by
-  rw [denoteMeta_fvar, Option.some.injEq] at h
+  rw [denote_fvar, Option.some.injEq] at h
   subst h
   rw [interp_bvar, show D' - 1 - v = (D0 - 1 - v) + L.length by omega, consList_apply_add]
 

@@ -31,7 +31,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level NestCtx NestHole ConstantVal BlockShape BlockParts)
 
 universe w
@@ -42,7 +42,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name 
 
 /-- `TeleAccP` reads the bounds from field `l` on only. -/
 theorem TeleAccP.congr {w : Nat} {Af Af' : Nat → (Nat → V) → V} :
-    ∀ (Fs : List ITerm) (l : Nat) (Q : Nat → Nat → Prop) (R : FrameRel V),
+    ∀ (Fs : List Term) (l : Nat) (Q : Nat → Nat → Prop) (R : FrameRel V),
       (∀ l', l ≤ l' → l' < l + Fs.length → Af l' = Af' l') → TeleAccP w Af l Q R Fs →
         TeleAccP w Af' l Q R Fs
   | [], _, _, _, _, _ => trivial
@@ -62,9 +62,9 @@ theorem shiftQ_congr {Q Q' : Nat → Nat → Prop} (h : ∀ i n, Q i n ↔ Q' i 
 output's non-hole positions, and the walk's result fact at the relation
 under the datum's fields. -/
 theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
-    {Qf : FrameRel V → ITerm → Prop} :
-    ∀ (abD abN : List ITerm) (B : ITerm) (d l : Nat) (nds : List Expr)
-      (Δ : List ITerm) (R : FrameRel V) (Q : Nat → Nat → Prop),
+    {Qf : FrameRel V → Term → Prop} :
+    ∀ (abD abN : List Term) (B : Term) (d l : Nat) (nds : List Expr)
+      (Δ : List Term) (R : FrameRel V) (Q : Nat → Nat → Prop),
       FieldsEqOn V Δ (abD) (abN) →
       (∀ ρ ρ₀, R ρ ρ₀ → Sat V Δ ρ ∧ Sat V Δ ρ₀) →
       (∀ ρ ρ₀, R ρ ρ₀ → w ≠ 0 → FieldsBound w ρ (abN)) →
@@ -131,9 +131,9 @@ theorem teleAccP_of_piAccThen {w : Nat} {ctx : NestCtx} {prog : List NestHole}
 
 /-- **The result indices read alike** at two frames under a spine fitting
 the fields at both, from the walk's result fact. -/
-theorem resC_of_resultIdxConst {R : FrameRel V} {Fs : List ITerm} {h : Nat}
-    {es : List ITerm}
-    (hQ : ResultIdxConst (R.underBothTele Fs) (ITerm.mkAppN (.bvar h) es)) :
+theorem resC_of_resultIdxConst {R : FrameRel V} {Fs : List Term} {h : Nat}
+    {es : List Term}
+    (hQ : ResultIdxConst (R.underBothTele Fs) (Term.mkAppN (.bvar h) es)) :
     ∀ ρ ρ', R ρ ρ' → ∀ fs, SpineFit ρ Fs fs → SpineFit ρ' Fs fs →
       ∀ e ∈ es, interp V (consList fs ρ) e = interp V (consList fs ρ') e := by
   obtain ⟨i, vs, heq, hvs⟩ := hQ
@@ -169,7 +169,7 @@ theorem holeRelA_accRel {d : BlockData V} {ψ : Name → Nat} {ρp : Nat → V} 
     (hhi : ctx.hiAt 0 = d.nP + d.k) (hcN : ctx.names.length = d.k)
     (hcP : ctx.nP = d.nP)
     (har : ∀ t, t < d.k → (d.toLfp.ids t ψ).length = ctx.nIdxs.getD t 0)
-    {Δa : List ITerm}
+    {Δa : List Term}
     (hsat : ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       Sat V Δa (d.toLfp.frame ψ ρp X)) :
     HoleRelA m ψ (d.w ψ) ctx [] (ctx.hiAt 0) Δa (d.toLfp.accRel ψ ρp) where
@@ -229,7 +229,7 @@ theorem u4_nestOcc {ctx : NestCtx} {nF j l : Nat} {tyN rest : Expr} {xs : List E
 end Syntax
 
 /-- NoBVar of a disjunction. -/
-theorem noBVar_or {P₁ P₂ : Nat → Prop} {e : ITerm} (h₁ : NoBVar P₁ e) (h₂ : NoBVar P₂ e) :
+theorem noBVar_or {P₁ P₂ : Nat → Prop} {e : Term} (h₁ : NoBVar P₁ e) (h₂ : NoBVar P₂ e) :
     NoBVar (fun i => P₁ i ∨ P₂ i) e := by
   have := noBVar_exists' (α := Bool) (P := fun b i => if b then P₁ i else P₂ i) (e := e)
     fun b => by cases b <;> simpa

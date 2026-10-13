@@ -15,7 +15,7 @@ public section
 
 namespace ConLeche.Verify
 
-variable {cval : TConstVal} {env : Env} {φ : Name → Nat}
+variable {cval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat}
 
 /-- The reverse opening's leaves sit below the opened depth. -/
 theorem openRev_fvarsBelow {e : Expr} {d : Nat}
@@ -103,7 +103,7 @@ end ConLeche.Verify
 
 namespace ConLeche.Verify
 
-variable {cval : TConstVal} {env : Env} {φ : Name → Nat}
+variable {cval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat}
 
 /-- The reverse opening is well-scoped at the opened depth. -/
 theorem openRev_WScoped {e : Expr} {d : Nat}

@@ -1,6 +1,7 @@
 module
 
-import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
 import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Semantics.Tower.BlockRecTower
 import ConLeche.Semantics.Kit
@@ -18,16 +19,16 @@ public section
 /-!
 # Reading a rule body at its opened frame
 
-`denoteMeta` has no `.bvar` clause, so nothing with a loose bound
+`denote` has no `.bvar` clause, so nothing with a loose bound
 variable has a reading at all: a rule body is read at its OPENED form.
 The opening is the check's own (`openPisAtFvars`/`instantiateList` at
 `(fvsPref ++ fvsF).reverse`) — loose `bvar j` becomes `fvar (E - 1 - j)`
-at a frame of `E` variables, which `denoteMeta` at depth `E` reads
+at a frame of `E` variables, which `denote` at depth `E` reads
 straight back as `bvar j`.  So an opened reading has EXACTLY the raw
 term's de Bruijn indices.
 
 `FvarList E xs` is that opening list, taken as a PARAMETER rather than
-spelled: `denoteMeta` ignores an `fvar`'s stored type, so the frames
+spelled: `denote` ignores an `fvar`'s stored type, so the frames
 the check builds (whose types are the rule's domains) and the ih
 frame's are all instances of the same claim.  Around it: a node's own
 typing (`IhTyped`), the local frame's fit (`LocalsFit`), the frame's
@@ -36,10 +37,12 @@ frame (`instPisAtLift_instSeq`) and evaluated (`interp_peelPis_mkPisAV`).
 -/
 
 namespace ConLeche.Model
+open ConLeche.Verify (charListT denote natLitT)
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo)
 
 universe uv
@@ -50,7 +53,7 @@ universe uv
 a term by free variables, `bvar j ↦ fvar (E - 1 - j)`, which is what
 `openPisAtFvars`' fvars do when `instantiateList`d in reverse
 (the rule check's `(fvsPref ++ fvsF).reverse`).  The fvars' stored
-TYPES are free: `denoteMeta` does not read them. -/
+TYPES are free: `denote` does not read them. -/
 @[expose] def FvarList (E : Nat) (xs : List Expr) : Prop :=
   xs.length = E ∧ (∀ j, j < E → ∃ ty : Expr, xs[j]? = some (.fvar (E - 1 - j) ty)) ∧
     ∀ x ∈ xs, Expr.WScoped E x
@@ -76,37 +79,34 @@ theorem FvarList.cons {E : Nat} {xs : List Expr} (h : FvarList E xs) (ty : Expr)
 `Reading/Shift.lean` has these at `liftN 1`; the abstraction inserts `nR`
 binders at once, and the leaves' closedness gives every `n`. -/
 
-theorem natLitAV_liftN_gen {za sa : ITerm} {n k : Nat}
+theorem natLitT_liftN_gen {za sa : Term} {n k : Nat}
     (hz : za.liftN n k = za) (hs : sa.liftN n k = sa) :
-    ∀ m : Nat, (natLitAV za sa m).liftN n k = natLitAV za sa m
+    ∀ m : Nat, (natLitT za sa m).liftN n k = natLitT za sa m
   | 0 => hz
   | m + 1 => by
-    show (ITerm.app sa (natLitAV za sa m)).liftN n k = _
-    rw [ITerm.liftN_app, hs, natLitAV_liftN_gen hz hs m]
+    show (Term.app sa (natLitT za sa m)).liftN n k = _
+    rw [Term.liftN_app, hs, natLitT_liftN_gen hz hs m]
     rfl
 
-theorem charListAV_liftN_gen {nilA consA ofNatA za sa : ITerm} {n k : Nat}
+theorem charListT_liftN_gen {nilA consA ofNatA za sa : Term} {n k : Nat}
     (hnil : nilA.liftN n k = nilA) (hcons : consA.liftN n k = consA)
     (hof : ofNatA.liftN n k = ofNatA) (hz : za.liftN n k = za) (hs : sa.liftN n k = sa) :
     ∀ cs : List Char,
-      (charListAV nilA consA ofNatA za sa cs).liftN n k
-        = charListAV nilA consA ofNatA za sa cs
+      (charListT nilA consA ofNatA za sa cs).liftN n k
+        = charListT nilA consA ofNatA za sa cs
   | [] => hnil
   | c :: cs => by
-    show (ITerm.app (.app consA (.app ofNatA (natLitAV za sa c.toNat)))
-      (charListAV nilA consA ofNatA za sa cs)).liftN n k = _
-    rw [ITerm.liftN_app, ITerm.liftN_app, ITerm.liftN_app, hcons, hof,
-      natLitAV_liftN_gen hz hs, charListAV_liftN_gen hnil hcons hof hz hs cs]
+    show (Term.app (.app consA (.app ofNatA (natLitT za sa c.toNat)))
+      (charListT nilA consA ofNatA za sa cs)).liftN n k = _
+    rw [Term.liftN_app, Term.liftN_app, Term.liftN_app, hcons, hof,
+      natLitT_liftN_gen hz hs, charListT_liftN_gen hnil hcons hof hz hs cs]
     rfl
 
-variable {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat}
-
-theorem denoteMeta_bvar {D j : Nat} : denoteMeta acval env φ D (.bvar j) = none := by
-  rw [denoteMeta] <;> simp
+variable {acval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat}
 
 /-! ## The frame kit: the `nR` ih binders, dropped
 
-`ITerm.liftN nR · d` is matched by `shiftE nR d`, and at the
+`Term.liftN nR · d` is matched by `shiftE nR d`, and at the
 rule's frame that is exactly "forget the ih block". -/
 
 variable {V : Type uv} [SetTheory V]
@@ -187,12 +187,12 @@ annotations are closed, bounded by `envT`, and draw their own leaves
 from the frame — which is what makes `CtxOk` a projection
 (`WalkCtx.ctxOk`) rather than a construction at every node. -/
 @[expose] def WalkCtx (V : Type uv) [SetTheory V] {envT : Env} (mT : EnvModel V envT)
-    (φ : Name → Nat) (D : Nat) (ρfull : Nat → V) (Δa : List ITerm) (as2 : List Expr) :
+    (φ : Name → Nat) (D : Nat) (ρfull : Nat → V) (Δa : List Term) (as2 : List Expr) :
     Prop :=
   Δa.length = D ∧
   Sat V Δa ρfull ∧
   (∀ (j : Nat) (x : Expr), as2[j]? = some x →
-    denoteMeta mT.acval envT φ (D - 1 - j) (Expr.fvarTypeD x) = some (Δa.getD j default)) ∧
+    denote mT.acval envT φ (D - 1 - j) (Expr.fvarTypeD x) = some (Δa.getD j default)) ∧
   (∀ s, s < D → ∀ ρ : Nat → V, Sat V Δa ρ →
     WellDenotedTy V (fun j => ρ (j + s + 1)) (Δa.getD s default)) ∧
   (∀ x ∈ as2, (Expr.fvarTypeD x).looseBVarsBounded 0 = true) ∧
@@ -208,9 +208,9 @@ the domain's GRADING, which the rule stage's own inference supplies
 weakens for free, because it is stated at the slot's own shifted
 valuation and `Sat_tail` is the shift. -/
 theorem WalkCtx.cons {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat} {D : Nat}
-    {ρfull : Nat → V} {Δa : List ITerm} {as2 : List Expr}
-    (h : WalkCtx V mT φ D ρfull Δa as2) {ty : Expr} {ta : ITerm} {x : V}
-    (hta : denoteMeta mT.acval envT φ D ty = some ta)
+    {ρfull : Nat → V} {Δa : List Term} {as2 : List Expr}
+    (h : WalkCtx V mT φ D ρfull Δa as2) {ty : Expr} {ta : Term} {x : V}
+    (hta : denote mT.acval envT φ D ty = some ta)
     (hlb : ty.looseBVarsBounded 0 = true) (hcb : ConstsBound envT ty)
     (hcl : ∀ l ∈ ty.fvarLeaves, Expr.fvar l.1 l.2 ∈ as2)
     (hG : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta)
@@ -256,7 +256,7 @@ one of its six inputs is a field of `WalkCtx` or of the `FvarList`;
 nothing is proved per node but the leaf membership, which
 `fvarLeaves_instantiateList` gives for the whole walk at once. -/
 theorem WalkCtx.ctxOk {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat} {D : Nat}
-    {ρfull : Nat → V} {Δa : List ITerm} {as2 : List Expr}
+    {ρfull : Nat → V} {Δa : List Term} {as2 : List Expr}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (mT.acval n ψ).liftN 1 k = mT.acval n ψ)
     (h2 : FvarList D as2) (h : WalkCtx V mT φ D ρfull Δa as2)
     {e : Expr} (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ as2) :
@@ -312,7 +312,7 @@ variable {V : Type uv} [SetTheory V]
 
 /-! ## The peel, transported to the OPENED frame
 
-`denoteMeta_instPisAtLift_peel` (`BlockRecRead.lean`) reads an
+`denote_instPisAtLift_peel` (`BlockRecRead.lean`) reads an
 `instPisAtLift` at bvar-CLOSED arguments — which the call's arguments
 are once the rule body is opened, and are NOT before.  The check's
 `instPisAtLift as … = some expected` is a fact about
@@ -325,14 +325,14 @@ lemmas turn it into the statement `instPisAtLift` needs. -/
 
 /-! ## The peel, evaluated
 
-`ITerm.peelPis` of a `mkPisAV` tower along a spine of its own
+`Term.peelPis` of a `mkPisAV` tower along a spine of its own
 length is the body's instantiation sequence
 (`peelPis_of_piTeleAV` at `piTeleAV_mkPisAV`), and `interp_instSeq`
 evaluates that at the chain — which IS `consList` of the spine's
 values, since `chain` is `consN` of them and `consN` is `consList`
 (`consN_eq_consList`).  So the whole peel is one `interp` equation. -/
 
-theorem chain_eq_consList (ρ : Nat → V) (ws : List ITerm) :
+theorem chain_eq_consList (ρ : Nat → V) (ws : List Term) :
     chain V ρ ws = consList (ws.map (interp V ρ)) ρ :=
   consN_eq_consList _ _
 

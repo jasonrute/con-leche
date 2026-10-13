@@ -35,7 +35,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   RecRule uN u1N vN)
 
@@ -49,32 +49,32 @@ section Quot
 open ConLeche (quotA quotMkA quotLiftA quotIndA quotSoundA quotName
   quotMkName quotLiftName quotIndName quotSoundName eqA eqName)
 
-variable {m : EnvModel V env} {A : (Name → Nat) → ITerm}
+variable {m : EnvModel V env} {A : (Name → Nat) → Term}
 
 /-! ## The block's two pinned leaves
 
 `Quot` and `Quot.mk` are read by every later constant in the block. -/
 
 /-- The pinned `Quot` leaf at an extension, at any level. -/
-theorem denoteMeta_quotLeaf {c₀ : ConstantInfo} (ψ : Name → Nat)
+theorem denote_quotLeaf {c₀ : ConstantInfo} (ψ : Name → Nat)
     (hne : ¬ c₀.name = quotName)
     (hQ : env.find? quotName = some quotA) (d : Nat) (l : Level) :
-    denoteMeta (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
+    denote (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
         (.const quotName [l])
-      = some (ITerm.const .quot [l.eval ψ]) := by
-  refine denoteMeta_pinned_const (m := m) hne hQ (by decide) (by rfl) ?_ d
+      = some (Term.const .quot [l.eval ψ]) := by
+  refine denote_pinned_const (m := m) hne hQ (by decide) (by rfl) ?_ d
   simp +decide [ConLeche.Verify.pinnedStructT]
   show Level.substFn ψ [uN] [l] uN = Level.eval ψ l
   simp [Level.substFn]
 
 /-- The pinned `Quot.mk` leaf at an extension, at any level. -/
-theorem denoteMeta_quotMkLeaf {c₀ : ConstantInfo} (ψ : Name → Nat)
+theorem denote_quotMkLeaf {c₀ : ConstantInfo} (ψ : Name → Nat)
     (hne : ¬ c₀.name = quotMkName)
     (hM : env.find? quotMkName = some quotMkA) (d : Nat) (l : Level) :
-    denoteMeta (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
+    denote (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
         (.const quotMkName [l])
-      = some (ITerm.const .quotMk [l.eval ψ]) := by
-  refine denoteMeta_pinned_const (m := m) hne hM (by decide) (by rfl) ?_ d
+      = some (Term.const .quotMk [l.eval ψ]) := by
+  refine denote_pinned_const (m := m) hne hM (by decide) (by rfl) ?_ d
   simp +decide [ConLeche.Verify.pinnedStructT]
   show Level.substFn ψ [uN] [l] uN = Level.eval ψ l
   simp [Level.substFn]
@@ -83,17 +83,17 @@ theorem denoteMeta_quotMkLeaf {c₀ : ConstantInfo} (ψ : Name → Nat)
 
 /-- The relation binder's domain reading — shared by every constant in
 the block, and `.never` at both of its own binders. -/
-def quotRelTy : ITerm :=
+def quotRelTy : Term :=
   .pi (.bvar 0) (.pi (.bvar 1) (.sort 0))
 
 /-- **`Quot`'s type reading.** -/
-theorem denoteMeta_quotA_type
-    {acval : Name → (Name → Nat) → ITerm} (ψ : Name → Nat) :
-    denoteMeta acval ⟨quotA :: env.consts⟩ ψ 0 quotA.toConstantVal.type
+theorem denote_quotA_type
+    {acval : Name → (Name → Nat) → Term} (ψ : Name → Nat) :
+    denote acval ⟨quotA :: env.consts⟩ ψ 0 quotA.toConstantVal.type
       = some (.pi (.sort (ψ uN))
           (.pi (quotRelTy) (.sort (ψ uN)))) := by
-  simp [quotA, ConstantInfo.toConstantVal, denoteMeta_forallE,
-    denoteMeta_sort, denoteMeta_fvar, Expr.instantiate1, quotRelTy,
+  simp [quotA, ConstantInfo.toConstantVal, denote_forallE,
+    denote_sort, denote_fvar, Expr.instantiate1, quotRelTy,
     Level.eval, uN]
 
 /-- The relation binder's domain is `BConst.typeAV`'s relation type. -/
@@ -101,11 +101,11 @@ theorem quotRelTy_eq : quotRelTy = relAV (.bvar 0) := by rfl
 
 /-- **The `Quot` reading is `BConst.typeAV`'s.** -/
 theorem quotA_reading_eq (ψ : Name → Nat) :
-    (ITerm.pi (.sort (ψ uN)) (.pi (quotRelTy) (.sort (ψ uN))))
+    (Term.pi (.sort (ψ uN)) (.pi (quotRelTy) (.sort (ψ uN))))
       = BConst.typeAV .quot [ψ uN] := by rfl
 
 /-- `Quot.mk`'s type reading, named: three binders. -/
-def quotMkTy (u : Nat) : ITerm :=
+def quotMkTy (u : Nat) : Term :=
   .pi (.sort u)
     (.pi quotRelTy
       (.pi (.bvar 1)
@@ -114,31 +114,31 @@ def quotMkTy (u : Nat) : ITerm :=
 /-- **`Quot.mk`'s type reading.**  Stated at *any* extension whose cons
 is neither `Quot` nor `Quot.mk` as well, because both recursor rows
 read it as their fired constructor's telescope (`TVja`). -/
-theorem denoteMeta_quotMkTy {c₀ : ConstantInfo} (ψ : Name → Nat)
+theorem denote_quotMkTy {c₀ : ConstantInfo} (ψ : Name → Nat)
     (hne : ¬ c₀.name = quotName)
     (hQ : env.find? quotName = some quotA) :
-    denoteMeta (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ 0
+    denote (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ 0
         quotMkA.toConstantVal.type
       = some (quotMkTy (ψ uN)) := by
   have hQc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
+      denote (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
         (Expr.const (Name.str Name.anonymous "Quot")
           [Level.param (Name.str Name.anonymous "u")])
-        = some (ITerm.const .quot
+        = some (Term.const .quot
             [ψ (Name.str Name.anonymous "u")]) := by
     intro d
-    exact denoteMeta_quotLeaf (m := m) (A := A) (c₀ := c₀) ψ hne hQ d
+    exact denote_quotLeaf (m := m) (A := A) (c₀ := c₀) ψ hne hQ d
       (Level.param uN)
-  simp [quotMkA, ConstantInfo.toConstantVal, denoteMeta_forallE,
-    denoteMeta_sort, denoteMeta_app, denoteMeta_fvar, Expr.instantiate1,
+  simp [quotMkA, ConstantInfo.toConstantVal, denote_forallE,
+    denote_sort, denote_app, denote_fvar, Expr.instantiate1,
     quotRelTy, quotMkTy, hQc, Level.eval, uN]
 
-theorem denoteMeta_quotMkA_type (ψ : Name → Nat)
+theorem denote_quotMkA_type (ψ : Name → Nat)
     (hQ : env.find? quotName = some quotA) :
-    denoteMeta (acvalWith m.acval quotMkA.name A)
+    denote (acvalWith m.acval quotMkA.name A)
         ⟨quotMkA :: env.consts⟩ ψ 0 quotMkA.toConstantVal.type
       = some (quotMkTy (ψ uN)) :=
-  denoteMeta_quotMkTy (m := m) (A := A) ψ (by decide) hQ
+  denote_quotMkTy (m := m) (A := A) ψ (by decide) hQ
 
 /-- **The `Quot.mk` reading is `BConst.typeAV`'s.** -/
 theorem quotMkA_reading_eq (ψ : Name → Nat) :
@@ -146,7 +146,7 @@ theorem quotMkA_reading_eq (ψ : Name → Nat) :
 
 theorem relAV_interp (ρ : Nat → V) (Aset : V) :
     interp V (cons Aset ρ) (relAV (.bvar 0)) = relSpace V Aset := by
-  simp [relAV, relSpace, ITerm.lift, ITerm.liftN, interp_pi,
+  simp [relAV, relSpace, Term.lift, Term.liftN, interp_pi,
     interp_bvar, interp_sort, cons]
 
 theorem quotRelTy_interp (ρ : Nat → V) (Aset : V) :
@@ -163,7 +163,7 @@ theorem extendQuot (mp : EnvModelM V μ env)
     (hwf : EnvWF ⟨quotA :: env.consts⟩) {ex : List Name} :
     CoverTo mp ex ⟨quotA :: env.consts⟩ ex := by
   refine coverTo_cons hfresh (fun _ _ _ => rfl) (declStep_preserves_of_basis_cons mp
-    (A := fun ψ => ITerm.const .quot [ψ uN]) hfresh
+    (A := fun ψ => Term.const .quot [ψ uN]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (fun _ _ _ _ h => nomatch h)
@@ -172,15 +172,14 @@ theorem extendQuot (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT quotA.name ψ
           = some (Term.const .quot [ψ uN]) from rfl] at hp
-        rw [← Option.some.inj hp]
-        rfl)
+        rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) ?_
     (fun _ _ => trivial)
-    (fun ψ => ⟨_, denoteMeta_quotA_type ψ⟩) ?_ ?_
+    (fun ψ => ⟨_, denote_quotA_type ψ⟩) ?_ ?_
     (hind := indStrictHead_cons
       (ab := fun ψ => [.sort (ψ uN), quotRelTy])
-      (s := fun ψ => ψ uN) (fun ψ => denoteMeta_quotA_type ψ) fun ψ hu ρ vs hsp => by
+      (s := fun ψ => ψ uN) (fun ψ => denote_quotA_type ψ) fun ψ hu ρ vs hsp => by
         match vs, hsp with
         | [Aset, R], ⟨hA, hR, _⟩ =>
           have hR' : R ∈ˢ relSpace V Aset := by
@@ -192,12 +191,12 @@ theorem extendQuot (mp : EnvModelM V μ env)
   · intro ψ₁ ψ₂ hp
     rw [hp uN (by show uN ∈ [uN]; exact List.mem_cons_self)]
   · intro ψ ta h ρ
-    rw [denoteMeta_quotA_type ψ] at h
+    rw [denote_quotA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
     rw [quotA_reading_eq]
     exact WellDenotedTy_bconst_type V .quot [ψ uN] ρ
   · intro ψ ta h ρ
-    rw [denoteMeta_quotA_type ψ] at h
+    rw [denote_quotA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
     rw [quotA_reading_eq]
     exact bval_mem_type V .quot [ψ uN] ρ
@@ -209,12 +208,12 @@ theorem extendQuotMk (mp : EnvModelM V μ env)
     (hwf : EnvWF ⟨quotMkA :: env.consts⟩) {ex : List Name} :
     CoverTo mp ex ⟨quotMkA :: env.consts⟩ ex := by
   have hty := fun ψ =>
-    denoteMeta_quotMkA_type (m := mp.base2)
-      (A := fun ψ => ITerm.const .quotMk [ψ uN]) ψ hQ
+    denote_quotMkA_type (m := mp.base2)
+      (A := fun ψ => Term.const .quotMk [ψ uN]) ψ hQ
   refine coverTo_cons hfresh (fun _ _ h => nomatch h)
     (hhead := hhead_ctor (c₀ := quotMkA) rfl rfl rfl (Or.inr ⟨_, _, hQ, rfl⟩))
     (declStep_preserves_of_basis_cons mp
-    (A := fun ψ => ITerm.const .quotMk [ψ uN]) hfresh
+    (A := fun ψ => Term.const .quotMk [ψ uN]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (fun _ _ _ _ h => nomatch h)
@@ -223,8 +222,7 @@ theorem extendQuotMk (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT quotMkA.name ψ
           = some (Term.const .quotMk [ψ uN]) from rfl] at hp
-        rw [← Option.some.inj hp]
-        rfl)
+        rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) ?_
     (fun _ _ => trivial)
@@ -253,7 +251,7 @@ every space lemma below is stated at.  (`BasisBlocks.lean`'s
 `interp_liftN_succ_inst` is the special case where the domain is a
 *lifted* earlier argument; this is the general shape.) -/
 
-theorem interp_inst_cons1 (e a : ITerm) (x1 : V) (ρ : Nat → V) :
+theorem interp_inst_cons1 (e a : Term) (x1 : V) (ρ : Nat → V) :
     interp V (cons x1 ρ) (e.inst a 1)
       = interp V (cons x1 (cons (interp V ρ a) ρ)) e := by
   have hsh : shiftE 1 0 (cons x1 ρ) = ρ := by
@@ -266,7 +264,7 @@ theorem interp_inst_cons1 (e a : ITerm) (x1 : V) (ρ : Nat → V) :
   | 1 => rfl
   | (_ + 2) => rfl
 
-theorem interp_inst_cons2 (e a : ITerm) (x1 x2 : V) (ρ : Nat → V) :
+theorem interp_inst_cons2 (e a : Term) (x1 x2 : V) (ρ : Nat → V) :
     interp V (cons x2 (cons x1 ρ)) (e.inst a 2)
       = interp V (cons x2 (cons x1 (cons (interp V ρ a) ρ))) e := by
   have hsh : shiftE 2 0 (cons x2 (cons x1 ρ)) = ρ := by
@@ -280,7 +278,7 @@ theorem interp_inst_cons2 (e a : ITerm) (x1 x2 : V) (ρ : Nat → V) :
   | 2 => rfl
   | (_ + 3) => rfl
 
-theorem interp_inst_cons3 (e a : ITerm) (x1 x2 x3 : V) (ρ : Nat → V) :
+theorem interp_inst_cons3 (e a : Term) (x1 x2 x3 : V) (ρ : Nat → V) :
     interp V (cons x3 (cons x2 (cons x1 ρ))) (e.inst a 3)
       = interp V (cons x3 (cons x2 (cons x1 (cons (interp V ρ a) ρ))))
           e := by
@@ -296,7 +294,7 @@ theorem interp_inst_cons3 (e a : ITerm) (x1 x2 x3 : V) (ρ : Nat → V) :
   | 3 => rfl
   | (_ + 4) => rfl
 
-theorem interp_inst_cons4 (e a : ITerm) (x1 x2 x3 x4 : V)
+theorem interp_inst_cons4 (e a : Term) (x1 x2 x3 x4 : V)
     (ρ : Nat → V) :
     interp V (cons x4 (cons x3 (cons x2 (cons x1 ρ)))) (e.inst a 4)
       = interp V (cons x4 (cons x3 (cons x2 (cons x1
@@ -324,19 +322,19 @@ row's fired equality is `pt = pt` by `app_pt` and needs no value law at
 all. -/
 
 /-- `@Quot.{u} A r`, at two de Bruijn slots. -/
-def quotApp (u i j : Nat) : ITerm :=
+def quotApp (u i j : Nat) : Term :=
   .app (.app (.const .quot [u]) (.bvar i)) (.bvar j)
 
 /-- `@Quot.mk.{u} A r a`, at three de Bruijn slots. -/
-def quotMkApp (u i j k : Nat) : ITerm :=
+def quotMkApp (u i j k : Nat) : Term :=
   .app (.app (.app (.const .quotMk [u]) (.bvar i)) (.bvar j)) (.bvar k)
 
 /-- `Quot.ind`'s motive binder domain reading. -/
-def quotIndMotiveTy (u : Nat) : ITerm :=
+def quotIndMotiveTy (u : Nat) : Term :=
   .pi (quotApp u 1 0) (.sort 0)
 
 /-- `Quot.ind`'s minor binder domain reading. -/
-def quotIndMinorTy (u : Nat) : ITerm :=
+def quotIndMinorTy (u : Nat) : Term :=
   .pi (.bvar 2) (.app (.bvar 1) (quotMkApp u 3 2 0))
 
 /-- The motive space: `Quot A r → Prop`. -/
@@ -367,11 +365,11 @@ theorem quotApp_data {u i j : Nat} {ρ : Nat → V} {Aset R : V}
     (hA : Aset ∈ˢ (univ u : V)) (hR : R ∈ˢ relSpace V Aset) :
     WellDenoted V ρ (quotApp u i j) ∧
       interp V ρ (quotApp u i j) = quotSet u Aset R := by
-  have hAi : interp V ρ (ITerm.bvar i) = Aset := by
+  have hAi : interp V ρ (Term.bvar i) = Aset := by
     rw [interp_bvar, hi]
-  have hRj : interp V ρ (ITerm.bvar j) = R := by
+  have hRj : interp V ρ (Term.bvar j) = R := by
     rw [interp_bvar, hj]
-  have hA' : Aset ∈ˢ interp V ρ (ITerm.sort u) := by
+  have hA' : Aset ∈ˢ interp V ρ (Term.sort u) := by
     rw [interp_sort]; exact hA
   have hR' : R ∈ˢ interp V (cons Aset ρ) (relAV (.bvar 0)) := by
     rw [relAV_interp]; exact hR
@@ -399,17 +397,17 @@ theorem quotMkApp_data {u i j k : Nat} {ρ : Nat → V} {Aset R a : V}
     (ha : a ∈ˢ Aset) :
     WellDenoted V ρ (quotMkApp u i j k) ∧
       interp V ρ (quotMkApp u i j k) = quotClass u Aset R a := by
-  have hAi : interp V ρ (ITerm.bvar i) = Aset := by
+  have hAi : interp V ρ (Term.bvar i) = Aset := by
     rw [interp_bvar, hi]
-  have hRj : interp V ρ (ITerm.bvar j) = R := by
+  have hRj : interp V ρ (Term.bvar j) = R := by
     rw [interp_bvar, hj]
-  have hak : interp V ρ (ITerm.bvar k) = a := by
+  have hak : interp V ρ (Term.bvar k) = a := by
     rw [interp_bvar, hk]
-  have hA' : Aset ∈ˢ interp V ρ (ITerm.sort u) := by
+  have hA' : Aset ∈ˢ interp V ρ (Term.sort u) := by
     rw [interp_sort]; exact hA
   have hR' : R ∈ˢ interp V (cons Aset ρ) (relAV (.bvar 0)) := by
     rw [relAV_interp]; exact hR
-  have ha' : a ∈ˢ interp V (cons R (cons Aset ρ)) (ITerm.bvar 1) := by
+  have ha' : a ∈ˢ interp V (cons R (cons Aset ρ)) (Term.bvar 1) := by
     simpa [interp_bvar, cons] using ha
   refine ⟨?_, ?_⟩
   · rw [quotMkApp, WellDenoted_app]
@@ -465,7 +463,7 @@ theorem quotIndMinorTy_interp {u : Nat} {Aset R M : V} (ρ : Nat → V)
 
 /-- `Quot.ind`'s type reading, named: five binders, every numeral the
 literal `0`. -/
-def quotIndTy (u : Nat) : ITerm :=
+def quotIndTy (u : Nat) : Term :=
   .pi (.sort u)
     (.pi quotRelTy
       (.pi (quotIndMotiveTy u)
@@ -473,23 +471,23 @@ def quotIndTy (u : Nat) : ITerm :=
           (.pi (quotApp u 3 2) (.app (.bvar 2) (.bvar 0))))))
 
 /-- **`Quot.ind`'s type reading.** -/
-theorem denoteMeta_quotIndA_type (ψ : Name → Nat)
+theorem denote_quotIndA_type (ψ : Name → Nat)
     (hQ : env.find? quotName = some quotA)
     (hM : env.find? quotMkName = some quotMkA) :
-    denoteMeta (acvalWith m.acval quotIndA.name A)
+    denote (acvalWith m.acval quotIndA.name A)
         ⟨quotIndA :: env.consts⟩ ψ 0 quotIndA.toConstantVal.type
       = some (quotIndTy (ψ uN)) := by
   have hQc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotIndA.name A)
+      denote (acvalWith m.acval quotIndA.name A)
         ⟨quotIndA :: env.consts⟩ ψ d (.const quotName [.param uN])
-        = some (ITerm.const .quot [ψ uN]) := fun d =>
-    denoteMeta_quotLeaf (m := m) (A := A) ψ (by decide) hQ d
+        = some (Term.const .quot [ψ uN]) := fun d =>
+    denote_quotLeaf (m := m) (A := A) ψ (by decide) hQ d
       (Level.param uN)
   have hMc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotIndA.name A)
+      denote (acvalWith m.acval quotIndA.name A)
         ⟨quotIndA :: env.consts⟩ ψ d (.const quotMkName [.param uN])
-        = some (ITerm.const .quotMk [ψ uN]) := fun d =>
-    denoteMeta_quotMkLeaf (m := m) (A := A) ψ (by decide) hM d
+        = some (Term.const .quotMk [ψ uN]) := fun d =>
+    denote_quotMkLeaf (m := m) (A := A) ψ (by decide) hM d
       (Level.param uN)
   rw [show quotIndA.toConstantVal.type
       = Expr.forallE (.sort (.param uN))
@@ -509,7 +507,7 @@ theorem denoteMeta_quotIndA_type (ψ : Name → Nat)
                   (.app (.app (.const quotName [.param uN]) (.bvar 3))
                     (.bvar 2))
                   (.app (.bvar 2) (.bvar 0)))))) from rfl]
-  simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+  simp [denote_forallE, denote_sort, denote_app, denote_fvar,
     Expr.instantiate1, quotRelTy, quotApp, quotMkApp,
     quotIndMotiveTy, quotIndMinorTy, quotIndTy,
     hQc, hMc, Level.eval]
@@ -537,7 +535,7 @@ theorem pt_mem_unitPropR : (pt : V) ∈ˢ unitPropR V :=
 
 /-- **A `λ` whose body is the canonical proof is graded** — the fibre is
 `unitPropR`, a type; and it is the canonical proof itself. -/
-theorem WellDenoted_lam_zero_pt {ρ : Nat → V} {Aa b : ITerm}
+theorem WellDenoted_lam_zero_pt {ρ : Nat → V} {Aa b : Term}
     (hA : WellDenotedTy V ρ Aa)
     (hb : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) b)
     (hpt : ∀ x, x ∈ˢ interp V ρ Aa → interp V (cons x ρ) b = pt) :
@@ -551,7 +549,7 @@ theorem WellDenoted_lam_zero_pt {ρ : Nat → V} {Aa b : ITerm}
 /-- **The canonical proof applied to anything is graded, and is again
 the canonical proof.**  The `∃ w S F` witness is `w = 0`, the
 argument's own domain, and the constant `unitPropR` fibre. -/
-theorem WellDenoted_app_pt {ρ : Nat → V} {f a : ITerm} {S : V}
+theorem WellDenoted_app_pt {ρ : Nat → V} {f a : Term} {S : V}
     (hf : WellDenoted V ρ f) (hfi : interp V ρ f = pt)
     (ha : WellDenoted V ρ a) (hmem : interp V ρ a ∈ˢ S) :
     WellDenoted V ρ (.app f a) ∧ interp V ρ (.app f a) = pt := by
@@ -576,7 +574,7 @@ theorem quotIndMinorTy_wellDenoted {u : Nat} {Aset R M : V} (ρ : Nat → V)
     (hM : M ∈ˢ quotIndMotiveSpace V u Aset R) :
     WellDenotedTy V (cons M (cons R (cons Aset ρ))) (quotIndMinorTy u) := by
   have hdom : interp V (cons M (cons R (cons Aset ρ)))
-      (ITerm.bvar 2) = Aset := by simp [interp_bvar, cons]
+      (Term.bvar 2) = Aset := by simp [interp_bvar, cons]
   have hstep : ∀ a : V, a ∈ˢ Aset →
       WellDenoted V (cons a (cons M (cons R (cons Aset ρ))))
           (.app (.bvar 1) (quotMkApp u 3 2 0)) ∧
@@ -589,7 +587,7 @@ theorem quotIndMinorTy_wellDenoted {u : Nat} {Aset R M : V} (ρ : Nat → V)
       (ρ := cons a (cons M (cons R (cons Aset ρ))))
       (by simp [cons]) (by simp [cons]) (by simp [cons]) hA hR ha
     have hMb : interp V (cons a (cons M (cons R (cons Aset ρ))))
-        (ITerm.bvar 1) = M := by simp [interp_bvar, cons]
+        (Term.bvar 1) = M := by simp [interp_bvar, cons]
     have hcl : quotClass u Aset R a ∈ˢ quotSet u Aset R :=
       quotClass_mem ha
     have hMc : app M (quotClass u Aset R a) ∈ˢ (univ 0 : V) := app_mem_piV hM hcl
@@ -607,7 +605,7 @@ theorem quotIndMinorTy_wellDenoted {u : Nat} {Aset R M : V} (ρ : Nat → V)
 /-! ### The rule, its right-hand side, and the row -/
 
 /-- `Quot.ind`'s rule's RHS reading. -/
-def quotIndRa (u : Nat) : ITerm :=
+def quotIndRa (u : Nat) : Term :=
   .lam (.sort u)
     (.lam quotRelTy
       (.lam (quotIndMotiveTy u)
@@ -638,7 +636,7 @@ theorem quotIndRa_inner (u : Nat) (ρ : Nat → V) {Aset R : V}
       have hmkpt : mk = pt := eq_pt_of_mem_piV
         (fun a ha => univ_zero (V := V) ▸ app_mem_piV hM (quotClass_mem ha)) hmk
       have hdom : interp V (cons mk (cons M (cons R (cons Aset ρ))))
-          (ITerm.bvar 3) = Aset := by simp [interp_bvar, cons]
+          (Term.bvar 3) = Aset := by simp [interp_bvar, cons]
       have hbody : ∀ a : V, a ∈ˢ Aset →
           WellDenoted V (cons a (cons mk (cons M (cons R (cons Aset ρ)))))
               (.app (.bvar 1) (.bvar 0)) ∧
@@ -690,27 +688,27 @@ theorem quotIndRa_wellDenoted (u : Nat) (ρ : Nat → V) :
     WellDenoted V ρ (quotIndRa u) := (quotIndRa_facts u ρ).1
 
 /-- **`Quot.ind`'s rule's RHS reading.** -/
-theorem denoteMeta_quotInd_rhs (ψ : Name → Nat)
+theorem denote_quotInd_rhs (ψ : Name → Nat)
     (hQ : env.find? quotName = some quotA)
     (hM : env.find? quotMkName = some quotMkA) :
-    denoteMeta (acvalWith m.acval quotIndA.name A)
+    denote (acvalWith m.acval quotIndA.name A)
         ⟨quotIndA :: env.consts⟩ ψ 0 quotIndRule.rhs
       = some (quotIndRa (ψ uN)) := by
   have hQc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotIndA.name A)
+      denote (acvalWith m.acval quotIndA.name A)
         ⟨quotIndA :: env.consts⟩ ψ d (.const quotName [.param uN])
-        = some (ITerm.const .quot [ψ uN]) := fun d =>
-    denoteMeta_quotLeaf (m := m) (A := A) ψ (by decide) hQ d
+        = some (Term.const .quot [ψ uN]) := fun d =>
+    denote_quotLeaf (m := m) (A := A) ψ (by decide) hQ d
       (Level.param uN)
   have hMc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotIndA.name A)
+      denote (acvalWith m.acval quotIndA.name A)
         ⟨quotIndA :: env.consts⟩ ψ d (.const quotMkName [.param uN])
-        = some (ITerm.const .quotMk [ψ uN]) := fun d =>
-    denoteMeta_quotMkLeaf (m := m) (A := A) ψ (by decide) hM d
+        = some (Term.const .quotMk [ψ uN]) := fun d =>
+    denote_quotMkLeaf (m := m) (A := A) ψ (by decide) hM d
       (Level.param uN)
   simp only [quotIndRule]
-  simp [denoteMeta_lam, denoteMeta_forallE, denoteMeta_sort, denoteMeta_app,
-    denoteMeta_fvar, Expr.instantiate1, quotRelTy, quotApp, quotMkApp,
+  simp [denote_lam, denote_forallE, denote_sort, denote_app,
+    denote_fvar, Expr.instantiate1, quotRelTy, quotApp, quotMkApp,
     quotIndMotiveTy, quotIndMinorTy, quotIndRa,
     hQc, hMc, Level.eval]
 
@@ -753,11 +751,11 @@ theorem quotMk_licensed_ne_zero {find? : Name → Option ConstantInfo}
 
 /-- A spine on `Quot.mk` at `Prop` is the canonical proof. -/
 theorem interp_quotMk_zero_spine (ρ : Nat → V) :
-    ∀ (ys : List ITerm) {f : ITerm}, interp V ρ f = pt →
-      interp V ρ (ITerm.mkAppN f ys) = pt
+    ∀ (ys : List Term) {f : Term}, interp V ρ f = pt →
+      interp V ρ (Term.mkAppN f ys) = pt
   | [], _, h => h
   | y :: ys, f, h => by
-    rw [ITerm.mkAppN_cons]
+    rw [Term.mkAppN_cons]
     exact interp_quotMk_zero_spine ρ ys (by rw [interp_app, h, app_pt])
 
 /-- The licence facts of a `Quot.mk` rule, from the major's domain.
@@ -765,15 +763,15 @@ theorem interp_quotMk_zero_spine (ρ : Nat → V) :
 the recursor's level `u`, which is the constructor's (`hulev`). -/
 theorem quotRuleExtra_of {find? : Name → Option ConstantInfo}
     (hQ : find? quotName = some quotA)
-    {acv : ITerm} {u : Nat} {usj : List Level} {φ : Name → Nat}
+    {acv : Term} {u : Nat} {usj : List Level} {φ : Name → Nat}
     (hulev : Level.substFn φ quotMkA.toConstantVal.levelParams usj uN = u)
-    (hctor : acv = ITerm.const .quotMk [u])
-    {P : (Nat → V) → ITerm → Prop}
+    (hctor : acv = Term.const .quotMk [u])
+    {P : (Nat → V) → Term → Prop}
     (hmaj : ∀ ρ a, P ρ a → ∃ Aset R : V, interp V ρ a ∈ˢ quotSet u Aset R) :
     (ConLeche.iotaCtorLicensed find? quotMkA.toConstantVal usj = true →
       ∀ ρ a, P ρ a → interp V ρ a ≠ pt) ∧
     (∀ ρ a, P ρ a → interp V ρ a = pt →
-      ∀ ys : List ITerm, interp V ρ (ITerm.mkAppN acv ys) = pt) := by
+      ∀ ys : List Term, interp V ρ (Term.mkAppN acv ys) = pt) := by
   refine ⟨fun hlic ρ a hP ha => ?_, fun ρ a hP ha ys => ?_⟩
   · obtain ⟨Aset, R, hm⟩ := hmaj ρ a hP
     have hne := quotMk_licensed_ne_zero hQ hlic φ
@@ -796,18 +794,18 @@ the recursor's level `u ≠ 0` and parameters `x1 x2`, is the class of
 its representative there; so it is `Quot.mk` at the recursor's level
 applied to the recursor's parameters and the same representative,
 which fits `Quot.mk`'s telescope at `u`. -/
-theorem quotRuleT_of {u u' : Nat} (hu : u ≠ 0) {acvJ acvC : ITerm}
-    (hJ : acvJ = ITerm.const .quotMk [u']) (hC : acvC = ITerm.const .quotMk [u])
-    {ρ : Nat → V} {x1 x2 y1 y2 y3 : ITerm} {restC : ITerm}
+theorem quotRuleT_of {u u' : Nat} (hu : u ≠ 0) {acvJ acvC : Term}
+    (hJ : acvJ = Term.const .quotMk [u']) (hC : acvC = Term.const .quotMk [u])
+    {ρ : Nat → V} {x1 x2 y1 y2 y3 : Term} {restC : Term}
     (f1 : interp V ρ x1 ∈ˢ (univ u : V))
     (f2 : interp V ρ x2 ∈ˢ relSpace V (interp V ρ x1))
     (hfitC : TeleFitPA V ρ (quotMkTy u') [y1, y2, y3] restC)
-    (hmem : interp V ρ (ITerm.mkAppN acvJ [y1, y2, y3])
+    (hmem : interp V ρ (Term.mkAppN acvJ [y1, y2, y3])
       ∈ˢ quotSet u (interp V ρ x1) (interp V ρ x2))
-    (hne : interp V ρ (ITerm.mkAppN acvJ [y1, y2, y3]) ≠ pt) :
+    (hne : interp V ρ (Term.mkAppN acvJ [y1, y2, y3]) ≠ pt) :
     ∃ restC', TeleFitPA V ρ (quotMkTy u) [x1, x2, y3] restC' ∧
-      interp V ρ (ITerm.mkAppN acvC [x1, x2, y3])
-        = interp V ρ (ITerm.mkAppN acvJ [y1, y2, y3]) := by
+      interp V ρ (Term.mkAppN acvC [x1, x2, y3])
+        = interp V ρ (Term.mkAppN acvJ [y1, y2, y3]) := by
   rw [quotMkTy] at hfitC
   cases hfitC with | cons g1 hfitC =>
   cases hfitC with | cons g2 hfitC =>
@@ -816,9 +814,9 @@ theorem quotRuleT_of {u u' : Nat} (hu : u ≠ 0) {acvJ acvC : ITerm}
   rw [interp_inst0, quotRelTy_interp] at g2
   rw [interp_inst0, interp_inst_cons1] at g3
   simp only [interp_bvar, cons] at g3
-  have hvJ : interp V ρ (ITerm.mkAppN acvJ [y1, y2, y3])
+  have hvJ : interp V ρ (Term.mkAppN acvJ [y1, y2, y3])
       = quotClass u' (interp V ρ y1) (interp V ρ y2) (interp V ρ y3) := by
-    simp only [ITerm.mkAppN_cons, ITerm.mkAppN_nil, interp_app, hJ, interp_const, bval,
+    simp only [Term.mkAppN_cons, Term.mkAppN_nil, interp_app, hJ, interp_const, bval,
       ConLeche.Term.lv, List.getD_cons_zero]
     exact quotMkV_app V g1 g2 g3
   have hu' : u' ≠ 0 := by
@@ -829,13 +827,13 @@ theorem quotRuleT_of {u u' : Nat} (hu : u ≠ 0) {acvJ acvC : ITerm}
     rw [ite_eq_left rfl]
   rw [hvJ] at hmem ⊢
   obtain ⟨hy3, hcls⟩ := quotClass_of_mem_quotSet_pos hu hu' g3 hmem
-  have g1' : interp V ρ x1 ∈ˢ interp V ρ (ITerm.sort u) := by rw [interp_sort]; exact f1
+  have g1' : interp V ρ x1 ∈ˢ interp V ρ (Term.sort u) := by rw [interp_sort]; exact f1
   refine ⟨_, .cons g1' (.cons ?_ (.cons ?_ .nil)), ?_⟩
   · rw [interp_inst0, quotRelTy_interp]; exact f2
   · rw [interp_inst0, interp_inst_cons1]
     simp only [interp_bvar, cons]
     exact hy3
-  · simp only [ITerm.mkAppN_cons, ITerm.mkAppN_nil, interp_app, hC, interp_const, bval,
+  · simp only [Term.mkAppN_cons, Term.mkAppN_nil, interp_app, hC, interp_const, bval,
       ConLeche.Term.lv, List.getD_cons_zero]
     rw [quotMkV_app V f1 f2 hy3, hcls]
 
@@ -848,7 +846,7 @@ theorem quotIndExtra {m : EnvModel V env}
     (hQ : env.find? quotName = some quotA)
     (hM : env.find? quotMkName = some quotMkA)
     (hac : m₂.acval = acvalWith m.acval quotIndA.name
-      (fun ψ => ITerm.const .quotInd [ψ uN]))
+      (fun ψ => Term.const .quotInd [ψ uN]))
     (φ : Name → Nat) :
     RecRuleExtra m₂ φ quotIndA.name quotIndA.toConstantVal 4 4
       quotIndRule := by
@@ -856,12 +854,12 @@ theorem quotIndExtra {m : EnvModel V env}
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ quotIndA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
-  have hTyRead : denoteMeta m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
+  have hTyRead : denote m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
       (quotIndA.toConstantVal.type.instantiateLevelParams
         quotIndA.toConstantVal.levelParams us)
       = some (quotIndTy (ψ uN)) := by
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
-      denoteMeta_quotIndA_type (m := m) _ hQ hM, ← hψ]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+      denote_quotIndA_type (m := m) _ hQ hM, ← hψ]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
   have hM' : (⟨quotIndA :: env.consts⟩ : Env).find? quotMkName
@@ -892,25 +890,25 @@ theorem quotIndExtra {m : EnvModel V env}
   have hctorOf : ∀ usj : List Level,
       m₂.acval (RecRule.ctor quotIndRule)
         (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
-      = ITerm.const .quotMk [Level.substFn φ quotMkA.toConstantVal.levelParams usj uN] := by
+      = Term.const .quotMk [Level.substFn φ quotMkA.toConstantVal.levelParams usj uN] := by
     intro usj
     rw [show RecRule.ctor quotIndRule = quotMkName from rfl, hac,
       acvalWith_ne (by decide)]
     refine acval_basis_pinned (m := m) hM (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hCtorRead : ∀ usj : List Level,
-      denoteMeta m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
+      denote m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
         (quotMkA.toConstantVal.type.instantiateLevelParams
           quotMkA.toConstantVal.levelParams usj)
       = some (quotMkTy
           (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
     intro usj
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
-      denoteMeta_quotMkTy (m := m) _ (by decide) hQ]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+      denote_quotMkTy (m := m) _ (by decide) hQ]
   -- the major's domain: the quotient at the recursor's parameters
-  have hpeel : ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm), xs.length = 4 →
+  have hpeel : ∀ (ρ : Nat → V) (xs : List Term) (a restR : Term), xs.length = 4 →
       TeleFitPA V ρ (quotIndTy (ψ uN)) (xs ++ [a]) restR →
-      ∃ x1 x2 : ITerm, x1 ∈ xs ∧ x2 ∈ xs ∧ interp V ρ x1 ∈ˢ (univ (ψ uN) : V) ∧
+      ∃ x1 x2 : Term, x1 ∈ xs ∧ x2 ∈ xs ∧ interp V ρ x1 ∈ˢ (univ (ψ uN) : V) ∧
         interp V ρ x2 ∈ˢ relSpace V (interp V ρ x1) ∧
         interp V ρ a ∈ˢ quotSet (ψ uN) (interp V ρ x1) (interp V ρ x2) := by
     intro ρ xs a restR hxs hfit
@@ -934,7 +932,7 @@ theorem quotIndExtra {m : EnvModel V env}
     exact ⟨x1, x2, by simp, by simp, f1, f2, f5⟩
   have hext := fun usj hlev => quotRuleExtra_of (V := V) hQ' (hulevOf usj hlev)
     ((hctorOf usj).trans (by rw [hulevOf usj hlev]))
-    (P := fun ρ a => ∃ (xs : List ITerm) (restR : ITerm),
+    (P := fun ρ a => ∃ (xs : List Term) (restR : Term),
       xs.length = 4 ∧ TeleFitPA V ρ (quotIndTy (ψ uN)) (xs ++ [a]) restR)
     (fun ρ a ⟨xs, restR, hxs, hfit⟩ => by
       obtain ⟨x1, x2, _, _, _, _, hm⟩ := hpeel ρ xs a restR hxs hfit
@@ -950,7 +948,7 @@ theorem quotIndExtra {m : EnvModel V env}
     obtain ⟨y1, y2, y3, rfl⟩ : ∃ p q r, ys = [p, q, r] := by
       match ys, hyl with
       | [p, q, r], _ => exact ⟨p, q, r, rfl⟩
-    obtain ⟨-, hfitMaj⟩ : ∃ restR', TeleFitPA V ρ (quotIndTy (ψ uN)) (xs ++ [ITerm.mkAppN
+    obtain ⟨-, hfitMaj⟩ : ∃ restR', TeleFitPA V ρ (quotIndTy (ψ uN)) (xs ++ [Term.mkAppN
         (m₂.acval (RecRule.ctor quotIndRule)
           (Level.substFn φ quotMkA.toConstantVal.levelParams usj)) [y1, y2, y3]]) restR' :=
       ⟨_, hfitR⟩
@@ -982,7 +980,7 @@ theorem quotIndLaw {m : EnvModel V env}
     (hQ : env.find? quotName = some quotA)
     (hM : env.find? quotMkName = some quotMkA)
     (hac : m₂.acval = acvalWith m.acval quotIndA.name
-      (fun ψ => ITerm.const .quotInd [ψ uN]))
+      (fun ψ => Term.const .quotInd [ψ uN]))
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ quotIndA.name quotIndA.toConstantVal 4 4
       quotIndRule := by
@@ -991,12 +989,12 @@ theorem quotIndLaw {m : EnvModel V env}
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ quotIndA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
-  have hRa : denoteMeta m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
+  have hRa : denote m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
       (quotIndRule.rhs.instantiateLevelParams
         quotIndA.toConstantVal.levelParams us)
       = some (quotIndRa (ψ uN)) := by
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
-      denoteMeta_quotInd_rhs (m := m) _ hQ hM]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+      denote_quotInd_rhs (m := m) _ hQ hM]
   refine ⟨quotIndRa (ψ uN), hRa, fun ρ => quotIndRa_wellDenoted _ ρ, ?_, ?_⟩
   · intro _ _ h
     exact nomatch h
@@ -1017,26 +1015,26 @@ theorem quotIndLaw {m : EnvModel V env}
   obtain ⟨y1, y2, y3, rfl⟩ : ∃ p q r, ys = [p, q, r] := by
     match ys, hys with
     | [p, q, r], _ => exact ⟨p, q, r, rfl⟩
-  have hTyRead : denoteMeta m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
+  have hTyRead : denote m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
       (quotIndA.toConstantVal.type.instantiateLevelParams
         quotIndA.toConstantVal.levelParams us)
       = some (quotIndTy (ψ uN)) := by
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
-      denoteMeta_quotIndA_type (m := m) _ hQ hM, ← hψ]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+      denote_quotIndA_type (m := m) _ hQ hM, ← hψ]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
-  have hCtorRead : denoteMeta m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
+  have hCtorRead : denote m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
       (quotMkA.toConstantVal.type.instantiateLevelParams
         quotMkA.toConstantVal.levelParams usj)
       = some (quotMkTy
           (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
-      denoteMeta_quotMkTy (m := m) _ (by decide) hQ]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+      denote_quotMkTy (m := m) _ (by decide) hQ]
   obtain rfl : TVja = _ :=
     (Option.some.inj (hCtorRead.symm.trans hTVja)).symm
   have hrecL : m₂.acval quotIndA.name
       (Level.substFn φ quotIndA.toConstantVal.levelParams us)
-      = ITerm.const .quotInd [ψ uN] := by
+      = Term.const .quotInd [ψ uN] := by
     rw [hac, acvalWith_self, hψ]
   rw [quotIndTy] at hfitR
   rw [quotMkTy] at hfitC
@@ -1053,14 +1051,14 @@ theorem quotIndLaw {m : EnvModel V env}
     simp only [show RecRule.ctor quotIndRule = quotMkName from rfl,
       show quotIndRule.ctorParams = 2 from rfl,
       List.take, List.drop, List.cons_append, List.nil_append,
-      ITerm.mkAppN_cons, ITerm.mkAppN_nil,
+      Term.mkAppN_cons, Term.mkAppN_nil,
       hrecL, interp_app, interp_const, bval, quotIndRa_interp,
       app_pt]
   · -- the transport: five applications of the canonical proof
     intro hxsA hysA
     simp only [show quotIndRule.ctorParams = 2 from rfl,
       List.take, List.drop, List.cons_append, List.nil_append,
-      ITerm.mkAppN_cons, ITerm.mkAppN_nil]
+      Term.mkAppN_cons, Term.mkAppN_nil]
     have h1 := WellDenoted_app_pt (quotIndRa_wellDenoted (ψ uN) ρ)
       (quotIndRa_interp (ψ uN) ρ) (hxsA x1 (by simp)) f1
     have h2 := WellDenoted_app_pt h1.1 h1.2 (hxsA x2 (by simp)) f2
@@ -1076,10 +1074,10 @@ theorem extendQuotInd (mp : EnvModelM V μ env)
     (hwf : EnvWF ⟨quotIndA :: env.consts⟩) {ex : List Name} :
     CoverTo mp ex ⟨quotIndA :: env.consts⟩ ex := by
   have hty := fun ψ =>
-    denoteMeta_quotIndA_type (m := mp.base2)
-      (A := fun ψ => ITerm.const .quotInd [ψ uN]) ψ hQ hM
+    denote_quotIndA_type (m := mp.base2)
+      (A := fun ψ => Term.const .quotInd [ψ uN]) ψ hQ hM
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_basis_rec_cons mp
-    (A := fun ψ => ITerm.const .quotInd [ψ uN]) hfresh
+    (A := fun ψ => Term.const .quotInd [ψ uN]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (by decide) (Or.inl (fun _ h => nomatch h))
@@ -1087,8 +1085,7 @@ theorem extendQuotInd (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT quotIndA.name ψ
           = some (Term.const .quotInd [ψ uN]) from rfl] at hp
-        rw [← Option.some.inj hp]
-        rfl)
+        rw [← Option.some.inj hp])
       (fun _ h => nomatch h)
       (fun _ _ _ _ heq r hr => by
         injection heq with _ _ _ h4
@@ -1133,15 +1130,15 @@ level the constant reads `Eq` at, so neither mentions `EnvModelM`. -/
 
 /-- The stored `Eq` former's leaf at a `Quot`-block extension: the
 prefix's own, by `acvalWith_ne`. -/
-theorem denoteMeta_eqLeaf {c₀ : ConstantInfo} (ψ : Name → Nat) (l : Level)
+theorem denote_eqLeaf {c₀ : ConstantInfo} (ψ : Name → Nat) (l : Level)
     (hne : ¬ c₀.name = eqName)
     (hE : env.find? eqName = some eqA) (d : Nat) :
-    denoteMeta (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
+    denote (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
         (.const eqName [l])
       = some (m.acval eqName (Level.substFn ψ [uN] [l])) := by
   have hf' : (⟨c₀ :: env.consts⟩ : Env).find? eqName = some eqA := by
     rw [ConLeche.Env.find?_cons, ite_eq_right hne]; exact hE
-  rw [denoteMeta_const hf' (by rfl), acvalWith_ne (fun h => hne h.symm)]
+  rw [denote_const hf' (by rfl), acvalWith_ne (fun h => hne h.symm)]
   rfl
 
 /-- The relation, applied to two of its arguments, is a type. -/
@@ -1158,9 +1155,9 @@ theorem relApp_data {i j k : Nat} {ρ : Nat → V} {Aset R a b : V}
     WellDenoted V ρ (.app (.app (.bvar i) (.bvar j)) (.bvar k)) ∧
       interp V ρ (.app (.app (.bvar i) (.bvar j)) (.bvar k))
         = app (app R a) b := by
-  have hRi : interp V ρ (ITerm.bvar i) = R := by rw [interp_bvar, hi]
-  have haj : interp V ρ (ITerm.bvar j) = a := by rw [interp_bvar, hj]
-  have hbk : interp V ρ (ITerm.bvar k) = b := by rw [interp_bvar, hk]
+  have hRi : interp V ρ (Term.bvar i) = R := by rw [interp_bvar, hi]
+  have haj : interp V ρ (Term.bvar j) = a := by rw [interp_bvar, hj]
+  have hbk : interp V ρ (Term.bvar k) = b := by rw [interp_bvar, hk]
   have hRa : app R a ∈ˢ piV Aset fun _ => (univ 0 : V) := app_mem_piV hR ha
   refine ⟨?_, ?_⟩
   · rw [WellDenoted_app]
@@ -1183,7 +1180,7 @@ five-deep `piR 0` — five `pt_mem_piR_zero` steps whose innermost
 witness is the quotient's own soundness. -/
 
 /-- `Quot.sound`'s type reading, named. -/
-def quotSoundTy (E : ITerm) (u : Nat) : ITerm :=
+def quotSoundTy (E : Term) (u : Nat) : Term :=
   .pi (.sort u)
     (.pi quotRelTy
       (.pi (.bvar 1)
@@ -1193,31 +1190,31 @@ def quotSoundTy (E : ITerm) (u : Nat) : ITerm :=
               (quotMkApp u 4 3 2)) (quotMkApp u 4 3 1))))))
 
 /-- **`Quot.sound`'s type reading.** -/
-theorem denoteMeta_quotSoundA_type (ψ : Name → Nat)
+theorem denote_quotSoundA_type (ψ : Name → Nat)
     (hQ : env.find? quotName = some quotA)
     (hM : env.find? quotMkName = some quotMkA)
     (hE : env.find? eqName = some eqA) :
-    denoteMeta (acvalWith m.acval quotSoundA.name A)
+    denote (acvalWith m.acval quotSoundA.name A)
         ⟨quotSoundA :: env.consts⟩ ψ 0 quotSoundA.toConstantVal.type
       = some (quotSoundTy (m.acval eqName ψ) (ψ uN)) := by
   have hQc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotSoundA.name A)
+      denote (acvalWith m.acval quotSoundA.name A)
         ⟨quotSoundA :: env.consts⟩ ψ d (.const quotName [.param uN])
-        = some (ITerm.const .quot [ψ uN]) := fun d =>
-    denoteMeta_quotLeaf (m := m) (A := A) ψ (by decide) hQ d
+        = some (Term.const .quot [ψ uN]) := fun d =>
+    denote_quotLeaf (m := m) (A := A) ψ (by decide) hQ d
       (Level.param uN)
   have hMc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotSoundA.name A)
+      denote (acvalWith m.acval quotSoundA.name A)
         ⟨quotSoundA :: env.consts⟩ ψ d (.const quotMkName [.param uN])
-        = some (ITerm.const .quotMk [ψ uN]) := fun d =>
-    denoteMeta_quotMkLeaf (m := m) (A := A) ψ (by decide) hM d
+        = some (Term.const .quotMk [ψ uN]) := fun d =>
+    denote_quotMkLeaf (m := m) (A := A) ψ (by decide) hM d
       (Level.param uN)
   have hEc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotSoundA.name A)
+      denote (acvalWith m.acval quotSoundA.name A)
         ⟨quotSoundA :: env.consts⟩ ψ d (.const eqName [.param uN])
         = some (m.acval eqName ψ) := by
     intro d
-    rw [denoteMeta_eqLeaf (m := m) (A := A) ψ (Level.param uN)
+    rw [denote_eqLeaf (m := m) (A := A) ψ (Level.param uN)
       (by decide) hE d,
       show ([Level.param uN] : List Level)
         = List.map Level.param [uN] from rfl,
@@ -1238,7 +1235,7 @@ theorem denoteMeta_quotSoundA_type (ψ : Name → Nat)
                       (.bvar 4)) (.bvar 3)) (.bvar 2)))
                     (.app (.app (.app (.const quotMkName [.param uN])
                       (.bvar 4)) (.bvar 3)) (.bvar 1))))))) from rfl]
-  simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+  simp [denote_forallE, denote_sort, denote_app, denote_fvar,
     Expr.instantiate1, quotRelTy, quotApp, quotMkApp, quotSoundTy,
     hQc, hMc, hEc, Level.eval]
 
@@ -1247,7 +1244,7 @@ binders of `Quot.sound`'s type (and the three of `Quot.lift`'s
 invariance premise) are five applications of one lemma: the Π-type is
 graded and *is itself* a truth value, which is exactly what the next
 binder out needs. -/
-theorem WellDenoted_pi_zero {ρ : Nat → V} {Aa B : ITerm}
+theorem WellDenoted_pi_zero {ρ : Nat → V} {Aa B : Term}
     (hA : WellDenoted V ρ Aa) (hAt : IsTy (interp V ρ Aa))
     (hB : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) B)
     (hz : ∀ x, x ∈ˢ interp V ρ Aa →
@@ -1261,8 +1258,8 @@ theorem WellDenoted_pi_zero {ρ : Nat → V} {Aa B : ITerm}
 /-- **`Quot.sound`'s type reading is graded** — five
 `WellDenoted_pi_zero` steps whose innermost slot is `EqLaw`'s grading
 half. -/
-theorem quotSoundTy_wellDenoted {E : ITerm} {u : Nat} (ρ : Nat → V)
-    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : ITerm),
+theorem quotSoundTy_wellDenoted {E : Term} {u : Nat} (ρ : Nat → V)
+    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : Term),
       WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ u : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
@@ -1330,7 +1327,7 @@ theorem quotSoundTy_wellDenoted {E : ITerm} {u : Nat} (ρ : Nat → V)
           ∈ˢ (univZero : V) := by
     intro Aset R a hAset hR ha
     have hdom : interp V (cons a (cons R (cons Aset ρ)))
-        (ITerm.bvar 2) = Aset := by simp [interp_bvar, cons]
+        (Term.bvar 2) = Aset := by simp [interp_bvar, cons]
     exact WellDenoted_pi_zero (Aa := .bvar 2) trivial
       (by rw [hdom]; exact IsTy_of_mem_univ hAset)
       (fun b hb => (h5 Aset R a b hAset hR ha (by rwa [hdom] at hb)).1)
@@ -1351,7 +1348,7 @@ theorem quotSoundTy_wellDenoted {E : ITerm} {u : Nat} (ρ : Nat → V)
                   (quotMkApp u 4 3 2)) (quotMkApp u 4 3 1)))))
           ∈ˢ (univZero : V) := by
     intro Aset R hAset hR
-    have hdom : interp V (cons R (cons Aset ρ)) (ITerm.bvar 1)
+    have hdom : interp V (cons R (cons Aset ρ)) (Term.bvar 1)
         = Aset := by simp [interp_bvar, cons]
     exact WellDenoted_pi_zero (Aa := .bvar 1) trivial
       (by rw [hdom]; exact IsTy_of_mem_univ hAset)
@@ -1399,7 +1396,7 @@ theorem pt_tv {A : V} {B : V → V}
 `pt_tv` steps; the innermost witness is the quotient's own
 soundness (`SetTheory.quotSound`), read through `EqLaw`'s value
 half. -/
-theorem quotSoundTy_mem {E : ITerm} {u : Nat} (ρ : Nat → V)
+theorem quotSoundTy_mem {E : Term} {u : Nat} (ρ : Nat → V)
     (hval : ∀ (ρ' : Nat → V) (T a b : V), T ∈ˢ (univ u : V) →
       a ∈ˢ T → b ∈ˢ T →
       app (app (app (interp V ρ' E) T) a) b = eqv a b) :
@@ -1412,11 +1409,11 @@ theorem quotSoundTy_mem {E : ITerm} {u : Nat} (ρ : Nat → V)
   rw [quotRelTy_interp] at hR
   rw [interp_pi]
   refine pt_tv fun a ha => ?_
-  rw [show interp V (cons R (cons Aset ρ)) (ITerm.bvar 1) = Aset
+  rw [show interp V (cons R (cons Aset ρ)) (Term.bvar 1) = Aset
     from by simp [interp_bvar, cons]] at ha
   rw [interp_pi]
   refine pt_tv fun b hb => ?_
-  rw [show interp V (cons a (cons R (cons Aset ρ))) (ITerm.bvar 2)
+  rw [show interp V (cons a (cons R (cons Aset ρ))) (Term.bvar 2)
     = Aset from by simp [interp_bvar, cons]] at hb
   rw [interp_pi]
   refine pt_tv fun w hw => ?_
@@ -1452,10 +1449,10 @@ theorem extendQuotSound (mp : EnvModelM V μ env)
     (hwf : EnvWF ⟨quotSoundA :: env.consts⟩) {ex : List Name} :
     CoverTo mp ex ⟨quotSoundA :: env.consts⟩ ex := by
   have hty := fun ψ =>
-    denoteMeta_quotSoundA_type (m := mp.base2)
-      (A := fun ψ => ITerm.const .quotSound [ψ uN]) ψ hQ hM hE
+    denote_quotSoundA_type (m := mp.base2)
+      (A := fun ψ => Term.const .quotSound [ψ uN]) ψ hQ hM hE
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_basis_cons mp
-    (A := fun ψ => ITerm.const .quotSound [ψ uN]) hfresh
+    (A := fun ψ => Term.const .quotSound [ψ uN]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (fun _ _ _ _ h => nomatch h)
@@ -1464,8 +1461,7 @@ theorem extendQuotSound (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT quotSoundA.name ψ
           = some (Term.const .quotSound [ψ uN]) from rfl] at hp
-        rw [← Option.some.inj hp]
-        rfl)
+        rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) ?_
     (fun _ _ => trivial)
@@ -1492,7 +1488,7 @@ concludes at the `Eq` former read **at `v`**, so the bridge is
 
 /-- One application step, with the fibre named — the shape every
 `RecRuleLaw` transport peels with. -/
-theorem WellDenoted_app_fibre {ρ : Nat → V} {f a : ITerm} {S : V}
+theorem WellDenoted_app_fibre {ρ : Nat → V} {f a : Term} {S : V}
     {F : V → V} (hf : WellDenoted V ρ f) (ha : WellDenoted V ρ a)
     (hfm : interp V ρ f ∈ˢ piV S F) (ham : interp V ρ a ∈ˢ S) (hS : IsTy S) :
     WellDenoted V ρ (.app f a) ∧
@@ -1501,7 +1497,7 @@ theorem WellDenoted_app_fibre {ρ : Nat → V} {f a : ITerm} {S : V}
     by rw [interp_app]; exact app_mem_piV hfm ham⟩
 
 /-- A `.pi`, graded from its parts. -/
-theorem WellDenoted_pi_of {ρ : Nat → V} {Aa B : ITerm}
+theorem WellDenoted_pi_of {ρ : Nat → V} {Aa B : Term}
     (hA : WellDenoted V ρ Aa) (hAt : IsTy (interp V ρ Aa))
     (hB : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) B)
     (hBt : ∀ x, x ∈ˢ interp V ρ Aa → IsTy (interp V (cons x ρ) B)) :
@@ -1509,14 +1505,14 @@ theorem WellDenoted_pi_of {ρ : Nat → V} {Aa B : ITerm}
   ⟨hA, hAt, hB, hBt⟩
 
 /-- A `.pi`'s reading is a type. -/
-theorem IsTy_interp_pi {ρ : Nat → V} {Aa B : ITerm} :
+theorem IsTy_interp_pi {ρ : Nat → V} {Aa B : Term} :
     IsTy (interp V ρ (.pi Aa B)) := by
   rw [interp_pi]; exact IsTy_piV
 
 /-- **A `λ`, graded and placed at once** — the combined step every
 basis tower's walk takes: the fibre named once serves both
 `WellDenoted`'s existential and `lamV_mem`'s hypothesis. -/
-theorem WellDenoted_lam_piV {ρ : Nat → V} {Aa bd : ITerm}
+theorem WellDenoted_lam_piV {ρ : Nat → V} {Aa bd : Term}
     {F : V → V} (hA : WellDenoted V ρ Aa) (hAt : IsTy (interp V ρ Aa))
     (hb : ∀ x, x ∈ˢ interp V ρ Aa → WellDenoted V (cons x ρ) bd ∧
       interp V (cons x ρ) bd ∈ˢ F x)
@@ -1528,7 +1524,7 @@ theorem WellDenoted_lam_piV {ρ : Nat → V} {Aa bd : ITerm}
   exact lamV_mem (fun x hx => (hb x hx).2) hFt
 
 /-- `Quot.lift`'s invariance premise, read. -/
-def quotLiftInvTy (E : ITerm) : ITerm :=
+def quotLiftInvTy (E : Term) : Term :=
   .pi (.bvar 3)
     (.pi (.bvar 4)
       (.pi (.app (.app (.bvar 4) (.bvar 1)) (.bvar 0))
@@ -1536,7 +1532,7 @@ def quotLiftInvTy (E : ITerm) : ITerm :=
           (.app (.bvar 3) (.bvar 1)))))
 
 /-- `Quot.lift`'s type reading, named. -/
-def quotLiftTy (E : ITerm) (u v : Nat) : ITerm :=
+def quotLiftTy (E : Term) (u v : Nat) : Term :=
   .pi (.sort u)
     (.pi quotRelTy
       (.pi (.sort v)
@@ -1547,12 +1543,12 @@ def quotLiftTy (E : ITerm) (u v : Nat) : ITerm :=
 /-- **The invariance premise's reading is `quotInvSpace`, and it is
 graded** — the `Eq` bridge's two halves, at the three-binder
 `Prop`-valued telescope `Interp/Value.lean` states the law at. -/
-theorem quotLiftInvTy_data {E : ITerm} {v : Nat} {Aset R B f : V}
+theorem quotLiftInvTy_data {E : Term} {v : Nat} {Aset R B f : V}
     (ρ : Nat → V)
     (hval : ∀ (ρ' : Nat → V) (T x y : V), T ∈ˢ (univ v : V) →
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
-    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : ITerm),
+    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : Term),
       WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
@@ -1567,9 +1563,9 @@ theorem quotLiftInvTy_data {E : ITerm} {v : Nat} {Aset R B f : V}
       WellDenoted V (cons f (cons B (cons R (cons Aset ρ))))
         (quotLiftInvTy E) := by
   have hfm : ∀ a : V, a ∈ˢ Aset → app f a ∈ˢ B := fun a ha => app_mem_piV hf ha
-  have hd1 : interp V (cons f (cons B (cons R (cons Aset ρ)))) (ITerm.bvar 3) = Aset := by
+  have hd1 : interp V (cons f (cons B (cons R (cons Aset ρ)))) (Term.bvar 3) = Aset := by
     simp [interp_bvar, cons]
-  have hd2 : ∀ a : V, interp V (cons a (cons f (cons B (cons R (cons Aset ρ))))) (ITerm.bvar 4) = Aset := by
+  have hd2 : ∀ a : V, interp V (cons a (cons f (cons B (cons R (cons Aset ρ))))) (Term.bvar 4) = Aset := by
     intro a; simp [interp_bvar, cons]
   have hbody : ∀ a b : V, a ∈ˢ Aset → b ∈ˢ Aset → ∀ w : V,
       interp V (cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ)))))))
@@ -1583,7 +1579,7 @@ theorem quotLiftInvTy_data {E : ITerm} {v : Nat} {Aset R B f : V}
           (.app (.app (.app E (.bvar 4)) (.app (.bvar 3) (.bvar 2)))
             (.app (.bvar 3) (.bvar 1))) ∈ˢ (univZero : V) := by
     intro a b ha hb w
-    have hB' : interp V (cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ))))))) (ITerm.bvar 4)
+    have hB' : interp V (cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ))))))) (Term.bvar 4)
         = B := by simp [interp_bvar, cons]
     have hfa : interp V (cons w (cons b (cons a (cons f (cons B (cons R (cons Aset ρ)))))))
         (.app (.bvar 3) (.bvar 2)) = app f a := by
@@ -1671,11 +1667,11 @@ theorem quotLiftInvTy_data {E : ITerm} {v : Nat} {Aset R B f : V}
       (fun a ha => (hlev a (by rwa [hd1] at ha)).2)).1
 
 /-- **`Quot.lift`'s type reading is graded.** -/
-theorem quotLiftTy_wellDenoted {E : ITerm} {u v : Nat}
+theorem quotLiftTy_wellDenoted {E : Term} {u v : Nat}
     (hval : ∀ (ρ' : Nat → V) (T x y : V), T ∈ˢ (univ v : V) →
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
-    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : ITerm),
+    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : Term),
       WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
@@ -1698,7 +1694,7 @@ theorem quotLiftTy_wellDenoted {E : ITerm} {u v : Nat}
       (fun _ _ => trivial)
       (fun q _ => by
         rw [show interp V (cons q (cons h (cons f (cons B
-            (cons R (cons Aset ρ)))))) (ITerm.bvar 3) = B
+            (cons R (cons Aset ρ)))))) (Term.bvar 3) = B
           from by simp [interp_bvar, cons]]
         exact IsTy_of_mem_univ hB)
   have h5 : ∀ Aset R B f : V, Aset ∈ˢ (univ u : V) →
@@ -1720,7 +1716,7 @@ theorem quotLiftTy_wellDenoted {E : ITerm} {u v : Nat}
             (.pi (quotApp u 4 3) (.bvar 3)))) := by
     intro Aset R B hAset hR hB
     have hdom : interp V (cons B (cons R (cons Aset ρ)))
-        (ITerm.pi (.bvar 2) (.bvar 1))
+        (Term.pi (.bvar 2) (.bvar 1))
         = piV Aset (fun _ => B) := by
       rw [interp_pi]
       simp only [interp_bvar, cons]
@@ -1761,11 +1757,11 @@ theorem quotLiftTy_wellDenoted {E : ITerm} {u v : Nat}
 /-- **`Quot.lift` inhabits its type's reading**: the reading is
 `quotLiftV_mem`'s function space, binder by binder (the invariance
 premise's reading is `quotInvSpace`, the quotient's is `quotSet`). -/
-theorem quotLiftTy_mem {E : ITerm} {u v : Nat}
+theorem quotLiftTy_mem {E : Term} {u v : Nat}
     (hval : ∀ (ρ' : Nat → V) (T x y : V), T ∈ˢ (univ v : V) →
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
-    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : ITerm),
+    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : Term),
       WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
@@ -1787,7 +1783,7 @@ theorem quotLiftTy_mem {E : ITerm} {u v : Nat}
   rw [interp_pi, interp_sort]
   refine piV_congr fun B hB => ?_
   have hdom : interp V (cons B (cons R (cons Aset ρ)))
-      (ITerm.pi (.bvar 2) (.bvar 1)) = piV Aset (fun _ => B) := by
+      (Term.pi (.bvar 2) (.bvar 1)) = piV Aset (fun _ => B) := by
     rw [interp_pi]; simp only [interp_bvar, cons]
   rw [interp_pi, hdom]
   refine piV_congr fun f hf => ?_
@@ -1800,26 +1796,26 @@ theorem quotLiftTy_mem {E : ITerm} {u v : Nat}
 /-! ### `Quot.lift`'s type reading, and its rule -/
 
 /-- **`Quot.lift`'s type reading.** -/
-theorem denoteMeta_quotLiftA_type (ψ : Name → Nat)
+theorem denote_quotLiftA_type (ψ : Name → Nat)
     (hQ : env.find? quotName = some quotA)
     (hE : env.find? eqName = some eqA) :
-    denoteMeta (acvalWith m.acval quotLiftA.name A)
+    denote (acvalWith m.acval quotLiftA.name A)
         ⟨quotLiftA :: env.consts⟩ ψ 0 quotLiftA.toConstantVal.type
       = some (quotLiftTy
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) := by
   have hQc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotLiftA.name A)
+      denote (acvalWith m.acval quotLiftA.name A)
         ⟨quotLiftA :: env.consts⟩ ψ d (.const quotName [.param uN])
-        = some (ITerm.const .quot [ψ uN]) := fun d =>
-    denoteMeta_quotLeaf (m := m) (A := A) ψ (by decide) hQ d
+        = some (Term.const .quot [ψ uN]) := fun d =>
+    denote_quotLeaf (m := m) (A := A) ψ (by decide) hQ d
       (Level.param uN)
   have hEc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotLiftA.name A)
+      denote (acvalWith m.acval quotLiftA.name A)
         ⟨quotLiftA :: env.consts⟩ ψ d (.const eqName [.param vN])
         = some (m.acval eqName
             (Level.substFn ψ [uN] [Level.param vN])) := fun d =>
-    denoteMeta_eqLeaf (m := m) (A := A) ψ (Level.param vN) (by decide)
+    denote_eqLeaf (m := m) (A := A) ψ (Level.param vN) (by decide)
       hE d
   rw [show quotLiftA.toConstantVal.type
       = Expr.forallE (.sort (.param uN))
@@ -1842,12 +1838,12 @@ theorem denoteMeta_quotLiftA_type (ψ : Name → Nat)
                     (.app (.app (.const quotName [.param uN]) (.bvar 4))
                       (.bvar 3))
                     (.bvar 3)))))) from rfl]
-  simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+  simp [denote_forallE, denote_sort, denote_app, denote_fvar,
     Expr.instantiate1, quotRelTy, quotApp, quotLiftInvTy,
     quotLiftTy, hQc, hEc, Level.eval]
 
 /-- `Quot.lift`'s rule's RHS reading. -/
-def quotLiftRa (E : ITerm) (u v : Nat) : ITerm :=
+def quotLiftRa (E : Term) (u v : Nat) : Term :=
   .lam (.sort u)
     (.lam quotRelTy
       (.lam (.sort v)
@@ -1856,23 +1852,23 @@ def quotLiftRa (E : ITerm) (u v : Nat) : ITerm :=
             (.lam (.bvar 4) (.app (.bvar 2) (.bvar 0)))))))
 
 /-- **`Quot.lift`'s rule's RHS reading.** -/
-theorem denoteMeta_quotLift_rhs (ψ : Name → Nat)
+theorem denote_quotLift_rhs (ψ : Name → Nat)
     (hE : env.find? eqName = some eqA) :
-    denoteMeta (acvalWith m.acval quotLiftA.name A)
+    denote (acvalWith m.acval quotLiftA.name A)
         ⟨quotLiftA :: env.consts⟩ ψ 0 quotLiftRule.rhs
       = some (quotLiftRa
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) := by
   have hEc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval quotLiftA.name A)
+      denote (acvalWith m.acval quotLiftA.name A)
         ⟨quotLiftA :: env.consts⟩ ψ d (.const eqName [.param vN])
         = some (m.acval eqName
             (Level.substFn ψ [uN] [Level.param vN])) := fun d =>
-    denoteMeta_eqLeaf (m := m) (A := A) ψ (Level.param vN) (by decide)
+    denote_eqLeaf (m := m) (A := A) ψ (Level.param vN) (by decide)
       hE d
   simp only [quotLiftRule]
-  simp [denoteMeta_lam, denoteMeta_forallE, denoteMeta_sort, denoteMeta_app,
-    denoteMeta_fvar, Expr.instantiate1, quotRelTy, quotLiftInvTy,
+  simp [denote_lam, denote_forallE, denote_sort, denote_app,
+    denote_fvar, Expr.instantiate1, quotRelTy, quotLiftInvTy,
     quotLiftRa, hEc, Level.eval]
 
 /-! ### The RHS tower's space, membership and grading -/
@@ -1888,11 +1884,11 @@ noncomputable def quotLiftRaSpace (V : Type w) [SetTheory V]
             piV Aset fun _ => B
 
 /-- **The RHS tower is graded, and a member of `quotLiftRaSpace`.** -/
-theorem quotLiftRa_facts {E : ITerm} {u v : Nat}
+theorem quotLiftRa_facts {E : Term} {u v : Nat}
     (hval : ∀ (ρ' : Nat → V) (T x y : V), T ∈ˢ (univ v : V) →
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
-    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : ITerm),
+    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : Term),
       WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
@@ -1913,7 +1909,7 @@ theorem quotLiftRa_facts {E : ITerm} {u v : Nat}
           ∈ˢ piV Aset (fun _ => B) := by
     intro Aset R B f h hAset hR hB hf
     have hdom : interp V (cons h (cons f (cons B
-        (cons R (cons Aset ρ))))) (ITerm.bvar 4) = Aset := by
+        (cons R (cons Aset ρ))))) (Term.bvar 4) = Aset := by
       simp [interp_bvar, cons]
     have := WellDenoted_lam_piV (F := fun _ => B) (bd := .app (.bvar 2) (.bvar 0))
       (ρ := cons h (cons f (cons B (cons R (cons Aset ρ))))) (Aa := .bvar 4) trivial
@@ -1959,11 +1955,11 @@ theorem quotLiftRa_facts {E : ITerm} {u v : Nat}
               (fun _ => piV Aset (fun _ => B))) := by
     intro Aset R B hAset hR hB
     have hdom : interp V (cons B (cons R (cons Aset ρ)))
-        (ITerm.pi (.bvar 2) (.bvar 1))
+        (Term.pi (.bvar 2) (.bvar 1))
         = piV Aset (fun _ => B) := by
       rw [interp_pi]; simp only [interp_bvar, cons]
     have hdok : WellDenoted V (cons B (cons R (cons Aset ρ)))
-        (ITerm.pi (.bvar 2) (.bvar 1)) :=
+        (Term.pi (.bvar 2) (.bvar 1)) :=
       WellDenoted_pi_of (Aa := .bvar 2) trivial
         (by simpa [interp_bvar, cons] using IsTy_of_mem_univ hAset)
         (fun _ _ => trivial)
@@ -2033,11 +2029,11 @@ theorem quotLiftRa_facts {E : ITerm} {u v : Nat}
   rw [interp_sort] at this
   exact this
 
-theorem quotLiftRa_wellDenoted {E : ITerm} {u v : Nat}
+theorem quotLiftRa_wellDenoted {E : Term} {u v : Nat}
     (hval : ∀ (ρ' : Nat → V) (T x y : V), T ∈ˢ (univ v : V) →
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
-    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : ITerm),
+    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : Term),
       WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
@@ -2069,11 +2065,11 @@ theorem quotLiftV_fired {u v : Nat} {Aset R B f h a : V}
 
 /-- …and the RHS tower's own six-fold application is the same value
 (`app_lamV` six times, on the domains). -/
-theorem quotLiftRa_app {E : ITerm} {u v : Nat}
+theorem quotLiftRa_app {E : Term} {u v : Nat}
     (hval : ∀ (ρ' : Nat → V) (T x y : V), T ∈ˢ (univ v : V) →
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ' E) T) x) y = eqv x y)
-    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : ITerm),
+    (hgr : ∀ (ρ' : Nat → V) (Aa la ra : Term),
       WellDenoted V ρ' Aa → WellDenoted V ρ' la → WellDenoted V ρ' ra →
       interp V ρ' Aa ∈ˢ (univ v : V) →
       interp V ρ' la ∈ˢ interp V ρ' Aa →
@@ -2088,7 +2084,7 @@ theorem quotLiftRa_app {E : ITerm} {u v : Nat}
     app (app (app (app (app (app (interp V ρ (quotLiftRa E u v))
         Aset) R) B) f) h) a = app f a := by
   have hdom : interp V (cons B (cons R (cons Aset ρ)))
-      (ITerm.pi (.bvar 2) (.bvar 1)) = piV Aset (fun _ => B) := by
+      (Term.pi (.bvar 2) (.bvar 1)) = piV Aset (fun _ => B) := by
     rw [interp_pi]; simp only [interp_bvar, cons]
   obtain ⟨hinvint, -⟩ := quotLiftInvTy_data ρ hval hgr hR
     (IsTy_of_mem_univ hAset) hB hf
@@ -2099,7 +2095,7 @@ theorem quotLiftRa_app {E : ITerm} {u v : Nat}
     interp_lam, hinvint, app_lamV hh,
     interp_lam,
     show interp V (cons h (cons f (cons B (cons R (cons Aset ρ)))))
-      (ITerm.bvar 4) = Aset from by simp [interp_bvar, cons],
+      (Term.bvar 4) = Aset from by simp [interp_bvar, cons],
     app_lamV ha]
   simp [interp_app, interp_bvar, cons]
 
@@ -2113,7 +2109,7 @@ theorem quotLiftExtra {m : EnvModel V env}
     (hM : env.find? quotMkName = some quotMkA)
     (hE : env.find? eqName = some eqA)
     (hac : m₂.acval = acvalWith m.acval quotLiftA.name
-      (fun ψ => ITerm.const .quotLift [ψ uN, ψ vN]))
+      (fun ψ => Term.const .quotLift [ψ uN, ψ vN]))
     (φ : Name → Nat) :
     RecRuleExtra m₂ φ quotLiftA.name quotLiftA.toConstantVal 5 5
       quotLiftRule := by
@@ -2121,14 +2117,14 @@ theorem quotLiftExtra {m : EnvModel V env}
   obtain ⟨ψ, hψ⟩ : ∃ ψ : Name → Nat,
       ψ = Level.substFn φ quotLiftA.toConstantVal.levelParams us :=
     ⟨_, rfl⟩
-  have hTyRead : denoteMeta m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
+  have hTyRead : denote m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
       (quotLiftA.toConstantVal.type.instantiateLevelParams
         quotLiftA.toConstantVal.levelParams us)
       = some (quotLiftTy
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) := by
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
-      denoteMeta_quotLiftA_type (m := m) _ hQ hE]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+      denote_quotLiftA_type (m := m) _ hQ hE]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
   have hM' : (⟨quotLiftA :: env.consts⟩ : Env).find? quotMkName
@@ -2159,27 +2155,27 @@ theorem quotLiftExtra {m : EnvModel V env}
   have hctorOf : ∀ usj : List Level,
       m₂.acval (RecRule.ctor quotLiftRule)
         (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
-      = ITerm.const .quotMk [Level.substFn φ quotMkA.toConstantVal.levelParams usj uN] := by
+      = Term.const .quotMk [Level.substFn φ quotMkA.toConstantVal.levelParams usj uN] := by
     intro usj
     rw [show RecRule.ctor quotLiftRule = quotMkName from rfl, hac,
       acvalWith_ne (by decide)]
     refine acval_basis_pinned (m := m) hM (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hCtorRead : ∀ usj : List Level,
-      denoteMeta m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
+      denote m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
         (quotMkA.toConstantVal.type.instantiateLevelParams
           quotMkA.toConstantVal.levelParams usj)
       = some (quotMkTy
           (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
     intro usj
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
-      denoteMeta_quotMkTy (m := m) _ (by decide) hQ]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+      denote_quotMkTy (m := m) _ (by decide) hQ]
   -- the major's domain: the quotient at the recursor's parameters
-  have hpeel : ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm), xs.length = 5 →
+  have hpeel : ∀ (ρ : Nat → V) (xs : List Term) (a restR : Term), xs.length = 5 →
       TeleFitPA V ρ (quotLiftTy
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) (xs ++ [a]) restR →
-      ∃ x1 x2 : ITerm, x1 ∈ xs ∧ x2 ∈ xs ∧ interp V ρ x1 ∈ˢ (univ (ψ uN) : V) ∧
+      ∃ x1 x2 : Term, x1 ∈ xs ∧ x2 ∈ xs ∧ interp V ρ x1 ∈ˢ (univ (ψ uN) : V) ∧
         interp V ρ x2 ∈ˢ relSpace V (interp V ρ x1) ∧
         interp V ρ a ∈ˢ quotSet (ψ uN) (interp V ρ x1) (interp V ρ x2) := by
     intro ρ xs a restR hxs hfit
@@ -2206,7 +2202,7 @@ theorem quotLiftExtra {m : EnvModel V env}
     exact ⟨x1, x2, by simp, by simp, f1, f2, f6⟩
   have hext := fun usj hlev => quotRuleExtra_of (V := V) hQ' (hulevOf usj hlev)
     ((hctorOf usj).trans (by rw [hulevOf usj hlev]))
-    (P := fun ρ a => ∃ (xs : List ITerm) (restR : ITerm),
+    (P := fun ρ a => ∃ (xs : List Term) (restR : Term),
       xs.length = 5 ∧ TeleFitPA V ρ (quotLiftTy
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) (xs ++ [a]) restR)
@@ -2254,7 +2250,7 @@ theorem quotLiftLaw {m : EnvModel V env}
     (hM : env.find? quotMkName = some quotMkA)
     (hE : env.find? eqName = some eqA) (heq : EqLaw m)
     (hac : m₂.acval = acvalWith m.acval quotLiftA.name
-      (fun ψ => ITerm.const .quotLift [ψ uN, ψ vN]))
+      (fun ψ => Term.const .quotLift [ψ uN, ψ vN]))
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ quotLiftA.name quotLiftA.toConstantVal 5 5
       quotLiftRule := by
@@ -2268,14 +2264,14 @@ theorem quotLiftLaw {m : EnvModel V env}
   obtain ⟨hval0, hgr0⟩ :=
     heq hE (Level.substFn ψ [uN] [Level.param vN])
   rw [hEuN] at hval0 hgr0
-  have hRa : denoteMeta m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
+  have hRa : denote m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
       (quotLiftRule.rhs.instantiateLevelParams
         quotLiftA.toConstantVal.levelParams us)
       = some (quotLiftRa
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) := by
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
-      denoteMeta_quotLift_rhs (m := m) _ hE]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+      denote_quotLift_rhs (m := m) _ hE]
   refine ⟨_, hRa,
     fun ρ => quotLiftRa_wellDenoted hval0 hgr0 ρ, ?_, ?_⟩
   · intro _ _ h
@@ -2305,23 +2301,23 @@ theorem quotLiftLaw {m : EnvModel V env}
       us (.param uN)) = _
     rw [Level.subst, Level.eval_subst_go]
   -- the two readings, identified
-  have hTyRead : denoteMeta m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
+  have hTyRead : denote m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
       (quotLiftA.toConstantVal.type.instantiateLevelParams
         quotLiftA.toConstantVal.levelParams us)
       = some (quotLiftTy
           (m.acval eqName (Level.substFn ψ [uN] [Level.param vN]))
           (ψ uN) (ψ vN)) := by
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
-      denoteMeta_quotLiftA_type (m := m) _ hQ hE]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac, hψ,
+      denote_quotLiftA_type (m := m) _ hQ hE]
   obtain rfl : TVa = _ :=
     (Option.some.inj (hTyRead.symm.trans hTVa)).symm
-  have hCtorRead : denoteMeta m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
+  have hCtorRead : denote m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
       (quotMkA.toConstantVal.type.instantiateLevelParams
         quotMkA.toConstantVal.levelParams usj)
       = some (quotMkTy
           (Level.substFn φ quotMkA.toConstantVal.levelParams usj uN)) := by
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core m₂) φ, hac,
-      denoteMeta_quotMkTy (m := m) _ (by decide) hQ]
+    rw [denote_instLevels (acvalParamsAt_of_core m₂) φ, hac,
+      denote_quotMkTy (m := m) _ (by decide) hQ]
   obtain rfl : TVja = _ :=
     (Option.some.inj (hCtorRead.symm.trans hTVja)).symm
   -- peel the recursor's telescope
@@ -2360,25 +2356,25 @@ theorem quotLiftLaw {m : EnvModel V env}
   -- the two leaves
   have hrecL : m₂.acval quotLiftA.name
       (Level.substFn φ quotLiftA.toConstantVal.levelParams us)
-      = ITerm.const .quotLift [ψ uN, ψ vN] := by
+      = Term.const .quotLift [ψ uN, ψ vN] := by
     rw [hac, acvalWith_self, hψ]
   have hctorL0 : m₂.acval quotMkName
       (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
-      = ITerm.const .quotMk
+      = Term.const .quotMk
         [Level.substFn φ quotMkA.toConstantVal.levelParams usj uN] := by
     rw [hac, acvalWith_ne (by decide)]
     refine acval_basis_pinned (m := m) hM (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hctorL : m₂.acval quotMkName
       (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
-      = ITerm.const .quotMk [ψ uN] := by rw [hctorL0, hulev]
+      = Term.const .quotMk [ψ uN] := by rw [hctorL0, hulev]
   -- the major premise's fit: the class formed at the CONSTRUCTOR's
   -- parameters lies in the quotient at the recursor's, which is all the
   -- rule needs — the two parameter spines are never compared
   have hmem : quotClass (ψ uN) (interp V ρ y1) (interp V ρ y2) (interp V ρ y3)
       ∈ˢ quotSet (ψ uN) (interp V ρ x1) (interp V ρ x2) := by
     simp only [show RecRule.ctor quotLiftRule = quotMkName from rfl,
-      ITerm.mkAppN_cons, ITerm.mkAppN_nil, interp_app,
+      Term.mkAppN_cons, Term.mkAppN_nil, interp_app,
       hctorL, interp_const, bval, ConLeche.Term.lv,
       List.getD_cons_zero] at f6
     rwa [quotMkV_app V g1 (g2) g3] at f6
@@ -2388,7 +2384,7 @@ theorem quotLiftLaw {m : EnvModel V env}
     simp only [show RecRule.ctor quotLiftRule = quotMkName from rfl,
       show quotLiftRule.ctorParams = 2 from rfl,
       List.take, List.drop, List.cons_append, List.nil_append,
-      ITerm.mkAppN_cons, ITerm.mkAppN_nil, hrecL, hctorL,
+      Term.mkAppN_cons, Term.mkAppN_nil, hrecL, hctorL,
       interp_app, interp_const, bval, ConLeche.Term.lv,
       List.getD_cons_zero, List.getD_cons_succ]
     rw [quotMkV_app V g1 (g2) g3, hcls,
@@ -2398,7 +2394,7 @@ theorem quotLiftLaw {m : EnvModel V env}
     intro hxsA hysA
     simp only [show quotLiftRule.ctorParams = 2 from rfl,
       List.take, List.drop, List.cons_append, List.nil_append,
-      ITerm.mkAppN_cons, ITerm.mkAppN_nil]
+      Term.mkAppN_cons, Term.mkAppN_nil]
     have hRa := quotLiftRa_facts (u := ψ uN) hval0 hgr0 ρ
     have hRm := hRa.2
     rw [quotLiftRaSpace] at hRm
@@ -2418,7 +2414,7 @@ theorem quotLift_eqLaws (mp : EnvModelM V μ env)
       x ∈ˢ T → y ∈ˢ T →
       app (app (app (interp V ρ (mp.base2.acval eqName
         (Level.substFn ψ [uN] [Level.param vN]))) T) x) y = eqv x y) ∧
-    (∀ (ρ : Nat → V) (Aa la ra : ITerm),
+    (∀ (ρ : Nat → V) (Aa la ra : Term),
       WellDenoted V ρ Aa → WellDenoted V ρ la → WellDenoted V ρ ra →
       interp V ρ Aa ∈ˢ (univ (ψ vN) : V) →
       interp V ρ la ∈ˢ interp V ρ Aa →
@@ -2444,10 +2440,10 @@ theorem extendQuotLift (mp : EnvModelM V μ env)
     (hwf : EnvWF ⟨quotLiftA :: env.consts⟩) {ex : List Name} :
     CoverTo mp ex ⟨quotLiftA :: env.consts⟩ ex := by
   have hty := fun ψ =>
-    denoteMeta_quotLiftA_type (m := mp.base2)
-      (A := fun ψ => ITerm.const .quotLift [ψ uN, ψ vN]) ψ hQ hE
+    denote_quotLiftA_type (m := mp.base2)
+      (A := fun ψ => Term.const .quotLift [ψ uN, ψ vN]) ψ hQ hE
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_basis_rec_cons mp
-    (A := fun ψ => ITerm.const .quotLift [ψ uN, ψ vN]) hfresh
+    (A := fun ψ => Term.const .quotLift [ψ uN, ψ vN]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (by decide) (Or.inl (fun _ h => nomatch h))
@@ -2455,8 +2451,7 @@ theorem extendQuotLift (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT quotLiftA.name ψ
           = some (Term.const .quotLift [ψ uN, ψ vN]) from rfl] at hp
-        rw [← Option.some.inj hp]
-        rfl)
+        rw [← Option.some.inj hp])
       (fun _ h => nomatch h)
       (fun _ _ _ _ heq r hr => by
         injection heq with _ _ _ h4

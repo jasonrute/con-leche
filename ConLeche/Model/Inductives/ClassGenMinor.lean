@@ -1,6 +1,7 @@
 module
 
-import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
 import ConLeche.Semantics.Tower.SumTower
 import ConLeche.Verify.Inductives.ClassGenMinorSyn
 import ConLeche.Model.Env.LfpFormer
@@ -42,7 +43,7 @@ domain is read at depth `mp`; the rule frame is at depth `rP` (the whole
 prefix).  The reading is peeled at `mp`, where the generator's own
 `closeTelescope` lives (so the opened pieces are the raw pieces, up
 to erasure — the type is stored as generated), and moved to `rP` by the de Bruijn lift over the
-`rP - mp` later prefix binders (`denoteMeta_lift` on the model side is
+`rP - mp` later prefix binders (`denote_lift` on the model side is
 free: `stripPisAV` of a lifted reading is the lifted pieces).  Three
 readings of openings at different depths meet:
 
@@ -70,7 +71,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ClassGen ClassGenScoped ClassCtor ScB closeTelescope
   classGenRecTy classBinder)
 

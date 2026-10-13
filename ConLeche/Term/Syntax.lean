@@ -235,6 +235,43 @@ def projPair? : Nat → Term → Option Term
   | 1, e => some (.snd e)
   | _ + 2, _ => none
 
+/-- The decoder is defined exactly at the two field indices, so a
+decoded projection still witnesses the old side condition. -/
+theorem lt_of_projPair? {i : Nat} {e x : Term} (h : projPair? i e = some x) :
+    i < 2 := by
+  rcases i with _ | _ | i
+  · omega
+  · omega
+  · exact nomatch h
+
+/-- …and conversely: below the bound the decoder always fires, on any
+subject.  Definedness depends on the index alone. -/
+theorem projPair?_exists_of_lt {i : Nat} (h : i < 2) (e : Term) :
+    ∃ x, projPair? i e = some x := by
+  rcases i with _ | _ | i
+  · exact ⟨.fst e, rfl⟩
+  · exact ⟨.snd e, rfl⟩
+  · omega
+
+/-- A decoded projection is one of the two formers on the same
+subject — the case split consumers of the decoder want. -/
+theorem projPair?_cases {i : Nat} {e x : Term} (h : projPair? i e = some x) :
+    x = .fst e ∨ x = .snd e := by
+  rcases i with _ | _ | i
+  · exact Or.inl (Option.some.inj h).symm
+  · exact Or.inr (Option.some.inj h).symm
+  · exact nomatch h
+
+/-- The same split for two decodings **at one index**: a congruence
+site sees the same former on both sides. -/
+theorem projPair?_cases₂ {i : Nat} {e x e' x' : Term}
+    (h : projPair? i e = some x) (h' : projPair? i e' = some x') :
+    (x = .fst e ∧ x' = .fst e') ∨ (x = .snd e ∧ x' = .snd e') := by
+  rcases i with _ | _ | i
+  · exact Or.inl ⟨(Option.some.inj h).symm, (Option.some.inj h').symm⟩
+  · exact Or.inr ⟨(Option.some.inj h).symm, (Option.some.inj h').symm⟩
+  · exact nomatch h
+
 end Term
 
 end ConLeche.Term

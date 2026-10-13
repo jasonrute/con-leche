@@ -32,14 +32,14 @@ the tower (`spineFit_of_wellDenoted_mkAppN_pi`).  The tower is the
 motive's type, `Π ı⃗ (t : I D⃗ ı⃗), Sort`, read at the motive's slot; the
 callee's index and major domains are the same telescope opened at the
 rule prefix — the slot's opening shifted (`openPisAtFvars_shiftIter`),
-read lifted past the prefix's later slots (`denoteMeta_shiftIter`).
+read lifted past the prefix's later slots (`denote_shiftIter`).
 -/
 
 namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
@@ -98,26 +98,26 @@ theorem wscoped_shiftIter {d k : Nat} {e : Expr} (he : Expr.WScoped (d + k) e) :
 
 /-- **The reading of an `m`-times shifted term** at `m` more binders is
 the reading lifted by `m` at the term's own local depth `k`. -/
-theorem denoteMeta_shiftIter {acval : Name → (Name → Nat) → ITerm} {env : Env}
+theorem denote_shiftIter {acval : Name → (Name → Nat) → Term} {env : Env}
     {φ : Name → Nat}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (acval n ψ).liftN 1 k = acval n ψ)
     {d k : Nat} {e : Expr} (he : Expr.WScoped (d + k) e) :
-    ∀ m, denoteMeta acval env φ (d + m + k) (shiftIter d m e)
-      = (denoteMeta acval env φ (d + k) e).map (ITerm.liftN m · k)
+    ∀ m, denote acval env φ (d + m + k) (shiftIter d m e)
+      = (denote acval env φ (d + k) e).map (Term.liftN m · k)
   | 0 => by
-    cases h : denoteMeta acval env φ (d + k) e <;> simp [shiftIter, h, ITerm.liftN_zero]
+    cases h : denote acval env φ (d + k) e <;> simp [shiftIter, h, Term.liftN_zero]
   | m + 1 => by
-    have ih := denoteMeta_shiftIter (env := env) (φ := φ) hacl he m
+    have ih := denote_shiftIter (env := env) (φ := φ) hacl he m
     have hw := wscoped_shiftIter he m
-    show denoteMeta acval env φ (d + (m + 1) + k) (Expr.shiftFrom (d + m) (shiftIter d m e)) = _
+    show denote acval env φ (d + (m + 1) + k) (Expr.shiftFrom (d + m) (shiftIter d m e)) = _
     rw [show d + (m + 1) + k = d + m + k + 1 by omega,
-      denoteMeta_shiftFrom hacl _ _ (by omega) hw, ih,
+      denote_shiftFrom hacl _ _ (by omega) hw, ih,
       show d + m + k - (d + m) = k by omega]
-    cases denoteMeta acval env φ (d + k) e with
+    cases denote acval env φ (d + k) e with
     | none => rfl
     | some a =>
       simp only [Option.map_some]
-      rw [ITerm.liftN_liftN, Nat.add_comm 1 m]
+      rw [Term.liftN_liftN, Nat.add_comm 1 m]
 
 end Shift
 
@@ -156,7 +156,7 @@ theorem genMotRds (hμ : μ.verifiedChecks = true)
     (ψ : Name → Nat) {c T t st : Nat} (hc : c < (tgtRs out).length) (hT : T < (tgtRs out).length)
     (hct : genClsOf R.rd T = t)
     (hst : ConLeche.ClassRead.motiveSlot ⟨R.g.slots, []⟩ t = some st) :
-    ∃ (pds : List ITerm) (R0 : ITerm),
+    ∃ (pds : List Term) (R0 : Term),
       (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
           (R.g.nP + st) default = mkPisAV pds R0 ∧ R0 = .sort (Level.eval ψ R.g.elim) ∧
       ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ T)).drop
@@ -205,13 +205,13 @@ theorem genMotRds (hμ : μ.verifiedChecks = true)
   have hbb : (Expr.forallE majD (.sort R.g.elim)).looseBVarsBounded 0 = true := by
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true]
     exact ⟨hmajS.2, trivial⟩
-  obtain ⟨bs, b, hPE, hbl, hbs, hb⟩ := denoteMeta_closeTelescope_read _ d _ _ hcl hbb hyE hrd
-  rw [denoteMeta_forallE] at hb
+  obtain ⟨bs, b, hPE, hbl, hbs, hb⟩ := denote_closeTelescope_read _ d _ _ hcl hbb hyE hrd
+  rw [denote_forallE] at hb
   obtain ⟨A, hA, hb⟩ := Option.bind_eq_some_iff.mp hb
   obtain ⟨B, hBr, hb⟩ := Option.bind_eq_some_iff.mp hb
   obtain rfl := (Option.some.inj hb).symm
   simp only [Expr.instantiate1] at hBr
-  rw [denoteMeta_sort] at hBr
+  rw [denote_sort] at hBr
   obtain rfl := (Option.some.inj hBr).symm
   -- the callee's index and major domains
   obtain ⟨cls, tyT, ifsR, bodyR, hgcT, hMT, htyT, hopT, hiflT, hRPT, -, hlenRdsT, hidxR, hmajR,
@@ -253,7 +253,7 @@ theorem genMotRds (hμ : μ.verifiedChecks = true)
       have hRk := hidxR k (shiftIter d m z) (by rw [List.getElem?_map, hz]; rfl)
       rw [hzE, shiftIter_fvar k tz m, hRPT] at hRk
       simp only [Expr.fvarTypeD] at hRk
-      rw [hrP, denoteMeta_shiftIter mpC.base2.acval_closed hzS.1 m] at hRk
+      rw [hrP, denote_shiftIter mpC.base2.acval_closed hzS.1 m] at hRk
       simp only [ConLeche.classBinder, hzE, Expr.fvarTypeD] at hra
       rw [hra] at hRk
       simp only [Option.map_some, Option.some.injEq] at hRk
@@ -263,7 +263,7 @@ theorem genMotRds (hμ : μ.verifiedChecks = true)
     · -- the major domain
       obtain rfl : k = ifsD.length := by omega
       have hmajS' : Expr.WScoped (d + ifsD.length) majD := hmajS.1
-      have hsh := denoteMeta_shiftIter (env := envC) (φ := ψ) mpC.base2.acval_closed hmajS' m
+      have hsh := denote_shiftIter (env := envC) (φ := ψ) mpC.base2.acval_closed hmajS' m
       rw [List.length_map] at hA
       rw [hA, hmajE, shiftIter_mkAppN, List.map_append,
         List.map_congr_left (l := (R.g.cls.getD cls default).ds) (g := id) (fun e he =>
@@ -288,7 +288,7 @@ variable {F : Nat} {env₁ envC : Env} {pp : BlockParts} {nestedBit : Bool} {pos
 
 /-- A spine's `k`-th value lies in its domain at the spine's first `k`. -/
 theorem spineFit_mem_getD :
-    ∀ {Ds : List ITerm} {ρ : Nat → V} {xs : List V}, SpineFit ρ Ds xs →
+    ∀ {Ds : List Term} {ρ : Nat → V} {xs : List V}, SpineFit ρ Ds xs →
       ∀ k, k < Ds.length → xs.getD k pt ∈ˢ interp V (consList (xs.take k) ρ) (Ds.getD k default)
   | [], _, _, _, k, hk => absurd hk (Nat.not_lt_zero _)
   | _ :: _, _, [], h, _, _ => h.elim
@@ -308,7 +308,7 @@ theorem genPdoms_read (hμ : μ.verifiedChecks = true)
     (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
         = R.g.pre.length ∧
       ∀ (i : Nat) (b : Expr), R.g.pre[i]? = some b →
-        denoteMeta mpC.base2.acval envC ψ i b
+        denote mpC.base2.acval envC ψ i b
           = some ((blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD i
               default) := by
   have hrc : (tgtRs out)[c]? = some ((tgtRs out)[c]'hc) := List.getElem?_eq_getElem hc
@@ -325,7 +325,7 @@ theorem genPdoms_read (hμ : μ.verifiedChecks = true)
   obtain ⟨y, hy⟩ : ∃ y, fvs1[i]? = some y := ⟨_, List.getElem?_eq_getElem (by omega)⟩
   have hyE := hE i y b hy (by rw [List.append_assoc, List.getElem?_append_left hi, hb])
   obtain ⟨pd, hpd, hrd⟩ := hdomsR1 i y hy
-  rw [← denoteMeta_erasedEq hyE, hrd, blockRulePdomsAV, List.getD_eq_getElem?_getD,
+  rw [← denote_erasedEq hyE, hrd, blockRulePdomsAV, List.getD_eq_getElem?_getD,
     List.getElem?_take, ite_eq_left (by omega), hpd]
   rfl
 
@@ -365,7 +365,7 @@ theorem genIhMot (hμ : μ.verifiedChecks = true)
       ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) (xs ++ fs) →
     ∀ q ∈ genIhdAV mpC.base2.acval envC R.g R.rd ψ c j,
     ∀ bs, SpineFit (consList (xs ++ fs) ρ) q.2.1 bs →
-      ∃ (t st : Nat) (pds : List ITerm),
+      ∃ (t st : Nat) (pds : List Term),
         q.1 < (tgtRs out).length ∧ genClsOf R.rd q.1 = t ∧
         ConLeche.ClassRead.motiveSlot ⟨R.g.slots, []⟩ t = some st ∧
         R.g.nP + st < R.g.pre.length ∧ xs.length = R.g.pre.length ∧

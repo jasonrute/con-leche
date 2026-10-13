@@ -10,7 +10,7 @@ public section
 # `EnvModel` — the environment carrier (task #161, P4)
 
 The leaf valuation `acval` with the facts the model tier reads of it:
-the fold stores each new constant's leaf as its **`denoteMeta`
+the fold stores each new constant's leaf as its **`denote`
 reading** (so that unfolding does not move the reading), and the carrier holds only the
 syntactic, `V`-free facts about the environment plus the leaves'
 closedness, parameter footprint and truthfulness.
@@ -21,7 +21,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo)
 
 universe w
@@ -32,20 +32,18 @@ variable (V : Type w) [SetTheory V]
 fields the P surface reads.  The syntactic facts come from the shared
 model-free base — `EnvWF` (`Verify/EnvWF`), `BasisPinnedTT`
 (`Verify/Denote/Pinned`), `ProjOkT`/`RecCtorsStored` (`Verify/EnvPreds`)
-— and the erased valuation is *recovered* rather than stored:
-`cvalE = erase ∘ acval`, so `acval_erase` is `rfl`. -/
+— and the leaf valuation `acval`. -/
 structure EnvModel (env : Env) where
   /-- the shared, model-free environment well-formedness -/
   wf : EnvWF env
   /-- the leaf valuation: each constant's reading at a level assignment -/
-  acval : Name → (Name → Nat) → ITerm
-  /-- every erased leaf is closed; consumers read the `cvalE`-spelled `cval_closed` below -/
-  cval_closedL : ∀ (n : Name) (ψ : Name → Nat),
-    Term.Closed ((acval n ψ).erase)
+  acval : Name → (Name → Nat) → Term
+  /-- every leaf is closed -/
+  cval_closed : ∀ (n : Name) (ψ : Name → Nat),
+    Term.Closed (acval n ψ)
   /-- the reserved basis constants are the pinned declarations, valued
-  by their direct pins (V-free); consumers
-  read the `cvalE`-spelled `basis_pinned` below -/
-  basis_pinnedL : BasisPinnedTT env (fun n ψ => (acval n ψ).erase)
+  by their direct pins (V-free) -/
+  basis_pinned : BasisPinnedTT env acval
   /-- every stored native projection-table entry is a pinned pair
   entry with its block stored (V-free, shared) -/
   proj_ok : ProjOkT env
@@ -67,38 +65,13 @@ structure EnvModel (env : Env) where
 
 variable {V}
 
-/-- **The erased valuation, recovered**: `ITerm.erase` is a total
-syntactic function the carrier already owns. -/
-@[expose] def EnvModel.cvalE {env : Env} (m : EnvModel V env) : TConstVal :=
-  fun n ψ => (m.acval n ψ).erase
-
-/-- **`acval_erase` is `rfl`** — with `cvalE` derived it is a
-definitional identity, consumed as a rewriting equation. -/
-theorem EnvModel.acval_erase {env : Env} (m : EnvModel V env) :
-    ∀ (n : Name) (ψ : Name → Nat), (m.acval n ψ).erase = m.cvalE n ψ :=
-  fun _ _ => rfl
-
-/-- `cval_closedL` at the `cvalE` spelling — the form every consumer
-reads.  The field is stated at the
-literal erasure so that the carrier can be built without naming
-`cvalE`; the two are definitionally the same fact, and only the
-*spelling* matters to `rw`. -/
-theorem EnvModel.cval_closed {env : Env} (m : EnvModel V env) :
-    ∀ (n : Name) (ψ : Name → Nat), Term.Closed (m.cvalE n ψ) :=
-  m.cval_closedL
-
-/-- `basis_pinnedL` at the `cvalE` spelling. -/
-theorem EnvModel.basis_pinned {env : Env} (m : EnvModel V env) :
-    BasisPinnedTT env m.cvalE :=
-  m.basis_pinnedL
-
-/-- **A pinned constant's leaf is its direct pin**: `basis_pinnedL`'s
+/-- **A pinned constant's leaf is its direct pin**: `basis_pinned`'s
 second component. -/
-theorem EnvModel.cvalE_pinned {env : Env} (m : EnvModel V env)
+theorem EnvModel.acval_pinned {env : Env} (m : EnvModel V env)
     {n : Name} (hres : ConLeche.reservedBasisNames.contains n = true)
     (hst : (env.find? n).isSome = true) (ψ : Name → Nat) {t : Term}
     (hpin : ConLeche.Verify.pinnedStructT n ψ = some t) :
-    m.cvalE n ψ = t := by
+    m.acval n ψ = t := by
   cases hf : env.find? n with
   | none => rw [hf] at hst; exact nomatch hst
   | some ci => exact (m.basis_pinned n ci hf hres).2 t ψ hpin
@@ -108,8 +81,8 @@ theorem EnvModel.cvalE_pinned {env : Env} (m : EnvModel V env)
 @[expose] def EnvModel.empty : EnvModel V Env.empty where
   wf := by intro c hc; cases hc
   acval := fun _ _ => .const .empty [0]
-  cval_closedL := fun _ _ => trivial
-  basis_pinnedL := BasisPinnedTT.empty _
+  cval_closed := fun _ _ => trivial
+  basis_pinned := BasisPinnedTT.empty _
   proj_ok := ProjOkT.empty
   rec_ctors := RecCtorsStored.empty
   acval_closed := fun _ _ _ => rfl

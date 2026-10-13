@@ -9,7 +9,8 @@ import ConLeche.Model.Inductives.GenRuleFree
 import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Reading.Lemmas
 import ConLeche.Model.Env.LfpFormer
-import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Model.Inductives.BlockRuleGrading
 import ConLeche.Model.Inductives.BlockRecPreRun
@@ -35,7 +36,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
@@ -46,8 +47,8 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-- **A graded Π-tower grades its binder domains** along any spine
 fitting the domains before them. -/
-theorem wellDenoted_piDom_at {B : ITerm} :
-    ∀ {tl : List ITerm} {ρ : Nat → V},
+theorem wellDenoted_piDom_at {B : Term} :
+    ∀ {tl : List Term} {ρ : Nat → V},
       WellDenoted V ρ (mkPisAV tl B) → ∀ l, l < tl.length → ∀ zs : List V,
       SpineFit ρ (tl.take l) zs →
         WellDenotedTy V (consList zs ρ) (tl.getD l default)
@@ -87,7 +88,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
     (ψ : Name → Nat) {c j : Nat} (hc : c < (tgtRs out).length)
     (hj : j < blockRecNCt (tgtRs out) c) :
-    ∃ (bs : List ITerm) (b : ITerm),
+    ∃ (bs : List Term) (b : Term),
       (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length ≤ bs.length ∧
       bs.take (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length
         = tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ∧
@@ -115,7 +116,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
   have hyE := hE _ y T hy (by
     rw [List.append_assoc, List.getElem?_append_left (by omega), hpreT])
   obtain ⟨pd, hpd, hrd⟩ := hdomsR _ y hy
-  rw [denoteMeta_erasedEq hyE] at hrd
+  rw [denote_erasedEq hyE] at hrd
   -- the prefix's entry: the minor's value, graded there
   have hlenPd := blockRulePdomsAV_length (V := V) hμ mpC h hr ψ
   have hPdget : (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).getD
@@ -123,7 +124,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
     rw [blockRulePdomsAV, List.getD_eq_getElem?_getD, List.getElem?_take,
       ite_eq_left (by omega), hpd]; rfl
   -- read at the rule prefix
-  have hlift := denoteMeta_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hTs.1 R.g.pre.length
+  have hlift := denote_lift (env := envC) (φ := ψ) mpC.base2.acval_closed hTs.1 R.g.pre.length
     (by omega)
   rw [hrd, Option.map_some] at hlift
   -- the pieces are bounded
@@ -179,7 +180,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
         obtain ⟨ty, hxe, hty⟩ := hfvsS k _ (List.getElem?_eq_getElem hk)
         rw [hxe]; exact ConLeche.ScB.fvar (by omega) (hty.mono (by omega))
   obtain ⟨bs, b, hBE, hbl, hbs, hb⟩ :=
-    denoteMeta_closeTelescope_read _ _ _ T hcl hbbS.2 (by rw [← hTE]; exact Expr.ErasedEq.rfl _)
+    denote_closeTelescope_read _ _ _ T hcl hbbS.2 (by rw [← hTE]; exact Expr.ErasedEq.rfl _)
       hlift
   -- the rule frame's field domains are the tower's first domains
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP

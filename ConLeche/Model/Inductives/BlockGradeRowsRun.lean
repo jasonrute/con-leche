@@ -24,7 +24,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 universe w
@@ -44,7 +44,7 @@ section CtorReadings
 at the frame's own depth is graded at the chain frame exactly when it
 is at the base frame. -/
 theorem wellDenoted_liftN_chainFrame {K : Nat} {a ρ : Nat → V} (ws : List V)
-    (e : ITerm) :
+    (e : Term) :
     WellDenoted V (consList ws (chainFrame K a ρ)) (e.liftN K ws.length)
       ↔ WellDenoted V (consList ws ρ) e := by
   rw [WellDenoted_liftN, chainFrame,

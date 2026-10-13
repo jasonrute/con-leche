@@ -25,7 +25,7 @@ reading counts exactly the syntactic binders (`read_of_sortTail`).
 namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal)
 
 universe w
@@ -151,17 +151,17 @@ theorem tail_instPisWith :
 
 /-- **A reading that is a Π-tower ending in a sort** comes from a term
 whose syntactic tail is no variable. -/
-theorem tailOk_of_read {acval : Name → (Name → Nat) → ITerm} :
-    ∀ (n : Nat) (e : Expr) {d : Nat} {ab : List ITerm} {u : Nat},
-      piCount e = n → denoteMeta acval env φ d e = some (mkPisAV ab (.sort u)) → TailOk e := by
+theorem tailOk_of_read {acval : Name → (Name → Nat) → Term} :
+    ∀ (n : Nat) (e : Expr) {d : Nat} {ab : List Term} {u : Nat},
+      piCount e = n → denote acval env φ d e = some (mkPisAV ab (.sort u)) → TailOk e := by
   intro n
   induction n with
   | zero =>
     intro e d ab u hn h
     match e, hn, h with
-    | .bvar _, _, h => rw [denoteMeta_bvar] at h; exact nomatch h
+    | .bvar _, _, h => rw [denote_bvar] at h; exact nomatch h
     | .fvar idx ty, _, h =>
-      rw [denoteMeta_fvar] at h
+      rw [denote_fvar] at h
       cases ab with
       | nil => simp [mkPisAV] at h
       | cons => simp [mkPisAV] at h
@@ -177,21 +177,21 @@ theorem tailOk_of_read {acval : Name → (Name → Nat) → ITerm} :
     match e, hn, h with
     | .forallE ty b, hn, h =>
       simp only [piCount, Nat.add_right_cancel_iff] at hn
-      obtain ⟨ta, ba, -, hba, heq⟩ := denoteMeta_forallE_inv h
+      obtain ⟨ta, ba, -, hba, heq⟩ := denote_forallE_inv h
       cases ab with
       | nil => simp [mkPisAV] at heq
       | cons a ab =>
-        simp only [mkPisAV, ITerm.pi.injEq] at heq
+        simp only [mkPisAV, Term.pi.injEq] at heq
         obtain ⟨-, -, -, rfl⟩ := heq
         exact tailOk_of_instantiate1_fvar d ty b 0
           (ih _ (by rw [piCount_instantiate1_fvar]; exact hn) hba)
 
 /-- **A sort tail reads as a Π-tower ending in a sort, one binder per
 syntactic binder.** -/
-theorem read_of_sortTail {acval : Name → (Name → Nat) → ITerm} :
-    ∀ (n : Nat) (e : Expr) {d : Nat} {ea : ITerm}, piCount e = n → SortTail e →
-      denoteMeta acval env φ d e = some ea →
-      ∃ (ab : List ITerm) (u : Nat), ea = mkPisAV ab (.sort u) ∧
+theorem read_of_sortTail {acval : Name → (Name → Nat) → Term} :
+    ∀ (n : Nat) (e : Expr) {d : Nat} {ea : Term}, piCount e = n → SortTail e →
+      denote acval env φ d e = some ea →
+      ∃ (ab : List Term) (u : Nat), ea = mkPisAV ab (.sort u) ∧
         ab.length = n := by
   intro n
   induction n with
@@ -199,14 +199,14 @@ theorem read_of_sortTail {acval : Name → (Name → Nat) → ITerm} :
     intro e d ea hn hs h
     match e, hn, hs, h with
     | .sort s, _, _, h =>
-      rw [denoteMeta_sort] at h
+      rw [denote_sort] at h
       exact ⟨[], _, (Option.some.inj h).symm, rfl⟩
   | succ n ih =>
     intro e d ea hn hs h
     match e, hn, hs, h with
     | .forallE ty b, hn, hs, h =>
       simp only [piCount, Nat.add_right_cancel_iff] at hn
-      obtain ⟨ta, ba, -, hba, rfl⟩ := denoteMeta_forallE_inv h
+      obtain ⟨ta, ba, -, hba, rfl⟩ := denote_forallE_inv h
       have hsb : SortTail b := hs
       obtain ⟨h1, h2, -⟩ := tail_instantiate1 (.fvar d ty) b 0 (tailOk_of_sortTail hsb)
       obtain ⟨ab, u, rfl, hlen⟩ := ih _ (by rw [h1]; exact hn) (h2.mpr hsb) hba
@@ -216,9 +216,9 @@ theorem read_of_sortTail {acval : Name → (Name → Nat) → ITerm} :
 a type reading as a Π-tower `ab` ending in a sort, whose level- and
 parameter-instantiation `ty` has a sort as its syntactic tail, has
 `ds.length + |ty.piBinders.1| = |ab|`. -/
-theorem instPis_count_of_read {acval : Name → (Name → Nat) → ITerm} {e : Expr} {d : Nat}
-    {ab : List ITerm} {u : Nat}
-    (hread : denoteMeta acval env φ d e = some (mkPisAV ab (.sort u)))
+theorem instPis_count_of_read {acval : Name → (Name → Nat) → Term} {e : Expr} {d : Nat}
+    {ab : List Term} {u : Nat}
+    (hread : denote acval env φ d e = some (mkPisAV ab (.sort u)))
     (ks : List Name) (us : List Level) {ds : List Expr} {ty : Expr} {s : Level}
     (hty : ConLeche.instPisWith ds (e.instantiateLevelParams ks us) = some ty)
     (hs : ty.piBinders.2 = .sort s) :
@@ -292,10 +292,10 @@ theorem piTail_instPisWith_sort {l : Level} :
 /-- **A sort tail's reading is its level's value**: a term whose
 syntactic tail is `Sort l` and which reads as a Π-tower ending in
 `Sort u` has `u = l`'s value. -/
-theorem read_sortTail_eval {acval : Name → (Name → Nat) → ITerm} {l : Level} :
-    ∀ (n : Nat) (e : Expr) {d : Nat} {ab : List ITerm} {u : Nat},
+theorem read_sortTail_eval {acval : Name → (Name → Nat) → Term} {l : Level} :
+    ∀ (n : Nat) (e : Expr) {d : Nat} {ab : List Term} {u : Nat},
       piCount e = n → piTail e = .sort l →
-      denoteMeta acval env φ d e = some (mkPisAV ab (.sort u)) → u = Level.eval φ l := by
+      denote acval env φ d e = some (mkPisAV ab (.sort u)) → u = Level.eval φ l := by
   intro n
   induction n with
   | zero =>
@@ -304,7 +304,7 @@ theorem read_sortTail_eval {acval : Name → (Name → Nat) → ITerm} {l : Leve
     | .sort s, _, ht, h =>
       simp only [piTail, Expr.sort.injEq] at ht
       subst ht
-      rw [denoteMeta_sort] at h
+      rw [denote_sort] at h
       cases ab with
       | nil => simpa [mkPisAV] using (Option.some.inj h).symm
       | cons => simp [mkPisAV] at h
@@ -313,11 +313,11 @@ theorem read_sortTail_eval {acval : Name → (Name → Nat) → ITerm} {l : Leve
     match e, hn, ht, h with
     | .forallE ty b, hn, ht, h =>
       simp only [piCount, Nat.add_right_cancel_iff] at hn
-      obtain ⟨ta, ba, -, hba, heq⟩ := denoteMeta_forallE_inv h
+      obtain ⟨ta, ba, -, hba, heq⟩ := denote_forallE_inv h
       cases ab with
       | nil => simp [mkPisAV] at heq
       | cons a ab =>
-        simp only [mkPisAV, ITerm.pi.injEq] at heq
+        simp only [mkPisAV, Term.pi.injEq] at heq
         obtain ⟨-, -, -, rfl⟩ := heq
         exact ih _ (by rw [piCount_instantiate1_fvar]; exact hn)
           (piTail_instantiate1_sort _ b 0 ht) hba
@@ -326,9 +326,9 @@ theorem read_sortTail_eval {acval : Name → (Name → Nat) → ITerm} {l : Leve
 reading as a Π-tower ending in `Sort u`, whose level- and
 parameter-instantiation `ty` has the syntactic tail `Sort s`, has
 `u = s`'s value at the instantiated levels. -/
-theorem instPis_sort_of_read {acval : Name → (Name → Nat) → ITerm} {e : Expr} {d : Nat}
-    {ab : List ITerm} {u : Nat} (ks : List Name) (us : List Level)
-    (hread : denoteMeta acval env (Level.substFn φ ks us) d e = some (mkPisAV ab (.sort u)))
+theorem instPis_sort_of_read {acval : Name → (Name → Nat) → Term} {e : Expr} {d : Nat}
+    {ab : List Term} {u : Nat} (ks : List Name) (us : List Level)
+    (hread : denote acval env (Level.substFn φ ks us) d e = some (mkPisAV ab (.sort u)))
     {ds : List Expr} {ty : Expr} {s : Level}
     (hty : ConLeche.instPisWith ds (e.instantiateLevelParams ks us) = some ty)
     (hs : ty.piBinders.2 = .sort s) :
