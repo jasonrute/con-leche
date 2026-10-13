@@ -13,7 +13,7 @@ public section
 Stage (b'') (`targetIdxDoms`, `Kernel/Inductives/RecCheck.lean`)
 compares each recursor's index binder domains, binder by
 binder, with the eliminated member's index telescope opened at the
-recursor's own numbering (`openPisParamsIdx`).  This file is that
+recursor's own numbering.  This file is that
 check's model side: the CONVERSE of the recursor type's index clause
 (`blockRecIdxFit_run` is the forward one), which is what the kit
 regimes' `hconclTy` needs — a carrier element's index values fit the

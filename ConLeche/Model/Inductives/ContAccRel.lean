@@ -24,7 +24,7 @@ A frame hole stands for its member's whole application (it takes no
 parameters), and a group member's hole value reads its key frame only
 through the index telescope, which reads alike at two frames agreeing off
 the holes (N2's `TeleEq`), so a hole value does not move when the
-enclosing frame changes off the holes (`grpVals_eq`).  The holes never
+enclosing frame changes off the holes.  The holes never
 hold the point: a new hole's value at its full arity is a fibre of the
 tuple (a strict set, as in `LfpDatum.accRel_ptFree`) or `∅`; an enclosing
 hole is the enclosing relation's.

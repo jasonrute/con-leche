@@ -14,8 +14,6 @@ outer holes `X` is NOT a property of `C` (charter item 4): it is
 positivity at the instantiation (the term-level supplier is
 `Semantics/Inductives/HoleMono.lean`) plus leastness.
 
-* `tupleLe_of_fibre` — two tuples compare as soon as their components'
-  fibre laws' fit relations do;
 * `lfpTuple_le_on` — the least tuple lies below `B` on a group `G` of
   its components as soon as the operator, at the least tuple with its
   `G`-components replaced by `B`'s, does: a container frame abstracts

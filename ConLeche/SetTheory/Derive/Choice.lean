@@ -5,7 +5,7 @@ public import ConLeche.SetTheory.Derive.Graphs
 @[expose] public section
 
 /-!
-# Choice: the global selector, and the eighth axiom as a theorem
+# Choice: the global selector
 
 A first-order development of Tarski–Grothendieck set theory asserts (or
 derives from Axiom A) an axiom of choice, because it cannot reach the
@@ -13,11 +13,7 @@ meta-level.  Here the meta-logic is Lean with `Classical.choice`, so
 choice over `V` is *derived*:
 
 * `schoice : V → V` — a global selector, `schoice A ∈ A` whenever `A`
-  is inhabited (Lean-level choice on the membership predicate);
-* `set_choice` — the Jech-form statement (*Set Theory*, §5): every
-  family has a *set* choice function, obtained as the replacement
-  graph of `schoice`, spelled through `kpair` as a single-valued set
-  of ordered pairs.
+  is inhabited (Lean-level choice on the membership predicate).
 -/
 
 namespace ConLeche.SetTheory

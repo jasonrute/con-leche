@@ -984,10 +984,7 @@ Two steps:
 
 * `inferTypeCore_forallE_peel` — one ∀ binder of a successful
   inference: the codomain's sort `v` and the node's own sort
-  `imax u v`;
-* `inferTypeCore_openPis_sortZ` — the tower's inferred sort has the
-  CONCLUSION's zero-ness (`zeronessOf (imax u v) = zeronessOf v` is
-  the whole content, carried down the openers).
+  `imax u v`.
 
 Both take the conclusion's inference at a SECOND fuel `G ≥ F`:
 the check runs it twice — once inside the tower's own recursion, at

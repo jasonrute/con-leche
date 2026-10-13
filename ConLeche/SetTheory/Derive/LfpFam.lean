@@ -25,7 +25,7 @@ certificate: `lfpFamSet_mem`).
 denotes the universe of types `univ w = tyU w`, which holds `{pt}` at
 every level; a union of members of it (`{pt} ∪ ω`) or a member with `∅`
 added (`{pt} ∪ {∅}`) need not be a type.  The strict universe is closed
-under both (`strictU_famUnion_mem`, `strictU_binUnion_sing_empty_mem`),
+under both (`strictU_famUnion_mem` for the unions),
 and an inductive fibre above `Prop` is a set of tagged tuples, strict;
 at `w = 0` the two universes agree.  A family of the space is a family
 of types (`famSpace_app_univ`).
@@ -41,8 +41,7 @@ What the laws read of `C` is `∅ ∈ C` and `DropClosed C`: a subset of a
 member that is not a member has only `∅` among the members below it
 (at the strict universe: such a subset is the point, and a type inside
 the point is `∅`).  The drop is a no-op for a monotone functor mapping
-the space into itself (`mem_app_lfpFamIn`: the fibre is the raw
-intersection), which is every installed operator (`AccTuple.monoTuple`).
+the space into itself (the fibre is the raw intersection), which is every installed operator (`AccTuple.monoTuple`).
 
 The same construction over `C = tg ℓ` is the recursor family's GRAPH
 (`SetModel/GraphRec.lean`): a relation, whose fibres are sets of
@@ -283,10 +282,9 @@ space `strictU w`, beyond `∅ ∈ strictU w` (`empty_mem_strictU`): closure
 under subsets up to a drop (`strictU_dropClosed`: a subset of a strict
 set is strict or the point), unions of a family of members indexed by a
 set of the axiomatic level (`strictU_famUnion_mem`: a union of strict
-sets is strict), and adding `∅` as a member
-(`strictU_binUnion_sing_empty_mem`: `{∅}` is strict).  Nothing else of
-the level is read.  The universe of types `univ w` has the first
-(`univ_dropClosed`) but not the other two. -/
+sets is strict), and adding `∅` as a member (`{∅}` is strict).
+Nothing else of the level is read.  The universe of types `univ w` has
+the first but not the other two. -/
 
 /-- Every level of the axiomatic chain `tg` is closed under subsets. -/
 theorem subsetClosed_tg (w : Nat) : SubsetClosed (tg w : V) :=

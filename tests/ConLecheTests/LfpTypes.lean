@@ -16,7 +16,7 @@ space) `lfpFamIn`/`lfpTuple` drop such a fibre to `∅` (`dropTo`).
 And why the fibre space is `strictU`, not the universe of types `univ`
 (task #342 stage S1): `univ` is cumulative, so `True = {pt}` is a type
 of every level, but `{pt}` with `∅` added is no type — the adjunction
-`strictU_binUnion_sing_empty_mem` (and the unions) would fail.
+of `∅` (and the unions) would fail.
 -/
 
 namespace ConLeche.SetTheory.LfpTypesTest

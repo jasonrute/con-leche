@@ -258,7 +258,7 @@ list of what the trusted core omits beyond group A.  At `.verified`
 the mode function is `true`, so `certAtI .verified c` is `c` by `rfl`
 (`certAtI_verified`); the simulation tower
 (`ConLeche/Verify/Cached/*`), stated under `hμ : mode.verifiedChecks =
-true`, sees through the wrapper by `certAtI_of_verifiedChecks` — the
+true`, sees through the wrapper by `certAtI_verified` — the
 spec bodies (`ConLeche/Kernel/Core.lean`) gate the same sites directly
 (`if mode.verifiedChecks then … else pure true`, `majorToCtor`'s
 K/`And` proof-irrelevance checks and `iotaRec`'s case-3 decision), not

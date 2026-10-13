@@ -9,8 +9,7 @@ public section
 
 A member's former leaf (`blockTyG`: the block operator's tower, the
 index-set tuple and the carrier tuple under the parameter frame) is
-closed (`blockTyAV_below`) and graded at the hereditary premise
-(`blockTyAV_wellDenoted`).
+closed (`blockTyAV_below`) and graded at the hereditary premise.
 -/
 
 namespace ConLeche.Model

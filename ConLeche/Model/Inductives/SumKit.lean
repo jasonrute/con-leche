@@ -32,8 +32,6 @@ universe w
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env} {φ : Name → Nat}
 
-/-! ## The sum leaves' P packages -/
-
 /-! ## `Term` bookkeeping -/
 
 theorem DenoteSpine.unique {acval : Name → (Name → Nat) → Term} {d : Nat} :

@@ -1111,7 +1111,7 @@ two modes — in particular the trusted (`.trusted`) and the verified
 (`.verified`) mode the binary ships — both accept the same stream, the
 two installed environments carry the same install skeletons.  Stated
 for any two modes; the shipped pair is the instance
-`.trusted` / `.verified` (`trusted_agrees_skels_shipped`). -/
+`.trusted` / `.verified`. -/
 theorem trusted_agrees_skels_D {μP μT : CheckMode} {ds : Array Declaration}
     {envP envN : Env}
     (hP : checkDecls μP pins ds = .ok envP)

@@ -69,7 +69,7 @@ and index tuple (`GenClsSplit`):
   recursor's index tuple;
 * the coherence of the conditional comparisons is L7's: the parameters
   are fits of one telescope of types, the indices fits of the
-  component's index telescope at them (`blockRule_coherent`).
+  component's index telescope at them.
 -/
 
 namespace ConLeche.Model

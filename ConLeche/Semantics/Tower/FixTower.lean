@@ -320,8 +320,6 @@ universe w'
 
 variable {V : Type w'} [SetTheory V]
 
-/-! ## Frame kit -/
-
 /-! ## The sources -/
 
 omit [SetTheory V] in

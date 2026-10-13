@@ -51,8 +51,6 @@ universe uv
 
 variable {V : Type uv} [SetTheory V]
 
-/-! ## `Nat.max` at the pinned pair's levels -/
-
 /-! ## The dependent pair `.psigma`, `choice` -/
 
 /-- `pt` witnesses the double negation of an inhabited set. -/

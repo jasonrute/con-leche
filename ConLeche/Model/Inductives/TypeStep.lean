@@ -19,8 +19,6 @@ where the subject is not the point; a type never is ("not pt" source (1)),
 so the readers carry the walked types' `IsTy` (`GradedTy`) and read their
 steps through `red_sound_ty` (task #342, L12).
 
-* `whnf_ty` — a checker whnf run on a graded type: `red_sound_ty` through
-  the bridge;
 * `gradedTy_of_sort` — a term whose inferred type whnf's to a sort (the
   checker's `ensureSort`) reads as a graded type: its type reads as a
   universe ("not pt" source (1) for the type's own step), whose members are

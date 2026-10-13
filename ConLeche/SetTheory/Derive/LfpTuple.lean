@@ -21,8 +21,7 @@ over a classically chosen closed tuple `L₀` (the empty tuple when
 there is none), a fibre that left `strictU w` dropped to `∅` (`dropTo`,
 `LfpFam.lean`: an intersection of strict sets need not be strict) —
 TOTAL, as `lfpFamSet` is.  Under a closed
-tuple, monotonicity and `MapsTuple` nothing is dropped
-(`mem_app_lfpTuple`), the least pre-fixed tuple is a fixed point
+tuple, monotonicity and `MapsTuple` nothing is dropped, the least pre-fixed tuple is a fixed point
 (`lfpTuple_eq`) and supports simultaneous structural induction
 (`lfpTuple_induction`).
 

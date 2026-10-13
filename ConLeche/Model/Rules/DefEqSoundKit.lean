@@ -1,7 +1,7 @@
 module
 
 -- `RedSoundKit` is the SHARED kit: `DenoteSpine`'s list algebra,
--- `hoist_spine`, `frame_spine`, `denote_mkAppN(_inv)`, the
+-- `frame_spine`, `denote_mkAppN(_inv)`, the
 -- `PiChain` guard and the tower entry's reading live there
 public import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.Rules.IotaSoundKit

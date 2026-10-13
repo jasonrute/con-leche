@@ -27,8 +27,6 @@ open ConLeche.Semantics
 open ConLeche.Verify
 open ConLeche (Env Expr Name Level ConstantInfo instPisWith)
 
-/-! ## Constant replacement -/
-
 /-! ## Instantiation along a telescope -/
 
 theorem constsBound_instPisWith {env₀ : Env} :

@@ -1,7 +1,7 @@
 module
 
 -- `RedSoundKit` is the SHARED kit: `DenoteSpine`'s list algebra,
--- `denote_mkAppN(_inv)`, `frame_spine`, `hoist_spine`,
+-- `denote_mkAppN(_inv)`, `frame_spine`,
 -- `mkAppN_of_fitA`, `PiChain`/`peelPis_of_piChain` and the tower
 -- entry's reading live there, not here.
 public import ConLeche.Model.Rules.Inputs
@@ -210,8 +210,7 @@ theorem take_getD_splitAK {as : List Term} {k : Nat}
 
 /-! ## The redex's own slots
 
-`wellDenoted_app_congr_argK` and `wellDenoted_mkAppN_snoc_congrK`:
-the subject's grading is about the ORIGINAL major slot and the arity-checked
+The subject's grading is about the ORIGINAL major slot and the arity-checked
 walk is handed the prepared one, so the last argument is exchanged
 along the reduction's own `interp` equation. -/
 

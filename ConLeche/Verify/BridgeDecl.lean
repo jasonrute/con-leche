@@ -10,17 +10,10 @@ public section
 # The cache-refinement bridge, part C: the declaration checker
 
 The declaration checker is monad-polymorphic over a `CheckerOps`
-record, so the same pair-monad game applies: `bridgeRel` relates
-monotone fueled families to plain executable computations
-("success on the executable side is reproduced at some fuel"), the
-fueled/cached operation records are related by part B's entry-point
-bridges, and the `atF` battery reads every declaration-checker
-function at a fuel.  The punchline: a successful
-`checkDeclsPure mode (wfOpsM mode)` run is reproduced by `checkDeclsPure mode (fueledOps mode F)`
-for some fuel `F`.
+record, so it runs over the fueled monad as well, and the `atF` battery
+reads every declaration-checker function at a fuel.
 
-This module holds the operation records (`bridgeRel`, `OpsRel`, `pairOps`,
-`fueledOpsM`, `wfOpsM` and the `wfOpsM_*` equations) and the `atF` battery
+This module holds the fueled operation record (`fueledOpsM`) and the `atF` battery
 — for every `check*` function, `(… (fueledOpsM …) …).val F = … (fueledOps …
 F) …`, which is what `Verify/BridgeWfImp` and the cached lane's
 `Verify/Cached/Bridge*` rewrite by (#184).
@@ -77,22 +70,6 @@ variable {pins : List NatOpPinSet}
       match x.val F with
       | .ok true => pure ()
       | _ => (k none).val F := rfl
-
-/-! ## The WF-conditional fueled comparand
-
-Part B's entry-point bridges hold only over well-formed environments
-(`EnvWF` — the depth-free memo cache is justified by depth invariance,
-which needs it), and there is **no runtime check** for `EnvWF`: the
-executable always runs the memoized knot.  To keep the pair-monad
-battery unconditional, the fueled comparand is chosen per environment:
-over a well-formed environment it is the pure fueled family, otherwise
-the constant family that merely repeats the cached run (trivially
-related).  The battery then yields, for *every* environment: a
-successful cached `checkDecl` run is reproduced by its `wfOpsM mode`
-instantiation at some fuel.
-`ConLeche/Verify/BridgeWfImp.lean` turns `wfOpsM mode` runs into pure
-`fueledOps` runs by threading `EnvWF` through the declaration checker's
-intermediate environments, using the `wfOpsM_*` equalities below. -/
 
 /-! ## The `atF` battery: fueled-family runs are fueled-ops runs -/
 

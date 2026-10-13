@@ -110,9 +110,7 @@ under a name that an `indInfo` entry's `caps` record merely *names*,
 and `EnvWF` relates the two not at all.  `blockCapsAt`
 (`Kernel/Inductives/BlockInstall.lean`) computes `eta` and `unitlike`
 by two independent checks, so a `unitlike`-but-not-`eta` family is
-exactly the shape the premise excludes and the certificate accepts.
-
-`etaFamilyStored_not_derivable` below is that gap, mechanized. -/
+exactly the shape the premise excludes and the certificate accepts. -/
 
 /-! ## The crossing -/
 

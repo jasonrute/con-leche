@@ -189,12 +189,12 @@ theorem app_eq_of_quotClass_eq {u : Nat} {A R f a b : V}
 Raw classes are arbitrary nonempty subsets of the base, so with base
 `ptTag` itself and a total relation the one class is `ptTag` and the
 untagged class set is exactly `{ptTag} = pt` — for *any* singleton
-proof point (`untagged_quotSet_eq_pt_countermodel`).  The base `ptTag`
+proof point.  The base `ptTag`
 is not the interpretation of any *writable* type; the obstruction is
 semantic, in the ∀-A-R quantification of the model lemmas.  Up to task
 #342 the classes were raw and this was the quotient itself; since then
 a class above `Prop` is the pair `kpair ∅ (qclass A R a)`, so it is
-never the point (`quotClass_ne_pt`), and the quotient never is nor
+never the point, and the quotient never is nor
 contains it (`strict_quotSet`). -/
 
 /-- Above `Prop` the quotient is strict: its members are pairs. -/

@@ -28,7 +28,7 @@ Sections, in the order the rules consume them:
 * the two `Nat` constructor readings and the literal expansions'
   blindness;
 * the δ identity (`denote_unfoldDefinition`);
-* **the shared telescope kit** — `hoist_spine`, `frame_spine`,
+* **the shared telescope kit** — `frame_spine`,
   `mkAppN_of_fitA`, the `PiChain` guard with `piChain_of_stripPis`
   and `peelPis_of_piChain`, and the stored entry's telescope.  This
   is the LOWEST kit of the four, so a fact more than one rules file
