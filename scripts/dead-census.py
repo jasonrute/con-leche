@@ -47,10 +47,12 @@ the sources.
    text filter below is the compensation and the build is the arbiter:
    cut, build, restore what the build demands, record each restore.
 2. *results that are not corollaries*: a top-level theorem no capstone
-   is a corollary of is itself the deliverable (`AgreeFloor`'s
-   agreement floor, `BridgeDecl`'s `checkDeclsPure_datF`), and reads dead.
-   Only a reader can tell those apart; #209's rule stands — "imported
-   by nothing" is not a dead-code criterion in a verification tree.
+   is a corollary of may be a deliverable (`AgreeFloor`'s
+   `trusted_agrees_skels_D`, `Denotes`' `Denotes_functional`, a letter
+   `tests/ConLecheTests/Axioms.lean` pins), and reads dead.  Only a
+   reader can tell those apart: a result OVERVIEW, README, the
+   whitepaper, the trusted statement files or the axiom pins name stays;
+   an uncited one goes with the rest (task #342 R5).
 
 ## THE CHALLENGE IS ITS OWN ENVIRONMENT (lane GATEFIX)
 
