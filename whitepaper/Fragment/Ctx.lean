@@ -9,7 +9,7 @@ public import Fragment.Hygiene
 /-!
 # Contexts, semantically
 
-The value-level reading of the generators of `Decl.lean`: a product or
+The value-level reading of the generators of `Decl.lean`: a Π-type or
 an abstraction over a context (`mkPis`/`mkLams`) denotes a nested
 `piV`/`lamV` over the context's domains read under the values so far
 (`piCtx`/`lamCtx`), a list of values **fits** a context when each is a
@@ -80,7 +80,7 @@ end ReadEnv
 
 variable {V : Type u} [SetLib V] (M : Name → List Nat → V) (φ : Name → Nat)
 
-/-! ## Products and abstractions over a context -/
+/-! ## Function spaces and abstractions over a context -/
 
 /-- A pair of a zip is a pair of the zip of the reversed lists. -/
 theorem _root_.List.mem_zip_reverse {α β : Type _} : ∀ {l₁ : List α} {l₂ : List β},
@@ -95,7 +95,7 @@ theorem _root_.List.mem_zip_reverse {α β : Type _} : ∀ {l₁ : List α} {l�
   | [], _ :: _, hl, _, _ => by simp at hl
   | _ :: _, [], hl, _, _ => by simp at hl
 
-/-- The product over a context (innermost first), the body read under
+/-- The function space over a context (innermost first), the body read under
 the environment the binders build: what `mkPis` denotes. -/
 noncomputable def piCtx : (Nat → V) → List Expr → ((Nat → V) → V) → V
   | ρ, [], F => F ρ
@@ -246,8 +246,8 @@ theorem lamCtx_congr {ρ : Nat → V} {Γ : List Expr} {F G : (Nat → V) → V}
     refine ih fun vs hvs => lamV_congr fun x hx => ?_
     exact h (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)
 
-/-- Introduction: an abstraction whose body lands fibre-wise in the
-product's body, which is a type there, is a member of the product. -/
+/-- Introduction: an abstraction whose body lands fibre-wise in the function
+space's body, which is a type there, is a member of the function space. -/
 theorem lamCtx_mem_piCtx {ρ : Nat → V} {Γ : List Expr} {F G : (Nat → V) → V}
     (h : ∀ vs, FitsVals M φ ρ Γ vs → F (consList vs ρ) ∈ˢ G (consList vs ρ))
     (hG : ∀ ws, FitsVals M φ ρ Γ ws → IsTy (G (consList ws ρ))) :
@@ -260,7 +260,7 @@ theorem lamCtx_mem_piCtx {ρ : Nat → V} {Γ : List Expr} {F G : (Nat → V) �
     · exact h (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)
     · exact hG (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)
 
-/-- Elimination: a member of the product applied to fitting values
+/-- Elimination: a member of the function space applied to fitting values
 (outermost first, hence the reversal) lands in the body. -/
 theorem appList_mem_of_piCtx {ρ : Nat → V} {Γ : List Expr} {G : (Nat → V) → V} {f : V}
     {vs : List V} (hf : f ∈ˢ piCtx M φ ρ Γ G) (hfit : FitsVals M φ ρ Γ vs) :
@@ -310,7 +310,7 @@ theorem lamCtx_eq_pt {ρ : Nat → V} {Γ : List Expr} {F : (Nat → V) → V}
     exact ih fun vs hvs => lamV_eq_pt fun x hx =>
       h (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)
 
-/-- The product is in a positive universe when its domains and its
+/-- The function space is in a positive universe when its domains and its
 body are. -/
 theorem piCtx_mem_univ {ρ : Nat → V} {Γ : List Expr} {G : (Nat → V) → V} {n : Nat}
     (hn : n ≠ 0)
@@ -331,10 +331,10 @@ theorem piCtx_mem_univ {ρ : Nat → V} {Γ : List Expr} {G : (Nat → V) → V}
       exact piR_false_mem_univ hn (hdom 0 A rfl vs hvs) fun x hx =>
         hG (x :: vs) ((FitsVals_cons M φ ρ A Γ x vs).symm ▸ ⟨hvs, hx⟩)
 
-/-- **The invariant of a product over a context**: the domains are
+/-- **The invariant of a Π-type over a context**: the domains are
 well-denoted types under fitting prefixes, the body is well-denoted
 under fitting values, and a type there (which says something only when
-there IS a binder: at the empty context the product is the bare
+there IS a binder: at the empty context the Π-type is the bare
 body). -/
 theorem WellDenoted_mkPis (Γ : List Expr) (b : Expr) (ρ : Nat → V) :
     WellDenoted M φ ρ (Expr.mkPis Γ b) ↔
@@ -376,9 +376,9 @@ theorem WellDenoted_mkPis (Γ : List Expr) (b : Expr) (ρ : Nat → V) :
       · rw [interp_pi]
         exact IsTy_piV
 
-/-- **The body of a product that is a type is not the point**, under
+/-- **The body of a Π-type denoting a type is not the point**, under
 every fitting environment: at the empty context the body is the
-product; under a binder it is a type by the invariant. -/
+Π-type; under a binder it is a type by the invariant. -/
 theorem body_ne_pt_of_mkPis {Γ : List Expr} {b : Expr} {ρ : Nat → V}
     (hw : WellDenoted M φ ρ (Expr.mkPis Γ b)) (hT : IsTy (interp M φ ρ (Expr.mkPis Γ b))) :
     ∀ vs, FitsVals M φ ρ Γ vs → interp M φ (consList vs ρ) b ≠ pt := by
@@ -390,8 +390,8 @@ theorem body_ne_pt_of_mkPis {Γ : List Expr} {b : Expr} {ρ : Nat → V}
     | cons _ _ => exact hvs.elim
   | cons A Γ => exact ((((WellDenoted_mkPis M φ _ _ _).mp hw).2 vs hvs).2 (List.cons_ne_nil A Γ)).ne_pt
 
-/-- A product over a context is a type when its body is, at the empty
-context; over a nonempty one it is one outright (`IsTy_piV`). -/
+/-- A Π-type over a context denotes a type when its body does, at the
+empty context; over a nonempty one it is one outright (`IsTy_piV`). -/
 theorem IsTy_interp_mkPis :
     ∀ {Γ : List Expr} {b : Expr} {ρ : Nat → V}, (Γ = [] → IsTy (interp M φ ρ b)) →
       IsTy (interp M φ ρ (Expr.mkPis Γ b))
@@ -403,11 +403,11 @@ theorem IsTy_interp_mkPis :
     | cons B Γ' =>
       exact IsTy_interp_mkPis (Γ := B :: Γ') (b := .pi A b) fun h => by cases h
 
-/-- **An abstraction against its product**: if the product is
-well-denoted and the body lands in the product's body under every
-fitting environment, the abstraction is well-denoted and a member of
-the product (the invariant's λ clause, iterated, with the product's
-fibres as the bounding family). -/
+/-- **An abstraction against its Π-type**: if the Π-type is
+well-denoted and the body lands in the Π-type's body under every fitting
+environment, the abstraction is well-denoted and a member of the
+function space (the invariant's λ clause, iterated, with the function
+space's fibres as the bounding family). -/
 theorem mkLams_ok {Γ : List Expr} {b T : Expr} {ρ : Nat → V}
     (hT : WellDenoted M φ ρ (Expr.mkPis Γ T))
     (hb : ∀ vs, FitsVals M φ ρ Γ vs →
@@ -456,7 +456,7 @@ theorem TeleFitV_mkPis_append {Γ : List Expr} {vs ws : List V} {b : Expr}
         List.reverse_append, List.reverse_singleton, List.singleton_append, FitsVals_cons,
         consList_cons, and_assoc]
 
-/-- A value walk along a product over a context, of exactly the
+/-- A value walk along a Π-type over a context, of exactly the
 context's length (values outermost first): the values fit, reversed. -/
 theorem TeleFitV_mkPis {Γ : List Expr} {vs : List V} {b : Expr} {ρ : Nat → V}
     (h : vs.length = Γ.length) :

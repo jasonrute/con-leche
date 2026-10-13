@@ -28,7 +28,7 @@ stored before it (`EnvModel.transport`'s argument again:
 `famSet_congr`, `ctorSet_congr`, `DomsBounded_congr`).
 
 Con-leche: the `lfpBlocks` of `EnvModelM`
-(`ConLeche/Model/Annot/EnvModelM.lean`), the datum of every installed
+(`ConLeche/Model/Env/EnvModelM.lean`), the datum of every installed
 block kept with the model.
 -/
 

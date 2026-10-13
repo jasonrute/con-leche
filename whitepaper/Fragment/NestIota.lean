@@ -533,7 +533,7 @@ theorem wdFieldCtx_of_minorTyK {c : CtorSpec} {j : Nat} {os ps : List V} {ρ : N
 omit [LevelOracle] in
 /-- **The extras' context agrees between two readers**: the two
 motives read as the motive spaces, the block's minors and the class's
-minors as the products over their fields and hypotheses. -/
+minors as the function spaces over their fields and hypotheses. -/
 theorem Reader₂.agree_extrasN (hS : S.Scoped env) {M₁ M₂ : Name → List Nat → V}
     {φ₁ φ₂ : Name → Nat}
     (R₁ : S.Reader₂ (env := env) M φ M₁ φ₁) (R₂ : S.Reader₂ (env := env) M φ M₂ φ₂)
@@ -2437,7 +2437,7 @@ theorem rec_rule_lawN {j : Nat} {c : CtorSpec} (hc : S.ctors[j]? = some c) :
 omit [LevelOracle] hs m hok in
 /-- The point applied to values each lying in some set is a
 well-formed application chain (at a proposition the chain's slots are
-propositional products, which the point inhabits). -/
+propositional function spaces, which the point inhabits). -/
 theorem spineOk_pt_of_mem : ∀ {vs : List V}, (∀ v ∈ vs, ∃ A : V, v ∈ˢ A) → SpineOk (pt : V) vs
   | [], _ => trivial
   | v :: vs, h => by

@@ -21,7 +21,7 @@ reduction claims nothing of a subject that denotes the point; on one
 that does not, β is sound at *every* binder: the redex is not the
 point, so its λ is not (`app pt _ = pt`), so the λ is a graph
 (`SetLib.lamV_eq_graph`), which determines its domain
-(`Red.beta_sound`).  No binder carries an annotation (task #344): the
+(`Red.beta_sound`).  A binder carries its domain alone (task #344): the
 interpretation reads the regime off the values, and the two rules that
 need two terms' proof-ness to agree at every value of a variable —
 λ-congruence and η — compare their bodies' types.  Whether a subject denotes the point is
@@ -35,9 +35,9 @@ outright.
 
 The cases the paper dwells on, each its own lemma:
 
-* `Red.beta_sound` — β at every binder, with no certificate;
-* `Red.iota_core` and `major_eq` — ι with no β certificate on the
-  major, even on a recursion over proofs: the major's binder domain is
+* `Red.beta_sound` — β at every binder, with no premise;
+* `Red.iota_core` and `major_eq` — ι with no condition on how the
+  major reduces, even on a recursion over proofs: the major's binder domain is
   a type, so the major and its reduct are both the point or neither is;
 * `DefEq.eta_sound` — η, from the library's η law;
 * `Red.zeta_sound`, `Infer.letE_sound` — `let` by substitution: ζ is
@@ -104,7 +104,7 @@ theorem appFn_sound {Γ : List Expr} {f f' a : Expr} (h : RedSem m φ Γ f f') :
   rw [WellDenoted_app]
   exact ⟨hf', ha, p, A, B, he ▸ hslot, hmem, hB, hT⟩
 
-/-- **β at every binder, with no certificate** — `beta_of_ne_pt`.  The
+/-- **β at every binder, with no premise** — `beta_of_ne_pt`.  The
 redex is not the point, so neither is its λ; a λ that is not the point
 is the graph of its body; and the graph's domain is the slot's: the
 argument is in it. -/
@@ -603,8 +603,8 @@ theorem symm_sound {Γ : List Expr} {T a b : Expr} (h : DefEqInSem m φ Γ T a b
     DefEqInSem m φ Γ T b a :=
   fun ρ hs hwT hT hb ha hmb hma => (h ρ hs hwT hT ha hb hma hmb).symm
 
-/-- A λ that is not the point, in a product, is the graph of its body
-over the product's domain. -/
+/-- A λ that is not the point, in a function space, is the graph of its
+body over the function space's domain. -/
 theorem lam_in_piV {ρ : Nat → V} {A b : Expr} {D : V} {E : V → V}
     (hw : WellDenoted m.M φ ρ (.lam A b)) (hm : interp m.M φ ρ (.lam A b) ∈ˢ piV D E)
     (hn : interp m.M φ ρ (.lam A b) ≠ pt) :
@@ -825,8 +825,8 @@ the application is not the point, so neither is its head
 (`piR false`), and the head's membership in its type — a function space, not
 the point — makes it a graph of that type's domain, so the slot's
 domain is the binder's (`piR_dom_unique`) and the argument lies in it.
-This is what replaces the recursor's telescope certificate of
-`Red.iota`: the reduction claims nothing of a redex that is the point. -/
+This is why `Red.iota` carries no certificate on the recursor's
+telescope: the reduction claims nothing of a redex that is the point. -/
 theorem teleFit_of_ne_pt {ρ : Nat → V} :
     ∀ {xs : List Expr} {f T : Expr},
       WellDenoted m.M φ ρ T → interp m.M φ ρ f ∈ˢ interp m.M φ ρ T →
@@ -880,16 +880,16 @@ theorem teleFit_snoc {ρ : Nat → V} {y D B : Expr} :
   | .app _ _, _ :: _, h, _, _ => h.elim
   | .lam _ _, _ :: _, h, _, _ => h.elim
 
-/-- **The major premise needs no β certificate.**  In an application of
+/-- **The major denotes its reduct.**  In an application of
 a head `f` of type `T` to a spine `xs` and a major `maj` that is not the
 point, with a reduct `maj'` of the major that meets the major's binder:
 the two denote alike.  The head applied to `xs` is not the point, so it
 is a graph, whose domain is the binder's — a type.  If the major is not
 the point, its reduction's claim applies; if it is, the binder's domain
 holds the point, so it is a truth value, and the reduct is the point
-too.  This is the case of a recursion on proofs (`Acc`-style), where a
-model interpreting sorts by the universes needs a certified β to reduce
-the major. -/
+too.  This is the case of a recursion on proofs (`Acc`-style), where
+the major itself may be the point and the reduction's claim says
+nothing of it. -/
 theorem major_eq {Γ : List Expr} {ρ : Nat → V} {T f maj maj' : Expr} {xs : List Expr}
     (hs : Sat m.M φ Γ ρ) (hT : WellDenoted m.M φ ρ T) (hf : interp m.M φ ρ f ∈ˢ interp m.M φ ρ T)
     (hw : WellDenoted m.M φ ρ (.app (Expr.mkAppN f xs) maj))
@@ -1137,7 +1137,7 @@ theorem iota_core_sem {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstI
   have hfitV₀ := teleFitV_of_teleFit m.M φ ρ
     (by rw [Expr.hasPis_instL, hlenmaj]; exact hpis) hfit
   have hfitV' := teleFitV_of_teleFit m.M φ ρ (by rw [Expr.hasPis_instL]; exact hpis') hfit'
-  -- the major denotes its reduct, with no β certificate
+  -- the major denotes its reduct (`major_eq`)
   have hemaj := major_eq (f := Expr.const c us) hs (m.type_ok c ci hfind φ ρ us hus).1
     (by rw [interp_const]; exact (m.type_ok c ci hfind φ ρ us hus).2.2) (hsub ▸ hw) (hsub ▸ hn)
     hmaj hfitV₀
@@ -1307,7 +1307,7 @@ theorem teleFit_snoc_mem {ρ : Nat → V} {y D B : Expr} :
   | .lam _ _, _ :: _, h, _ => h.elim
 
 /-- **ι with no telescope certificate at all, where the major's domain
-is strict** (task #347, the licence of #342 v2 §5.3 case 2).  If the
+is strict** (task #347, the ι case test of #342 v2 §5.3 case 2).  If the
 domain the major meets holds no point at the valuation — the case of an
 inductive family whose sort is never `Prop` at the instance, whose
 fibres are sets of tagged tuples — then a redex that is not the point

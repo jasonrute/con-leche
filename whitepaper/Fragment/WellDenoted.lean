@@ -15,9 +15,9 @@ invariant **records what is a type** — a truth value or a strict set
 (`IsTy`, `Lib.lean`), the sets whose members are all the point or none
 of them:
 
-* an application applies a member of some product `piR p A B` to a
-  member of its domain `A`; at a proposition (`p`) the fibres are truth
-  values, above it the domain is a type;
+* an application applies a member of some function space `piR p A B`
+  to a member of its domain `A`; at a proposition (`p`) the fibres are
+  truth values, above it the domain is a type;
 * a λ's domain is a type, the body is well-denoted at every value of
   the domain, and some family of types bounds it;
 * a Π's domain is a type, the body is well-denoted at every value of
@@ -27,10 +27,10 @@ of them:
   interpretation does not read it;
 * variables, sorts and constants are always well-denoted.
 
-There is no annotation to hold to account (task #344): the regime of a
-binder is read off these values by the interpretation, and the type
-clauses are what makes that reading coherent — an abstraction is a
-member of its product (`SetLib.lamV_mem`) because every fibre is a
+The regime of a binder is no datum of the term (task #344): it is
+read off these values by the interpretation, and the type clauses are
+what makes that reading coherent — an abstraction is a member of its
+function space (`SetLib.lamV_mem`) because every fibre is a
 type.  The predicate transports along `Expr.inst` by the substitution
 lemmas of `Interp.lean` (`WellDenoted_inst0`); a β step at a redex that
 is not the point keeps the denotation and the invariant
@@ -41,8 +41,8 @@ A **context** `Γ` is satisfied by an environment `ρ` (`Sat`) when each
 member of it — the semantic reading of `Γ ⊢`.
 
 Con-leche's `ConLeche/Semantics/WellDenoted.lean` is the same recursive
-definition on `AnnotTerm` without the type clauses (its sorts denote
-the universes, where every set is a type).
+definition on its erased terms `ITerm`, with the same type clauses and
+further ones for their projections, equalities and proof term.
 -/
 
 namespace Fragment

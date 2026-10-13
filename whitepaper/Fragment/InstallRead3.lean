@@ -14,7 +14,7 @@ The two readings of every entry of the recursor's context agree at
 fitting prefixes (`agree_recCtx`): the parameters and indices are
 expressions of the specification, the major's type and the motive's
 read as the fibre and the motive space, and a minor premise's type
-reads as the product over its fields (the field context agrees) and
+reads as the function space over its fields (the field context agrees) and
 its inductive hypotheses (their types read as the sets `IhTyped`
 names) into the motive at the constructor value.
 -/

@@ -29,11 +29,11 @@ fragment takes the derived surface as its interface, which is what the
 proof reads anyway.
 
 Below the class, the **two-regime operators** `piR`/`lamR` of
-`ConLeche/SetModel/Ops.lean`: the dependent product and abstraction at
+`ConLeche/SetModel/Ops.lean`: the function space and abstraction at
 a `Bool` saying whether the body is a proposition — a truth value and
 the one proof when it is, a graph space and a graph when it is not.
 
-Then the **restricted universes** (`typeU`): what a sort denotes — the
+Then the **universes of types** (`typeU`): what a sort denotes — the
 truth values at `0`, above it the members of the universe that are
 **types** (truth values, or sets neither the point nor containing it).
 The universe chain `univ` sizes things; `typeU` is what the typing
@@ -41,12 +41,12 @@ reads.
 
 Last, the **value-driven regimes** `piV`/`lamV` (task #344), which the
 interpretation applies at every binder: the regime is read off the
-values — a product is propositional exactly when every fibre is a truth
-value, an abstraction is the point exactly when every body value is —
-so terms need no annotation.  Over an empty domain both read
-"proposition": the product is `{pt}` and the abstraction the point,
-whatever the body's sort; that `{pt}` is then a member of the positive
-sorts too is why `typeU (n+1)` admits the truth values.
+values — a function space is propositional exactly when every fibre is
+a truth value, an abstraction is the point exactly when every body value
+is.  Over an empty domain both read "proposition": the function space is
+`{pt}` and the abstraction the point, whatever the body's sort; that
+`{pt}` is then a member of the positive sorts too is why `typeU (n+1)`
+admits the truth values.
 -/
 
 namespace Fragment
@@ -190,7 +190,7 @@ subsets of a singleton.  Reducible, so proofs that unfold `piR true`
 keep working. -/
 abbrev piProp (A : V) (B : V → V) : V := truthVal (∀ x, x ∈ˢ A → B x = one)
 
-/-- The dependent product at regime `p`: the propositional product
+/-- The function space at regime `p`: the propositional function space
 when `p`, the graph space above it. -/
 def piR (p : Bool) (A : V) (B : V → V) : V :=
   if p then piProp A B else piSet A B
@@ -218,7 +218,7 @@ theorem lamR_congr {p : Bool} {A : V} {F F' : V → V}
   · exact graph_congr h
   · rfl
 
-/-- Introduction: fibre-wise members abstract into the product.  The
+/-- Introduction: fibre-wise members abstract into the function space.  The
 fibre premise is used only at a proposition, where the fibres must be
 truth values for the inhabited ones to be `{pt}`. -/
 theorem lamR_mem {p : Bool} {A : V} {F B : V → V}
@@ -228,8 +228,8 @@ theorem lamR_mem {p : Bool} {A : V} {F B : V → V}
   · exact graph_mem_piSet hF
   · exact pt_mem_truthVal fun x hx => eq_one_of_mem_univ_zero (hB rfl x hx) (hF x hx)
 
-/-- **Proof irrelevance at products**: an inhabitant of a
-propositional product is the point. -/
+/-- **Proof irrelevance at function spaces**: an inhabitant of a
+propositional function space is the point. -/
 theorem eq_pt_of_mem_piR_true {A f : V} {B : V → V} (hf : f ∈ˢ piR true A B) :
     f = pt := eq_pt_of_mem_truthVal hf
 
@@ -259,7 +259,7 @@ theorem app_lamR_false {A a : V} {F : V → V} (ha : a ∈ˢ A) :
 /-- A graph-regime abstraction is never the point. -/
 theorem lamR_false_ne_pt {A : V} {F : V → V} : lamR false A F ≠ (pt : V) := graph_ne_pt
 
-/-- η: a member of a product is the abstraction of its applications. -/
+/-- η: a member of a function space is the abstraction of its applications. -/
 theorem lamR_eta {p : Bool} {A f : V} {B : V → V} (hf : f ∈ˢ piR p A B) :
     lamR p A (fun x => app f x) = f := by
   cases p
@@ -282,7 +282,7 @@ theorem piR_false_mem_univ {n : Nat} {A : V} {B : V → V} (hn : n ≠ 0)
     (hA : A ∈ˢ univ n) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ univ n) :
     piR false A B ∈ˢ (univ n : V) := piSet_mem_univ hn hA hB
 
-/-! ## The restricted universes
+/-! ## The universes of types
 
 `univ` sizes things; what a sort *denotes* is `typeU`: `Sort 0` the
 truth values, `Sort (n+1)` the members of `univ (n+1)` that are
@@ -292,7 +292,7 @@ value) or none of them (a strict set) — `IsTy.eq_of_ne_pt`, which is
 what the soundness proof reads.  The point itself is no type, so no
 sort holds it (the stored `c : Sort 1` of `UniformBeta.lean`, whose
 value is the point, has no model).  A positive sort holds the truth
-values as well (task #344): a product over an empty domain is `{pt}`
+values as well (task #344): a function space over an empty domain is `{pt}`
 whatever its body's sort. -/
 
 /-- A **strict** set: not the point, and the point is not a member. -/
@@ -439,7 +439,7 @@ theorem Fib_piR {p : Bool} {A : V} {B : V → V} : Fib p (piR p A B) := by
   · exact strict_piSet
   · exact piR_true_mem_univ_zero
 
-/-- **`∀`-formation in the restricted universes.** -/
+/-- **`∀`-formation in the universes of types.** -/
 theorem piR_mem_typeU {u v : Nat} {p : Bool} {A : V} {B : V → V}
     (hp : p = true ↔ v = 0) (hA : A ∈ˢ typeU u) (hB : ∀ x, x ∈ˢ A → B x ∈ˢ typeU v) :
     piR p A B ∈ˢ typeU (Level.imaxNat u v) := by
@@ -459,12 +459,12 @@ theorem not_mem_of_univ_zero_strict {T z : V} (h0 : T ∈ˢ univ 0) (hs : Strict
 /-! ## The value-driven regimes (task #344)
 
 The interpretation's binder cases (`Interp.lean`).  The regime is no
-datum but a property of the values: a product is propositional exactly
-when every fibre over the domain is a truth value (`propB`), an
+datum but a property of the values: a function space is propositional
+exactly when every fibre over the domain is a truth value (`propB`), an
 abstraction is the point exactly when every body value over the domain
-is (`ptB`).  Over a nonempty domain the two agree with the honest
-annotation of the annotated design; over an empty domain both read
-"proposition" — the product is `{pt}`, the abstraction the point. -/
+is (`ptB`).  Over a nonempty domain they say whether the body is a
+proof; over an empty domain both read "proposition" — the function
+space is `{pt}`, the abstraction the point. -/
 
 open Classical in
 /-- Is every fibre over the domain a truth value? -/
@@ -536,8 +536,8 @@ theorem lamV_ne_pt_of {A : V} {F : V → V} {x : V} (hx : x ∈ˢ A) (h : F x �
 
 theorem IsTy_piV {A : V} {B : V → V} : IsTy (piV A B) := IsTy_piR
 
-/-- A member of a product that is not the point is a member of the
-graph space. -/
+/-- A member of a function space that is not the point is a member of
+the graph space. -/
 theorem mem_piSet_of_mem_piV {A f : V} {B : V → V} (hf : f ∈ˢ piV A B) (hn : f ≠ pt) :
     f ∈ˢ piSet A B := by
   unfold piV at hf
@@ -614,8 +614,8 @@ theorem piV_mem_typeU {u v : Nat} {A : V} {B : V → V}
         (mem_univ_of_mem_typeU (hB x hx))
     · exact univ_mono (Nat.zero_le _) piR_true_mem_univ_zero
 
-/-- A member of a product whose fibres hold only the point is the
-point. -/
+/-- A member of a function space whose fibres hold only the point is
+the point. -/
 theorem eq_pt_of_mem_piV {A f : V} {B : V → V} (hB : ∀ x, x ∈ˢ A → ∀ y, y ∈ˢ B x → y = pt)
     (hf : f ∈ˢ piV A B) : f = pt := by
   have hp : propB A B = true := propB_eq_true.mpr fun x hx => mem_univ_zero.mpr (hB x hx)

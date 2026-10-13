@@ -24,7 +24,7 @@ field lists `fs` *fitting* some constructor `j` relative to `W`, with
 field list fits (`FitsFields`) when each value is a member of its
 field's set at the earlier values (`fieldSet`): an *ordinary* field's
 set is its domain's denotation; a *reflexive* field's set is the
-product over the field's telescope into the fibres of `W` at the
+function space over the field's telescope into the fibres of `W` at the
 field's index expressions — with an empty telescope (a *recursive*
 field), the fibre itself; a *container* field's set is the **class
 at the approximant**: the container's family — its set in the model,
@@ -79,18 +79,18 @@ frame of the tuple space; the installation derives it from the
 checker's field-sort check (`Ok`, `Decl.lean`) read in a model in which
 the former denotes an arbitrary family (`InstallInd.lean`).
 
-Con-leche: the hole operator of `ConLeche/Model/Annot/BlockLfp.lean`
+Con-leche: the hole operator of `ConLeche/Model/Env/BlockLfp.lean`
 (`LfpClause.fibre`: a fibre is the set of injections of the spines
 fitting a constructor; `fitAcc`: the fit is accessible),
 accessibility by inversion of the positivity run, monotonicity derived
 from it as here
 (`ConLeche/Semantics/Inductives/HoleMono.lean`, `HoleAcc.lean`:
-`MonoOn.pi`/`AccOn.pi` for a product over a hole-free domain,
+`MonoOn.pi`/`AccOn.pi` for a function space over a hole-free domain,
 `MonoOn.holeApp`/`AccOn.holeApp` for a hole applied to hole-free
 arguments — the fragment's reflexive and recursive clauses — and
 `ConstOn` for a hole-free reading — the ordinary clause), the tagged
 tuples of `ConLeche/SetModel/TaggedSum.lean` and `TupleTower.lean`,
-the container clause of `Model/Annot/BlockLfpMono.lean` (a
+the container clause of `Model/Env/BlockLfpMono.lean` (a
 container's instance through its lfp clause) and
 `SetModel/HoleClose.lean`, and the carrier `LfpDatum.carrier` as
 `lfpTuple` of the operator.
@@ -233,9 +233,9 @@ theorem ctxSet_congr (M : Name → List Nat → V) (φ : Name → Nat) :
 theorem nat_mem_univ {n : Nat} (hn : n ≠ 0) (k : Nat) : (nat k : V) ∈ˢ univ n :=
   univ_trans hn (omega_mem_univ hn) (mem_omega.mpr ⟨k, rfl⟩)
 
-/-! ## η over a context, and re-typing a member of a product -/
+/-! ## η over a context, and re-typing a member of a function space -/
 
-/-- A member of a product over a context whose body is a type is the
+/-- A member of a function space over a context whose body is a type is the
 abstraction of its applications (η, iterated). -/
 theorem lamCtx_eta (M : Name → List Nat → V) (φ : Name → Nat) {ρ : Nat → V} :
     ∀ {Γ : List Expr} {G : (Nat → V) → V} {f : V}, f ∈ˢ piCtx M φ ρ Γ G →
@@ -256,9 +256,9 @@ theorem lamCtx_eta (M : Name → List Nat → V) (φ : Name → Nat) {ρ : Nat �
     rw [show cons x (consList ys ρ) = consList (x :: ys) ρ from rfl, List.length_cons,
       readEnv_consList (by simp [hl]), List.reverse_cons, appList_append, appList_cons, appList_nil]
 
-/-- **Re-typing**: a member of a product over a context whose
+/-- **Re-typing**: a member of a function space over a context whose
 applications at every fitting argument list land in other fibres is a
-member of the product into those fibres — both bodies types. -/
+member of the function space into those fibres — both bodies types. -/
 theorem piCtx_retype (M : Name → List Nat → V) (φ : Name → Nat) {ρ : Nat → V}
     {Γ : List Expr} {G G' : (Nat → V) → V} {f : V} (hf : f ∈ˢ piCtx M φ ρ Γ G)
     (hG : Γ ≠ [] → ∀ ys, FitsVals M φ ρ Γ ys → IsTy (G (consList ys ρ)))
@@ -392,7 +392,7 @@ installation of a nested block proves them from the container's
 positivity and the leastness of its fixed point (`NestSem.lean`,
 `contClause_of`), and nothing is asked of a plain block
 (`contOk_of_plain`).  Con-leche: the container case of
-`Model/Annot/BlockLfpMono.lean` (monotone through the container's lfp
+`Model/Env/BlockLfpMono.lean` (monotone through the container's lfp
 clause), `Model/Inductives/ContAcc.lean` (accessible). -/
 
 /-- The numerals below `n`: `{nat 0, …, nat (n - 1)}`. -/
@@ -605,7 +605,7 @@ universe, an ordinary field's domain is a member of the result
 universe, and so is every entry of a reflexive field's telescope at
 every fitting prefix of the telescope.  Con-leche: the constructors'
 fields are small at every hole frame of the tuple space
-(`LfpClause.fieldsOk`, `ConLeche/Model/Annot/BlockLfp.lean`, the
+(`LfpClause.fieldsOk`, `ConLeche/Model/Env/BlockLfp.lean`, the
 install's `FieldsOkB`); the installation derives it from the checker's
 field-sort check read in a model in which the former denotes the
 one-fibre family (`domsBounded_of`, `InstallInd.lean`), whence every
@@ -805,8 +805,8 @@ member `y` of `Y` abstracted over the telescope), and the container
 values by a member of the class at `Y`, which the container's clause
 supplies (`ContClause.inhab`; `toFam`).  At the **one-fibre set**
 (`oneSet`: `{pt}` at a proposition, a singleton of a tagged value
-above it — a type either way, so the former may denote it in a model
-of the restricted universes) this is how the support bound is ONE set,
+above it — a type either way, so the former may denote it in a
+model) this is how the support bound is ONE set,
 independent of the family (`bound`), and how the universe bound on the
 fields at every family follows from the bound at that one family
 (`domsBounded_of_fam`).  Con-leche: the frame walk at
@@ -1023,7 +1023,7 @@ instance with its recursive and container values replaced
 (`toFam`), which fits the constant family `Y`.  So the bound at
 every family of the universe follows from the bound at `Y` alone —
 which the installation reads off the checker's typing in a model
-whose former is that family (a type of the restricted universe,
+whose former is that family (a family of types,
 `InstallInd.lean`), where an arbitrary family of the universe would
 not be one. -/
 theorem domsBounded_of_fam {ps : List V} (hnr : S.NoRecDep) (hco : S.ContOk M ls ps) {Y y : V}
@@ -1145,7 +1145,7 @@ the bound; and a constructor value with its support in a family `W'`
 of the universe is a constructor instance over `W'`: its ordinary
 fields are read without the family, each reflexive field's value, a
 function whose applications lie in `W'`'s fibres, is a member of the
-product into them (`piCtx_retype`), and each container field's value
+function space into them (`piCtx_retype`), and each container field's value
 is in the class at `W'`'s fibre by the container's clause.
 Con-leche: `ConstOn.accOn` (an ordinary field), `AccOn.holeApp` (a
 recursive field: the bound `{pt}`), `AccOn.pi` (a reflexive field:

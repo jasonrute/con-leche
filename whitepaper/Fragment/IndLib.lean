@@ -11,7 +11,7 @@ What the environment section uses of set theory beyond the universes
 (`Lib.lean`, `Univ.lean`), again as laws only: **n-ary tuples**
 (injective, universe-closed) and **tagged values** (injective,
 universe-closed, never the point nor a member of it — so a set of
-tagged values is strict, a type of the restricted universes).  A constructor application denotes
+tagged values is strict, a type of the universes of types `typeU`).  A constructor application denotes
 a tagged tuple — the constructor's number, then its fields.  The
 operations are abstract, so their closure laws cannot be derived from
 the universe laws and stay laws.

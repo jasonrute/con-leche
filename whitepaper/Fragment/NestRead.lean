@@ -732,7 +732,7 @@ theorem ihCtxAt_eq (c : CtorSpec) (o : Nat) :
 
 /-! ### The class's motive -/
 
-/-- The class's motive's type, read: the product over the class into
+/-- The class's motive's type, read: the function space over the class into
 the elimination universe. -/
 theorem Reader.read_motiveTy1 (hS : S.Scoped env) (R : S.Reader (env := env) M φ (S.Fam M) M' φ')
     (hN : S.nest = some N) {ps : List V} {m : V} {ρ : Nat → V} (hps : ps.length = S.nP)

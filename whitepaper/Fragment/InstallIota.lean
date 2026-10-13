@@ -529,7 +529,7 @@ theorem ihVal_ok (φ : Name → Nat) (ρ : Nat → V) {us : List Level}
   | container => exact (S.noCont_absurd (hok.noCont hpl) hcm hkf').elim
   | reflexive tele es =>
     have hmt : tele.length = tele.length := rfl
-    -- the field's domain: a product over the telescope
+    -- the field's domain: a Π-type over the telescope
     simp only [fieldDom] at hwdD
     rw [WellDenoted_mkPis] at hwdD
     obtain ⟨hwdT, hwdB⟩ := hwdD

@@ -5,33 +5,33 @@ public import Fragment.Sound
 public section
 
 /-!
-# Why the universes are restricted (tasks #338, #340)
+# Why a sort denotes a universe of types (tasks #338, #340)
 
-Under the model con-leche's `Semantics` uses — `Sort n` denotes the
-universe `univ n` itself — a β that fires at *every* binder, with no
-certificate and no comparison of the binder's datum, is unsound.
-The fragment's earlier model was that one, and its β was certified
-where the body may be a proposition; this file keeps the witness, and
-shows that the restricted universes (`typeU`, `Lib.lean`) exclude it.
+A sort denotes the universe of types `typeU` (`Lib.lean`), not the
+universe `univ n` itself.  This file shows why: were `Sort n` read as
+`univ n`, a β that fires at *every* binder, with no premise beyond the
+redex, would be unsound, and the witness below is a stored value that
+reduces to something else.  With `typeU` that witness has no model, and
+β is sound at every binder (`Sound.lean`, `Red.beta_sound`).
 
 The witness: `falseE := ∀ P : Prop, P`; `idProof := λ (h : falseE). h`
 (the point: its domain is empty); `badRedex := idProof Prop`, which is
-*ill-typed* (`Prop` is not a proof of `falseE`) but well-denoted under
-the old invariant — the point is a member of the propositional product
+*ill-typed* (`Prop` is not a proof of `falseE`) but well-denoted — the
+point is a member of the propositional function space
 `Sort 1 → {pt}` — and denotes the point; and the environment
-`c : Sort 1 := badRedex`.  Where `Sort 1` is `univ 1`, the point is a
-member of it in any well-founded model with transitive universes
-(`pt ∈ {pt} ∈ univ 0 ∈ univ 1`), so that environment has a model; δ
-takes `c` to `badRedex` and uniform β takes that to `Prop`, which does
-not denote the point — the reduction claim fails at every valuation
-(task #338's `uniform_beta_unsound`, on `agent/339-uniform-ind`).
-Excluding `c` syntactically would need subject reduction for stored
-values.
+`c : Sort 1 := badRedex`.  Were `Sort 1` read as `univ 1`, the point
+would be a member of it in any well-founded model with transitive
+universes (`pt ∈ {pt} ∈ univ 0 ∈ univ 1`), so that environment would
+have a model; δ takes `c` to `badRedex` and β takes that to `Prop`,
+which does not denote the point — the reduction claim would fail at
+every valuation (task #338).  Excluding `c` syntactically would need
+subject reduction for stored values.
 
-With restricted universes the environment has **no model**
-(`badEnv_no_model`): the value denotes the point, and `Sort 1`'s
-members are types, which the point is not.  That is the whole change of model: β is then
-sound at every binder (`Sound.lean`, `Red.beta_sound`).
+Under `typeU` the environment has **no model** (`badEnv_no_model`):
+the value denotes the point, and `Sort 1`'s members are types, which
+the point is not.  So the meaning of a sort, not a side condition on
+the β rule, is what keeps β sound at every binder, the δ-unfolding of
+stored values included.
 -/
 
 namespace Fragment
@@ -60,7 +60,7 @@ universe w
 variable {V : Type w} [SetLib V]
 
 /-- `∀ P : Prop, P` has no member, under every model, valuation and
-environment: the product is propositional, and `False` is a fibre. -/
+environment: the function space is propositional, and `False` is a fibre. -/
 theorem not_mem_falseE (M : Name → List Nat → V) (φ : Name → Nat) (ρ : Nat → V) (z : V) :
     ¬ z ∈ˢ interp M φ ρ falseE := by
   intro hz

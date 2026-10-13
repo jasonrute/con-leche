@@ -20,7 +20,7 @@ environment.  Three kinds of facts:
   constants, at any valuation agreeing on the block's level
   parameters, in any two environments agreeing below its depth — so
   the model, the valuation and the base environment can be changed
-  freely under the products and abstractions that read them
+  freely under the function spaces and abstractions that read them
   (`piCtx_congr₂`, `lamCtx_congr₂`, `FitsVals_congr₂`).
 * **The self-certifying application** (`appList_of_wd`): a
   well-denoted application of an abstraction tower to arguments that
@@ -278,8 +278,8 @@ theorem appList_of_wd (M : Name → List Nat → V) (φ : Name → Nat) {ρ : Na
 
 /-- **Introduction, with the body the point where a condition holds**:
 an abstraction whose body is the point where `c` holds and a member of
-the product's body elsewhere is a member of the product, when the
-product's body is a type that holds the point where `c` holds (the
+the function space's body elsewhere is a member of it, when the
+function space's body is a type that holds the point where `c` holds (the
 recursor into `Prop`: its fibres are inhabited truth values, whatever
 the recursor's value would be). -/
 theorem lamCtx_mem_piCtx_if (M : Name → List Nat → V) (φ : Name → Nat) {c : Bool} {ρ : Nat → V}
@@ -308,7 +308,7 @@ theorem SpineOk_append_single {f : V} : ∀ {ws : List V} {v : V},
     show (_ ∧ SpineOk (app f w) (ws ++ [v])) ↔ ((_ ∧ SpineOk (app f w) ws) ∧ _)
     rw [SpineOk_append_single, appList_cons, and_assoc]
 
-/-- A member of a product over a context applied to fitting values
+/-- A member of a function space over a context applied to fitting values
 (outermost first) is a well-formed application chain, when the
 context's domains are types. -/
 theorem spineOk_of_piCtx (M : Name → List Nat → V) (φ : Name → Nat) {ρ : Nat → V}
@@ -365,7 +365,7 @@ structure Reader (F : List Nat → List V → List V → V) (M' : Name → List 
   /-- The family's fibres at fitting parameters and indices are
   admissible (`adm`: above a proposition, sets of values that are
   neither the point nor a member of it — tagged values), so the class
-  is read at them, and a reflexive field's product reads them under
+  is read at them, and a reflexive field's function space reads them under
   its telescope (`reflBody`). -/
   adm : ∀ ps is, FitsVals M (S.ψ (S.lparams.map φ)) base S.params ps →
     FitsVals M (S.ψ (S.lparams.map φ)) (envP ps) S.indices is →
@@ -995,7 +995,7 @@ theorem Reader.read_famVars (hS : S.Scoped env) (R : S.Reader (env := env) M φ 
       shiftE_consList, readEnv_consList hps]
   · rw [interp_varsAt, shiftE_zero_zero, List.reverse_reverse, readEnv_consList hl]
 
-/-- **The motive's type, read**: the product over the indices and the
+/-- **The motive's type, read**: the function space over the indices and the
 fibre into the elimination universe. -/
 theorem Reader.read_motiveTy (hS : S.Scoped env) (R : S.Reader (env := env) M φ F M' φ')
     {ps : List V} {ρ : Nat → V} (hps : ps.length = S.nP)
@@ -1034,8 +1034,8 @@ theorem IhTyped_iff {ps : List V} {m : V} {fs : List V} {kf : Nat × Field}
   | reflexive _ _ => rfl
   | container => exact ⟨fun h => h.elim, fun h => absurd h (not_mem_empty _)⟩
 
-/-- A product over a telescope lifted into a minor premise or a rule
-is the product over the telescope at the field's own frame. -/
+/-- A function space over a telescope lifted into a minor premise or a rule
+is the function space over the telescope at the field's own frame. -/
 theorem Reader.piCtx_liftCtx_atCtx (R : S.Reader (env := env) M φ F M' φ')
     {nF k l o : Nat} {ihsE fs os ps : List V} {ρ : Nat → V}
     (hi : ihsE.length = l) (hf : fs.length = nF) (ho : os.length = o) (hk : k ≤ nF)

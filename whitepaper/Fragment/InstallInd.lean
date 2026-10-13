@@ -183,7 +183,7 @@ include hpl hs m hok
 
 The former's type `∀ params indices, Sort u` is inhabited by the graph
 of ANY family of types of the result universe (`Sort u` denotes the
-restricted universe `typeU`), so the environment holding the former
+universe of types `typeU`), so the environment holding the former
 has a model for each such family (`mIndF`).  In such a model the
 checker's typing of the constructors reads as facts about instances of
 that family — which is how the universe bound on the fields is
@@ -215,7 +215,7 @@ theorem readerF (M : Name → List Nat → V) (F : List Nat → List V → List 
   adm := fun ps is _ _ => hFa _ ps is
 
 omit [LevelOracle] hpl hs m hok in
-/-- The former's type is a type: a product, or a sort. -/
+/-- The former's type denotes a type: a function space, or a sort's universe. -/
 theorem IsTy_indType (S : IndSpec) (M' : Name → List Nat → V) (φ : Name → Nat) (ρ : Nat → V) :
     IsTy (interp M' φ ρ S.indType) := by
   unfold indType
@@ -673,7 +673,7 @@ theorem univ_of_sort {Γ : List Expr} {A s : Expr} {v : Level}
 /-! ## Uniqueness of decodings under the subsingleton criterion -/
 
 omit [LevelOracle] hpl hs m hok in
-/-- A member of a product over a context is the point when the
+/-- A member of a function space over a context is the point when the
 body's members are. -/
 theorem eq_pt_of_mem_piCtx_pt (M' : Name → List Nat → V) (φ : Name → Nat) :
     ∀ {Γ : List Expr} {ρ : Nat → V} {G : (Nat → V) → V},

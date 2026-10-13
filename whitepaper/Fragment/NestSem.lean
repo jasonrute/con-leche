@@ -50,7 +50,7 @@ Con-leche: `Model/Inductives/ContAcc.lean` and `ContAccFrame.lean`
 (`frameIterAcc`) with `SetModel/Access.lean`'s `lfpP_acc` for
 accessibility.  Con-leche proves monotonicity separately, by
 positivity plus leastness — the container case of
-`Model/Annot/BlockLfpMono.lean` through `SetModel/HoleClose.lean`
+`Model/Env/BlockLfpMono.lean` through `SetModel/HoleClose.lean`
 (`lfpTuple_le_on`) and `Model/Inductives/ContLeaf.lean`
 (`monoOn_of_famLe`); the fragment derives it from accessibility.
 -/

@@ -10,9 +10,9 @@ public import Fragment.Env
 
 `interp M φ ρ e` maps a term to a set: **total** (every term, well-typed
 or not), **term-directed** (structural recursion on the term; no
-derivation, no environment lookup, no `Option`), and **annotation-free**:
+derivation, no environment lookup, no `Option`), and **value-driven**:
 at a binder the regime is read off the values (`piV`/`lamV`,
-`Lib.lean`), not off a datum.  The parameters:
+`Lib.lean`).  The parameters:
 
 * `M : Name → List Nat → V`, the model's assignment of a set to every
   constant at every list of concrete levels (what the environment
@@ -40,19 +40,19 @@ identity on every environment (`interp_zeta`), the point included.
 `app` is uniform — `app pt a = pt` is the proposition regime's β and
 `app_graph` the graph regime's — so the whole regime dispatch lives in
 the two binder cases, and there it is a property of the values: a
-product is propositional when every fibre is a truth value, an
+function space is propositional when every fibre is a truth value, an
 abstraction is the point when every body value is.  Over an empty
 domain both are read as propositional (task #344).
 
-A sort denotes its **restricted universe** `typeU` (`Lib.lean`): the
-truth values at `0`, the strict members of `univ n` above — the sets
-that are not the point and do not contain it.  That is the one place
-the model departs from con-leche's `ConLeche/Semantics/Interp.lean`,
-which interprets a sort by the universe itself (and whose checker
-therefore keeps the certified β, until its port); its binder numeral
-is the concrete sort of the body, where here no datum exists and the
-values decide, and constants read the model's assignment directly
-rather than a stored annotated term.
+A sort denotes its **universe of types** `typeU` (`Lib.lean`): the
+truth values at `0`, above it the members of `univ n` that are types
+— truth values, or the sets that are not the point and do not contain
+it.  Con-leche's `ConLeche/Semantics/Interp.lean` reads a sort the
+same way (its `univ` is `tyU`, `ConLeche/SetTheory/Derive/Univ.lean`),
+and reads its binders by the same value-driven `piV`/`lamV`; where it
+reads a constant through its basis valuation `bval`, the fragment
+reads the model's assignment `M` directly, and its terms have no
+equality, projection or proof-term constructors.
 -/
 
 namespace Fragment

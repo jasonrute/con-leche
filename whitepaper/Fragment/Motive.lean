@@ -28,7 +28,7 @@ every environment `ρ` satisfying the context:
   have equal denotations, unconditionally.
 
 The first two are **conditional on the point**: they say nothing about
-proofs, which is what lets β fire at every binder with no certificate
+proofs, which is what lets β fire at every binder with no premise
 (`Sound.lean`).  The third is not: an inferred type is a type, never
 the point, so the reductions and comparisons of types the rules run
 are claimed outright.

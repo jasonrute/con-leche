@@ -8,8 +8,8 @@ public section
 /-!
 # The λ-congruence type check, probed (task #345)
 
-Two findings about the check `DefEq.lam`/`DefEq.eta` run on
-annotation-free terms (`Unannot.lean`), each as a witness.
+Two findings about the check `DefEq.lam`/`DefEq.eta` under the
+value-driven regimes (`Unannot.lean`), each as a witness.
 
 * **Point-denoting non-proofs** are the members of the types that
   denote `{pt}` at the valuation: `False → Nat` (`piV_of_empty`),

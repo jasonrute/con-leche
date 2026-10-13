@@ -5,13 +5,13 @@ public import Fragment.Sound
 public section
 
 /-!
-# The fast-inference grade without annotations (task #346)
+# The fast-inference grade (task #346)
 
 Lean's kernel infers the type of a term it has already checked with
 `infer_only`: an application's type is the head's codomain at the
 argument, and the argument's type is never compared with the binder's
-domain.  `InferIO` is that grade on the fragment's annotation-free
-terms (`Syntax.lean`).  The question of task #346: what does an
+domain.  `InferIO` is that grade on the fragment's terms
+(`Syntax.lean`).  The question of task #346: what does an
 io-inferred type say about the term, in the value-driven model of task
 #344, and which consumers can use it?
 

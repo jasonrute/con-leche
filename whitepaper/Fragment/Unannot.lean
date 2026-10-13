@@ -5,15 +5,15 @@ public import Fragment.UniformBeta
 public section
 
 /-!
-# Terms without annotations: the two prices (task #344)
+# The value-driven regimes: the two prices (task #344)
 
-The fragment's terms carry no binder datum (`Syntax.lean`), and the
-interpretation reads a binder's regime off the values (`SetLib.piV`,
-`SetLib.lamV`): a product is propositional exactly when every fibre is
-a truth value, an abstraction is the point exactly when every body
-value is.  Over a nonempty domain that is what an honest annotation
-would say.  Over an EMPTY domain the values say nothing, and the
-reading is fixed: the product is `{pt}`, the abstraction the point,
+A binder of the fragment carries its domain alone (`Syntax.lean`), and
+the interpretation reads its regime off the values (`SetLib.piV`,
+`SetLib.lamV`): a function space is propositional exactly when every
+fibre is a truth value, an abstraction is the point exactly when every
+body value is.  Over a nonempty domain that says whether the body is a
+proof.  Over an EMPTY domain the values say nothing, and the reading
+is fixed: the function space is `{pt}`, the abstraction the point,
 whatever the body's sort.  This file shows the two things that choice
 costs, each as a witness.
 

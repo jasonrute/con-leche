@@ -14,14 +14,14 @@ constants:
 
 * **`type_ok`** — every stored constant's declared type, at every
   level instantiation, is well-denoted, and the constant's set is a
-  member of it (con-leche's `mem_type`/`type_wellDenotedV`,
-  `ConLeche/Model/Annot/EnvModelM.lean`);
+  member of it (con-leche's `mem_type`/`type_wellDenotedTy`,
+  `ConLeche/Model/Env/EnvModelM.lean`);
 * **`unfold`** — a definition's value denotes the constant's set, and
   is well-denoted (con-leche's `AcvalDefnInst`);
 * **`rec_rules`** — every recursor rule's ι equation holds in the
   model, on values, and its right-hand side is well-denoted with a
   well-formed application chain (con-leche's `RecRuleLaw`,
-  `ConLeche/Model/Annot/Laws.lean`);
+  `ConLeche/Model/Env/Laws.lean`);
 * **`ind_fib`** — every stored inductive family has truth values as
   fibres where its stored sort evaluates to zero, and strict fibres (not
   the point, and without it) where it does not (`IndFibLaw`), the fact
@@ -103,7 +103,7 @@ theorem piBodyV_nil (ρ : Nat → V) (T : Expr) : piBodyV ρ T [] = some (T, ρ)
   cases T <;> rfl
 
 /-- **A well-formed application chain on values**: at each step the
-function is a member of some product whose domain holds the argument
+function is a member of some function space whose domain holds the argument
 (at a proposition, whose fibres are truth values; above it, whose
 domain is a type) — the
 invariant's application clause (`WellDenoted`, `app`) along a spine,
@@ -117,7 +117,7 @@ def SpineOk : V → List V → Prop
     SpineOk (app f v) vs
 
 /-- **The ι law of one recursor rule** (con-leche's `RecRuleLaw`,
-`ConLeche/Model/Annot/Laws.lean`), stated on **values**.  For the
+`ConLeche/Model/Env/Laws.lean`), stated on **values**.  For the
 recursor `c` (stored as `ci`, with `numParams` parameters,
 `numBefore = numParams + numMotives + numMinors` arguments before the
 indices, the major at `majorIdx`) and its rule `rl` for the
@@ -276,7 +276,7 @@ def RecRuleSlotLaw (M : Name → List Nat → V) (c : Name) (ci : ConstInfo) (ma
       appList (M rl.ctor (usj.map (Level.eval φ))) ys = pt
 
 /-- **The fibres' regime follows the stored sort** (task #342 F1,
-the ι licence of #347 and §11.4): for a stored inductive type former
+the ι case test of #347 and §11.4): for a stored inductive type former
 `I` (stored as `ci`, with `nP` parameters and `nI` indices and its
 block's specification `S`), the family applied to any values fitting
 its telescope is a **truth value** where the family's stored sort

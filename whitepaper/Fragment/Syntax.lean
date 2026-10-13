@@ -13,15 +13,15 @@ variables (the paper writes named variables; the real checker opens a
 binder with a free variable carrying its own type, `fvar`, and keeps no
 context — a performance device the fragment does not need).
 
-**A binder carries its domain and nothing else** (task #344): there
-is no annotation datum saying whether the body is a proposition.  The
+**A binder carries its domain and nothing else** (task #344): whether
+the body is a proposition is no part of the term.  The
 interpretation reads the regime of a binder off the VALUES
 (`Interp.lean`, `SetLib.lamV`/`piV`), so no rule reads or checks one.
 
 Mirrors `ConLeche.Expr` (`ConLeche/Kernel/Expr.lean`) restricted to
-the fragment, without its binder annotations (`AnnotTerm` of
-`ConLeche/Semantics/Syntax.lean`, whose lifting/instantiation this
-file copies, carries them).
+the fragment; the lifting and instantiation are those of con-leche's
+erased terms (`ITerm` of `ConLeche/Semantics/Syntax.lean`), which this
+file copies.
 -/
 
 namespace Fragment

@@ -43,7 +43,7 @@ claim about io-inferred types can serve them in this model.
 
 What the model lacks is a typing of the body `g x n`: the invariant
 `WellDenoted` asks of an application only that its argument lie in the
-domain of *some* product holding the head, and where the head is the
+domain of *some* function space holding the head, and where the head is the
 point (here, at `x = False`) that is no constraint.  Every typed term
 of Lean's has a correct io-inferred type (subject reduction and
 uniqueness of types); the semantic proof does not have that, and

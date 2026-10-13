@@ -31,8 +31,8 @@ The bridges between the **term-level** certificates the rules carry
 
 Environments built from value lists (`consList`) and the spine
 projections (`Expr.getAppFn`/`getAppArgs`) are the small vocabulary
-these need.  Mirrors the `TeleFitV`/`TeleFitPA` transposes and the
-index pin of `ConLeche/Model/Annot/Laws.lean`.
+these need.  Mirrors the `TeleFit`/`TeleFitPA` transposes and the
+index pin of `ConLeche/Model/Env/Laws.lean`.
 -/
 
 namespace Fragment

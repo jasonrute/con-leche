@@ -13,7 +13,7 @@ variables, innermost first; `bvar i` has type `Γ[i]` lifted over the
 `i + 1` binders in between):
 
 * `Red env Γ e e'` — **head reduction**: β at every binder with no
-  certificate, ζ, δ, ι, closed under `appFn` and `trans` (and `refl`).
+  premise, ζ, δ, ι, closed under `appFn` and `trans` (and `refl`).
 * `DefEq env Γ a b` — **definitional equality**, the checker's verdict
   `true`: `refl`, `symm`, reduce-the-left-side, sorts by the level
   oracle, constants, congruence for `app`/`lam`/`pi`, η, proof
@@ -28,13 +28,13 @@ variables, innermost first; `bvar i` has type `Γ[i]` lifted over the
   types nor the domains' comparison.
 * `Infer env Γ e T` — **type inference**, one grade, Lean's rules.
 
-The terms carry no binder annotations (task #344), so no rule reads
-one: the regime of a binder is the model's business (`Interp.lean`).
+A binder carries its domain alone (task #344), and no rule reads a
+regime: the regime of a binder is the model's business (`Interp.lean`).
 
 They mirror the six relations of `ConLeche/Rules/Rel.lean` (task
 #305) restricted to the fragment: one inference grade instead of two
 (no `appSkip`, no `proofFast`), no projections, literals, rescues or
-structure η, and the certificate walks (`Certs`, `DefEqList`) folded
+structure η, and the certificate walks (`CertsF`, `DefEqList`) folded
 into the rules that use them (`Red.iota`).  Each constructor's
 docstring names the constructor of `Rel.lean` it corresponds to.
 
@@ -57,17 +57,17 @@ mutual
 
 /-- **Reduction**: the head steps of the checker's `whnf`, chained. -/
 inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
-  /-- No step (`Red.refl`, `Rel.lean:101`). -/
+  /-- No step (`Red.refl`, `Rel.lean:106`). -/
   | refl {Γ : List Expr} {e : Expr} : Red env Γ e e
-  /-- Chaining (`Red.trans`, `Rel.lean:106`).  A reduction is a
+  /-- Chaining (`Red.trans`, `Rel.lean:111`).  A reduction is a
   denotation identity, so chaining costs nothing semantically. -/
   | trans {Γ : List Expr} {e₁ e₂ e₃ : Expr} :
       Red env Γ e₁ e₂ → Red env Γ e₂ e₃ → Red env Γ e₁ e₃
   /-- Head reduction inside an application (`Red.appFn`,
-  `Rel.lean:111`): the head is reduced before a redex is looked for. -/
+  `Rel.lean:116`): the head is reduced before a redex is looked for. -/
   | appFn {Γ : List Expr} {f f' a : Expr} :
       Red env Γ f f' → Red env Γ (app f a) (app f' a)
-  /-- **β, uniform**: at every binder, with **no certificate** — no
+  /-- **β**: at every binder, with **no premise** — no
   inference of the argument, no comparison with the binder's domain.
   This is Lean's own β (`whnf_core`).  The model needs no premise
   (`Sound.lean`, `Red.beta_sound`): a reduction claims nothing of a
@@ -85,14 +85,14 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   alike at every environment (`interp_zeta`). -/
   | zeta {Γ : List Expr} {T v b : Expr} :
       Red env Γ (letE T v b) (b.inst v)
-  /-- **δ** (`Red.delta`, `Rel.lean:132`): a definition unfolds to its
+  /-- **δ** (`Red.delta`, `Rel.lean:140`): a definition unfolds to its
   value, at the use's level instantiation.  (With `appFn`, an applied
   definition unfolds at its head.) -/
   | delta {Γ : List Expr} {c : Name} {ls : List Level} {ci : ConstInfo} {v : Expr} :
       env.find? c = some ci → ci.value? = some v →
       ls.length = ci.lparams.length →
       Red env Γ (const c ls) (v.instL ci.lparams ls)
-  /-- **ι** (`Red.iota`, `Rel.lean:184`): a stored recursor applied to
+  /-- **ι** (`Red.iota`, `Rel.lean:200`): a stored recursor applied to
   exactly its telescope — `numParams` parameters, `numMotives` motives,
   `numMinors` minor premises, `numIndices` indices and the major
   premise — whose major reduces to a constructor application with a
@@ -103,36 +103,36 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
   `RecRule.inst`); an auxiliary recursor's rule fires by
   `Red.iotaNested`.
 
-  The **certificates** are what is left of `Rel.lean`'s `Certs` walks
-  (`:576-587`) after task #347.  The recursor's spine before the major
-  needs none: a reduction claims nothing of a redex that is the point,
-  and a redex that is not the point fits the recursor's telescope by
-  the invariant's application slots (`teleFit_of_ne_pt`).  The reduced
-  major's slot is certified — its type inferred and found
-  definitionally equal to the domain the recursor's telescope leaves
-  after the spine (`Expr.piResidual`) — and so is the constructor's
-  argument spine against its stored type's `Π`-telescope
-  (`Expr.piDomains`; the stored types have the spine's length of
-  syntactic binders, `Expr.hasPis`).  Both are needed only where the
-  major may denote the point (a family that may be a proposition):
-  where the major's domain is strict, `iota_core_strict` (`Sound.lean`)
-  needs neither; where the constructor's family is a proposition at
-  every valuation, `Red.iotaProp` needs no slot certificate.  They make the environment's ι law (`EnvModel.lean`,
+  The **certificates** are the fragment's form of `Rel.lean`'s `CertsF`
+  and `piResidual` premises (`:227-236`).  The recursor's spine before the
+  major needs none: a reduction claims nothing of a redex that is the
+  point, and a redex that is not the point fits the recursor's telescope
+  by the invariant's application slots (`teleFit_of_ne_pt`).  The reduced
+  major's slot is certified — its type inferred and found definitionally
+  equal to the domain the recursor's telescope leaves after the spine
+  (`Expr.piResidual`) — and so is the constructor's argument spine against
+  its stored type's `Π`-telescope (`Expr.piDomains`; the stored types have
+  the spine's length of syntactic binders, `Expr.hasPis`).  Both are
+  needed only where the major may denote the point (a family that may be a
+  proposition): where the major's domain is strict, `iota_core_strict`
+  (`Sound.lean`) needs neither; where the constructor's family is a
+  proposition at every valuation, `Red.iotaProp` needs no slot
+  certificate.  They make the environment's ι law (`EnvModel.lean`,
   `RecRuleLaw`) applicable: they put every argument in its domain.
 
-  The **three comparisons** after them are `Rel.lean`'s too
-  (`:206-231`): the constructor's levels are the recursor's (its last
-  `usj.length` ones — a large eliminator carries one extra level in
-  front), the constructor's parameters are definitionally the
-  recursor's, and the constructor's residual type
-  (`Expr.piResidual`: the family at the constructor's own parameters
-  and index expressions, with the fields substituted in) has index
-  expressions definitionally equal to the recursor's index arguments.
-  In the model they matter exactly when the family is a proposition:
-  there the major denotes the one point, the certificates say only
-  that the fibre is inhabited, and the fields the rule's right-hand
-  side receives can be related to the recursor's own parameters and
-  indices through these comparisons alone (`Install.lean`). -/
+  The **three comparisons** after them are `Rel.lean`'s too (`:213-241`,
+  there in the certified case only): the constructor's levels are the
+  recursor's (its last `usj.length` ones — a large eliminator carries
+  one extra level in front), the constructor's parameters are
+  definitionally the recursor's, and the constructor's residual type
+  (`Expr.piResidual`: the family at the constructor's own parameters and
+  index expressions, with the fields substituted in) has index
+  expressions definitionally equal to the recursor's index arguments. In
+  the model they matter exactly when the family is a proposition: there
+  the major denotes the one point, the certificates say only that the
+  fibre is inhabited, and the fields the rule's right-hand side receives
+  can be related to the recursor's own parameters and indices through
+  these comparisons alone (`Install.lean`). -/
   | iota {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
       {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
       {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
@@ -391,7 +391,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
       Red env Γ (mkAppN (const c us) args)
         (mkAppN (rl.rhs.instL ci.lparams us)
           (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
-  /-- **ι, case 2** (task #342 F1; #347's licence, #342 v2 §11.4): `Red.iota`
+  /-- **ι, case 2** (task #342 F1; #347's ι case test, #342 v2 §11.4): `Red.iota`
   with **no certificate at all** — no major slot, no constructor
   telescope — where the major's domain (what the recursor's telescope
   leaves after the spine, `Expr.piResidual`) is a stored inductive
@@ -529,7 +529,7 @@ inductive Red (env : Env) : List Expr → Expr → Expr → Prop where
 /-- **Definitional equality**: the verdict `true` of the checker's
 `isDefEq`.
 
-**There is no `trans` rule, deliberately** (`Rel.lean:310-333`, task
+**There is no `trans` rule, deliberately** (`Rel.lean:334-357`, task
 #309).  The relation is the checker's verdict on two terms that are
 well-formed *together*, a fact no rule states because well-formedness
 is semantic (`WellDenoted`) and may not enter this inductive.  Every
@@ -545,26 +545,26 @@ makes is one of the rules below, and its one way to chain is
 "reduce, then continue": `redL`.
 -/
 inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
-  /-- The syntactic fast path (`DefEq.refl`, `Rel.lean:338`). -/
+  /-- The syntactic fast path (`DefEq.refl`, `Rel.lean:362`). -/
   | refl {Γ : List Expr} {a : Expr} : DefEq env Γ a a
-  /-- Symmetry (`DefEq.symm`, `Rel.lean:341`).  Not a checker move: the
+  /-- Symmetry (`DefEq.symm`, `Rel.lean:365`).  Not a checker move: the
   constructor from which every right-hand variant of a one-sided rule
   is derived. -/
   | symm {Γ : List Expr} {a b : Expr} : DefEq env Γ a b → DefEq env Γ b a
   /-- **Reduce the left side, then continue** (`DefEq.redL`,
-  `Rel.lean:346`): the recursive structure of `isDefEq` — head
+  `Rel.lean:370`): the recursive structure of `isDefEq` — head
   normalisation of either side (with `symm`) and every lazy-δ
   continuation. -/
   | redL {Γ : List Expr} {a a' b : Expr} :
       Red env Γ a a' → DefEq env Γ a' b → DefEq env Γ a b
-  /-- Two sorts, by the level oracle (`DefEq.sort`, `Rel.lean:349`). -/
+  /-- Two sorts, by the level oracle (`DefEq.sort`, `Rel.lean:373`). -/
   | sort {Γ : List Expr} {u v : Level} :
       LevelOracle.eq u v = true → DefEq env Γ (sort u) (sort v)
   /-- Two constants of the same name at oracle-equal levels
-  (`DefEq.const`, `Rel.lean:360`). -/
+  (`DefEq.const`, `Rel.lean:384`). -/
   | const {Γ : List Expr} {c : Name} {ls ls' : List Level} :
       Level.eqList ls ls' = true → DefEq env Γ (const c ls) (const c ls')
-  /-- `∀`-congruence (`DefEq.forallE`, `Rel.lean:373`): domains, then
+  /-- `∀`-congruence (`DefEq.forallE`, `Rel.lean:399`): domains, then
   bodies under the RIGHT domain, and nothing else (task #344).  A
   `∀`'s value is a function of its domain's and its fibres' values
   (`SetLib.piV`: the propositional function space exactly when every fibre is
@@ -573,7 +573,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
   | pi {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr} :
       DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) B₁ B₂ →
       DefEq env Γ (pi A₁ B₁) (pi A₂ B₂)
-  /-- λ-congruence (`DefEq.lam`, `Rel.lean:380`): domains, then
+  /-- λ-congruence (`DefEq.lams`, `Rel.lean:407`): domains, then
   bodies under the RIGHT domain — and, **typed** (task #344), the two
   bodies' inferred types under that domain are definitionally equal.
   A λ's value is the point exactly when every body value is
@@ -633,11 +633,11 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env Γ f₁ f₂ → Infer env Γ f₁ tf → Red env Γ tf (pi S B) →
       DefEqIn env Γ S a₁ a₂ →
       DefEq env Γ (app f₁ a₁) (app f₂ a₂)
-  /-- Application congruence (`DefEq.app`, `Rel.lean:390`). -/
+  /-- Application congruence (`DefEq.app`, `Rel.lean:412`). -/
   | app {Γ : List Expr} {f₁ a₁ f₂ a₂ : Expr} :
       DefEq env Γ f₁ f₂ → DefEq env Γ a₁ a₂ →
       DefEq env Γ (app f₁ a₁) (app f₂ a₂)
-  /-- **η** (`DefEq.eta`, `Rel.lean:400`): a λ against a term `b`
+  /-- **η** (`DefEq.eta`, `Rel.lean:430`): a λ against a term `b`
   whose inferred type reduces to a `∀` with a definitionally equal
   domain, when the λ's body is `b` applied to the variable — and,
   **typed** as λ-congruence is (task #344), the λ's body's inferred
@@ -651,7 +651,7 @@ inductive DefEq (env : Env) : List Expr → Expr → Expr → Prop where
       DefEq env (A₁ :: Γ) b₁ (app (b.liftN 1) (bvar 0)) →
       Infer env (A₁ :: Γ) b₁ t₁ → DefEq env (A₁ :: Γ) t₁ B →
       DefEq env Γ (lam A₁ b₁) b
-  /-- **Proof irrelevance** (`DefEq.proofIrrel`, `Rel.lean:417`): both
+  /-- **Proof irrelevance** (`DefEq.proofIrrel`, `Rel.lean:452`): both
   sides' inferred types have sort `Prop`.  **The two types are never
   compared**: the model justifies that, because every proof denotes the
   one point. -/
@@ -739,19 +739,19 @@ inductive DefEqIn (env : Env) : List Expr → Expr → Expr → Expr → Prop wh
 /-- **Type inference.** -/
 inductive Infer (env : Env) : List Expr → Expr → Expr → Prop where
   /-- A bound variable's type is its context entry, lifted over the
-  binders in between (`Infer.fvar`, `Rel.lean:492`; the real checker
+  binders in between (`Infer.fvar`, `Rel.lean:555`; the real checker
   reads the type off the free variable). -/
   | bvar {Γ : List Expr} {i : Nat} {A : Expr} :
       Γ[i]? = some A → Infer env Γ (bvar i) (A.liftN (i + 1))
-  /-- `Sort u : Sort (u + 1)` (`Infer.sort`, `Rel.lean:488`). -/
+  /-- `Sort u : Sort (u + 1)` (`Infer.sort`, `Rel.lean:551`). -/
   | sort {Γ : List Expr} {u : Level} :
       Infer env Γ (sort u) (sort (.succ u))
   /-- A stored constant at the right number of levels has its
-  declared type, instantiated (`Infer.const`, `Rel.lean:496`). -/
+  declared type, instantiated (`Infer.const`, `Rel.lean:559`). -/
   | const {Γ : List Expr} {c : Name} {ls : List Level} {ci : ConstInfo} :
       env.find? c = some ci → ls.length = ci.lparams.length →
       Infer env Γ (const c ls) (ci.type.instL ci.lparams ls)
-  /-- **`∀`-formation** (`Infer.forallE`, `Rel.lean:515`): the domain's
+  /-- **`∀`-formation** (`Infer.forallE`, `Rel.lean:576`): the domain's
   type reduces to a sort `u`, the body's type (under the domain)
   reduces to a sort `v`, the result is `Sort (imax u v)`.  Nothing is
   checked beyond Lean's own rule. -/
@@ -759,7 +759,7 @@ inductive Infer (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ A s → Red env Γ s (sort u) →
       Infer env (A :: Γ) B t → Red env (A :: Γ) t (sort v) →
       Infer env Γ (pi A B) (sort (.imax u v))
-  /-- **λ** (`Infer.lam`, `Rel.lean:530`): the domain's type reduces to
+  /-- **λ** (`Infer.lam`, `Rel.lean:589`): the domain's type reduces to
   a sort, the body is inferred under the domain, and the result is the
   `∀` of the body's type — Lean's own rule.  The body's type's sort is
   not computed: an inferred type is a type (`InferSem`), which is all
@@ -769,7 +769,7 @@ inductive Infer (env : Env) : List Expr → Expr → Expr → Prop where
       Infer env Γ A s → Red env Γ s (sort u) →
       Infer env (A :: Γ) b bt →
       Infer env Γ (lam A b) (pi A bt)
-  /-- **Application** (`Infer.app`, `Rel.lean:544`): the head's type
+  /-- **Application** (`Infer.app`, `Rel.lean:617`): the head's type
   reduces to a `∀`, and the argument's inferred type is definitionally
   equal to its domain.  This is where a syntactic proof would need
   Π-injectivity and the semantic one does not: the `∀` the head's type
