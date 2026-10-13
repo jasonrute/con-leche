@@ -1384,12 +1384,6 @@
    201      OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V) :=
    202    fun h => ⟨⟨ZFSet.{u}, setTheoryOfCarneiro h⟩⟩
 
-== ConLeche/Kernel/PropWhen.lean#L35-L38
-    35  inductive PropWhen where
-    36    | never
-    37    | ifAllZero (ps : List Name)
-    38    deriving DecidableEq, Repr, Inhabited
-
 == Main.lean#L107
    107    "  --trusted         the unverified mode: the SAME checker bodies as",
 
