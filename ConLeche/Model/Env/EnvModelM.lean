@@ -49,7 +49,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   IndCaps RecRule)
 
@@ -74,10 +74,10 @@ sort.  What makes a container's frame
 hole — the hole value at the container's instantiation — inhabit the
 container's type (the walk's context), and a group-mate's former agree
 with its hole value applied to the frame's parameters. -/
-@[expose] def LfpReads {V : Type w} [SetTheory V] (acval : Name → (Name → Nat) → AnnotTerm)
+@[expose] def LfpReads {V : Type w} [SetTheory V] (acval : Name → (Name → Nat) → ITerm)
     (env : Env) (D : LfpDatum V) : Prop :=
   ∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
-    ∀ ψ : Name → Nat, ∃ ab : List AnnotTerm,
+    ∀ ψ : Name → Nat, ∃ ab : List ITerm,
       denoteMeta acval env ψ 0 cv.type = some (mkPisAV ab (.sort (D.w ψ))) ∧
       ab = D.pars mm ψ ++ D.ids mm ψ
 
@@ -126,7 +126,7 @@ datatype parameters", `inductive.cpp`).  An outside class's rule
 certificates read it: the instantiated constructor's field domains are
 graded because the parameters' readings fit the constructor's own
 parameter binders. -/
-@[expose] def LfpCtorReads {V : Type w} [SetTheory V] (acval : Name → (Name → Nat) → AnnotTerm)
+@[expose] def LfpCtorReads {V : Type w} [SetTheory V] (acval : Name → (Name → Nat) → ITerm)
     (env : Env) (D : LfpDatum V) : Prop :=
   D.names.length = D.k ∧
   ∀ c, c < D.k → ∀ j, j < D.nctors c → ∃ cv nPc nF,
@@ -134,16 +134,16 @@ parameter binders. -/
     cv.type.hasFvar = false ∧
     (∀ mm, mm < D.k → ∃ cvm caps, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
       cvm.levelParams = cv.levelParams) ∧
-    (∀ (ψ : Name → Nat) (dsC : List AnnotTerm) (bodyC : AnnotTerm),
+    (∀ (ψ : Name → Nat) (dsC : List ITerm) (bodyC : ITerm),
       denoteMeta acval env ψ 0 cv.type = some (mkPisAV dsC bodyC) → nPc ≤ dsC.length →
       ∀ ρ : Nat → V, Sat V (D.params ψ).reverse ρ →
         Sat V (dsC.take nPc).reverse ρ) ∧
     ∃ A, ConLeche.nestCanonCrest D.names (cv.levelParams.map .param) nPc cv.type = some A ∧
       A.nestOcc D.names 0 0 = false ∧
       ∀ ψ : Name → Nat, (D.params ψ).length = nPc ∧ (D.fields ψ c j).length = nF ∧
-        ∃ (ab : List AnnotTerm) (Tys : List AnnotTerm),
+        ∃ (ab : List ITerm) (Tys : List ITerm),
           denoteMeta acval env ψ (nPc + D.k) A
-            = some (mkPisAV ab (AnnotTerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
+            = some (mkPisAV ab (ITerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
                 (D.resIdx ψ c j))) ∧
           ab.length = nF ∧ Tys.length = D.k ∧
           (∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
@@ -178,8 +178,8 @@ variable {V}
 
 /-- **An application along a Π-tower lands in its body**
 (`app_mem_piV` per binder). -/
-theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
-    ∀ {tl : List AnnotTerm} {ρ : Nat → V} {bs : List V} {f : V},
+theorem foldl_app_mem_mkPisAV {B : ITerm} :
+    ∀ {tl : List ITerm} {ρ : Nat → V} {bs : List V} {f : V},
       SpineFit ρ tl bs →
       f ∈ˢ interp V ρ (mkPisAV tl B) →
       bs.foldl SetTheory.app f ∈ˢ interp V (consList bs ρ) B
@@ -196,8 +196,8 @@ theorem foldl_app_mem_mkPisAV {B : AnnotTerm} :
 /-- **A Π-tower whose body is a truth value at every fitting spine is a
 truth value**: each binder's fibres are (by induction), so each
 function space is the truth-value regime's (`piV_eq_zero`). -/
-theorem mkPisAV_mem_univZero {B : AnnotTerm} :
-    ∀ {tl : List AnnotTerm} {ρ : Nat → V},
+theorem mkPisAV_mem_univZero {B : ITerm} :
+    ∀ {tl : List ITerm} {ρ : Nat → V},
       (∀ bs, SpineFit ρ tl bs → interp V (consList bs ρ) B ∈ˢ (univZero : V)) →
       interp V ρ (mkPisAV tl B) ∈ˢ (univZero : V)
   | [], _, h => h [] trivial
@@ -209,8 +209,8 @@ theorem mkPisAV_mem_univZero {B : AnnotTerm} :
 
 /-- **The body of a graded Π-tower is a type at every fitting spine**:
 it is the innermost binder's fibre, which the grading makes a type. -/
-theorem isTy_of_wd_mkPisAV {B : AnnotTerm} :
-    ∀ {tl : List AnnotTerm} {ρ : Nat → V} {bs : List V}, tl ≠ [] →
+theorem isTy_of_wd_mkPisAV {B : ITerm} :
+    ∀ {tl : List ITerm} {ρ : Nat → V} {bs : List V}, tl ≠ [] →
       WellDenoted V ρ (mkPisAV tl B) → SpineFit ρ tl bs →
       IsTy (interp V (consList bs ρ) B)
   | [], _, _, h, _, _ => absurd rfl h
@@ -231,10 +231,10 @@ structure EnvModelM (μ : CheckMode) (env : Env) where
   base2 : EnvModel V env
   /-- every stored type reads, at every ground assignment -/
   type_reads : ∀ c ∈ env.consts, ∀ ψ : Name → Nat,
-    ∃ ta : AnnotTerm,
+    ∃ ta : ITerm,
       denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta
   /-- the stored types' readings are graded types -/
-  type_wellDenotedTy : ∀ c ∈ env.consts, ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+  type_wellDenotedTy : ∀ c ∈ env.consts, ∀ (ψ : Name → Nat) (ta : ITerm),
     denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta →
     ∀ ρ : Nat → V, WellDenotedTy V ρ ta
   /-- stored constants inhabit their types' readings (a projection
@@ -242,7 +242,7 @@ structure EnvModelM (μ : CheckMode) (env : Env) where
   `Sort 0`, so the row holds of tables too; that a table is not a term
   is `inferTypeCore`'s own rejection of a `.const` naming one) -/
   mem_type : ∀ c ∈ env.consts,
-    ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    ∀ (ψ : Name → Nat) (ta : ITerm),
     denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta →
     ∀ ρ : Nat → V,
       interp V ρ (base2.acval c.name ψ) ∈ˢ interp V ρ ta
@@ -405,7 +405,7 @@ def toEnvFacts {V : Type w} [SetTheory V] {μ : CheckMode}
   cval_closed := m.base2.cval_closed
   wf := m.base2.wf
   val_params := fun n ci hf φ₁ φ₂ hp =>
-    congrArg AnnotTerm.erase (m.base2.acval_params n ci hf φ₁ φ₂ hp)
+    congrArg ITerm.erase (m.base2.acval_params n ci hf φ₁ φ₂ hp)
   ty_denotes := fun c hc ψ => by
     obtain ⟨ta, hta⟩ := m.type_reads c hc ψ
     exact ⟨ta.erase,
@@ -508,20 +508,20 @@ every stored inductive former and its leaf, and every successful reading
 of a stored former's type — the transport every construction site of
 the invariant (the cons funnel, the rule-list swap) instantiates. -/
 theorem lfp_ok_transport (mp : EnvModelM V μ env) {env' : Env}
-    {acval' : Name → (Name → Nat) → AnnotTerm}
+    {acval' : Name → (Name → Nat) → ITerm}
     (hfind : ∀ n ci, env.find? n = some ci → (∀ cv mI rP rules, ci ≠ .recInfo cv mI rP rules) →
       env'.find? n = some ci)
     (hag : ∀ n ci, env.find? n = some ci → (∀ cv mI rP rules, ci ≠ .recInfo cv mI rP rules) →
       acval' n = mp.base2.acval n)
     (hread : ∀ n cv caps, env.find? n = some (.indInfo cv caps) → ∀ (ψ : Name → Nat)
-      (ta : AnnotTerm), denoteMeta mp.base2.acval env ψ 0 cv.type = some ta →
+      (ta : ITerm), denoteMeta mp.base2.acval env ψ 0 cv.type = some ta →
       denoteMeta acval' env' ψ 0 cv.type = some ta)
     (hreadT : ∀ n cv nPc nF, env.find? n = some (.ctorInfo cv nPc nF) → ∀ (ψ : Name → Nat)
-      (ta : AnnotTerm), denoteMeta mp.base2.acval env ψ 0 cv.type = some ta →
+      (ta : ITerm), denoteMeta mp.base2.acval env ψ 0 cv.type = some ta →
       denoteMeta acval' env' ψ 0 cv.type = some ta)
     (hreadC : ∀ n ci, env.find? n = some ci → (∀ cv mI rP rules, ci ≠ .recInfo cv mI rP rules) →
       ∀ A, CanonOf ci.toConstantVal.type A →
-      ∀ (ψ : Name → Nat) (d : Nat) (ta : AnnotTerm),
+      ∀ (ψ : Name → Nat) (d : Nat) (ta : ITerm),
       denoteMeta mp.base2.acval env ψ d A = some ta →
       denoteMeta acval' env' ψ d A = some ta) :
     ∀ D ∈ mp.lfpBlocks, LfpClause acval' D ∧ LfpStored env' D ∧ LfpReads acval' env' D ∧

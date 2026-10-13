@@ -29,7 +29,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name whnf whnfCore inferTypeCore)
 
 universe w
@@ -50,11 +50,11 @@ point (task #342, L9): the reduct is graded and equal where the subject
 is not the point. -/
 @[expose] def WhnfCoreClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
-  ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
+  ∀ {d : Nat} {e e' : Expr} {Δa : List ITerm},
     whnfCore μ env fuel d e = .ok e' →
     Expr.WScoped d e → e.looseBVarsBounded 0 = true →
     Expr.LeavesBounded e →
-    ∀ {ea ea' : AnnotTerm},
+    ∀ {ea ea' : ITerm},
       CtxOk m φ d Δa e →
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d e' = some ea' →
@@ -68,11 +68,11 @@ is not the point. -/
 point (task #342, L9). -/
 @[expose] def WhnfClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
-  ∀ {d : Nat} {e e' : Expr} {Δa : List AnnotTerm},
+  ∀ {d : Nat} {e e' : Expr} {Δa : List ITerm},
     whnf μ env fuel d e = .ok e' →
     Expr.WScoped d e → e.looseBVarsBounded 0 = true →
     Expr.LeavesBounded e →
-    ∀ {ea ea' : AnnotTerm},
+    ∀ {ea ea' : ITerm},
       CtxOk m φ d Δa e →
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d e' = some ea' →
@@ -88,13 +88,13 @@ comparing two types or two members of one type closes with
 `eq_of_IsTy_of_ne_pt` / `IsTy.eq_of_ne_pt`. -/
 @[expose] def DefEqClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
-  ∀ {d : Nat} {a b : Expr} {Δa : List AnnotTerm},
+  ∀ {d : Nat} {a b : Expr} {Δa : List ITerm},
     ConLeche.isDefEqCore μ env fuel d a b = .ok true →
     Expr.WScoped d a → a.looseBVarsBounded 0 = true →
     Expr.LeavesBounded a →
     Expr.WScoped d b → b.looseBVarsBounded 0 = true →
     Expr.LeavesBounded b →
-    ∀ {aa ba : AnnotTerm},
+    ∀ {aa ba : ITerm},
       CtxOk m φ d Δa a →
       CtxOk m φ d Δa b →
       denoteMeta m.acval env φ d a = some aa →
@@ -106,15 +106,15 @@ comparing two types or two members of one type closes with
         interp V ρ aa = interp V ρ ba
 
 /-- Inference, dual success, P currency: the subject's and the
-type's truthfulness — bit validity included — are *conclusions*, and
+type's truthfulness are *conclusions*, and
 the type denotes a type. -/
 @[expose] def InferClaim (μ : CheckMode) {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (fuel : Nat) : Prop :=
-  ∀ {d : Nat} {e t : Expr} {Δa : List AnnotTerm},
+  ∀ {d : Nat} {e t : Expr} {Δa : List ITerm},
     inferTypeCore μ env fuel d e = .ok t →
     Expr.WScoped d e → e.looseBVarsBounded 0 = true →
     Expr.LeavesBounded e →
-    ∀ {ea ta : AnnotTerm},
+    ∀ {ea ta : ITerm},
       CtxOk m φ d Δa e →
       denoteMeta m.acval env φ d e = some ea →
       denoteMeta m.acval env φ d t = some ta →

@@ -27,11 +27,11 @@ yields**. -/
 structure BlockPass (E : Type) where
   /-- the environment holding all k formers, at the record the pass ran at -/
   env₁ : E
-  /-- the annotated formers, in block order -/
+  /-- the checked formers, in block order -/
   cvTas : List ConstantVal
   /-- the completed record: the sort read -/
   p : BlockParts
-  /-- the annotated constructors, per member, AS DECLARED -/
+  /-- the checked constructors, per member, AS DECLARED -/
   ctorsAs : List (List (ConstantVal × Nat))
   /-- the fields' sorts, per member, per constructor -/
   sortsss : List (List (List Level))
@@ -93,16 +93,14 @@ def checkBlockRec (ops : CheckerOps m) (env : Env) (p : BlockParts) (nested : Bo
 /-- **The checked family consed, at its majors**: each
 recursor with its rules at ITS major (`tgtStoredRules`: the major's
 parameter count and constructors; `.nested` at an outside major).  At
-member majors it is `consBlockRecs`.
-`resolves` is the constructors' environment's resolution test (the
-`.nested` pins' guard). -/
-def consBlockRecsT (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+member majors it is `consBlockRecs`. -/
+def consBlockRecsT (find? : Name → Option ConstantInfo)
     (p : BlockShape) : Nat → List (ConstantVal × TargetMajor × List Expr) → Env → Env
   | _, [], env => env
   | m, (cv, M, rhss) :: rest, env =>
-    consBlockRecsT find? resolves p (m + 1) rest
+    consBlockRecsT find? p (m + 1) rest
       ⟨.recInfo cv (p.majorIdxAt m) (p.rulePrefixAt m)
-        (tgtStoredRules find? resolves cv (p.majorIdxAt m) (p.rulePrefixAt m) M rhss)
+        (tgtStoredRules find? cv (p.rulePrefixAt m) M rhss)
         :: env.consts⟩
 
 /-- **The projection table at every STRUCTURE-LIKE member** (one
@@ -133,7 +131,7 @@ def checkBlockTail (ops : CheckerOps m) (block : List ConstantInfo)
   let env₂ := consBlockCtors p.nP q.ctorsAs q.env₁
   let out ← checkBlockRec ops env₂ p (blockNestedBit p.toBlockShape q.kinds) q.params
     q.tbl.toList q.rd q.cls block q.cvTas
-  let env₃ := consBlockRecsT env₂.find? (·.constsResolve env₂) p.toBlockShape 0 out env₂
+  let env₃ := consBlockRecsT env₂.find? p.toBlockShape 0 out env₂
   checkBlockTables p.toBlockShape
     (p.members.zip (q.ctorsAs.zip q.sortsss)) env₃
 

@@ -38,7 +38,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo)
 
 universe w
@@ -99,7 +99,7 @@ theorem blockTyG_holeVal {c : Nat} (hc : c < d.k)
 /-- **The leaves' frame IS the hole frame at the least tuple**: the
 parameter frame below, and member slots holding the leaves' values
 applied to the frame's parameters. -/
-theorem blockLeaf_frame {A : Nat → (Name → Nat) → AnnotTerm}
+theorem blockLeaf_frame {A : Nat → (Name → Nat) → ITerm}
     (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
       (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     (hlenPps : ∀ c, c < d.k → (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length)
@@ -130,7 +130,7 @@ variable {env : Env} {mo : EnvModel V env} {d : BlockData V} {lps : List Name}
 facts' `override`): a constructor's field with holes, read below the
 members' leaves' values applied to the frame's parameters, is the stored field read at the parameter
 frame. -/
-theorem blockOverride (hH : BlockHoleFacts mo d lps) {A : Nat → (Name → Nat) → AnnotTerm}
+theorem blockOverride (hH : BlockHoleFacts mo d lps) {A : Nat → (Name → Nat) → ITerm}
     {ψ : Name → Nat} (hleaf : ∀ t, t < d.k → mo.acval (d.memberName t) ψ = A t ψ)
     (ρp : Nat → V) (hs : Sat V (d.params ψ).reverse ρp) {c : Nat} (hc : c < d.N) {j : Nat}
     (hj : j < (d.ctorsM c).length) :
@@ -157,7 +157,7 @@ variable {env : Env} {mo : EnvModel V env} {d : BlockData V} {lps : List Name}
 
 /-- A list of readings is a spine exactly when it agrees with it
 pointwise. -/
-theorem map_eq_iff_getD {σ : Nat → V} {Es : List AnnotTerm} {is : List V}
+theorem map_eq_iff_getD {σ : Nat → V} {Es : List ITerm} {is : List V}
     (hlen : is.length = Es.length) :
     Es.map (interp V σ) = is ↔ ∀ l, l < Es.length → interp V σ (Es.getD l default) = is.getD l pt := by
   constructor
@@ -182,7 +182,7 @@ spine.  The hole frame IS the leaves' frame (`blockLeaf_frame`), and
 there each field with holes reads as the stored field
 (`hover`: `blockOverride` at a model whose members' leaves are `A`'s). -/
 theorem blockHFits_lfp_iff (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
-    {A : Nat → (Name → Nat) → AnnotTerm} {ψ : Name → Nat}
+    {A : Nat → (Name → Nat) → ITerm} {ψ : Name → Nat}
     (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
       (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     {ρp : Nat → V} (hs : Sat V (d.params ψ).reverse ρp)
@@ -232,7 +232,7 @@ theorem blockHFits_lfp_iff (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
     show (((d.Ess m ψ).getD j []).map (·.liftN d.k ((d.Fss m ψ).getD j []).length))[l]? = _
     rw [List.getElem?_map, hget]
     rfl
-  have hliftE : ∀ fs' : List V, fs'.length = ((d.Fss m ψ).getD j []).length → ∀ E : AnnotTerm,
+  have hliftE : ∀ fs' : List V, fs'.length = ((d.Fss m ψ).getD j []).length → ∀ E : ITerm,
       interp V (consList fs' (consList ((List.range d.k).map fun c =>
           (frameIdx d.nP ρp).foldl app (interp V (shiftE d.nP 0 ρp) (A c ψ))) ρp))
           (E.liftN d.k ((d.Fss m ψ).getD j []).length)
@@ -267,7 +267,7 @@ index readings there are the stored result index readings — so the
 stored result index fit (`hresS`, the constructor's typing) carries them
 into the member's index telescope. -/
 theorem blockResIdxFit_lfp (hH : BlockHoleFacts mo d lps)
-    {A : Nat → (Name → Nat) → AnnotTerm} {ψ : Name → Nat}
+    {A : Nat → (Name → Nat) → ITerm} {ψ : Name → Nat}
     (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
       (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     {ρp : Nat → V} (hs : Sat V (d.params ψ).reverse ρp)
@@ -329,7 +329,7 @@ operator's monotonicity and a closed tuple, and the stored fields'
 agreement with the fields with holes at the leaves' frame (the override
 law, `blockOverride` at a model whose members' leaves are `A`'s). -/
 theorem blockHoleFold (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
-    {A : Nat → (Name → Nat) → AnnotTerm} {ψ : Name → Nat}
+    {A : Nat → (Name → Nat) → ITerm} {ψ : Name → Nat}
     (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
       (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     {ρp : Nat → V} (hs : Sat V (d.params ψ).reverse ρp)
@@ -464,7 +464,7 @@ theorem blockHoleFold (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
     show (((d.Ess m ψ).getD j []).map (·.liftN d.k ((d.Fss m ψ).getD j []).length))[l]? = _
     rw [List.getElem?_map, hget]
     rfl
-  have hliftE : ∀ fs' : List V, fs'.length = ((d.Fss m ψ).getD j []).length → ∀ E : AnnotTerm,
+  have hliftE : ∀ fs' : List V, fs'.length = ((d.Fss m ψ).getD j []).length → ∀ E : ITerm,
       interp V (consList fs' (consList ((List.range d.k).map fun c =>
           (frameIdx d.nP ρp).foldl app (interp V (shiftE d.nP 0 ρp) (A c ψ))) ρp))
           (E.liftN d.k ((d.Fss m ψ).getD j []).length)
@@ -500,7 +500,7 @@ spine**: the leaf applied to a spine fitting its telescope is the tagged
 union of the member's constructors' stored fields at the extended frame
 (the capability laws' and the table stage's fold). -/
 theorem blockHoleFold_params (hH : BlockHoleFacts mo d lps) (hinst : d.nInst = 0)
-    {A : Nat → (Name → Nat) → AnnotTerm} {ψ : Name → Nat}
+    {A : Nat → (Name → Nat) → ITerm} {ψ : Name → Nat}
     (hA : ∀ c, c < d.k → A c ψ = blockTyG d.k (d.w ψ) (fun c => d.uM c ψ)
       (fun c => d.IdsM c ψ) (d.toLfp.holeChains ψ) (d.ppsM c ψ) c)
     (hlenPps : ∀ c, c < d.k → (d.ppsM c ψ).length = d.nP + (d.IdsM c ψ).length)

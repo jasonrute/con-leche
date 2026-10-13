@@ -25,7 +25,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead openPisAtFvars)
 
@@ -64,8 +64,8 @@ private theorem gc_openPis_gen {D : Nat} :
         e.stripPis n = some (tele, leaf) ∧ xsO.length = n ∧
         (∀ l, l < n → ∃ ty, xsO[l]? = some (.fvar (D + os.length + l) ty)) ∧
         Expr.ErasedEq leafO (leaf.instantiateList (locOpen D (os.length + n)) 0) ∧
-        ∀ (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (ψ : Name → Nat)
-          (doms : List AnnotTerm),
+        ∀ (acval : Name → (Name → Nat) → ITerm) (env : Env) (ψ : Name → Nat)
+          (doms : List ITerm),
           teleDoms acval env ψ D os tele = some doms →
           readOpenedDoms acval env ψ (D + os.length) xsO = doms
   | 0, e, os, xsO, leafO, hos, h => by
@@ -148,8 +148,8 @@ theorem openPis_stripPis_locOpen {n D : Nat} {w : Expr} {xsO : List Expr} {leafO
       w.stripPis n = some (tele, leaf) ∧ xsO.length = n ∧
       (∀ l, l < n → ∃ ty, xsO[l]? = some (.fvar (D + l) ty)) ∧
       Expr.ErasedEq leafO (leaf.instantiateList (locOpen D n) 0) ∧
-      ∀ (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (ψ : Name → Nat)
-        (doms : List AnnotTerm),
+      ∀ (acval : Name → (Name → Nat) → ITerm) (env : Env) (ψ : Name → Nat)
+        (doms : List ITerm),
         teleDoms acval env ψ D [] tele = some doms →
         readOpenedDoms acval env ψ D xsO = doms := by
   rw [← Expr.instantiateList_nil w 0, show D = D + ([] : List Expr).length from rfl] at h
@@ -160,7 +160,7 @@ theorem openPis_stripPis_locOpen {n D : Nat} {w : Expr} {xsO : List Expr} {leafO
 /-- **A call's applied field, read**: the field `fvar (rP + i)` applied
 to the telescope's openers `fvar (rP + nF + l)`, read at the call's
 valuation, is the field's value applied to the telescope's values. -/
-theorem genFap_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {ψ : Name → Nat}
+theorem genFap_read {acval : Name → (Name → Nat) → ITerm} {env : Env} {ψ : Name → Nat}
     {rP nF m i : Nat} {f : Expr} {xsO : List Expr} (hi : i < nF)
     (hf : ∃ ty, f = .fvar (rP + i) ty)
     (hxsO : ∀ l, l < m → ∃ ty, xsO[l]? = some (.fvar (rP + nF + l) ty)) (hm : xsO.length = m)

@@ -33,7 +33,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 universe w
@@ -52,7 +52,7 @@ theorem interp_bvarAt {L : List V} {ρ : Nat → V} {k : Nat} (hk : k < L.length
 
 /-- **A term lifted over variables inserted below a spine** reads at the
 frame with them as the term at the frame without. -/
-theorem interp_liftN_consList2 (e : AnnotTerm) (bs hs : List V) (ρ : Nat → V) :
+theorem interp_liftN_consList2 (e : ITerm) (bs hs : List V) (ρ : Nat → V) :
     interp V (consList bs (consList hs ρ)) (e.liftN hs.length bs.length)
       = interp V (consList bs ρ) e := by
   rw [interp_liftN, ConLeche.Semantics.shiftE_consList_len, shiftE_consList]
@@ -95,6 +95,8 @@ representation's `ctor` at the stored fit the hole fit at the carrier is
 theorem BlockModelAt.toLfp (hM : BlockModelAt m names d) (hH : BlockHoleFacts m d lps)
     (hres : LfpResIdxFit d.toLfp)
     (hne : ∀ ψ : Name → Nat, d.w ψ ≠ 0 → ∀ c j fs, d.inj ψ c j fs ≠ pt)
+    (hinjF : ∀ ψ ψ' : Name → Nat, d.w ψ ≠ 0 → d.w ψ' ≠ 0 →
+      ∀ c j fs, d.inj ψ c j fs = d.inj ψ' c j fs)
     (hfok : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp → d.w ψ ≠ 0 →
       ∀ X, InTupleSpace (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       ∀ c, c < d.toLfp.N → ∀ j, j < d.toLfp.nctors c →
@@ -124,6 +126,7 @@ theorem BlockModelAt.toLfp (hM : BlockModelAt m names d) (hH : BlockHoleFacts m 
   parsSatInv := fun mm hmm ψ ρ hs => hH.parsSatInv ψ mm hmm ρ hs
   resIdxFit := hres
   injNePt := fun ψ hw c j fs => hne ψ hw c j fs
+  injFrame := hinjF
   fieldsOk := hfok
 
 end Clause

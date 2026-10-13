@@ -32,7 +32,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
   InductiveShape BlockShape RecRule)
 
@@ -48,7 +48,7 @@ leaves and telescope readings, every member's constructors' readings, the earlie
 stored with their leaves. -/
 @[expose] def BlockCtorsCore {env : Env} (m' : EnvModel V env) (d : BlockData V)
     (lps : List Name) (cvTasAll : List ConstantVal) (p₁ : BlockShape) (isRec : Bool)
-    (A : Nat → (Name → Nat) → AnnotTerm) (nc : Nat) : Prop :=
+    (A : Nat → (Name → Nat) → ITerm) (nc : Nat) : Prop :=
   -- the `k` formers
   (∀ (c : Nat) (cvTb : ConstantVal), cvTasAll[c]? = some cvTb →
       env.find? cvTb.name = some (.indInfo cvTb (ConLeche.blockCapsAt p₁ c isRec)) ∧
@@ -83,10 +83,10 @@ name is not the fresh one, so nothing found before is disturbed; the
 readings cross by `FormerData.cross` and `BlockCtorDataI.cross`. -/
 theorem BlockCtorsCore.cons {env : Env} {m' : EnvModel V env} {d : BlockData V}
     {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → AnnotTerm} {nc : Nat}
+    {A : Nat → (Name → Nat) → ITerm} {nc : Nat}
     (hN : BlockNamesOk (V := V) d cvTasAll)
     (h : BlockCtorsCore m' d lps cvTasAll p₁ isRec A nc)
-    {cA : ConstantVal × Nat} {B : (Name → Nat) → AnnotTerm}
+    {cA : ConstantVal × Nat} {B : (Name → Nat) → ITerm}
     (hfresh : env.find? cA.1.name = none)
     (mC : EnvModel V ⟨.ctorInfo cA.1 d.nP cA.2 :: env.consts⟩)
     (hac : mC.acval = acvalWith m'.acval cA.1.name B) :
@@ -139,7 +139,7 @@ per-member hypotheses of `stageBlockCtorsAt`, gathered so that the
 loop over the `k` members carries ONE obligation. -/
 structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : List Name)
     (cvTasAll : List ConstantVal) (p₁ : BlockShape) (isRec : Bool)
-    (A : Nat → (Name → Nat) → AnnotTerm)
+    (A : Nat → (Name → Nat) → ITerm)
     (envI : Env) (ctorsOf : Name → List Name) : Prop where
   /-- the leaves the `k` formers were consed with: the block operator at
   the HOLE chains (charter item 2) -/
@@ -217,7 +217,7 @@ structure BlockCtorsStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : Li
 number of members' constructors consed). -/
 theorem blockHoleFacts_of_stage {F : Nat} {envC envI : Env} {mo : EnvModel V envC}
     {d : BlockData V} {lps : List Name} {cvTas : List ConstantVal} {p₁ : BlockShape}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → ITerm}
     {ctorsOf : Name → List Name} {nc : Nat}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)
@@ -254,7 +254,7 @@ the leaves' frame); with the member's capability laws it feeds
 member's `consSumCtors`, with the core invariant one member on. -/
 theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
     {d : BlockData V} {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → ITerm}
    
     {envI env : Env} {ctorsOf : Name → List Name} {m : Nat} {cvTa : ConstantVal}
     (hN : BlockNamesOk (V := V) d cvTasAll)
@@ -306,7 +306,7 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
       Sat V (((d.ppsM m ψ).take d.nP)).reverse ρ →
       ∀ bs : List V, SpineFit ρ (((d.dsF m j ψ).drop d.nP)) bs →
         interp V (consList bs ρ)
-            (AnnotTerm.mkAppN (A m ψ) (paramBvars d.nP cA.2 ++ d.esF m j ψ))
+            (ITerm.mkAppN (A m ψ) (paramBvars d.nP cA.2 ++ d.esF m j ψ))
           = sumSet (d.w ψ) (sumFibre (d.w ψ)
               (consList (idxValsAt ρ (d.esF m j ψ) bs) ρ)
               (rChains (d.nIdxAt m) (d.nIdxAt m)
@@ -441,7 +441,7 @@ theorem stageBlockCtorsAt (hμ : μ.verifiedChecks = true) {F : Nat}
 invariant one member further on at each step. -/
 theorem stageBlockCtors (hμ : μ.verifiedChecks = true) {F : Nat}
     {d : BlockData V} {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → ITerm}
     {envI : Env} {ctorsOf : Name → List Name}
     {ctorsAs : List (List (ConstantVal × Nat))}
     (hN : BlockNamesOk (V := V) d cvTasAll)

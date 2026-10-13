@@ -20,7 +20,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name whnf whnfCore inferTypeCore)
 
 universe w
@@ -31,7 +31,7 @@ variable {V : Type w} [SetTheory V]
 denotation is a type (`IsTy`: a truth value or a strict set).  The
 currency of the context's entries (`CtxOk`) and of inferred types
 (`InferSem`), the fragment's `Sat`/`InferSem` typing clause. -/
-@[expose] def WellDenotedTy (V : Type w) [SetTheory V] (ρ : Nat → V) (e : AnnotTerm) :
+@[expose] def WellDenotedTy (V : Type w) [SetTheory V] (ρ : Nat → V) (e : ITerm) :
     Prop :=
   WellDenoted V ρ e ∧ IsTy (interp V ρ e)
 
@@ -40,7 +40,7 @@ currency of the context's entries (`CtxOk`) and of inferred types
 telescope, and they are graded types (`WellDenotedTy`) under every
 satisfying valuation.  No fuel parameter. -/
 @[expose] def CtxOk {env : Env} (m : EnvModel V env)
-    (φ : Name → Nat) (d : Nat) (Δa : List AnnotTerm) (e : Expr) : Prop :=
+    (φ : Name → Nat) (d : Nat) (Δa : List ITerm) (e : Expr) : Prop :=
   Δa.length = d ∧
   ∀ l ∈ e.fvarLeaves, l.1 < d ∧ Expr.fvarsBelow l.1 l.2 ∧
     ∃ tya Aa,
@@ -59,7 +59,7 @@ they speak about (`LeavesGr`): a reduct is graded only where its subject is
 not the point, so a binder opened inside it has a domain graded at that
 valuation and no other. -/
 @[expose] def CtxOkS {env : Env} (m : EnvModel V env)
-    (φ : Name → Nat) (d : Nat) (Δa : List AnnotTerm) (e : Expr) : Prop :=
+    (φ : Name → Nat) (d : Nat) (Δa : List ITerm) (e : Expr) : Prop :=
   Δa.length = d ∧
   ∀ l ∈ e.fvarLeaves, l.1 < d ∧ Expr.fvarsBelow l.1 l.2 ∧
     ∃ tya Aa,
@@ -73,5 +73,5 @@ valuation and no other. -/
 `CtxOk`'s fourth conjunct, at `ρ` only. -/
 @[expose] def LeavesGr {env : Env} (m : EnvModel V env)
     (φ : Name → Nat) (d : Nat) (e : Expr) (ρ : Nat → V) : Prop :=
-  ∀ l ∈ e.fvarLeaves, ∀ tya : AnnotTerm,
+  ∀ l ∈ e.fvarLeaves, ∀ tya : ITerm,
     denoteMeta m.acval env φ d l.2 = some tya → WellDenotedTy V ρ tya

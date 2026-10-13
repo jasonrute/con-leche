@@ -10,7 +10,7 @@ public import ConLeche.Semantics.Tower.TowerKit
 
 Charter item 3: "the theorem is 'returns true ⇒ the operator is
 monotone', proved by inversion of [`nestPos`'s] run".  This module is
-the SEMANTIC half of that inversion, over readings (`AnnotTerm`) and
+the SEMANTIC half of that inversion, over readings (`ITerm`) and
 `interp`, one lemma per case of `nestPos`
 (`Kernel/Inductives/Positivity.lean`):
 
@@ -64,22 +64,22 @@ variable {V : Type uv} [SetTheory V]
 abbrev FrameRel (V : Type uv) := (Nat → V) → (Nat → V) → Prop
 
 /-- **Positive**: the reading grows along the relation. -/
-def MonoOn (R : FrameRel V) (a : AnnotTerm) : Prop :=
+def MonoOn (R : FrameRel V) (a : ITerm) : Prop :=
   ∀ ρ ρ', R ρ ρ' → interp V ρ a ⊆ˢ interp V ρ' a
 
 /-- **Hole-free**: the reading is the same at related frames. -/
-def ConstOn (R : FrameRel V) (a : AnnotTerm) : Prop :=
+def ConstOn (R : FrameRel V) (a : ITerm) : Prop :=
   ∀ ρ ρ', R ρ ρ' → interp V ρ a = interp V ρ' a
 
 namespace FrameRel
 
 /-- **Under a binder** of domain `A`: the same bound value at both
 frames, a member of the SMALLER frame's domain. -/
-def under (R : FrameRel V) (A : AnnotTerm) : FrameRel V :=
+def under (R : FrameRel V) (A : ITerm) : FrameRel V :=
   fun σ σ' => ∃ x ρ ρ', σ = cons x ρ ∧ σ' = cons x ρ' ∧ R ρ ρ' ∧ x ∈ˢ interp V ρ A
 
 /-- **Along a field telescope**: under each field in turn. -/
-def underTele : FrameRel V → List AnnotTerm → FrameRel V
+def underTele : FrameRel V → List ITerm → FrameRel V
   | R, [] => R
   | R, F :: Fs => underTele (R.under F) Fs
 
@@ -88,7 +88,7 @@ def underTele : FrameRel V → List AnnotTerm → FrameRel V
 def AgreesOff (R : FrameRel V) (P : Nat → Prop) : Prop :=
   ∀ ρ ρ', R ρ ρ' → AgreeOff P ρ ρ'
 
-theorem AgreesOff.under {R : FrameRel V} {P : Nat → Prop} (h : R.AgreesOff P) (A : AnnotTerm) :
+theorem AgreesOff.under {R : FrameRel V} {P : Nat → Prop} (h : R.AgreesOff P) (A : ITerm) :
     (R.under A).AgreesOff (shiftP P) := by
   rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, -⟩
   exact agreeOff_cons (h ρ ρ' hR) x
@@ -97,7 +97,7 @@ theorem AgreesOff.under {R : FrameRel V} {P : Nat → Prop} (h : R.AgreesOff P) 
 /-- The frames a fitting spine reaches are related along the
 telescope. -/
 theorem underTele_consList :
-    ∀ {R : FrameRel V} {ρ ρ' : Nat → V} (Fs : List AnnotTerm) (as : List V),
+    ∀ {R : FrameRel V} {ρ ρ' : Nat → V} (Fs : List ITerm) (as : List V),
       R ρ ρ' → SpineFit ρ Fs as → R.underTele Fs (consList as ρ) (consList as ρ')
   | _, _, _, [], [], hR, _ => hR
   | _, _, _, [], _ :: _, _, h => h.elim
@@ -110,19 +110,19 @@ end FrameRel
 /-! ## The cases -/
 
 /-- A hole-free reading is (trivially) positive. -/
-theorem ConstOn.monoOn {R : FrameRel V} {a : AnnotTerm} (h : ConstOn R a) : MonoOn R a :=
+theorem ConstOn.monoOn {R : FrameRel V} {a : ITerm} (h : ConstOn R a) : MonoOn R a :=
   fun ρ ρ' hR => by rw [h ρ ρ' hR]; exact Subset.refl _
 
 /-- **`const`**: a reading that mentions no hole is hole-free. -/
 theorem ConstOn.of_noBVar {R : FrameRel V} {P : Nat → Prop} (hR : R.AgreesOff P)
-    {a : AnnotTerm} (h : NoBVar P a) : ConstOn R a :=
+    {a : ITerm} (h : NoBVar P a) : ConstOn R a :=
   fun ρ ρ' hr => interp_congr_noBVar a h (hR ρ ρ' hr)
 
 /-- **The `whnf` step**: a term whose reading is the reading of a
 positive reduct, at every frame of the domain `Q` the relation lives
 in, is positive. -/
 theorem MonoOn.of_eqOn {R : FrameRel V} {Q : (Nat → V) → Prop}
-    (hdom : ∀ ρ ρ', R ρ ρ' → Q ρ ∧ Q ρ') {a b : AnnotTerm}
+    (hdom : ∀ ρ ρ', R ρ ρ' → Q ρ ∧ Q ρ') {a b : ITerm}
     (heq : ∀ ρ, Q ρ → interp V ρ a = interp V ρ b) (hb : MonoOn R b) : MonoOn R a := by
   intro ρ ρ' hR
   rw [heq ρ (hdom ρ ρ' hR).1, heq ρ' (hdom ρ ρ' hR).2]
@@ -130,7 +130,7 @@ theorem MonoOn.of_eqOn {R : FrameRel V} {Q : (Nat → V) → Prop}
 
 /-- The same for `ConstOn`. -/
 theorem ConstOn.of_eqOn {R : FrameRel V} {Q : (Nat → V) → Prop}
-    (hdom : ∀ ρ ρ', R ρ ρ' → Q ρ ∧ Q ρ') {a b : AnnotTerm}
+    (hdom : ∀ ρ ρ', R ρ ρ' → Q ρ ∧ Q ρ') {a b : ITerm}
     (heq : ∀ ρ, Q ρ → interp V ρ a = interp V ρ b) (hb : ConstOn R b) : ConstOn R a := by
   intro ρ ρ' hR
   rw [heq ρ (hdom ρ ρ' hR).1, heq ρ' (hdom ρ ρ' hR).2]
@@ -142,7 +142,7 @@ grading of the walked field: "not pt" source (1)) — `piV` is monotone in
 fibres that are types (`piV_subset_mono`: a truth value included in a
 type is a truth value, and a type with a fibre that is not one is
 strict there). -/
-theorem MonoOn.pi {R : FrameRel V} {A B : AnnotTerm} (hA : ConstOn R A)
+theorem MonoOn.pi {R : FrameRel V} {A B : ITerm} (hA : ConstOn R A)
     (hB : MonoOn (R.under A) B)
     (hT : ∀ ρ ρ', R ρ ρ' → (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B)) ∧
       (∀ x, x ∈ˢ interp V ρ' A → IsTy (interp V (cons x ρ') B))) :
@@ -159,16 +159,16 @@ def HoleOn (R : FrameRel V) (h n : Nat) : Prop :=
   ∀ ρ ρ', R ρ ρ' → ∀ as : List V, as.length = n → as.foldl app (ρ h) ⊆ˢ as.foldl app (ρ' h)
 
 /-- The hole order survives a binder (the hole one position further). -/
-theorem HoleOn.under {R : FrameRel V} {h n : Nat} (hh : HoleOn R h n) (A : AnnotTerm) :
+theorem HoleOn.under {R : FrameRel V} {h n : Nat} (hh : HoleOn R h n) (A : ITerm) :
     HoleOn (R.under A) (h + 1) n := by
   rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, -⟩ as has
   exact hh ρ ρ' hR as has
 
 /-- **`holeApp`**: a hole applied to hole-free arguments, at its full
 arity, is positive. -/
-theorem MonoOn.holeApp {R : FrameRel V} {h : Nat} {es : List AnnotTerm}
+theorem MonoOn.holeApp {R : FrameRel V} {h : Nat} {es : List ITerm}
     (hh : HoleOn R h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
-    MonoOn R (AnnotTerm.mkAppN (.bvar h) es) := by
+    MonoOn R (ITerm.mkAppN (.bvar h) es) := by
   intro ρ ρ' hR
   rw [interp_mkAppN_foldl, interp_mkAppN_foldl, interp_bvar, interp_bvar]
   have hmap : es.map (interp V ρ) = es.map (interp V ρ') :=
@@ -179,14 +179,14 @@ theorem MonoOn.holeApp {R : FrameRel V} {h : Nat} {es : List AnnotTerm}
 /-! ## The field telescope -/
 
 /-- **Every field positive under its predecessors.** -/
-def TeleMonoOn : FrameRel V → List AnnotTerm → Prop
+def TeleMonoOn : FrameRel V → List ITerm → Prop
   | _, [] => True
   | R, F :: Fs => MonoOn R F ∧ TeleMonoOn (R.under F) Fs
 
 
 /-- **A fitting spine fits the larger telescope.** -/
 theorem spineFit_mono :
-    ∀ {R : FrameRel V} (Fs : List AnnotTerm), TeleMonoOn R Fs →
+    ∀ {R : FrameRel V} (Fs : List ITerm), TeleMonoOn R Fs →
       ∀ {ρ ρ' : Nat → V}, R ρ ρ' → ∀ {as : List V}, SpineFit ρ Fs as → SpineFit ρ' Fs as
   | _, [], _, _, _, _, [], _ => trivial
   | _, [], _, _, _, _, _ :: _, h => h.elim
@@ -198,7 +198,7 @@ theorem spineFit_mono :
 
 /-- No field of the telescope mentions the positions `P` (shifted under
 its predecessors). -/
-def NoBVarTele : (Nat → Prop) → List AnnotTerm → Prop
+def NoBVarTele : (Nat → Prop) → List ITerm → Prop
   | _, [] => True
   | P, F :: Fs => NoBVar P F ∧ NoBVarTele (shiftP P) Fs
 

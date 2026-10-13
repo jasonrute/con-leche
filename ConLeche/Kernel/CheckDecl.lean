@@ -44,7 +44,7 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
     (d : Declaration) : m Env := do
   match d with
   | .defnDecl cv value hint => do
-    let cv ← checkConstantVal ops env cv
+    checkConstantVal ops env cv
     let env2 ← checkDefnVal ops env cv value hint
     -- Structural-Nat pins: the fast-path ops must be the standard
     -- structural recursions — their recurrence equations are checked
@@ -85,11 +85,11 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
     if natDivModNames.contains cv.name then
       checkDivModPin ops pins env env2 cv.name
     pure env2
-  | .thmDecl cv value =>
-    let cv ← checkConstantVal ops env cv
+  | .thmDecl cv value => do
+    checkConstantVal ops env cv
     checkThmVal ops env cv value
   | .opaqueDecl cv value => do
-    let cv ← checkConstantVal ops env cv
+    checkConstantVal ops env cv
     let env2 ← checkOpaqueVal ops env cv value
     -- Compiler-trust opaques (`Lean.reduceNat`/`Lean.reduceBool`,
     -- task #95): the stored value must be definitionally equal to the
@@ -134,7 +134,8 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
       else
         throw (.notImplemented "quotient soundness axiom mismatch"))
     else do
-      let cvA ← checkConstantVal ops env cv
+      checkConstantVal ops env cv
+      let cvA := cv
       if stdAxiomOk env cvA then
         pure ⟨.axiomInfo cvA :: env.consts⟩
       else if cvA.name = trustCompilerName then
@@ -170,7 +171,7 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
     -- records and nothing else — and it is recognised HERE: a block
     -- whose members are named as one of the five pins' and which
     -- matches it up to `ConstantInfo.canon` installs the PIN (the
-    -- annotated, model-proved literals `installBasisDecl` puts in the
+    -- model-proved literals `installBasisDecl` puts in the
     -- environment verbatim).  A block under a pinned name that does not
     -- match falls through to the ordinary route, where
     -- `checkConstantVal`'s reserved-name check REJECTS it: a basis

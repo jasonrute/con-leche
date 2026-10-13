@@ -12,7 +12,7 @@ public section
 # The P cons crossing at a tower head (task #175 W4c, P3 module 4)
 
 Consing a tower-backed entry `(T, i)` changes the reading of exactly
-one node shape, `.proj T i _` with no entry (`BitExtendTower`), so the
+one node shape, `.proj T i _` with no entry (`Reading/TowerExtend.lean`), so the
 readings the install kit and its law transports move across a cons
 survive whenever the moved subject has no such node.  This module
 packages that side condition at the granularity the transports
@@ -35,7 +35,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecRule)
 
 /-- No stored piece of the environment mentions the slot `(T, i)`. -/

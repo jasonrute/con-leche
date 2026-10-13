@@ -27,12 +27,10 @@ variable {mode : CheckMode}
 
 open Expr
 
-/-! ## Erasure and the de Bruijn operations -/
-
 /-! ## The same first domains -/
 
 /-- The first `n` binders of two `∀`-telescopes have the same domains
-(the binder data may differ). -/
+(what follows them may differ). -/
 @[expose] def SameDoms : Nat → Expr → Expr → Prop
   | 0, _, _ => True
   | n + 1, .forallE A b, .forallE A' b' => A = A' ∧ SameDoms n b b'

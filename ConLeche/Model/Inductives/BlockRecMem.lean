@@ -33,7 +33,7 @@ This module proves it, from the run and the family premise
   `denoteMeta_openPis` opens a reading with the very `fvar`s it does,
   so `stripPisAV (mI + 1)` of the reading succeeds and
   `stripPisAV_eq_mkPis` exhibits the reading as `mkPisAV rds concl`.
-  The binder data `rds` and the conclusion `concl` are therefore
+  The domains `rds` and the conclusion `concl` are therefore
   FUNCTIONS OF THE RUN (`blockRecRdsAV`, `blockRecConclAV`), which is
   what lets the recursor model state its `hTyE` at a named spelling
   rather than at an existential;
@@ -50,7 +50,7 @@ spelling (`blockRecStaged_of`'s `acv`).
 -/
 
 namespace ConLeche.Model
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche.Semantics SetTheory
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo)
 
@@ -69,39 +69,39 @@ instead of an existential. -/
 /-- The `i`-th stored recursor type's READING at `ψ` (`default` off
 the list, or at a type that does not read — neither happens under the
 run, `recStage_tyPis`). -/
-def blockRecTyAV (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
+def blockRecTyAV (acval : Name → (Name → Nat) → ITerm) (envC : Env)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (ψ : Name → Nat) (c : Nat) : AnnotTerm :=
+    (ψ : Name → Nat) (c : Nat) : ITerm :=
   (rs[c]?.bind fun r => denoteMeta acval envC ψ 0 r.1.type).getD default
 
-/-- The `i`-th recursor's BINDER DATA: the reading's `mI + 1` Π-entries
+/-- The `i`-th recursor's DOMAINS: the reading's `mI + 1` Π-entries
 — the block's parameters, the `nP … rP-1` stretch, the indices and the
 major. -/
-def blockRecRdsAV (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
+def blockRecRdsAV (acval : Name → (Name → Nat) → ITerm) (envC : Env)
     (p : ConLeche.BlockShape)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (ψ : Name → Nat) (c : Nat) : List AnnotTerm :=
+    (ψ : Name → Nat) (c : Nat) : List ITerm :=
   ((stripPisAV (p.majorIdxAt c + 1) (blockRecTyAV acval envC rs ψ c)).map (·.1)).getD []
 
 /-- The `i`-th recursor's CONCLUSION, read under its `mI + 1`
 binders. -/
-def blockRecConclAV (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
+def blockRecConclAV (acval : Name → (Name → Nat) → ITerm) (envC : Env)
     (p : ConLeche.BlockShape)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (ψ : Name → Nat) (c : Nat) : AnnotTerm :=
+    (ψ : Name → Nat) (c : Nat) : ITerm :=
   ((stripPisAV (p.majorIdxAt c + 1) (blockRecTyAV acval envC rs ψ c)).map (·.2)).getD default
 
-theorem blockRecTyAV_eq {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env}
+theorem blockRecTyAV_eq {acval : Name → (Name → Nat) → ITerm} {envC : Env}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
     {ψ : Name → Nat} {c : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
-    {ta : AnnotTerm} (hr : rs[c]? = some r)
+    {ta : ITerm} (hr : rs[c]? = some r)
     (hta : denoteMeta acval envC ψ 0 r.1.type = some ta) :
     blockRecTyAV acval envC rs ψ c = ta := by
   simp [blockRecTyAV, hr, hta]
 
 /-- **The identification**: at every `ψ`, the `i`-th stored
 recursor type READS, its reading is GRADED, and it IS the Π-tower
-`mkPisAV rds concl` over the run's own binder data — with the domains'
+`mkPisAV rds concl` over the run's own domains — with the domains'
 readings and the conclusion's reading at the full depth.  This is what
 the recursor model consumes: `hTyE` at `RecTy ψ c := blockRecTyAV …`,
 `rds`/`concl` at the two named spellings. -/
@@ -109,7 +109,7 @@ theorem recStage_tyPis {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts}
     {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs)
     {i : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[i]? = some r) (ψ : Name → Nat) :
     ∃ (fvs : List Expr) (concl : Expr),
@@ -165,7 +165,7 @@ theorem recStage_tyBounds {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts}
     {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs)
     {i : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[i]? = some r) (ψ : Name → Nat) :
     (∀ l, l < (blockRecRdsAV mpC.base2.acval envC p.toBlockShape rs ψ i).length →
@@ -229,10 +229,10 @@ Three premises, each in the shape its owner exports:
   `i`-th projection of the chosen tuple (`blockRecStaged_of`'s `acv`,
   which the assembly picks);
 * `hpre` — the family premise (`graphRecPre_core`). -/
-theorem hmem_of_pre {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env}
+theorem hmem_of_pre {acval : Name → (Name → Nat) → ITerm} {envC : Env}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
-    {acv : Name → (Name → Nat) → AnnotTerm} {K : Nat} {s : (Name → Nat) → Nat}
-    {RecTy : (Name → Nat) → Nat → AnnotTerm} {eqs : (Name → Nat) → List AnnotTerm}
+    {acv : Name → (Name → Nat) → ITerm} {K : Nat} {s : (Name → Nat) → Nat}
+    {RecTy : (Name → Nat) → Nat → ITerm} {eqs : (Name → Nat) → List ITerm}
     (hK : rs.length = K)
     (hty : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       rs[i]? = some r → ∀ ψ : Name → Nat,
@@ -242,7 +242,7 @@ theorem hmem_of_pre {acval : Name → (Name → Nat) → AnnotTerm} {envC : Env}
         acv r.1.name ψ = ConLeche.Semantics.blockRecAV (s ψ) K (RecTy ψ) (eqs ψ) i)
     (hpre : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       ConLeche.Semantics.BlockRecPre V (s ψ) K (RecTy ψ) (eqs ψ) ρ) :
-    ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta acval envC ψ 0 r.1.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta := by
   intro r hrmem ψ ta hta ρ
@@ -263,9 +263,9 @@ theorem hrd_of_pre {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts}
     {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {acv : Name → (Name → Nat) → AnnotTerm} {K : Nat} {s : (Name → Nat) → Nat}
-    {RecTy : (Name → Nat) → Nat → AnnotTerm} {eqs : (Name → Nat) → List AnnotTerm}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR)
+    {acv : Name → (Name → Nat) → ITerm} {K : Nat} {s : (Name → Nat) → Nat}
+    {RecTy : (Name → Nat) → Nat → ITerm} {eqs : (Name → Nat) → List ITerm}
+    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs)
     (hK : rs.length = K)
     (hty : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       rs[i]? = some r → ∀ ψ : Name → Nat,
@@ -275,7 +275,7 @@ theorem hrd_of_pre {envC : Env} (hμ : μ.verifiedChecks = true)
         acv r.1.name ψ = ConLeche.Semantics.blockRecAV (s ψ) K (RecTy ψ) (eqs ψ) i)
     (hpre : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       ConLeche.Semantics.BlockRecPre V (s ψ) K (RecTy ψ) (eqs ψ) ρ) :
-    ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : AnnotTerm,
+    ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : ITerm,
       denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
       (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
       (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta) :=

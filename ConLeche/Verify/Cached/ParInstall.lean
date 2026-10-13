@@ -83,8 +83,8 @@ theorem installHeaderC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.fin
 
 /-- `installValueGuardsC` reads its index through `find?` alone (the knot and
 `constsResolveFC`), so it is congruent in the index: phase B's
-annotation of a theorem's value at the prefix view is the annotation
-at the environment the view names. -/
+guards on a theorem's value at the prefix view are the guards at the
+environment the view names. -/
 theorem installValueGuardsC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
     installValueGuardsC fe₁ = installValueGuardsC fe₂ := by
   funext cvA value
@@ -421,16 +421,16 @@ def valueStep (W : FEnv) : Declaration →
   | .defnDecl cv value hint =>
     if natOpNames.contains cv.name || natDivModNames.contains cv.name then none
     else some (match installGuardsC W cv value {} with
-      | .ok (r, _) => .ok (.defnInfo r.1 r.2 hint, ⟨.defn, r.1, r.2⟩)
+      | .ok (_, _) => .ok (.defnInfo cv value hint, ⟨.defn, cv, value⟩)
       | .error e => .error e)
   | .thmDecl cv value =>
     some (match installHeaderC W cv ({} : CState).flushed with
-      | .ok (r, _) => .ok (.thmInfo r, ⟨.thm, r, value⟩)
+      | .ok (_, _) => .ok (.thmInfo cv, ⟨.thm, cv, value⟩)
       | .error e => .error e)
   | .opaqueDecl cv value =>
     if reduceOpNames.contains cv.name then none
     else some (match installGuardsC W cv value {} with
-      | .ok (r, _) => .ok (.axiomInfo r.1, ⟨.opaque, r.1, r.2⟩)
+      | .ok (_, _) => .ok (.axiomInfo cv, ⟨.opaque, cv, value⟩)
       | .error e => .error e)
   | _ => none
 

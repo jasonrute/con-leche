@@ -41,7 +41,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name)
 open ConLeche.Rules
 
@@ -54,7 +54,7 @@ reading of `w` interprets as the packed literal, which reads and is
 graded. -/
 @[expose] def NatSuccRow {env : Env} (m : EnvModel V env) (φ : Name → Nat) :
     Prop :=
-  ∀ {d : Nat} {w : Expr} {n : Nat} {ea : AnnotTerm},
+  ∀ {d : Nat} {w : Expr} {n : Nat} {ea : ITerm},
     ConLeche.natLitSupported env = true →
     ConLeche.rawNatLit? w = some n →
     denoteMeta m.acval env φ d (.app (.const natSuccName []) w) = some ea →
@@ -67,7 +67,7 @@ two literal readings interprets as `natOpResult`, which reads and is
 graded. -/
 @[expose] def NatOpRow {env : Env} (m : EnvModel V env) (φ : Name → Nat) :
     Prop :=
-  ∀ {d : Nat} {c : Name} {wa wb r : Expr} {n₁ n₂ : Nat} {ea : AnnotTerm},
+  ∀ {d : Nat} {c : Name} {wa wb r : Expr} {n₁ n₂ : Nat} {ea : ITerm},
     c ∈ natBinOpNames → ConLeche.natOpStored env c = true →
     ConLeche.rawNatLit? wa = some n₁ → ConLeche.rawNatLit? wb = some n₂ →
     ConLeche.natOpResult c n₁ n₂ = some r →
@@ -86,7 +86,7 @@ not the point, so neither is the head, whose graph fixes its domain
     Prop :=
   ∀ {c : Name}, c ∈ natBinOpNames → ConLeche.natOpStored env c = true →
     ConLeche.natLitSupported env = true ∧
-    ∀ {d : Nat} {ca : AnnotTerm},
+    ∀ {d : Nat} {ca : ITerm},
       denoteMeta m.acval env φ d (.const c []) = some ca →
       ∀ ρ : Nat → V, ∃ (b₁ b₂ : Nat) (X : V),
         interp V ρ ca ∈ˢ piR b₁ (interp V ρ (m.acval natName (Level.substFn φ [] [])))

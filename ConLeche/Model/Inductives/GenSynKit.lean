@@ -15,7 +15,7 @@ public section
 Restored from the deleted target check (`TargetOutConcl.lean`,
 `TargetOutConv.lean`): `PiConcl` ("past `n` binders, the constant `I` at
 `us` applied to `m` arguments", kept by instantiation and by opening),
-`AnnotTerm.mkAppN_inj_head` (two applications of one head are equal only
+`ITerm.mkAppN_inj_head` (two applications of one head are equal only
 at equal argument lists), `stripPis_isSome_of_piCount`.
 -/
 
@@ -23,7 +23,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape TargetMajor RecShape
   CheckMode)
 
@@ -135,11 +135,11 @@ theorem piConcl_open {I : Name} {us : List Level} {m : Nat} :
 /-! ## Applications of one head -/
 
 omit [SetTheory V] in
-theorem sizeOf_le_mkAppN : ∀ (as : List AnnotTerm) (f : AnnotTerm),
-    sizeOf f ≤ sizeOf (AnnotTerm.mkAppN f as)
+theorem sizeOf_le_mkAppN : ∀ (as : List ITerm) (f : ITerm),
+    sizeOf f ≤ sizeOf (ITerm.mkAppN f as)
   | [], _ => Nat.le_refl _
   | a :: as, f => by
-    rw [AnnotTerm.mkAppN_cons]
+    rw [ITerm.mkAppN_cons]
     refine Nat.le_trans ?_ (sizeOf_le_mkAppN as (.app f a))
     show sizeOf f ≤ 1 + sizeOf f + sizeOf a
     omega
@@ -147,37 +147,37 @@ theorem sizeOf_le_mkAppN : ∀ (as : List AnnotTerm) (f : AnnotTerm),
 omit [SetTheory V] in
 /-- **Two applications of the same head are equal only at equal
 argument lists.** -/
-theorem AnnotTerm.mkAppN_inj_head {f : AnnotTerm} :
-    ∀ {as bs : List AnnotTerm}, AnnotTerm.mkAppN f as = AnnotTerm.mkAppN f bs → as = bs := by
+theorem ITerm.mkAppN_inj_head {f : ITerm} :
+    ∀ {as bs : List ITerm}, ITerm.mkAppN f as = ITerm.mkAppN f bs → as = bs := by
   intro as bs h
   rcases Nat.lt_trichotomy as.length bs.length with hlt | heq | hgt
   · exfalso
     obtain ⟨b₁, b₂, rfl, hl⟩ : ∃ b₁ b₂, bs = b₁ ++ b₂ ∧ b₂.length = as.length :=
       ⟨bs.take (bs.length - as.length), bs.drop (bs.length - as.length), by simp,
         by rw [List.length_drop]; omega⟩
-    rw [annotMkAppN_append] at h
-    obtain ⟨hf, -⟩ := AnnotTerm.mkAppN_inj h hl.symm
+    rw [iTermMkAppN_append] at h
+    obtain ⟨hf, -⟩ := ITerm.mkAppN_inj h hl.symm
     have hne : b₁ ≠ [] := by
       intro h0; subst h0; rw [List.nil_append] at hlt; omega
     obtain ⟨b, b₁', rfl⟩ := List.exists_cons_of_ne_nil hne
     have := sizeOf_le_mkAppN b₁' (.app f b)
-    rw [← AnnotTerm.mkAppN_cons, ← hf] at this
-    have h2 : sizeOf f < sizeOf (AnnotTerm.app f b) := by
+    rw [← ITerm.mkAppN_cons, ← hf] at this
+    have h2 : sizeOf f < sizeOf (ITerm.app f b) := by
       show sizeOf f < 1 + sizeOf f + sizeOf b; omega
     omega
-  · exact (AnnotTerm.mkAppN_inj h heq).2
+  · exact (ITerm.mkAppN_inj h heq).2
   · exfalso
     obtain ⟨a₁, a₂, rfl, hl⟩ : ∃ a₁ a₂, as = a₁ ++ a₂ ∧ a₂.length = bs.length :=
       ⟨as.take (as.length - bs.length), as.drop (as.length - bs.length), by simp,
         by rw [List.length_drop]; omega⟩
-    rw [annotMkAppN_append] at h
-    obtain ⟨hf, -⟩ := AnnotTerm.mkAppN_inj h hl
+    rw [iTermMkAppN_append] at h
+    obtain ⟨hf, -⟩ := ITerm.mkAppN_inj h hl
     have hne : a₁ ≠ [] := by
       intro h0; subst h0; rw [List.nil_append] at hgt; omega
     obtain ⟨a, a₁', rfl⟩ := List.exists_cons_of_ne_nil hne
     have := sizeOf_le_mkAppN a₁' (.app f a)
-    rw [← AnnotTerm.mkAppN_cons, hf] at this
-    have h2 : sizeOf f < sizeOf (AnnotTerm.app f a) := by
+    rw [← ITerm.mkAppN_cons, hf] at this
+    have h2 : sizeOf f < sizeOf (ITerm.app f a) := by
       show sizeOf f < 1 + sizeOf f + sizeOf a; omega
     omega
 

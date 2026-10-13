@@ -8,7 +8,7 @@ public import ConLeche.Semantics.Canon
 # The literal clauses: the numeral facts
 
 `natLit_factsAV`, the module's only theorem, mentions no fuel and no
-mode — a pure `interp`/`WellDenoted` statement about the annotated
+mode — a pure `interp`/`WellDenoted` statement about the `ITerm`
 numeral spine (`natLitAV`, `Semantics/Canon.lean`) — and the model's
 numeral clauses consume it.
 
@@ -24,22 +24,22 @@ namespace ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-- **The numeral facts.**  Every annotated numeral is truthful and
+/-- **The numeral facts.**  Every `ITerm` numeral spine is truthful and
 inhabits the stored `Nat`'s interpretation — by induction on the
 numeral, from the zero's membership and the successor's `piR`
 membership.
 
-`Nat → Nat` sits at result sort `1`, so the successor's product is in
+`Nat → Nat` sits at result sort `1`, so the successor's function space is in
 the **graph regime** and `app_mem_piR_pos` applies with no fibre
 premise; the app slot's kind-`0` component is vacuous for the same
 reason. -/
-theorem natLit_factsAV {ρ : Nat → V} {za sa natA : AnnotTerm}
+theorem natLit_factsAV {ρ : Nat → V} {za sa natA : ITerm}
     (hokz : WellDenoted V ρ za) (hoks : WellDenoted V ρ sa)
     (hz : interp V ρ za ∈ˢ interp V ρ natA)
     (hsucc : interp V ρ sa

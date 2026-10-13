@@ -21,7 +21,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -50,18 +50,18 @@ prefix of the spine is not the point (`app_pt`), so it is a graph, and
 the argument's own application slot puts it in the telescope's domain
 (`slotTransfer`). -/
 theorem teleFitPA_of_peel_ne_pt {ρ : Nat → V} :
-    ∀ (vs : List AnnotTerm) {T f r : AnnotTerm},
-      ConLeche.Model.AnnotTerm.peelPis T vs = some r →
+    ∀ (vs : List ITerm) {T f r : ITerm},
+      ConLeche.Model.ITerm.peelPis T vs = some r →
       WellDenoted V ρ T → interp V ρ f ∈ˢ interp V ρ T →
-      WellDenoted V ρ (AnnotTerm.mkAppN f vs) →
-      interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
+      WellDenoted V ρ (ITerm.mkAppN f vs) →
+      interp V ρ (ITerm.mkAppN f vs) ≠ pt →
       TeleFitPA V ρ T vs r
   | [], T, _, r, hp, _, _, _, _ => by
     obtain rfl : T = r := Option.some.inj hp
     exact .nil
   | x :: xs, .pi A B, f, r, hp, hT, hmem, hg, hne => by
-    have hg' : WellDenoted V ρ (AnnotTerm.mkAppN (.app f x) xs) := hg
-    have hne' : interp V ρ (AnnotTerm.mkAppN (.app f x) xs) ≠ pt := hne
+    have hg' : WellDenoted V ρ (ITerm.mkAppN (.app f x) xs) := hg
+    have hne' : interp V ρ (ITerm.mkAppN (.app f x) xs) ≠ pt := hne
     have happ : WellDenoted V ρ (.app f x) := mkAppN_head xs hg'
     obtain ⟨v', A', B', hslot, hx, -⟩ := (cast (WellDenoted_app V ρ f x) happ).2.2
     have hmem' := hmem

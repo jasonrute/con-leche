@@ -128,7 +128,7 @@ theorem whnfStep_inv {env : Env} {fuel d : Nat} {k : Expr → CheckM Expr}
     exact ⟨e₁, rfl, Or.inr (Or.inr ⟨hrn, hu, h.symm⟩)⟩
 
 /-- Inversion for the λ-rule of `inferTypeCore` (infer-only: the
-annotation is reused whole).  The last conjunct is the **codomain
+domain is reused whole).  The last conjunct is the **codomain
 sort** (task #152), delivered at the verified modes only, in the
 shape the checker computes it (infer, then whnf to a sort).  At
 `.trusted`, which does not run the check, it is vacuous. -/
@@ -222,8 +222,7 @@ theorem inferTypeCore_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
     exact ⟨tf, ty', body', rfl, hw, h.symm, ta, rfl, hde⟩
 
 /-- Inversion for the ∀-rule of `inferTypeCore` (task #100 stage 6:
-the codomain sort is inferred from the opened body — the stored
-annotation is not read). -/
+the codomain sort is inferred from the opened body). -/
 theorem inferTypeCore_forall_inv {env : Env} {fuel d : Nat}
     {ty body t : Expr}
     (h : inferTypeCore mode env (fuel + 1) d (.forallE ty body) = .ok t) :
@@ -694,14 +693,15 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
       env.find? cj = some (.ctorInfo cvj cnP cnF) ∧
       rules.find? (fun r' => r'.ctor == cj) = some r ∧
       major.getAppArgs.length = r.ctorParams + r.nfields ∧
-      Level.isEquivList usj
-        (recFireComparands r cv.levelParams us cvj.levelParams
-          e.getAppArgs rP).1 = some true ∧
-      (iotaCase3 env.find? r cvj usj = true →
+      (iotaCase3 env.find? r cvj
+          (recFireComparands r cv.levelParams us cvj.levelParams
+            e.getAppArgs rP).1 = true →
+        Level.isEquivList usj
+          (recFireComparands r cv.levelParams us cvj.levelParams
+            e.getAppArgs rP).1 = some true ∧
         defEqListFueled mode env fuel d (major.getAppArgs.take r.ctorParams)
           (recFireComparands r cv.levelParams us cvj.levelParams
-            e.getAppArgs rP).2 = .ok true) ∧
-      (iotaCase3 env.find? r cvj usj = true →
+            e.getAppArgs rP).2 = .ok true ∧
         iotaCertsFullFueled mode env fuel d
           (cvj.type.instantiateLevelParams cvj.levelParams usj)
           major.getAppArgs = .ok true ∧
@@ -788,34 +788,32 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
   case neg => rw [ite_eq_right hml] at h; exact nomatch h
   rw [ite_eq_left hml] at h
   try simp only [Bind.bind, Except.bind] at h
-  cases hlev : Level.isEquivList usj
-      (recFireComparands r cv.levelParams us cvj.levelParams
-        e.getAppArgs rP).1 with
-  | none => rw [hlev] at h; simp [liftFueled] at h
-  | some bl =>
-  rw [hlev] at h
-  simp only [liftFueled, pure, Except.pure] at h
-  try dsimp only at h
-  cases bl with
-  | false => simp [pure, Except.pure] at h
-  | true =>
-  simp only [↓reduceIte] at h
-  try simp only [Bind.bind, Except.bind] at h
-  cases hpeq : (if iotaCase3 env.find? r cvj usj then
-      defEqListFueled mode env fuel d (major.getAppArgs.take r.ctorParams)
-        (recFireComparands r cv.levelParams us cvj.levelParams e.getAppArgs rP).2
-      else .ok true) with
-  | error err => rw [hpeq] at h; exact nomatch h
-  | ok rp =>
-  rw [hpeq] at h
-  dsimp only at h
-  cases rp with
-  | false => simp [pure, Except.pure] at h
-  | true =>
-  simp only [↓reduceIte] at h
-  try simp only [Bind.bind, Except.bind] at h
-  by_cases h3 : iotaCase3 env.find? r cvj usj = true
+  generalize hcmp : recFireComparands r cv.levelParams us cvj.levelParams
+    e.getAppArgs rP = cmp at h
+  by_cases h3 : iotaCase3 env.find? r cvj cmp.1 = true
   · rw [ite_eq_left h3] at h
+    try simp only [Bind.bind, Except.bind] at h
+    cases hlev : Level.isEquivList usj cmp.1 with
+    | none => rw [hlev] at h; simp [liftFueled] at h
+    | some bl =>
+    rw [hlev] at h
+    simp only [liftFueled, pure, Except.pure] at h
+    try dsimp only at h
+    cases bl with
+    | false => simp [pure, Except.pure] at h
+    | true =>
+    simp only [↓reduceIte] at h
+    try simp only [Bind.bind, Except.bind] at h
+    cases hpeq : defEqListFueled mode env fuel d (major.getAppArgs.take r.ctorParams)
+        cmp.2 with
+    | error err => rw [hpeq] at h; exact nomatch h
+    | ok rp =>
+    rw [hpeq] at h
+    dsimp only at h
+    cases rp with
+    | false => simp [pure, Except.pure] at h
+    | true =>
+    simp only [↓reduceIte] at h
     try simp only [Bind.bind, Except.bind] at h
     cases hmcerts : iotaCertsFullFueled mode env fuel d
         (cvj.type.instantiateLevelParams cvj.levelParams usj)
@@ -844,15 +842,13 @@ theorem iotaRec_inv {env : Env} {fuel d : Nat} {e eout : Expr}
       Option.some.injEq] at h
     exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
       cnF, r, rfl, hfc, hlen.1, hlen.2.1, hprep, hmfn, hfj, hrule,
-      hml, hlev, (fun hc => (ite_eq_left hc).symm.trans hpeq),
-      fun _ => ⟨hmcerts, hidx⟩, h.symm⟩
+      hml, fun _ => by rw [hcmp]; exact ⟨hlev, hpeq, hmcerts, hidx⟩, h.symm⟩
   · rw [ite_eq_right h3] at h
     simp only [pure, Except.pure, ↓reduceIte, Except.ok.injEq,
       Option.some.injEq] at h
     exact ⟨c, us, cv, mI, rP, rules, major, cj, usj, cvj, cnP,
       cnF, r, rfl, hfc, hlen.1, hlen.2.1, hprep, hmfn, hfj, hrule,
-      hml, hlev, (fun hc => (ite_eq_left hc).symm.trans hpeq),
-      fun h3' => absurd h3' h3, h.symm⟩
+      hml, fun h3' => absurd (hcmp ▸ h3') h3, h.symm⟩
 
 /-- Inversion of the canonical-index comparison where the recursor has
 indices: the constructor telescope's residual exists and its index

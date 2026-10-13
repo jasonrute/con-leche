@@ -61,7 +61,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche.Term ConLeche.Verify
 open ConLeche (Env Expr Name Level CheckMode)
 
@@ -216,14 +216,14 @@ theorem consList_hole {hv : List V} {σ : Nat → V} {t : Nat} (ht : t < hv.leng
 of the formers' (closed) types. -/
 theorem walkCtx_holes
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
-    {D : Nat} {L : List Expr} (hL : FvarList D L) {σ : Nat → V} {Δ : List AnnotTerm}
+    {D : Nat} {L : List Expr} (hL : FvarList D L) {σ : Nat → V} {Δ : List ITerm}
     (hW : WalkCtx V mT φ D σ Δ L) {formerTys : List Expr} {hv : List V}
     (hvl : hv.length = formerTys.length)
     (hformer : ∀ t, t < formerTys.length →
       (formerTys.getD t default).hasFvar = false ∧
       (formerTys.getD t default).looseBVarsBounded 0 = true ∧
       ConstsBound envT (formerTys.getD t default) ∧
-      ∃ T : AnnotTerm, denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
+      ∃ T : ITerm, denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
         (∀ σ : Nat → V, WellDenotedTy V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T) :
     ∃ Δ', FvarList (D + formerTys.length) ((ConLeche.targetHoles formerTys D).reverse ++ L) ∧
       WalkCtx V mT φ (D + formerTys.length) (consList hv σ) Δ'
@@ -231,7 +231,7 @@ theorem walkCtx_holes
   have hacl1 : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (mT.acval n ψ).liftN 1 k = mT.acval n ψ :=
     fun n ψ k => hacl n ψ 1 k
   generalize hk : formerTys.length = k at *
-  let Ts : List AnnotTerm := (List.range k).map fun t =>
+  let Ts : List ITerm := (List.range k).map fun t =>
     (denoteMeta mT.acval envT φ 0 (formerTys.getD t default)).getD default
   have hTsLen : Ts.length = k := by simp [Ts]
   have hTsGet : ∀ t, t < k → ∃ T, Ts.getD t default = T ∧
@@ -275,7 +275,7 @@ theorem walkCtx_holes
 /-- The concrete side of an abstraction read at the members' values. -/
 theorem readAgree_lift
     (hacl1 : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (mT.acval n ψ).liftN 1 k = mT.acval n ψ)
-    {D k : Nat} {hvC : Nat → V} {o : Option AnnotTerm} {A : Expr} (hA : Expr.WScoped D A)
+    {D k : Nat} {hvC : Nat → V} {o : Option ITerm} {A : Expr} (hA : Expr.WScoped D A)
     (h : ReadAgree (AbsAgree V k 0 hvC) o (denoteMeta mT.acval envT φ (D + k) A))
     {hv : List V} (hvl : hv.length = k) (hvget : ∀ t, t < k → hv.getD t pt = hvC t)
     (σ : Nat → V) :
@@ -311,7 +311,7 @@ syntactically equal pair, everywhere). -/
 theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
     (hin : Rules.RulesInputs V mT φ) {F D : Nat} {pfvs : List Expr}
-    (hL : FvarList D pfvs.reverse) {σ : Nat → V} {Δ : List AnnotTerm}
+    (hL : FvarList D pfvs.reverse) {σ : Nat → V} {Δ : List ITerm}
     (hW : WalkCtx V mT φ D σ Δ pfvs.reverse)
     {names : List Name} {lvls : List Level} {formerTys : List Expr} {hv : List V}
     (hvl : hv.length = formerTys.length)
@@ -319,7 +319,7 @@ theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
       (formerTys.getD t default).hasFvar = false ∧
       (formerTys.getD t default).looseBVarsBounded 0 = true ∧
       ConstsBound envT (formerTys.getD t default) ∧
-      ∃ T : AnnotTerm, denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
+      ∃ T : ITerm, denoteMeta mT.acval envT φ 0 (formerTys.getD t default) = some T ∧
         (∀ σ : Nat → V, WellDenotedTy V σ T) ∧ ∀ σ : Nat → V, hv.getD t pt ∈ˢ interp V σ T)
     (hnames : ∀ (n : Name) (t : Nat), names.findIdx? (· == n) = some t →
       t < formerTys.length ∧ ∃ ci : ConLeche.ConstantInfo, envT.find? n = some ci ∧
@@ -417,7 +417,7 @@ end Walk
 
 /-- Key frames of spines reading alike agree (whence one hole fit, one
 carrier, one index set — the parked `tie_fits`). -/
-theorem keyFrame_eq_of_params {dsa₁ dsa₂ : List AnnotTerm} {hi : Nat} {ρ : Nat → V}
+theorem keyFrame_eq_of_params {dsa₁ dsa₂ : List ITerm} {hi : Nat} {ρ : Nat → V}
     (h : dsa₁.map (interp V ρ) = dsa₂.map (interp V ρ)) :
     keyFrame dsa₁ hi ρ = keyFrame dsa₂ hi ρ := by
   unfold keyFrame; rw [h]

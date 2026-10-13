@@ -35,7 +35,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx NestHole)
 
 universe w
@@ -94,7 +94,7 @@ theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     (hfvF : ∀ l, l < fvsF.length → ∃ ty, fvsF[l]? = some (.fvar (rP + l) ty))
     (hfvW : ∀ x ∈ fvsF, Expr.WScoped (rP + fvsF.length) x)
     (hread : NodeHolesRead m.acval env ctx prog) (hi : i < fvsF.length)
-    {nda : AnnotTerm}
+    {nda : ITerm}
     (hnda : denoteMeta m.acval env ψ (ctx.hiAt prog.length + i) (Expr.mkPisOf teleW leafC)
       = some nda)
     {xs fs : List V} {ρ σN : Nat → V} (hxl : xs.length = rP) (hfl : fs.length = fvsF.length)
@@ -105,13 +105,13 @@ theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
     (hbs : SpineFit (consList (xs ++ fs) ρ)
       ((teleDoms m.acval env ψ (rP + fvsF.length) [] tele).getD []) bs) :
     bs.length = tele.length ∧
-    ∃ (ha : AnnotTerm) (argsA : List AnnotTerm),
+    ∃ (ha : ITerm) (argsA : List ITerm),
       denoteMeta m.acval env ψ (ctx.hiAt prog.length + i + bs.length) w.getAppFn = some ha ∧
       DenoteMetaSpine m.acval env ψ (ctx.hiAt prog.length + i + bs.length) w.getAppArgs argsA ∧
       bs.foldl app (fs.getD i pt) ∈ˢ
         (argsA.map (interp V (consList bs (consList (fs.take i) σN)))).foldl app
           (interp V (consList bs (consList (fs.take i) σN)) ha) ∧
-      (∀ (l : Nat) (xR xW : Expr) (xa : AnnotTerm), idxR[l]? = some xR →
+      (∀ (l : Nat) (xR xW : Expr) (xa : ITerm), idxR[l]? = some xR →
         w.getAppArgs[off + l]? = some xW → argsA[off + l]? = some xa →
         xW.nestOcc ctx.names ctx.nP (ctx.hiAt prog.length) = false →
         interp V (consList bs (consList (xs ++ fs) ρ))
@@ -140,12 +140,12 @@ theorem fieldCall_core {env : Env} (m : EnvModel V env) (ψ : Name → Nat)
 scoped at `D0`, read at the valuation below the extension `L`; the rest
 as given. -/
 theorem argsA_split {env : Env} (m : EnvModel V env) (ψ : Name → Nat) {D0 D' : Nat}
-    {args : List Expr} {argsA : List AnnotTerm}
+    {args : List Expr} {argsA : List ITerm}
     (hsp : DenoteMetaSpine m.acval env ψ D' args argsA) {n : Nat} (hn : n ≤ args.length)
     (hpre : ∀ x ∈ args.take n, Expr.WScoped D0 x)
     {L : List V} (hL : D' = D0 + L.length) (σ : Nat → V)
     {isR : List V} (hlen : isR.length = args.length - n)
-    (htail : ∀ (l : Nat) (xa : AnnotTerm), argsA[n + l]? = some xa →
+    (htail : ∀ (l : Nat) (xa : ITerm), argsA[n + l]? = some xa →
       isR[l]? = some (interp V (consList L σ) xa)) :
     argsA.map (interp V (consList L σ))
       = (args.take n).map (fun x => interp V σ ((denoteMeta m.acval env ψ D0 x).getD default))
@@ -181,8 +181,8 @@ theorem argsA_split {env : Env} (m : EnvModel V env) (ψ : Name → Nat) {D0 D' 
       rfl
 
 /-- **A head variable reads as the walk valuation's entry.** -/
-theorem headRead_fvar {env : Env} {acval : Name → (Name → Nat) → AnnotTerm} {ψ : Name → Nat}
-    {D0 D' v : Nat} {ty : Expr} {ha : AnnotTerm}
+theorem headRead_fvar {env : Env} {acval : Name → (Name → Nat) → ITerm} {ψ : Name → Nat}
+    {D0 D' v : Nat} {ty : Expr} {ha : ITerm}
     (h : denoteMeta acval env ψ D' (.fvar v ty) = some ha) (hv : v < D0)
     {L : List V} (hL : D' = D0 + L.length) (σ : Nat → V) :
     interp V (consList L σ) ha = σ (D0 - 1 - v) := by

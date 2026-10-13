@@ -51,7 +51,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint)
 
@@ -90,7 +90,7 @@ the *name* (non-reserved) and the *kind* (never a value kind, never an
 axiom); `caps_ok` and `rec_rules` stay open, because those are the two
 rows an inductive block genuinely establishes. -/
 theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     -- the name: `blockShape?`'s guard at a member
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
@@ -99,7 +99,7 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     (hnotax : ∀ cv, c₀ ≠ .axiomInfo cv)
     -- the head's own obligations (task #161 S7)
     (hh : ConsHead env c₀ A)
-    -- the annotated tower
+    -- the leaf's tower
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
@@ -107,14 +107,14 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
     -- the type's reading, its grading, and the tower's membership
     (htyReads : ∀ ψ : Name → Nat,
-      ∃ ta : AnnotTerm,
+      ∃ ta : ITerm,
         denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta)
-    (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    (htyOk : ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
-    (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    (hmemNew : ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
@@ -166,7 +166,7 @@ vacuously: the cons is not a recursor at all, and `EnvModel.rec_ctors`
 carries the rest (ENDGAME D §3a).  `caps_ok` remains the member's one
 open row — the block's former *is* a family head. -/
 theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
     (hknd : (∃ cv caps, c₀ = .indInfo cv caps) ∨
@@ -178,14 +178,14 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
       A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
     (htyReads : ∀ ψ : Name → Nat,
-      ∃ ta : AnnotTerm,
+      ∃ ta : ITerm,
         denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta)
-    (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    (htyOk : ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
-    (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    (hmemNew : ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
@@ -213,7 +213,7 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
 as `recInfo`.  Only `caps_ok` and `rec_rules` stay open; both are the
 install's to establish. -/
 theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
     (hknd : ∃ cv mI rP rules, c₀ = .recInfo cv mI rP rules)
@@ -224,14 +224,14 @@ theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
       A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
     (htyReads : ∀ ψ : Name → Nat,
-      ∃ ta : AnnotTerm,
+      ∃ ta : ITerm,
         denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta)
-    (htyOk : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    (htyOk : ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
-    (hmemNew : ∀ (ψ : Name → Nat) (ta : AnnotTerm),
+    (hmemNew : ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)

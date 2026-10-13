@@ -52,7 +52,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   GenRecRun fueledOps mkFEnv NestState)
 
@@ -63,7 +63,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 /-- **A reading over the parameters, lifted**: a term whose free
 variables lie below the openers `pfvs` (each at its own index, scoped)
 reads at any longer spine as at the spine's first `|pfvs|` values. -/
-theorem readParams_lift {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {φ : Name → Nat}
+theorem readParams_lift {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat}
     (hacl1 : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (acval n ψ).liftN 1 k = acval n ψ)
     {pfvs : List Expr} (hp : ∀ (i : Nat) (x : Expr), pfvs[i]? = some x → ∃ ty, x = .fvar i ty)
     (hpW : ∀ x ∈ pfvs, Expr.WScoped pfvs.length x) {a : Expr} (ha : a.fvarB ≤ pfvs.length)
@@ -88,7 +88,7 @@ theorem readParams_lift {acval : Name → (Name → Nat) → AnnotTerm} {env : E
   simp only [Function.comp_apply]
   rw [hsplit, hdl, interp_liftN_consList]
 
-theorem getD_eq_of_map_eq {α : Type _} {g : AnnotTerm → α} {o₁ o₂ : Option AnnotTerm}
+theorem getD_eq_of_map_eq {α : Type _} {g : ITerm → α} {o₁ o₂ : Option ITerm}
     (h : o₁.map g = o₂.map g) : g (o₁.getD default) = g (o₂.getD default) := by
   cases o₁ <;> cases o₂ <;> simp_all
 
@@ -97,13 +97,13 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
     {envC envI : Env} {pp : BlockParts} {cvTasR : List ConstantVal}
     {ctorsAsR : List (List (ConstantVal × Nat))}
     {out : List (ConstantVal × TargetMajor × List Expr)} {mpC : EnvModelM V μ envC}
-    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → ITerm}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : NestState} {nested : Bool}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
     (R : GenRecRun μ F (mkFEnv envI) envI (mkFEnv envC) pp.toBlockShape nested posR cvTasR
       block ctorsAsR out)
-    (h : ConLeche.RecStageG μ F envC pp cvTasR ctorsAsR (ConLeche.tgtRs out) (fun _ => False))
+    (h : ConLeche.RecStageG μ F envC pp cvTasR ctorsAsR (ConLeche.tgtRs out))
     (hparG : ∀ c, c < (ConLeche.tgtRs out).length → ∀ (ψ : Name → Nat) (ρ : Nat → V)
       (xs : List V),
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (ConLeche.tgtRs out) ψ c)
@@ -247,7 +247,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
     rwa [hmap, List.take_left] at this
   have hparsL := hC.parsLen (mc c) hcl.hmm ψc
   -- the prefix's tail
-  have hkf : ∀ dsa : List AnnotTerm, keyFrame dsa xs.length (consList xs ρ)
+  have hkf : ∀ dsa : List ITerm, keyFrame dsa xs.length (consList xs ρ)
       = consList (dsa.map (interp V (consList xs ρ))) ρ := by
     intro dsa
     unfold keyFrame

@@ -28,7 +28,7 @@ components (`blockRulePdomsAV`, `tgtFdomsAV`, `tgtEsAV`, `genIhsAV`,
 
 The graph's `ih` values are the generated `ih` terms read at the chain
 valuation of the graph (`genIhvT`: every recursor the graph-regime
-λ-tower over its stored type's binder data reading the graph at the
+λ-tower over its stored type's domains reading the graph at the
 tagged major).
 -/
 
@@ -36,7 +36,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun)
 
@@ -48,19 +48,19 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 section Ihv
 
-/-- **The chain valuation of a graph** at the stored binder data `rds`:
-recursor `t` is the graph-regime λ-tower over its binder data reading
-`g` at the tagged major (`genF` over any binder data and tuple
+/-- **The chain valuation of a graph** at the stored domains `rds`:
+recursor `t` is the graph-regime λ-tower over its domains reading
+`g` at the tagged major (`genF` over any domains and tuple
 function). -/
 @[expose] noncomputable def genFT (ρ : Nat → V) (rP : Nat → Nat)
-    (rds : Nat → List AnnotTerm) (tup : Nat → List V → V) (g : V) (t : Nat) : V :=
+    (rds : Nat → List ITerm) (tup : Nat → List V → V) (g : V) (t : Nat) : V :=
   lamTowerA ρ [] (rds t) fun sp _ => app g (tagged t (tup t (idxOf (rP t) sp)) (majOf sp))
 
 /-- **The graph's `ih` values**: the `ih` terms read at the chain
 valuation of the graph. -/
 @[expose] noncomputable def genIhvT (K : Nat) (ρ : Nat → V) (rP : Nat → Nat)
-    (rds : Nat → List AnnotTerm) (tup : Nat → List V → V)
-    (ihs : Nat → Nat → List AnnotTerm) (xs : List V) (c j : Nat) (fs : List V) (g : V) :
+    (rds : Nat → List ITerm) (tup : Nat → List V → V)
+    (ihs : Nat → Nat → List ITerm) (xs : List V) (c j : Nat) (fs : List V) (g : V) :
     List V :=
   (ihs c j).map (interp V (consList (xs ++ fs) (chainFrame K (genFT ρ rP rds tup g) ρ)))
 
@@ -78,10 +78,10 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
 at any `ih` terms and residue): the prefix domains are closed
 (`blockRecPdomsK_run`), and the chain lifts keep the field domains'
 lengths. -/
-theorem genClsEqs_eq (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
-    (ihs : (Name → Nat) → Nat → Nat → List AnnotTerm)
-    (Rb0 : (Name → Nat) → Nat → Nat → AnnotTerm) (ψ : Name → Nat) :
+theorem genClsEqs_eq (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+    (ihs : (Name → Nat) → Nat → Nat → List ITerm)
+    (Rb0 : (Name → Nat) → Nat → Nat → ITerm) (ψ : Name → Nat) :
     iotaEqsAV (tgtRs out).length (blockRecNCt (tgtRs out))
         (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
         (tgtFdomsK (tgtRs out).length mpC.base2.acval envC pp.toBlockShape out ψ)
@@ -111,9 +111,9 @@ theorem genClsEqs_eq (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
 /-- Every member of the family's equation list is a truth value. -/
 theorem blockRecEqs_univZero (nCt : Nat → Nat)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat)))
-    (pdoms0 : (Name → Nat) → Nat → List AnnotTerm)
-    (fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List AnnotTerm)
-    (mk0 Rb0 : (Name → Nat) → Nat → Nat → AnnotTerm) (ψ : Name → Nat) (σ : Nat → V) :
+    (pdoms0 : (Name → Nat) → Nat → List ITerm)
+    (fdoms0 es0 ihs : (Name → Nat) → Nat → Nat → List ITerm)
+    (mk0 Rb0 : (Name → Nat) → Nat → Nat → ITerm) (ψ : Name → Nat) (σ : Nat → V) :
     ∀ e ∈ blockRecEqs nCt rs pdoms0 fdoms0 es0 ihs mk0 Rb0 ψ,
       interp V σ e ∈ˢ (univZero : V) :=
   forall_iotaEqsAV fun _ _ _ _ => iotaEqAV_univZero
@@ -137,8 +137,8 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
 set_option maxHeartbeats 4000000 in
 /-- **The candidate of the generated family** — `BlockRecPre.hCand` at the
 generated components, from the producer's rows at the old class data. -/
-theorem genRecPre_hCand (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genRecPre_hCand (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     (ψ : Name → Nat) (ρ : Nat → V)
     (hsplit : ∀ c, c < (tgtRs out).length →
       ∀ ys, SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c)) ys →
@@ -326,9 +326,9 @@ data's fits (`hsplitI`), at the generated calls `genCallT` and the graph's
 
 section Generic
 
-variable {K : Nat} {ρ : Nat → V} {rP nCt : Nat → Nat} {rds : Nat → List AnnotTerm}
-  {Is Cr : List V → Nat → V} {tup : Nat → List V → V} {pdoms : Nat → List AnnotTerm}
-  {fdoms : Nat → Nat → List AnnotTerm} {ihd : Nat → Nat → List IhDatum}
+variable {K : Nat} {ρ : Nat → V} {rP nCt : Nat → Nat} {rds : Nat → List ITerm}
+  {Is Cr : List V → Nat → V} {tup : Nat → List V → V} {pdoms : Nat → List ITerm}
+  {fdoms : Nat → Nat → List ITerm} {ihd : Nat → Nat → List IhDatum}
 
 /-- The generated calls are the calls `genIhCallAt` names, tagged. -/
 theorem genCallT_iff {xs : List V} {c j : Nat} {fs : List V} {v : V} :
@@ -344,7 +344,7 @@ set_option maxHeartbeats 1000000 in
 /-- **`hchain` over any classes**: the graph's `ih` values are the `ih`
 terms read at the chain — the `ih` terms read the chain only at their
 calls' spines (`hihRead`), each call's spine fits its callee's stored
-binder data (`hcallTy`), so it is a major of the callee's class
+domains (`hcallTy`), so it is a major of the callee's class
 (`hsplitI`) and a predecessor, where the graph is the chain's recursor. -/
 theorem genHchainG
     (hsplitI : ∀ c, c < K → ∀ (xs is : List V) (x : V), xs.length = rP c →
@@ -404,9 +404,9 @@ predecessor, where the graph lands in the motive, which is the stored
 conclusion, the callee's motive variable applied); the minor premise's
 typing (`hminor`) lands the residue in `motive_c e⃗ mk`, which is the
 kit's motive at the constructed element (`hdecInv`). -/
-theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
+theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → ITerm}
     {fit : List V → Nat → V → Nat → List V → Prop} {injX : Nat → Nat → List V → V}
-    {es : Nat → Nat → List AnnotTerm} {mk : Nat → Nat → AnnotTerm}
+    {es : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
     (motPos : Nat → Nat) (minPos : Nat → Nat → Nat)
     (hpdl : ∀ c, c < K → (pdoms c).length = rP c)
     (hlenR : ∀ c, c < K → (rds c).length = rP c + nIdxX c + 1)
@@ -483,7 +483,7 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
     -- spine, a type (`hconclTy`: the recursor type's innermost fibre)
     have hCty : ∀ bs, SpineFit (consList (xs ++ fs) ρ) (q.2.1) bs →
         IsTy (interp V (consList bs (consList (xs ++ fs) ρ))
-          (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - motPos q.1))
+          (ITerm.mkAppN (.bvar (D + q.2.1.length - 1 - motPos q.1))
             (q.2.2.1 ++ [q.2.2.2]))) := by
       intro bs hbs
       have hbl : bs.length = q.2.1.length := hbs.length_eq
@@ -525,7 +525,7 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
     -- the body: the chain's recursor at the call's spine, i.e. the graph at the call
     have hbody : interp V (consList bs (consList (xs ++ fs)
           (chainFrame K (genFT ρ rP rds tup g) ρ)))
-        (AnnotTerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
+        (ITerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
           (prefVarsAV (pdoms c).length (D - (pdoms c).length + q.2.1.length)
             ++ (q.2.2.1 ++ [q.2.2.2])))
         = app g (tagged q.1 (tup q.1 is) x) := by
@@ -565,12 +565,12 @@ theorem genHstepG {uX nIdxX : Nat → Nat} {concl : Nat → AnnotTerm}
         hxlT] at this
       omega
     rw [blockRecMot_tagged ht, hretT, hconclMot q.1 ht xs is x hxlT hisl] at hgv
-    show interp V _ (AnnotTerm.mkAppN
+    show interp V _ (ITerm.mkAppN
         (.bvar (D + q.2.1.length + (K - 1 - q.1)))
           (prefVarsAV (pdoms c).length (D - (pdoms c).length + q.2.1.length)
             ++ (q.2.2.1 ++ [q.2.2.2])))
       ∈ˢ interp V (consList bs (consList (xs ++ fs) ρ))
-      (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - motPos q.1))
+      (ITerm.mkAppN (.bvar (D + q.2.1.length - 1 - motPos q.1))
         (q.2.2.1 ++ [q.2.2.2]))
     rw [hbody, interp_mkAppN, ← List.foldl_map]
     have hmt := hmot q.1 ht
@@ -616,17 +616,17 @@ The producer's rows at the old class data follow from four facts about
 the classes and the stored types (stated at one level assignment and
 base frame):
 
-* `GenClsSplit` — a fit of recursor `c`'s stored binder data is a major
+* `GenClsSplit` — a fit of recursor `c`'s stored domains is a major
   of class `c` (its index tuple in the index set, its major in the
   carrier, the index spine recovered from the tuple);
 * `GenClsBack` — conversely every major of class `c` spells a fit of
-  the stored binder data;
+  the stored domains;
 * `GenClsDec` — a spine fitting the rule's prefix and (declared) field
   domains decodes at class `c`: the fields hole-fit the constructor at
   the tuple of the declared index expressions' readings, which is in the
   index set and recovered from its tuple, and the constructor
   application reads to the injection, in the carrier there;
-* the conclusion's typing at every fit of the stored binder data (the
+* the conclusion's typing at every fit of the stored domains (the
   stage record's, `blockRecConcl_univ`). -/
 
 section Rows
@@ -654,7 +654,7 @@ class `c`, its index spine recovered from its tuple. -/
 
 variable (mpC d Dc mc cvc pp out) in
 /-- **The converse**: every major of class `c` spells a fit of recursor
-`c`'s stored binder data. -/
+`c`'s stored domains. -/
 @[expose] def GenClsBack (ψ : Name → Nat) (ρ : Nat → V) : Prop :=
   ∀ c, c < (tgtRs out).length → ∀ (xs : List V) (i x : V),
     i ∈ˢ tgtClsIs d Dc mc cvc mpC.base2.acval envC pp.toBlockShape out ψ ρ xs c →
@@ -732,8 +732,7 @@ theorem isOfW_length (u n : Nat) (t : V) : (isOfW u n t).length = n := by
 
 /-- The major index of a stored recursor is its rule prefix plus its
 stored index count. -/
-theorem genRec_mI {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) {c : Nat}
+theorem genRec_mI     (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) {c : Nat}
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : (tgtRs out)[c]? = some r) :
     pp.toBlockShape.majorIdxAt c = pp.toBlockShape.rulePrefixAt c + r.2.2.1 := by
   obtain ⟨R⟩ := h
@@ -741,10 +740,10 @@ theorem genRec_mI {memR : Nat → Prop}
   obtain ⟨E⟩ := hE
   exact ConLeche.RecTyGen.mI_eq E
 
-/-- The stored binder data's length: the rule prefix, the class's
+/-- The stored domains' length: the rule prefix, the class's
 indices, the major. -/
-theorem genRds_length (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRds_length (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     {c : Nat} (hc : c < (tgtRs out).length) :
     (blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length
       = pp.toBlockShape.rulePrefixAt c + (tgtMajor out c).nIdx + 1 := by
@@ -756,8 +755,8 @@ theorem genRds_length (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   simp [tgtRs, tgtMajor, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hc']
 
 /-- **Row `hsplit`**, from the class split. -/
-theorem genRow_hsplit (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRow_hsplit (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hS : GenClsSplit pp out mpC d Dc mc cvc ψ ρ) :
     ∀ c, c < (tgtRs out).length →
       ∀ ys, SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c)) ys →
@@ -780,8 +779,8 @@ theorem genRow_hsplit (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   exact ⟨hxl, rfl, hI, hC⟩
 
 /-- **Row `hconcl`**, from the class split. -/
-theorem genRow_hconcl (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRow_hconcl (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hS : GenClsSplit pp out mpC d Dc mc cvc ψ ρ) :
     ∀ c, c < (tgtRs out).length →
       ∀ ys, SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c)) ys →
@@ -799,11 +798,11 @@ theorem genRow_hconcl (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   obtain ⟨-, -, hret⟩ := hS c hc xs is x hxl hisl hfit
   rw [prefOf_split hxl, idxOf_split hxl, majOf_split, blockRecMot_tagged hc, hret]
 
-/-- **The conclusion's typing at every fit of the stored binder data**
+/-- **The conclusion's typing at every fit of the stored domains**
 (the stage record's inferred sort, `blockRecConcl_univ`, at the pinned
 elimination level). -/
-theorem genRec_conclTy (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRec_conclTy (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) :
     ∀ c, c < (tgtRs out).length → ∀ ys,
       SpineFit ρ ((blockRecRdsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c)) ys →
@@ -823,8 +822,8 @@ theorem genRec_conclTy (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   rwa [blockRecElimPin_run h hruns ψ hc] at hu
 
 /-- **Row `hconclTy`**, from the converse split. -/
-theorem genRow_hconclTy (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRow_hconclTy (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hB : GenClsBack pp out mpC d Dc mc cvc ψ ρ) :
     ∀ xs : List V, ∀ c, c < (tgtRs out).length →
       ∀ i, i ∈ˢ tgtClsIs d Dc mc cvc mpC.base2.acval envC pp.toBlockShape out ψ ρ xs c →
@@ -839,8 +838,8 @@ theorem genRow_hconclTy (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
 /-- A spine fitting the chain-lifted prefix and field domains fits the
 base ones, and the lifted index expressions and constructor application
 read at the chain frame as the base ones at the base frame. -/
-theorem genRec_chainBase (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRec_chainBase (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ a : Nat → V) {c j : Nat} (hc : c < (tgtRs out).length) {xs fs : List V}
     (hxl : xs.length
       = (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length)
@@ -882,8 +881,8 @@ theorem genRec_chainBase (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   · rw [tgtMkK, ← hwl, interp_liftN_chainFrame]
 
 /-- **Row `hdec`**, from the decoding at the rule frame. -/
-theorem genRow_hdec (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRow_hdec (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hD : GenClsDec pp out mpC d Dc mc cvc ψ ρ) :
     ∀ a : Nat → V, ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
       ∀ xs fs : List V,
@@ -909,8 +908,8 @@ theorem genRow_hdec (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
 
 /-- **Row `hrule`**, from the decoding at the rule frame and the converse
 split. -/
-theorem genRow_hrule (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRow_hrule (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hB : GenClsBack pp out mpC d Dc mc cvc ψ ρ)
     (hD : GenClsDec pp out mpC d Dc mc cvc ψ ρ) :
     ∀ a : Nat → V, ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
@@ -939,8 +938,8 @@ theorem genRow_hrule (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
 class fit is the clause's hole fit at the carrier and the injection the
 clause's, definitionally; at `ℓ = 0` the conclusion's typing; at a
 `Prop`-valued class under a nonzero elimination level, the licence. -/
-theorem genRow_huniq (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRow_huniq (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hB : GenClsBack pp out mpC d Dc mc cvc ψ ρ)
     (hDin : ∀ c, c < (tgtRs out).length → tgtClsD d Dc out c ∈ mpC.lfpBlocks)
     (hmN : ∀ c, c < (tgtRs out).length → tgtClsM mc pp.toBlockShape out c < (tgtClsD d Dc out c).N)
@@ -1004,8 +1003,8 @@ theorem genIhsAV_eq (ψ : Name → Nat) {c j : Nat}
 set_option maxHeartbeats 2000000 in
 /-- **Row `hchain`**, from the `ih` calls' typing at the rule frame
 (`hcallTy`), the class split and the `ih` data's bounds. -/
-theorem genRow_hchain (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRow_hchain (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hS : GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
     (hgpre : ∀ c, c < (tgtRs out).length → g.pre.length
       = (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c).length)
@@ -1122,8 +1121,8 @@ set_option maxHeartbeats 2000000 in
 /-- **Row `hstep`**, from the minor premise's typing at the rule frame
 (`hminor`), the stored conclusion as the motive applied (`hconclMot`), the
 `ih` calls' typing, the class split and the decoding both ways. -/
-theorem genRow_hstep (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (ψ : Name → Nat)
+theorem genRow_hstep (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hS : GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
     (hD : GenClsDec pp out mpC d Dc mc cvc ψ ρ) (hDI : GenClsDecInv pp out mpC d Dc mc cvc ψ ρ)
     (hnIdx : ∀ c, c < (tgtRs out).length →
@@ -1264,8 +1263,8 @@ application chain along the recursor's stored type (the rule's spine
 fits it, `genRow_hrule`, its arguments graded, `hargs`), the right-hand
 side from the `ih` terms' and the residue's grading at typed tuples
 (`hrhs`). -/
-theorem genRecEqs_wd (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) {g : ClassGen}
+theorem genRecEqs_wd (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) {g : ClassGen}
     {rd : ClassRead} (ψ : Name → Nat) (ρ : Nat → V)
     (hB : GenClsBack pp out mpC d Dc mc cvc ψ ρ) (hD : GenClsDec pp out mpC d Dc mc cvc ψ ρ)
     (hfdB : ∀ c, c < (tgtRs out).length → ∀ j, j < blockRecNCt (tgtRs out) c →
@@ -1506,8 +1505,8 @@ structure GenPreHyps (ψ : Name → Nat) (ρ : Nat → V) : Prop where
 
 set_option maxHeartbeats 4000000 in
 /-- **The candidate, from `GenPreHyps`.** -/
-theorem genRecPre_hCandH (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genRecPre_hCandH (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     (ψ : Name → Nat) (ρ : Nat → V) (H : GenPreHyps pp out mpC d Dc mc cvc g rd ψ ρ) :
     ∃ a : Nat → V, (∀ c, c < (tgtRs out).length →
         a c ∈ˢ interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ c)) ∧
@@ -1533,8 +1532,8 @@ set_option maxHeartbeats 4000000 in
 goal, from the family's level (`hTy`, `blockRecLevel_run`), the equations'
 grading at typed tuples (`hEqWd`), and `GenPreHyps` at every level
 assignment and base frame. -/
-theorem genRecPre (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genRecPre (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {s : (Name → Nat) → Nat}
     (hTy : ∀ (ψ : Name → Nat) (ρ : Nat → V) (c : Nat), c < (tgtRs out).length →
       interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ c) ∈ˢ univ (s ψ) ∧

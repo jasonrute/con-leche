@@ -25,16 +25,15 @@ file is fixed, and it is what the recomposition consumes.
 a definitional equality nothing where a side is.  ι and the K and `And`
 rescues (L10) conclude the unconditional `RedSemU` from conditional
 premises, and the λ-telescope congruence the unconditional
-`DefEqLamsSem` (task #349), both weakened here (`.cond`).  No rule reads a
-binder annotation (task #342 S4), so β has no premise and no side
-induction is needed.
+`DefEqLamsSem` (task #349), both weakened here (`.cond`).  Binders carry no
+datum, so β has no premise and no side induction is needed.
 -/
 
 namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -210,7 +209,7 @@ end
 /-- An establishing inference claim, at every satisfying valuation of a
 full context discipline. -/
 theorem InferSemFull.global {d : Nat} {e t : Expr} (h : InferSemFull m φ d e t)
-    (hf : Frame d e) {Δa : List AnnotTerm} {ea : AnnotTerm}
+    (hf : Frame d e) {Δa : List ITerm} {ea : ITerm}
     (hC : CtxOk m φ d Δa e) (hea : denoteMeta m.acval env φ d e = some ea) :
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
@@ -228,7 +227,7 @@ a type is never the point ("not pt" source (1): `IsTy.ne_pt`).  The
 positivity readers (`Model/Inductives/Pos*`, `NestPosRed`) walk types and
 read their whnf steps through it. -/
 theorem red_sound_ty (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
-    (h : Red env d e e') (hf : Frame d e) {Δa : List AnnotTerm} {ea : AnnotTerm}
+    (h : Red env d e e') (hf : Frame d e) {Δa : List ITerm} {ea : ITerm}
     (hC : CtxOk m φ d Δa e) (hea : denoteMeta m.acval env φ d e = some ea)
     (hg : GradedTy V Δa ea) :
     Frame d e' ∧ LeavesSub e' e ∧

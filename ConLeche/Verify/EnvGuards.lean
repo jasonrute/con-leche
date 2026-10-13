@@ -82,7 +82,7 @@ theorem natLitSupported_inv {env : Env} (hs : natLitSupported env = true) :
           rw [heq, h.1, h.2]
 
 /-- Everything `strLitSupported` checked beyond `natLitSupported`, as
-separate facts (level-parameter lists and exact annotated types of the
+separate facts (level-parameter lists and exact stored types of the
 seven string-support constants). -/
 theorem strLitSupported_inv {env : Env} (hs : strLitSupported env = true) :
     natLitSupported env = true ∧

@@ -30,7 +30,7 @@ open ConLeche.SetTheory
 open SetTheory
 open ConLeche.SetTheory.Tower (projS)
 
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Name Level)
 
 universe w
@@ -41,8 +41,8 @@ variable {V : Type w} [SetTheory V]
 
 /-- A spelled λ-tower term reads as the λ-tower of its body's
 readings (both value-read). -/
-theorem interp_mkLamsAV_holeFam {b : AnnotTerm} :
-    ∀ (Ts : List AnnotTerm) (ρ : Nat → V),
+theorem interp_mkLamsAV_holeFam {b : ITerm} :
+    ∀ (Ts : List ITerm) (ρ : Nat → V),
       interp V ρ (mkLamsAV Ts b) = holeFam ρ Ts fun vs => interp V (consList vs ρ) b
   | [], _ => rfl
   | T :: Ts, ρ => by
@@ -52,7 +52,7 @@ theorem interp_mkLamsAV_holeFam {b : AnnotTerm} :
     exact interp_mkLamsAV_holeFam Ts (cons a ρ)
 
 theorem holeFam_liftFields (n : Nat) :
-    ∀ (Ts : List AnnotTerm) (k : Nat) (σ : Nat → V) (g : List V → V),
+    ∀ (Ts : List ITerm) (k : Nat) (σ : Nat → V) (g : List V → V),
       holeFam σ (liftFields n k Ts) g = holeFam (shiftE n k σ) Ts g
   | [], _, _, _ => rfl
   | T :: Ts, k, σ, g => by
@@ -62,7 +62,7 @@ theorem holeFam_liftFields (n : Nat) :
     rw [holeFam_liftFields n Ts (k + 1) (cons a σ), cons_shiftE]
 
 theorem holeFam_append :
-    ∀ (A B : List AnnotTerm) (ρ : Nat → V) (g : List V → V),
+    ∀ (A B : List ITerm) (ρ : Nat → V) (g : List V → V),
       holeFam ρ (A ++ B) g = holeFam ρ A fun as => holeFam (consList as ρ) B fun bs => g (as ++ bs)
   | [], _, _, _ => rfl
   | T :: A, B, ρ, g => by
@@ -72,7 +72,7 @@ theorem holeFam_append :
     exact holeFam_append A B (cons a ρ) fun vs => g (a :: vs)
 
 theorem holeFam_congr :
-    ∀ {ρ : Nat → V} {Ts : List AnnotTerm} {g g' : List V → V},
+    ∀ {ρ : Nat → V} {Ts : List ITerm} {g g' : List V → V},
       (∀ vs, SpineFit ρ Ts vs → g vs = g' vs) → holeFam ρ Ts g = holeFam ρ Ts g'
   | _, [], _, _, h => h [] trivial
   | ρ, T :: Ts, g, g', h => by
@@ -82,7 +82,7 @@ theorem holeFam_congr :
 /-- A λ-tower of graphs applied to a fitting prefix is the λ-tower of the
 rest at the extended frame. -/
 theorem holeFam_foldl_prefix :
-    ∀ {ρ : Nat → V} {A : List AnnotTerm} {ps : List V} (B : List AnnotTerm) (g : List V → V),
+    ∀ {ρ : Nat → V} {A : List ITerm} {ps : List V} (B : List ITerm) (g : List V → V),
       SpineFit ρ A ps →
       ps.foldl app (holeFam ρ (A ++ B) g) = holeFam (consList ps ρ) B fun bs => g (ps ++ bs)
   | _, [], [], _, _, _ => rfl
@@ -101,12 +101,12 @@ variable (D : LfpDatum V)
 
 /-- **Member `m`'s hole term** (`holeTmAV` at the member's index
 telescope). -/
-@[expose] def holeTm (ψ : Name → Nat) (m : Nat) : AnnotTerm :=
+@[expose] def holeTm (ψ : Name → Nat) (m : Nat) : ITerm :=
   holeTmAV (D.u m ψ) m (D.ids m ψ)
 
 /-- **The hole chains**: every constructor's fields with holes and result
 index readings, substituted by the hole terms. -/
-@[expose] def holeChains (ψ : Name → Nat) : Nat → List (List AnnotTerm) :=
+@[expose] def holeChains (ψ : Name → Nat) : Nat → List (List ITerm) :=
   holeChs D.k (D.holeTm ψ) (fun c => (D.ids c ψ).length)
     (fun c => (List.range (D.nctors c)).map (D.fields ψ c))
     (fun c => (List.range (D.nctors c)).map (D.resIdx ψ c))

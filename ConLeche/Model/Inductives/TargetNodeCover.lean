@@ -29,7 +29,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level NestCtx PosTree TargetMajor ConstantVal
   ConstantInfo BlockShape fueledOps PosNodeOk)
 
@@ -185,10 +185,10 @@ theorem progScB_append {ctx : NestCtx} {A : List NestHole} (hA : ConLeche.ProgSc
 omit [SetTheory V] in
 /-- **A read spine read shallower**: a spine scoped at `p` that reads at a
 depth `D ≥ p` reads at `p` (`denoteMeta_lift`, argument by argument). -/
-theorem denoteMetaSpine_lower {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem denoteMetaSpine_lower {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {φ : Name → Nat} (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ) {D p : Nat} :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, DenoteMetaSpine acval env φ D as vs →
+    ∀ {as : List Expr} {vs : List ITerm}, DenoteMetaSpine acval env φ D as vs →
       (∀ x ∈ as, Expr.WScoped p x) → p ≤ D → ∃ ws, DenoteMetaSpine acval env φ p as ws
   | _, _, .nil, _, _ => ⟨[], .nil⟩
   | a :: _, _, .cons ha hs, hw, hpD => by
@@ -345,7 +345,7 @@ theorem nodeListFacts_of {F : Nat}
     {envC envI : Env} {pp : ConLeche.BlockParts} {cvTasR : List ConstantVal}
     {ctorsAsR : List (List (ConstantVal × Nat))}
     {mpC : EnvModelM V μ envC}
-    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → AnnotTerm}
+    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → ITerm}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : ConLeche.NestState}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)

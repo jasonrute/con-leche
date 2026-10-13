@@ -24,7 +24,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level PropWhen
   natLitSupported strLitSupported)
 
@@ -32,14 +32,14 @@ open ConLeche (Env Expr Name Level PropWhen
 reading of a subject with no `.proj T i` node is reproduced at an
 extension whose only new tower slot is `(T, i)`. -/
 theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
-    {acval : Name → (Name → Nat) → AnnotTerm} {φ : Name → Nat}
+    {acval : Name → (Name → Nat) → ITerm} {φ : Name → Nat}
     {T : Name}
     (hF : FindPreserved env₀ env) (hG : LitGuardsMono env₀ env)
     (hproj : ∀ (sn : Name) (j : Nat) (entry : ConLeche.ProjEntry),
       env₀.findProj? sn j = none → env.findProj? sn j = some entry →
       sn = T) :
     ∀ (d : Nat) (e : Expr), ConstsBound env₀ e → (∀ j, Expr.NoProjAt T j e) →
-      ∀ {ea : AnnotTerm}, denoteMeta acval env₀ φ d e = some ea →
+      ∀ {ea : ITerm}, denoteMeta acval env₀ φ d e = some ea →
         denoteMeta acval env φ d e = some ea := by
   have hmono : ∀ (sn : Name) (j : Nat) (entry : ConLeche.ProjEntry),
       env₀.findProj? sn j = some entry →

@@ -17,7 +17,7 @@ this module builds one from the graded invariant `EnvModelM`
 (`Model/Env/EnvModelM.lean`) the fold establishes.  Three steps:
 
 * **the leaves become sets**: `cvalOf acval n ψ` is the interpretation
-  of the (closed) annotated leaf `acval n ψ` — under every variable
+  of the (closed) leaf `acval n ψ` — under every variable
   environment the same set (`interp_cvalOf`);
 * **the bridge** `Denotes_of_denoteMeta`: wherever the invariant's
   reading `denoteMeta` reads a term at depth `d`, `interp` of the
@@ -42,7 +42,7 @@ this module builds one from the graded invariant `EnvModelM`
 namespace ConLeche.Model
 
 open ConLeche.Semantics ConLeche.SetModel ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche.Term
 open ConLeche.SetTheory.Tower (projS)
 open ConLeche (Env Expr Name Level ConstantInfo)
@@ -52,13 +52,13 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-- The set-valued leaf of an annotated valuation. -/
-noncomputable def cvalOf (acval : Name → (Name → Nat) → AnnotTerm)
+/-- The set-valued leaf of a leaf valuation. -/
+noncomputable def cvalOf (acval : Name → (Name → Nat) → ITerm)
     (n : Name) (ψ : Name → Nat) : V :=
   interp V (fun _ => SetTheory.empty) (acval n ψ)
 
 /-- A closed leaf interprets to its `cvalOf` under every environment. -/
-theorem interp_cvalOf {acval : Name → (Name → Nat) → AnnotTerm}
+theorem interp_cvalOf {acval : Name → (Name → Nat) → ITerm}
     (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) (n : Name) (ψ : Name → Nat)
     (ρ : Nat → V) : interp V ρ (acval n ψ) = cvalOf acval n ψ :=
   interp_closed (V := V) (hcl n ψ) ρ _
@@ -97,8 +97,8 @@ private theorem Denotes_const_one {cval : Name → (Name → Nat) → V} {env : 
   exact h
 
 /-- Under the `Nat`-literal guard, the constructor form of a literal
-denotes the annotated numeral `denoteMeta` reads. -/
-theorem Denotes_natLitToConstructor {acval : Name → (Name → Nat) → AnnotTerm}
+denotes the numeral spine `denoteMeta` reads. -/
+theorem Denotes_natLitToConstructor {acval : Name → (Name → Nat) → ITerm}
     (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat}
     (hsup : ConLeche.natLitSupported env = true) (ρ : Nat → V) :
     ∀ k, Denotes (cvalOf (V := V) acval) env φ ρ (ConLeche.natLitToConstructor k)
@@ -116,9 +116,8 @@ theorem Denotes_natLitToConstructor {acval : Name → (Name → Nat) → AnnotTe
     exact Denotes.app (Denotes_const_nil hs hs0) (Denotes.natLit ih)
 
 /-- Under the `String`-literal guard, the character-list spine of a
-literal's constructor form denotes the annotated spine `denoteMeta`
-reads. -/
-private theorem Denotes_charList {acval : Name → (Name → Nat) → AnnotTerm}
+literal's constructor form denotes the spine `denoteMeta` reads. -/
+private theorem Denotes_charList {acval : Name → (Name → Nat) → ITerm}
     (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat}
     (hsup : ConLeche.strLitSupported env = true) (ρ : Nat → V) :
     ∀ l : List Char,
@@ -157,7 +156,7 @@ private theorem Denotes_charList {acval : Name → (Name → Nat) → AnnotTerm}
 
 /-- Under the `String`-literal guard, the constructor form of a literal
 denotes what `denoteMeta` reads for the literal. -/
-theorem Denotes_strLitToConstructor {acval : Name → (Name → Nat) → AnnotTerm}
+theorem Denotes_strLitToConstructor {acval : Name → (Name → Nat) → ITerm}
     (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat}
     (hsup : ConLeche.strLitSupported env = true) (ρ : Nat → V) (s : String) :
     Denotes (cvalOf (V := V) acval) env φ ρ (ConLeche.strLitToConstructor s)
@@ -190,9 +189,9 @@ private theorem fvarsBelow_zero_of_not_hasFvar :
 /-- **The bridge**: wherever `denoteMeta` reads a term, `interp` of the
 reading is a denotation of the term's closure under `Denotes` at the
 interpreted leaves. -/
-theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → AnnotTerm}
+theorem Denotes_of_denoteMeta {acval : Name → (Name → Nat) → ITerm}
     (hcl : ∀ n ψ, Term.Closed (acval n ψ).erase) {env : Env} {φ : Name → Nat} :
-    ∀ (d : Nat) (e : Expr) {ta : AnnotTerm},
+    ∀ (d : Nat) (e : Expr) {ta : ITerm},
       denoteMeta acval env φ d e = some ta →
       Expr.fvarsBelow d e → e.looseBVarsBounded 0 = true →
       ∀ ρ : Nat → V,

@@ -1,6 +1,6 @@
 module
 
-import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Shift
 import ConLeche.Kernel.Checker
 import ConLeche.Verify.Abstract

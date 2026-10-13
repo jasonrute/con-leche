@@ -27,8 +27,8 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 /-- `checkBlockTele` through the index. -/
 def checkBlockTeleF (ops : CheckerOps m) (fe : FEnv) (nP : Nat) (ms : MemberShape) :
     m (ConstantVal × Level) := do
-  let cvTa₀ ← checkConstantValF ops fe ms.cvT
-  let (cvTa, s) ← checkSumTeleF ops fe ms.cvT (nP + ms.nIdx) cvTa₀
+  checkConstantValF ops fe ms.cvT
+  let (cvTa, s) ← checkSumTeleF ops fe ms.cvT (nP + ms.nIdx) ms.cvT
   let (_, tbody) ← unwrapOr (cvTa.type.stripPis (nP + ms.nIdx))
     (.internal "direct sum: type former telescope")
   unless tbody == Expr.sort s do

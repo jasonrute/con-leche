@@ -14,14 +14,13 @@ harvest layer builds toward them:
 
 * **the business end, proved now**: `no_constant_of_Empty` — an
   environment carrying the P invariant stores no constant of type
-  `Empty`.  The membership is `mem_type` (the `denoteMeta` reading, bit
-  numerals), the reading of `.const emptyName []` is the leaf by the
+  `Empty`.  The membership is `mem_type` (the `denoteMeta` reading),
+  the reading of `.const emptyName []` is the leaf by the
   `denoteMeta` constant clause, and the leaf's `interp` value is the
   empty set by erasure injectivity at the constant constructor + the
   carrier's `Empty` pin.
 * **the final statement, frozen** (checked against the goal's letter —
-  consistency of the checker on sort-annotated syntax, hypothesis
-  minimal, the #16 precedent):
+  consistency of the checker, hypothesis minimal, the #16 precedent):
 
   `no_proof_of_Empty_pure : ∀ (V) [SetTheory V] {μ}, μ.verifiedChecks = true →
    ∀ {F ds env'}, checkDeclsPure μ (fueledOps μ F) pins ds = .ok env' →
@@ -30,9 +29,9 @@ harvest layer builds toward them:
 
   Input-level hypotheses ONLY: the accepted run, the stored constant,
   its type — plus the validating mode, which is part of the goal's
-  letter (the annotated checker IS the verified mode; `--trusted`
-  ignores annotations by design).  No residue hypotheses: the
-  intermediate, install-tier-conditional form is a *milestone shape*,
+  letter (the checker the model covers IS the verified mode;
+  `--trusted` omits the certification-only work by design).  No
+  residue hypotheses: the intermediate, install-tier-conditional form is a *milestone shape*,
   never the close (the conditional-forms ruling).
 
 **The semantic bill is empty** (task #161): no environment-tier
@@ -49,7 +48,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo)
 
 universe w
@@ -59,7 +58,7 @@ variable {μ : CheckMode} {env : Env}
 
 /-! ## The Empty pin, at the core carrier -/
 
-/-- The annotated `Empty` leaf is the pinned constant.  The pin is a
+/-- The `Empty` leaf is the pinned constant.  The pin is a
 premise (`∀ ψ, ∃ u, cvalE n ψ = emptyT u`), discharged by projection
 from the carrier. -/
 theorem acval_empty_pinnedC (m : EnvModel V env) {n : Name}
@@ -119,7 +118,7 @@ theorem no_constant_of_emptyPin (mp : EnvModelM V μ env) {n : Name} {u : Nat}
 
 /-- **The capstone's business end**: an environment carrying the P
 invariant stores no constant of type `Empty` — the membership read
-entirely at the validated-annotation tier (`mem_type` over
+entirely at the stored-term reading (`mem_type` over
 `denoteMeta`/`interp`). -/
 theorem no_constant_of_Empty (mp : EnvModelM V μ env)
     (c : ConstantInfo) (hc : c ∈ env.consts)

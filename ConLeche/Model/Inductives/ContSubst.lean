@@ -23,7 +23,7 @@ no member constant (the kernel's uniform check at the container's
 install), the frame's constructor type reads, at the frame's depth, as
 the recorded reading at the levels `us` with its parameter and hole
 positions substituted — by the readings of the key's parameters and of
-the frame's holes — ALL AT ONCE (`AnnotTerm.substAV`).  So a field spine fits the
+the frame's holes — ALL AT ONCE (`ITerm.substAV`).  So a field spine fits the
 frame's walked telescope exactly when it fits the recorded fields at the
 valuation holding those values (`spineFit_substTele`): the parameter
 frame `⟦ds⟧`, and at each member slot the frame's hole value or the
@@ -36,7 +36,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx nestCanonCrest nestCrest instPisWith
   fvarLeaves_nestCanonCrest)
 
@@ -76,7 +76,7 @@ docstring): the frame's constructor type reads as the recorded Π-tower
 with its parameter and hole positions substituted. -/
 theorem frameCrest_read (m : EnvModel V env) {φ : Name → Nat} {names gnames lps : List Name}
     {n : Nat} {us : List Level} {ds holes : List Expr} {D' : Nat} {s : Nat → Expr}
-    {x : Nat → AnnotTerm}
+    {x : Nat → ITerm}
     (hnd : lps.Nodup) (hul : us.length = lps.length)
     (hdlen : ds.length = n) (hmemG : ∀ c, c ∈ gnames ↔ c ∈ names)
     (hpar : ∀ i, i < n → s i = ds.getD i default)
@@ -87,13 +87,13 @@ theorem frameCrest_read (m : EnvModel V env) {φ : Name → Nat} {names gnames l
       (s i).looseBVarsBounded 0 = true ∧ denoteMeta m.acval env φ D' (s i) = some (x i))
     {e A : Expr} (he : e.hasFvar = false) (hocc : A.nestOcc names 0 0 = false)
     (hA : nestCanonCrest names (lps.map .param) n e = some A)
-    {ab : List AnnotTerm} {res : AnnotTerm}
+    {ab : List ITerm} {res : ITerm}
     (hread : denoteMeta m.acval env (Level.substFn φ lps us) (n + names.length) A
       = some (mkPisAV ab res)) :
     ∃ crest, nestCrest gnames us ds holes (e.instantiateLevelParams lps us) = some crest ∧
       denoteMeta m.acval env φ D' crest
-        = some (mkPisAV (AnnotTerm.substTele (substTau (n + names.length) D' x) 0 ab)
-            (AnnotTerm.substAV (substTau (n + names.length) D' x) res ab.length)) := by
+        = some (mkPisAV (ITerm.substTele (substTau (n + names.length) D' x) 0 ab)
+            (ITerm.substAV (substTau (n + names.length) D' x) res ab.length)) := by
   refine ⟨_, Expr.frameCrest_eq (b := n + names.length) (D := D') rfl (map_param_subst hnd hul)
     hdlen hmemG hpar hhole hhl he hocc hA, ?_⟩
   -- `A`'s variables are the canonical parameters and holes
@@ -107,12 +107,12 @@ theorem frameCrest_read (m : EnvModel V env) {φ : Name → Nat} {names gnames l
   have h := denoteMeta_substFvars (φ := φ) m (b := n + names.length) (D := D') (s := s)
     (x := x) hs (A.instantiateLevelParams lps us) 0 hAf
   rw [Nat.add_zero, Nat.add_zero, denotePInstLevels m φ lps us, hread] at h
-  rw [h, Option.map_some, AnnotTerm.substAV_mkPisAV, Nat.zero_add]
+  rw [h, Option.map_some, ITerm.substAV_mkPisAV, Nat.zero_add]
 
 /-- **The valuation the substituted reading is read at**: the member
 slots (last member innermost) over the parameter frame, the rest of the
 frame's valuation above them. -/
-theorem substE_substTau {nP k D' : Nat} (x : Nat → AnnotTerm) (σ : Nat → V) :
+theorem substE_substTau {nP k D' : Nat} (x : Nat → ITerm) (σ : Nat → V) :
     substE V (substTau (nP + k) D' x) 0 σ
       = consList ((List.range k).map fun mm => interp V σ (x (nP + mm)))
           (fun q => if q < nP then interp V σ (x (nP - 1 - q)) else σ (q - nP + D')) := by

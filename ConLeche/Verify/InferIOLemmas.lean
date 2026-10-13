@@ -14,14 +14,12 @@ recursive `infer` runs read at the io lane (`inferTypeCoreIO`) and the
 knot is a leaf lane, so its reduction fields *are* the full knot's
 (`pureFnsIO_whnf` &c., `Verify/Knot.lean`).
 
-The io-license batch completes the set: the λ, application, `letE`
+The rest of the file completes the set: the λ, application, `letE`
 and projection inversions, the λ→∀ meta copy, and the literal-clause
 run transfer.  The application rule's inversion is the one clause
-whose *shape* differs — the per-argument certificate sits behind the
-gate, so its conjunct is a **disjunction**: either the mode's gate
-fired at a `.never` binder, or the certificate ran and passed.  This
-is `whnf_app_inv`'s β-gate pattern at the infer tier, and it is what
-keeps the inversion mode-generic and true at every mode.
+whose *shape* differs: the io lane does not check the argument
+(official `infer_app` at `infer_only`), so the inversion has no
+certificate conjunct.
 -/
 
 set_option linter.unusedSimpArgs false

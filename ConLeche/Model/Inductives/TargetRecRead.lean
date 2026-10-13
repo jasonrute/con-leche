@@ -20,14 +20,14 @@ file is the model's reading of that walk.
 The frame being free makes the non-call step simple: the abstraction
 leaves a recursor-free node syntactically UNCHANGED, and its two readings — at depth `base + d` (the stored body) and at
 `base + n + d` (the residue, `n` `ih` variables deeper) — differ by
-`AnnotTerm.liftN n · d` alone (`denoteMeta_open_deepen`).
+`ITerm.liftN n · d` alone (`denoteMeta_open_deepen`).
 -/
 
 namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo)
 
 universe uv
@@ -72,13 +72,13 @@ theorem LocList.bvar_ge {B d j : Nat} {xs : List Expr} (h : LocList B d xs) (hj 
 
 /-! ## The non-call step: the same node, read `n` binders deeper -/
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {φ : Name → Nat}
+variable {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat}
 
 set_option maxHeartbeats 1000000 in
 /-- **A frame-bounded node read `n` variables deeper.**  A term whose
 free variables are all below the frame `B`, opened at `d` locals above
 `B` and — the SAME term — at `d` locals above `B + n`, reads alike up
-to `AnnotTerm.liftN n · d`: the locals keep their de Bruijn indices,
+to `ITerm.liftN n · d`: the locals keep their de Bruijn indices,
 the frame's move `n` further out. -/
 theorem denoteMeta_open_deepen
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (acval n ψ).liftN m k = acval n ψ)
@@ -87,7 +87,7 @@ theorem denoteMeta_open_deepen
       LocList B d as1 → LocList (B + n) d as2 →
       denoteMeta acval env φ (B + n + d) (e.instantiateList as2 0)
         = (denoteMeta acval env φ (B + d) (e.instantiateList as1 0)).map
-            (AnnotTerm.liftN n · d)
+            (ITerm.liftN n · d)
   | .bvar j, d, as1, as2, _, h1, h2 => by
     rcases Nat.lt_or_ge j d with hjd | hjd
     · obtain ⟨ty1, he1⟩ := h1.bvar_lt hjd
@@ -95,12 +95,12 @@ theorem denoteMeta_open_deepen
       rw [he1, he2, denoteMeta_fvar, denoteMeta_fvar, Option.map_some,
         show B + n + d - 1 - (B + n + d - 1 - j) = j from by omega,
         show B + d - 1 - (B + d - 1 - j) = j from by omega,
-        AnnotTerm.liftN, ite_eq_left hjd]
+        ITerm.liftN, ite_eq_left hjd]
     · rw [h1.bvar_ge hjd, h2.bvar_ge hjd, denoteMeta_bvar, denoteMeta_bvar, Option.map_none]
   | .fvar i ty, d, as1, as2, hl, _, _ => by
     have hi : i < B := hl (i, ty) (by simp [Expr.fvarLeaves])
     simp only [Expr.instantiateList]
-    rw [denoteMeta_fvar, denoteMeta_fvar, Option.map_some, AnnotTerm.liftN, ite_eq_right (by omega),
+    rw [denoteMeta_fvar, denoteMeta_fvar, Option.map_some, ITerm.liftN, ite_eq_right (by omega),
       show B + d - 1 - i + n = B + n + d - 1 - i from by omega]
   | .sort u, d, as1, as2, _, _, _ => by
     simp only [Expr.instantiateList, denoteMeta, Option.map_some]
@@ -117,9 +117,9 @@ theorem denoteMeta_open_deepen
     · rw [Option.map_some]
       refine congrArg some ?_
       symm
-      rw [AnnotTerm.liftN_app, hacl,
-        charListAV_liftN_gen (by rw [AnnotTerm.liftN_app, hacl, hacl])
-          (by rw [AnnotTerm.liftN_app, hacl, hacl]) (hacl _ _ _ _)
+      rw [ITerm.liftN_app, hacl,
+        charListAV_liftN_gen (by rw [ITerm.liftN_app, hacl, hacl])
+          (by rw [ITerm.liftN_app, hacl, hacl]) (hacl _ _ _ _)
           (hacl _ _ _ _) (hacl _ _ _ _)]
     · rfl
   | .const c us, d, as1, as2, _, _, _ => by
@@ -178,8 +178,8 @@ theorem denoteMeta_open_deepen
       simp only [Option.map_some]
       cases env.findProj? sn i with
       | some entry =>
-        show some (projAV (i + entry.off) (AnnotTerm.liftN n ea d))
-          = Option.map (AnnotTerm.liftN n · d) (some (projAV (i + entry.off) ea))
+        show some (projAV (i + entry.off) (ITerm.liftN n ea d))
+          = Option.map (ITerm.liftN n · d) (some (projAV (i + entry.off) ea))
         simp only [Option.map_some, projAV_liftN]
       | none =>
         dsimp only
@@ -266,10 +266,10 @@ variable {V : Type uv} [SetTheory V]
 list, is framed, in the context and graded. -/
 theorem WalkCtx.subjOkL {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat} {D : Nat}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (mT.acval n ψ).liftN 1 k = mT.acval n ψ)
-    (hin : Rules.RulesInputs V mT φ) {ρfull : Nat → V} {Δa : List AnnotTerm} {L : List Expr}
+    (hin : Rules.RulesInputs V mT φ) {ρfull : Nat → V} {Δa : List ITerm} {L : List Expr}
     (h2 : FvarList D L) (h : WalkCtx V mT φ D ρfull Δa L)
     {E : Expr} (hcll : ∀ l ∈ E.fvarLeaves, Expr.fvar l.1 l.2 ∈ L)
-    (hlbb : E.looseBVarsBounded 0 = true) {ea : AnnotTerm}
+    (hlbb : E.looseBVarsBounded 0 = true) {ea : ITerm}
     (hea : denoteMeta mT.acval envT φ D E = some ea) (hty : IhTyped envT D E) :
     Rules.Frame D E ∧ CtxOk mT φ D Δa E ∧ Rules.Graded V Δa ea := by
   have hLB : Expr.LeavesBounded E := fun l hl => h.2.2.2.2.1 _ (hcll l hl)

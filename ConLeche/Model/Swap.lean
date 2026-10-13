@@ -45,7 +45,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   RecRule IndCaps)
 
@@ -59,7 +59,7 @@ variable {V : Type w} [SetTheory V]
 parameters and the two literal guards**.  An equation, so a law's `denoteMeta` *hypotheses* and *conclusions* both move
 across it for free, which is what makes the fired-form fields
 transportable at all. -/
-theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → ITerm}
     {env₁ env₂ : Env} {φ : Name → Nat}
     (henvLev : ∀ n,
       (env₁.find? n).map (fun ci => ci.toConstantVal.levelParams) =
@@ -140,7 +140,7 @@ theorem denoteMeta_env_ext {acval : Name → (Name → Nat) → AnnotTerm}
       | strVal s => exact absurd rfl (hstr' s)
 
 /-- The reading crosses a swap congruence. -/
-theorem denoteMeta_swap {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_swap {acval : Name → (Name → Nat) → ITerm}
     {env₀ env₃ : Env} (hcg : ConLeche.SwapCongr env₀ env₃)
     (φ : Name → Nat) (d : Nat) (e : Expr) :
     denoteMeta acval env₀ φ d e = denoteMeta acval env₃ φ d e :=
@@ -151,7 +151,7 @@ theorem denoteMeta_swap {acval : Name → (Name → Nat) → AnnotTerm}
 set_option maxHeartbeats 3200000 in
 /-- **The group rule-list swap, P tier**: an invariant of the
 provisional (rule-less) environment transports to the environment
-carrying the checked rule lists, with the *same* annotated
+carrying the checked rule lists, with the *same* leaf
 valuation. -/
 theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
     (mp : EnvModelM V μ env₀)

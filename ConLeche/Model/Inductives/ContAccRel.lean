@@ -36,7 +36,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.SetTheory.Tower (projS)
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal IndCaps CheckM NestCtx NestHole NestState
   NestFieldKind CheckError instPisWith fueledOps)
 
@@ -94,7 +94,7 @@ theorem holeQ_frame_iff {ctx : NestCtx} {prog news : List NestHole} {i n : Nat} 
 key's depth, extended by the group's hole values at ANY tuple of the
 container's space at each side's key frame. -/
 @[expose] def frameRelA (R₀ : FrameRel V) (D : LfpDatum V) (ψ : Name → Nat)
-    (grp : List (Name × Expr)) (dsa : List AnnotTerm) (hi : Nat) : FrameRel V :=
+    (grp : List (Name × Expr)) (dsa : List ITerm) (hi : Nat) : FrameRel V :=
   fun σ σ' => ∃ ρ ρ' Y Y', R₀ ρ ρ' ∧
     InTupleSpace (D.w ψ) D.N (D.idx ψ (keyFrame dsa hi ρ)) Y ∧
     InTupleSpace (D.w ψ) D.N (D.idx ψ (keyFrame dsa hi ρ')) Y' ∧
@@ -117,7 +117,7 @@ variable {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
   (hlps : ∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
       cv.levelParams = lps)
   (hnd : lps.Nodup) {us : List Level} (hul : us.length = lps.length) {hi : Nat} {ds : List Expr}
-  (hds : ∀ x ∈ ds, Expr.WScoped hi x ∧ x.looseBVarsBounded 0 = true) {dsa : List AnnotTerm}
+  (hds : ∀ x ∈ ds, Expr.WScoped hi x ∧ x.looseBVarsBounded 0 = true) {dsa : List ITerm}
   (hdsa : DenoteMetaSpine mp.base2.acval env φ hi ds dsa)
   (hlenP : (D.params (Level.substFn φ lps us)).length = ds.length)
   {grp : List (Name × Expr)} (hg : GrpWf ctx D hi us ds grp)
@@ -175,7 +175,7 @@ theorem grp_inGrp {p : Name × Expr} (hp : p ∈ grp) : InGrp D grp (D.names.idx
 /-- **The frame relation is an accessibility hole relation** of the
 frame's walk (see the module docstring). -/
 theorem frameRelA_holeRelA {prog : List NestHole} (hhi : ctx.hiAt prog.length = hi)
-    {Δh : List AnnotTerm} {R₀ : FrameRel V} (hR₀ : HoleRelA mp.base2 φ w ctx prog hi Δh R₀)
+    {Δh : List ITerm} {R₀ : FrameRel V} (hR₀ : HoleRelA mp.base2 φ w ctx prog hi Δh R₀)
     (hwD : D.w (Level.substFn φ lps us) = w)
     (harity : ∀ p ∈ grp, ConLeche.nestArity ctx p.1
       = (D.pars (D.names.idxOf p.1) (Level.substFn φ lps us)).length

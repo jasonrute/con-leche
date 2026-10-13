@@ -39,7 +39,7 @@ namespace ConLeche.Semantics
 open ConLeche.SetModel
 
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 universe w
 
@@ -47,7 +47,7 @@ variable (V : Type w) [SetTheory V]
 
 /-- Kinded hereditary truthfulness of the binder/application structure
 under a variable environment (see the module docstring). -/
-def WellDenoted : (Nat → V) → AnnotTerm → Prop
+def WellDenoted : (Nat → V) → ITerm → Prop
   | ρ, .pi A B =>
     WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
     (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) B) ∧
@@ -90,13 +90,13 @@ def WellDenoted : (Nat → V) → AnnotTerm → Prop
   rw [WellDenoted]
 @[simp] theorem WellDenoted_prf (ρ : Nat → V) :
     WellDenoted V ρ .prf = True := by rw [WellDenoted]
-theorem WellDenoted_pi (ρ : Nat → V) (A B : AnnotTerm) :
+theorem WellDenoted_pi (ρ : Nat → V) (A B : ITerm) :
     WellDenoted V ρ (.pi A B) =
       (WellDenoted V ρ A ∧ IsTy (interp V ρ A) ∧
         (∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) B) ∧
         (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B))) := by
   rw [WellDenoted]
-theorem WellDenoted_lam (ρ : Nat → V) (A b : AnnotTerm) :
+theorem WellDenoted_lam (ρ : Nat → V) (A b : ITerm) :
     WellDenoted V ρ (.lam A b) =
       (WellDenoted V ρ A ∧ IsTy (interp V ρ A) ∧
         (∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) b) ∧
@@ -104,7 +104,7 @@ theorem WellDenoted_lam (ρ : Nat → V) (A b : AnnotTerm) :
           (∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) b ∈ˢ B x) ∧
           (∀ x, x ∈ˢ interp V ρ A → IsTy (B x))) := by
   rw [WellDenoted]
-theorem WellDenoted_app (ρ : Nat → V) (f a : AnnotTerm) :
+theorem WellDenoted_app (ρ : Nat → V) (f a : ITerm) :
     WellDenoted V ρ (.app f a) =
       (WellDenoted V ρ f ∧ WellDenoted V ρ a ∧
         ∃ (v : Nat) (A : V) (B : V → V),
@@ -112,24 +112,24 @@ theorem WellDenoted_app (ρ : Nat → V) (f a : AnnotTerm) :
           (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧
           (v ≠ 0 → IsTy A)) := by
   rw [WellDenoted]
-theorem WellDenoted_fst (ρ : Nat → V) (e : AnnotTerm) :
+theorem WellDenoted_fst (ρ : Nat → V) (e : ITerm) :
     WellDenoted V ρ (.fst e) =
       (WellDenoted V ρ e ∧
         ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
           A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v) := by
   rw [WellDenoted]
-theorem WellDenoted_snd (ρ : Nat → V) (e : AnnotTerm) :
+theorem WellDenoted_snd (ρ : Nat → V) (e : ITerm) :
     WellDenoted V ρ (.snd e) =
       (WellDenoted V ρ e ∧
         ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
           A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v) := by
   rw [WellDenoted]
-theorem WellDenoted_eqE (ρ : Nat → V) (a b : AnnotTerm) :
+theorem WellDenoted_eqE (ρ : Nat → V) (a b : ITerm) :
     WellDenoted V ρ (.eqE a b) = (WellDenoted V ρ a ∧ WellDenoted V ρ b) := by
   rw [WellDenoted]
 /-- A `let`: the value at `ρ`, the body at the value; the type is not
 in the node and is not read. -/
-theorem WellDenoted_letE (ρ : Nat → V) (v b : AnnotTerm) :
+theorem WellDenoted_letE (ρ : Nat → V) (v b : ITerm) :
     WellDenoted V ρ (.letE v b) =
       (WellDenoted V ρ v ∧ WellDenoted V (cons (interp V ρ v) ρ) b) := by
   rw [WellDenoted]
@@ -138,23 +138,23 @@ theorem WellDenoted_letE (ρ : Nat → V) (v b : AnnotTerm) :
 
 /-- Truthfulness through lifting. -/
 theorem WellDenoted_liftN (n : Nat) :
-    ∀ (e : AnnotTerm) (k : Nat) (ρ : Nat → V),
+    ∀ (e : ITerm) (k : Nat) (ρ : Nat → V),
       WellDenoted V ρ (e.liftN n k) ↔ WellDenoted V (shiftE n k ρ) e := by
   intro e
   induction e with
   | bvar i =>
     intro k ρ
-    simp only [AnnotTerm.liftN_bvar]
+    simp only [ITerm.liftN_bvar]
     split <;> simp
   | sort u => intro k ρ; simp
   | const c us => intro k ρ; simp
   | app f a ihf iha =>
     intro k ρ
-    rw [AnnotTerm.liftN_app, WellDenoted_app, WellDenoted_app, ihf, iha,
+    rw [ITerm.liftN_app, WellDenoted_app, WellDenoted_app, ihf, iha,
       interp_liftN, interp_liftN]
   | lam A b ihA ihb =>
     intro k ρ
-    rw [AnnotTerm.liftN_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_liftN]
+    rw [ITerm.liftN_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_liftN]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
       (exists_congr fun B => and_congr
@@ -163,7 +163,7 @@ theorem WellDenoted_liftN (n : Nat) :
     · rw [interp_liftN, cons_shiftE]
   | pi A B ihA ihB =>
     intro k ρ
-    rw [AnnotTerm.liftN_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_liftN]
+    rw [ITerm.liftN_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_liftN]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
       (forall_congr' fun x => imp_congr Iff.rfl ?_)))
@@ -171,24 +171,24 @@ theorem WellDenoted_liftN (n : Nat) :
     · rw [interp_liftN, cons_shiftE]
   | letE v b ihv ihb =>
     intro k ρ
-    rw [AnnotTerm.liftN_letE, WellDenoted_letE, WellDenoted_letE, ihv,
+    rw [ITerm.liftN_letE, WellDenoted_letE, WellDenoted_letE, ihv,
       interp_liftN, ihb, cons_shiftE]
   | eqE a b iha ihb =>
     intro k ρ
-    rw [AnnotTerm.liftN_eqE, WellDenoted_eqE, WellDenoted_eqE, iha, ihb]
+    rw [ITerm.liftN_eqE, WellDenoted_eqE, WellDenoted_eqE, iha, ihb]
   | fst e ihe =>
     intro k ρ
-    rw [AnnotTerm.liftN_fst, WellDenoted_fst, WellDenoted_fst, ihe,
+    rw [ITerm.liftN_fst, WellDenoted_fst, WellDenoted_fst, ihe,
       interp_liftN]
   | snd e ihe =>
     intro k ρ
-    rw [AnnotTerm.liftN_snd, WellDenoted_snd, WellDenoted_snd, ihe,
+    rw [ITerm.liftN_snd, WellDenoted_snd, WellDenoted_snd, ihe,
       interp_liftN]
   | prf => intro k ρ; simp
 
 /-- Truthfulness through instantiation. -/
 theorem WellDenoted_inst :
-    ∀ (e a : AnnotTerm) (k : Nat) (ρ : Nat → V),
+    ∀ (e a : ITerm) (k : Nat) (ρ : Nat → V),
       WellDenoted V (shiftE k 0 ρ) a →
       (WellDenoted V ρ (e.inst a k) ↔
         WellDenoted V (instE k (interp V (shiftE k 0 ρ) a) ρ) e) := by
@@ -198,22 +198,22 @@ theorem WellDenoted_inst :
     intro a k ρ ha
     show WellDenoted V ρ
         (if i < k then .bvar i
-         else if i = k then AnnotTerm.liftN k a else .bvar (i - 1)) ↔ _
+         else if i = k then ITerm.liftN k a else .bvar (i - 1)) ↔ _
     by_cases h : i < k
     · simp [ite_eq_left h]
     · by_cases h2 : i = k
       · simp only [ite_eq_right h, ite_eq_left h2, WellDenoted_bvar, iff_true]
         exact (WellDenoted_liftN V k a 0 ρ).mpr ha
       · simp [ite_eq_right h, ite_eq_right h2]
-  | sort u => intro a k ρ _; simp [AnnotTerm.inst]
-  | const c us => intro a k ρ _; simp [AnnotTerm.inst]
+  | sort u => intro a k ρ _; simp [ITerm.inst]
+  | const c us => intro a k ρ _; simp [ITerm.inst]
   | app f b ihf ihb =>
     intro a k ρ ha
-    rw [AnnotTerm.inst_app, WellDenoted_app, WellDenoted_app, ihf a k ρ ha,
+    rw [ITerm.inst_app, WellDenoted_app, WellDenoted_app, ihf a k ρ ha,
       ihb a k ρ ha, interp_inst, interp_inst]
   | lam A b ihA ihb =>
     intro a k ρ ha
-    rw [AnnotTerm.inst_lam, WellDenoted_lam, WellDenoted_lam, ihA a k ρ ha,
+    rw [ITerm.inst_lam, WellDenoted_lam, WellDenoted_lam, ihA a k ρ ha,
       interp_inst]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
@@ -227,7 +227,7 @@ theorem WellDenoted_inst :
       rw [interp_inst, shiftE_succ_cons, cons_instE]
   | pi A B ihA ihB =>
     intro a k ρ ha
-    rw [AnnotTerm.inst_pi, WellDenoted_pi, WellDenoted_pi, ihA a k ρ ha,
+    rw [ITerm.inst_pi, WellDenoted_pi, WellDenoted_pi, ihA a k ρ ha,
       interp_inst]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
       (forall_congr' fun x => imp_congr Iff.rfl ?_)
@@ -238,7 +238,7 @@ theorem WellDenoted_inst :
     · rw [interp_inst, shiftE_succ_cons, cons_instE]
   | letE v b ihv ihb =>
     intro a k ρ ha
-    rw [AnnotTerm.inst_letE, WellDenoted_letE, WellDenoted_letE, ihv a k ρ ha,
+    rw [ITerm.inst_letE, WellDenoted_letE, WellDenoted_letE, ihv a k ρ ha,
       interp_inst]
     refine and_congr Iff.rfl ?_
     have ha' : WellDenoted V (shiftE (k + 1) 0
@@ -247,20 +247,20 @@ theorem WellDenoted_inst :
     rw [ihb a (k + 1) _ ha', shiftE_succ_cons, cons_instE]
   | eqE x y ihx ihy =>
     intro a k ρ ha
-    rw [AnnotTerm.inst_eqE, WellDenoted_eqE, WellDenoted_eqE, ihx a k ρ ha,
+    rw [ITerm.inst_eqE, WellDenoted_eqE, WellDenoted_eqE, ihx a k ρ ha,
       ihy a k ρ ha]
   | fst e ihe =>
     intro a k ρ ha
-    rw [AnnotTerm.inst_fst, WellDenoted_fst, WellDenoted_fst, ihe a k ρ ha,
+    rw [ITerm.inst_fst, WellDenoted_fst, WellDenoted_fst, ihe a k ρ ha,
       interp_inst]
   | snd e ihe =>
     intro a k ρ ha
-    rw [AnnotTerm.inst_snd, WellDenoted_snd, WellDenoted_snd, ihe a k ρ ha,
+    rw [ITerm.inst_snd, WellDenoted_snd, WellDenoted_snd, ihe a k ρ ha,
       interp_inst]
-  | prf => intro a k ρ _; simp [AnnotTerm.inst]
+  | prf => intro a k ρ _; simp [ITerm.inst]
 
 /-- Substitution at the outermost binder — the β/ζ transport form. -/
-theorem WellDenoted_inst0 {e a : AnnotTerm} {ρ : Nat → V}
+theorem WellDenoted_inst0 {e a : ITerm} {ρ : Nat → V}
     (ha : WellDenoted V ρ a) :
     WellDenoted V ρ (e.inst a) ↔
       WellDenoted V (cons (interp V ρ a) ρ) e := by
@@ -270,11 +270,11 @@ theorem WellDenoted_inst0 {e a : AnnotTerm} {ρ : Nat → V}
 /-- **ζ, graded**: a `let` interprets as its reduct, and with its value
 graded it is graded exactly when its reduct is.  Unconditional: no
 binder, so no regime. -/
-theorem interp_zeta (v b : AnnotTerm) (ρ : Nat → V) :
+theorem interp_zeta (v b : ITerm) (ρ : Nat → V) :
     interp V ρ (.letE v b) = interp V ρ (b.inst v) := by
   rw [interp_letE, interp_inst0]
 
-theorem WellDenoted_zeta {v b : AnnotTerm} {ρ : Nat → V}
+theorem WellDenoted_zeta {v b : ITerm} {ρ : Nat → V}
     (hv : WellDenoted V ρ v) :
     WellDenoted V ρ (.letE v b) ↔ WellDenoted V ρ (b.inst v) := by
   rw [WellDenoted_letE, WellDenoted_inst0 V hv]
@@ -292,7 +292,7 @@ that read this are conditional on "not the point". -/
 /-- The λ's own membership, read off its clause: an abstraction whose
 body is bounded by a family of types is a member of that family's
 function space. -/
-theorem WellDenoted_lam_mem {A b : AnnotTerm} {ρ : Nat → V}
+theorem WellDenoted_lam_mem {A b : ITerm} {ρ : Nat → V}
     (h : WellDenoted V ρ (.lam A b)) :
     ∃ B : V → V, interp V ρ (.lam A b) ∈ˢ piV (interp V ρ A) B ∧
       (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) := by
@@ -301,7 +301,7 @@ theorem WellDenoted_lam_mem {A b : AnnotTerm} {ρ : Nat → V}
   exact ⟨B, by rw [interp_lam]; exact lamV_mem hfib hty, hty⟩
 
 /-- **The graded β step** at a redex that is not the point. -/
-theorem WellDenoted_beta {A b a : AnnotTerm} {ρ : Nat → V}
+theorem WellDenoted_beta {A b a : ITerm} {ρ : Nat → V}
     (h : WellDenoted V ρ (.app (.lam A b) a))
     (hne : interp V ρ (.app (.lam A b) a) ≠ pt) :
     interp V ρ a ∈ˢ interp V ρ A ∧
@@ -327,7 +327,7 @@ theorem WellDenoted_beta {A b a : AnnotTerm} {ρ : Nat → V}
 
 /-- **The app slot**, from the function's membership in a Π-type's
 reading, the argument in its domain, and the domain a type. -/
-theorem appSlot_of_pi {ρ : Nat → V} {f a Aa Ba : AnnotTerm}
+theorem appSlot_of_pi {ρ : Nat → V} {f a Aa Ba : ITerm}
     (hf : interp V ρ f ∈ˢ interp V ρ (.pi Aa Ba))
     (ha : interp V ρ a ∈ˢ interp V ρ Aa)
     (hdom : IsTy (interp V ρ Aa)) :
@@ -341,7 +341,7 @@ theorem appSlot_of_pi {ρ : Nat → V} {f a Aa Ba : AnnotTerm}
 
 /-- The full app-clause establishment: the hereditary halves plus the
 slot, the shape the `app` claim discharges. -/
-theorem WellDenoted_app_of {ρ : Nat → V} {f a Aa Ba : AnnotTerm}
+theorem WellDenoted_app_of {ρ : Nat → V} {f a Aa Ba : ITerm}
     (hokf : WellDenoted V ρ f) (hoka : WellDenoted V ρ a)
     (hf : interp V ρ f ∈ˢ interp V ρ (.pi Aa Ba))
     (ha : interp V ρ a ∈ˢ interp V ρ Aa)

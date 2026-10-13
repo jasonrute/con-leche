@@ -50,7 +50,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
   BlockShape BlockParts MemberShape RecRule)
 
@@ -65,7 +65,7 @@ injections**, at a chosen per-member constructor pick. -/
 @[expose] noncomputable def blockDataPre (V : Type w) [SetTheory V] (q : BlockShape)
     (ctorsAs : List (List (ConstantVal × Nat))) (pk : Nat → BlockMemberPick)
     (uOf : Nat → (Name → Nat) → Nat)
-    (ppsOf : Nat → (Name → Nat) → List AnnotTerm) : BlockData V where
+    (ppsOf : Nat → (Name → Nat) → List ITerm) : BlockData V where
   nP := q.nP
   k := q.k
   nInst := 0
@@ -103,14 +103,14 @@ derived fields**: the hole operator of the record's fields with holes
 @[expose] noncomputable def blockDataOf (V : Type w) [SetTheory V] (q : BlockShape)
     (ctorsAs : List (List (ConstantVal × Nat))) (pk : Nat → BlockMemberPick)
     (uOf : Nat → (Name → Nat) → Nat)
-    (ppsOf : Nat → (Name → Nat) → List AnnotTerm) : BlockData V :=
+    (ppsOf : Nat → (Name → Nat) → List ITerm) : BlockData V :=
   (blockDataPre V q ctorsAs pk uOf ppsOf).withPhi
 
 /-- **A member's former leaf on the HOLE chains** (charter item 2): the block operator at the constructors' fields with
 holes, the operator the datum's `Φ` IS (`BlockData.withPhi`).  It
 reads no field classification and no member: the formers are consed
 with it. -/
-@[expose] noncomputable def blockLeafH (d : BlockData V) (c : Nat) (ψ : Name → Nat) : AnnotTerm :=
+@[expose] noncomputable def blockLeafH (d : BlockData V) (c : Nat) (ψ : Name → Nat) : ITerm :=
   blockTyG d.k (d.w ψ) (fun c' => d.uM c' ψ) (fun c' => d.IdsM c' ψ) (d.toLfp.holeChains ψ)
     (d.ppsM c ψ) c
 
@@ -226,23 +226,23 @@ theorem blockCtorFacts_of {envI : Env} {q : BlockShape} {F : Nat} {cvTa : Consta
     have := (List.getElem?_eq_some_iff.mp hj).1; omega
   obtain ⟨hnF, sorts, hsj, hCtor⟩ :=
     hall j ((q.members.getD m default).ctors[j]) cA (List.getElem?_eq_getElem hjl) hj
-  obtain ⟨⟨ty₀, hccvC⟩, ⟨cbs, es, hstrip, -⟩, -⟩ := ConLeche.checkSumCtor_shape hCtor
-  obtain ⟨hfindC, -, hpshapeC, -, -, hfvC, type', stype, -, hannC, -, htrC, hstC, -, htyC⟩ :=
-    ConLeche.checkConstantVal_inv_stored hccvC
+  obtain ⟨⟨heq, hccvC⟩, ⟨cbs, es, hstrip, -⟩, -⟩ := ConLeche.checkSumCtor_shape hCtor
+  obtain ⟨hfindC, -, hpshapeC, -, -, hfvC, stype, -, -, htrC, hstC, -⟩ :=
+    ConLeche.checkConstantVal_inv hccvC
   have hmem : (q.members.getD m default).ctors[j] ∈ (q.members.getD m default).ctors :=
     List.getElem_mem hjl
-  refine ⟨_, sorts, List.getElem?_eq_getElem hjl, by rw [htyC], hnF, ?_, ?_, ?_,
-    by rw [htyC]; exact hpshapeC, ?_, hsj, ?_, ⟨?_, stype, ?_⟩,
+  refine ⟨_, sorts, List.getElem?_eq_getElem hjl, by rw [heq], hnF, ?_, ?_, ?_,
+    by rw [heq]; exact hpshapeC, ?_, hsj, ?_, ⟨?_, stype, ?_⟩,
     by rw [hnF]; exact hCtor⟩
-  · rw [htyC]; exact (hClps _ hmem).1
+  · rw [heq]; exact (hClps _ hmem).1
   · show Env.find? _ cA.1.name = none
-    rw [htyC]; exact hfindC
+    rw [heq]; exact hfindC
   · show Expr.constsResolve _ cA.1.type = true
-    rw [htyC]; exact htrC
-  · rw [htyC]; exact (hClps _ hmem).2
+    rw [heq]; exact htrC
+  · rw [heq]; exact (hClps _ hmem).2
   · rw [hnF, hstrip]; rfl
-  · rw [htyC]; dsimp only; rw [hannC]; exact hfvC
-  · rw [htyC]; exact hstC
+  · rw [heq]; exact hfvC
+  · rw [heq]; exact hstC
 
 /-! ## The η side conditions of the two former passes -/
 
@@ -430,7 +430,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     -- the input's coverage (the walk's container case reads the containers' clauses)
     (hcovIn : LfpCover mp []) :
     ∃ (pk : Nat → BlockMemberPick) (uOf : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List AnnotTerm)
+      (ppsOf : Nat → (Name → Nat) → List ITerm)
       (mpI : EnvModelM V μ envI),
       BlockNamesOk (V := V) (blockDataOf V q ctorsAs pk uOf ppsOf) cvTas ∧
       BlockTablesStage (V := V) μ F (blockDataOf V q ctorsAs pk uOf ppsOf) q.lps cvTas
@@ -1059,10 +1059,10 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
     obtain ⟨ab, -, hab, -, hlab, -⟩ := hr ψ
     obtain ⟨ab', -, hab', -, hlab', -⟩ := hr' ψ
     have e1 : denoteMeta mpD.base2.acval envI ψ (q.nP + q.k) A
-        = some (mkPisAV ab (AnnotTerm.mkAppN (.bvar (cA.2 + (q.k - 1 - c)))
+        = some (mkPisAV ab (ITerm.mkAppN (.bvar (cA.2 + (q.k - 1 - c)))
             (dZ.absE ψ c j))) := hab
     have e2 : denoteMeta mpR.base2.acval envI ψ (q.nP + q.k) A
-        = some (mkPisAV ab' (AnnotTerm.mkAppN (.bvar (cA.2 + (q.k - 1 - c)))
+        = some (mkPisAV ab' (ITerm.mkAppN (.bvar (cA.2 + (q.k - 1 - c)))
             ((blockDataOf V q ctorsAs pk uOf ppsOf).absE ψ c j))) := hab'
     obtain ⟨A'', hA'', hocc''⟩ := hoccI c hck j cA hj
     rw [hA] at hA''
@@ -1074,7 +1074,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       simp only [BlockData.absE, List.length_map]
       rw [hEssZD c j cA ψ hj, hEssRD c j cA ψ hj, (hpk₀ c hck j cA hj).lenE ψ,
         (hpk c hck j cA hj).lenE ψ]
-    exact (AnnotTerm.mkAppN_inj hX hl).2.symm
+    exact (ITerm.mkAppN_inj hX hl).2.symm
   have hresIm : ∀ e : Expr, e.constsResolve env = true → e.constsResolve envI = true := by
     intro e he
     rw [hcons]
@@ -1098,7 +1098,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
       (blockDataOf V q ctorsAs pk uOf ppsOf).toLfp.holeChains ψ
         = dZ.toLfp.holeChains ψ := by
     intro ψ
-    have hgetNil : ∀ (L : List (List AnnotTerm)) (j : Nat), L.length ≤ j → L.getD j [] = [] :=
+    have hgetNil : ∀ (L : List (List ITerm)) (j : Nat), L.length ≤ j → L.getD j [] = [] :=
       fun L j h => getD_of_le [] h
     have hlenEssR : ∀ m, ((blockDataOf V q ctorsAs pk uOf ppsOf).Ess m ψ).length
         = (ctorsAs.getD m []).length := by
@@ -1649,7 +1649,7 @@ theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI
         (hF.nameOf m cvTa hcv).symm]
       exact ConLeche.Expr.noProjAt_of_constsResolve (hF.freshOf m cvTa hcv) _
         (hF.resolveOf c cvTb hc)
-    · -- noProjC: an annotated constructor type carries a projection only
+    · -- noProjC: a stored constructor type carries a projection only
       -- where a table entry typed it, and no member's table is stored yet
       intro m c j cA hm hm1 hm2 hj i
       have hck : c < q.k := hctorLt c j cA hj

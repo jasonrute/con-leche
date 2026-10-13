@@ -31,7 +31,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx NestKey NestHole)
 
 universe w
@@ -41,9 +41,9 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name 
 /-! ## Spines across depths -/
 
 theorem DenoteMetaSpine.lift {h D : Nat} (hle : h ≤ D) :
-    ∀ {as : List Expr} {vs : List AnnotTerm}, (∀ x ∈ as, Expr.WScoped h x) →
+    ∀ {as : List Expr} {vs : List ITerm}, (∀ x ∈ as, Expr.WScoped h x) →
       DenoteMetaSpine m.acval env φ h as vs →
-      DenoteMetaSpine m.acval env φ D as (vs.map (AnnotTerm.liftN (D - h) · 0))
+      DenoteMetaSpine m.acval env φ D as (vs.map (ITerm.liftN (D - h) · 0))
   | _, _, _, .nil => .nil
   | a :: as, v :: vs, hws, .cons ha h' => by
     refine .cons ?_ (DenoteMetaSpine.lift hle (fun x hx => hws x (List.mem_cons_of_mem _ hx)) h')
@@ -51,9 +51,9 @@ theorem DenoteMetaSpine.lift {h D : Nat} (hle : h ≤ D) :
     rfl
 
 theorem DenoteMetaSpine.unlift {h D : Nat} (hle : h ≤ D) :
-    ∀ {as : List Expr} {vs' : List AnnotTerm}, (∀ x ∈ as, Expr.WScoped h x) →
+    ∀ {as : List Expr} {vs' : List ITerm}, (∀ x ∈ as, Expr.WScoped h x) →
       DenoteMetaSpine m.acval env φ D as vs' →
-      ∃ vs, DenoteMetaSpine m.acval env φ h as vs ∧ vs' = vs.map (AnnotTerm.liftN (D - h) · 0)
+      ∃ vs, DenoteMetaSpine m.acval env φ h as vs ∧ vs' = vs.map (ITerm.liftN (D - h) · 0)
   | _, _, _, .nil => ⟨[], .nil, rfl⟩
   | a :: as, _ :: _, hws, .cons ha h' => by
     obtain ⟨vs, hvs, rfl⟩ :=
@@ -63,12 +63,12 @@ theorem DenoteMetaSpine.unlift {h D : Nat} (hle : h ≤ D) :
     exact ⟨v :: vs, .cons hv hvs, rfl⟩
 
 /-- A lifted reading, read below a spine of the lift's length. -/
-theorem interp_liftN_consList (xs : List V) (ρ : Nat → V) (a : AnnotTerm) :
+theorem interp_liftN_consList (xs : List V) (ρ : Nat → V) (a : ITerm) :
     interp V (consList xs ρ) (a.liftN xs.length 0) = interp V ρ a := by
   rw [interp_liftN, shiftE_consList]
 
 /-- A lifted reading, read at a valuation seen `n` positions down. -/
-theorem interp_liftN_drop (n : Nat) (ρ : Nat → V) (a : AnnotTerm) :
+theorem interp_liftN_drop (n : Nat) (ρ : Nat → V) (a : ITerm) :
     interp V ρ (a.liftN n 0) = interp V (fun i => ρ (i + n)) a := by
   rw [interp_liftN]
   congr 1
@@ -81,7 +81,7 @@ theorem interp_liftN_drop (n : Nat) (ρ : Nat → V) (a : AnnotTerm) :
 
 /-- **The hole relation, truncated** at a depth `h` at or above every
 hole: the frame's walk sees the context below `h`. -/
-theorem HoleRel.drop {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List AnnotTerm}
+theorem HoleRel.drop {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List ITerm}
     {R : FrameRel V} (hR : HoleRel m φ ctx prog d Δa R) {h : Nat}
     (hhi : ctx.hiAt prog.length ≤ h) (hle : h ≤ d) :
     HoleRel m φ ctx prog h (Δa.drop (d - h)) (R.drop (d - h)) where
@@ -125,11 +125,11 @@ parameters, scoped at `hi`), their holes holding `vS ρ ρ'` at the
 smaller and `vL ρ ρ'` at the larger side of each related pair of the
 relation at exactly `hi`.  The caller supplies the holes' context entries
 (`hdom`) and their order at their full arity (`hnew`). -/
-theorem HoleRel.extend {ctx : NestCtx} {prog : List NestHole} {Δh : List AnnotTerm}
+theorem HoleRel.extend {ctx : NestCtx} {prog : List NestHole} {Δh : List ITerm}
     {R₀ : FrameRel V} (hR₀ : HoleRel m φ ctx prog (ctx.hiAt prog.length) Δh R₀)
     (news : List NestHole)
     (hbase : ∀ x ∈ news, ∀ a ∈ x.key.ds, Expr.WScoped (ctx.hiAt prog.length) a)
-    (Ts : List AnnotTerm) (vS vL : (Nat → V) → (Nat → V) → List V)
+    (Ts : List ITerm) (vS vL : (Nat → V) → (Nat → V) → List V)
     (hvS : ∀ ρ ρ', (vS ρ ρ').length = news.length) (hvL : ∀ ρ ρ', (vL ρ ρ').length = news.length)
     (hdom : ∀ ρ ρ', R₀ ρ ρ' →
       Sat V (Ts ++ Δh) (consList (vS ρ ρ') ρ) ∧ Sat V (Ts ++ Δh) (consList (vL ρ ρ') ρ'))
@@ -214,7 +214,7 @@ theorem HoleRel.extend {ctx : NestCtx} {prog : List NestHole} {Δh : List AnnotT
 /-- **The hole relation seen at the block's own depth**, the frames
 forgotten (a cached instantiation's parameters lie below every frame
 hole). -/
-theorem HoleRel.dropBase {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List AnnotTerm}
+theorem HoleRel.dropBase {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa : List ITerm}
     {R : FrameRel V} (hR : HoleRel m φ ctx prog d Δa R) (hle : ctx.hiAt prog.length ≤ d) :
     HoleRel m φ ctx [] (ctx.hiAt 0) (Δa.drop (d - ctx.hiAt 0)) (R.drop (d - ctx.hiAt 0)) where
   dom := by
@@ -242,7 +242,7 @@ theorem HoleRel.dropBase {ctx : NestCtx} {prog : List NestHole} {d : Nat} {Δa :
 
 /-- The `dom` field of an extension by empty enclosing frames
 (`HoleRel.extendEmpty`, `HoleRelA.extendEmpty`). -/
-theorem extendEmpty_dom {Δ0 : List AnnotTerm} {R00 : FrameRel V} (n : Nat)
+theorem extendEmpty_dom {Δ0 : List ITerm} {R00 : FrameRel V} (n : Nat)
     (hdom : ∀ ρ ρ', R00 ρ ρ' → Sat V Δ0 ρ ∧ Sat V Δ0 ρ') :
     ∀ σ σ', (∃ ρ ρ', R00 ρ ρ' ∧ σ = consList (List.replicate n empty) ρ ∧
         σ' = consList (List.replicate n empty) ρ') →
@@ -250,14 +250,14 @@ theorem extendEmpty_dom {Δ0 : List AnnotTerm} {R00 : FrameRel V} (n : Nat)
         Sat V (List.replicate n (.sort 0) ++ Δ0) σ' := by
   rintro _ _ ⟨ρ, ρ', hr, rfl, rfl⟩
   obtain ⟨h1, h2⟩ := hdom ρ ρ' hr
-  have hsp : ∀ σ : Nat → V, SpineFit σ (List.replicate n (AnnotTerm.sort 0))
+  have hsp : ∀ σ : Nat → V, SpineFit σ (List.replicate n (ITerm.sort 0))
       (List.replicate n empty) := by
     intro σ
     induction n generalizing σ with
     | zero => trivial
     | succ n ih =>
       exact ⟨by rw [interp_sort]; exact empty_mem_univ 0, ih _⟩
-  have e := List.reverse_replicate (n := n) (a := (AnnotTerm.sort 0))
+  have e := List.reverse_replicate (n := n) (a := (ITerm.sort 0))
   refine ⟨?_, ?_⟩
   · have := sat_of_spineFit h1 (hsp ρ); rwa [e] at this
   · have := sat_of_spineFit h2 (hsp ρ'); rwa [e] at this
@@ -286,7 +286,7 @@ theorem extendEmpty_agree {ctx : NestCtx} {R00 : FrameRel V} (n : Nat)
 /-- **Empty enclosing frames**: a relation at the block's own depth,
 extended by the enclosing frames of `prog` holding the empty set on both
 sides (a `Sort 0` entry each) — their holes' order is then trivial. -/
-theorem HoleRel.extendEmpty {ctx : NestCtx} {Δ0 : List AnnotTerm} {R00 : FrameRel V}
+theorem HoleRel.extendEmpty {ctx : NestCtx} {Δ0 : List ITerm} {R00 : FrameRel V}
     (hR : HoleRel m φ ctx [] (ctx.hiAt 0) Δ0 R00) (prog : List NestHole)
     (hsc : ∀ (i : Nat) (hk : NestHole), prog.reverse[i]? = some hk → ∀ x ∈ hk.key.ds,
       Expr.WScoped (ctx.hiAt prog.length) x) :

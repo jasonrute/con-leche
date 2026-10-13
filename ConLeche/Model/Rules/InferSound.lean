@@ -38,7 +38,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -75,8 +75,8 @@ context is satisfied and the subject's leaves are graded, the subject's
 grading, the type's grading and the membership.  The io grade's claim
 is the hereditary `IORel` instead (task #342 L18), read case by case. -/
 theorem InferSem.apply {d : Nat} {e t : Expr}
-    (h : InferSem m φ .full d e t) (hfe : Frame d e) {Δa : List AnnotTerm}
-    {ea : AnnotTerm} (hC : CtxOkS m φ d Δa e)
+    (h : InferSem m φ .full d e t) (hfe : Frame d e) {Δa : List ITerm}
+    {ea : ITerm} (hC : CtxOkS m φ d Δa e)
     (hea : denoteMeta m.acval env φ d e = some ea) :
     Frame d t ∧ LeavesSub t e ∧
       ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
@@ -90,7 +90,7 @@ theorem InferSem.apply {d : Nat} {e t : Expr}
 /-- `InferSem.apply`'s converse: the uniform statement builds the
 motive at either grade. -/
 theorem InferSem.of_uniform {g : Grade} {d : Nat} {e t : Expr}
-    (h : ∀ {Δa : List AnnotTerm} {ea : AnnotTerm}, Frame d e →
+    (h : ∀ {Δa : List ITerm} {ea : ITerm}, Frame d e →
       CtxOkS m φ d Δa e → denoteMeta m.acval env φ d e = some ea →
       Frame d t ∧ LeavesSub t e ∧
         ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
@@ -123,7 +123,7 @@ sort, and a ∀ reduces only to itself (`Red.rigid`) — so it is a member. -/
 theorem sortSem_of {g : Grade} {d : Nat} {e s : Expr} {u : Level}
     (hs : InferSem m φ g d e s) (hu : RedSem m φ d s (.sort u))
     (hur : g = .io → Red env d s (.sort u))
-    (hfe : Frame d e) {Δa : List AnnotTerm} {ea : AnnotTerm}
+    (hfe : Frame d e) {Δa : List ITerm} {ea : ITerm}
     (hC : CtxOkS m φ d Δa e)
     (hea : denoteMeta m.acval env φ d e = some ea) :
     ∀ ρ : Nat → V, Sat V Δa ρ → LeavesGr m φ d e ρ →

@@ -45,7 +45,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
@@ -59,13 +59,13 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 /-- **A closed telescope, read at its own depth**: a Π-tower whose binder
 data are the pieces' readings (each at its own depth) over the body's
 reading. -/
-theorem denoteMeta_closeTelescope_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem denoteMeta_closeTelescope_read {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {φ : Name → Nat} :
-    ∀ (nds : List Expr) (d : Nat) (body Y : Expr) {A : AnnotTerm},
+    ∀ (nds : List Expr) (d : Nat) (body Y : Expr) {A : ITerm},
       (∀ p ∈ nds, p.looseBVarsBounded 0 = true) → body.looseBVarsBounded 0 = true →
       Expr.ErasedEq Y (closeTelescope nds d body) →
       denoteMeta acval env φ d Y = some A →
-      ∃ (bs : List AnnotTerm) (b : AnnotTerm), A = mkPisAV bs b ∧
+      ∃ (bs : List ITerm) (b : ITerm), A = mkPisAV bs b ∧
         bs.length = nds.length ∧
         (∀ (k : Nat) (nd : Expr), nds[k]? = some nd → ∃ a,
           bs[k]? = some a ∧ denoteMeta acval env φ (d + k) nd = some a) ∧
@@ -120,8 +120,8 @@ frame's declared fields `tgtFieldFvs`, one `ih` type per recursive field,
 the conclusion over the declared result `tgtCbody`. -/
 theorem genMinorSetup
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
@@ -291,9 +291,9 @@ theorem genIhTy_scb {g : ClassGen} {t tele st : Nat} {w f : Expr} {d : Nat} {ty 
 `genIhDomAV` of the `ih` data read off its pieces (the walked telescope's
 domains with numeral `0`, the leaf's indices and the applied field) —
 the data `genIhdAV` reads. -/
-theorem genIhTy_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {ψ : Name → Nat}
+theorem genIhTy_read {acval : Name → (Name → Nat) → ITerm} {env : Env} {ψ : Name → Nat}
     {g : ClassGen} {t tele st : Nat} {w f : Expr} {D : Nat} {xs idx : List Expr} {ty0 : Expr}
-    {a : AnnotTerm} (hst : ConLeche.ClassRead.motiveSlot ⟨g.slots, []⟩ t = some st)
+    {a : ITerm} (hst : ConLeche.ClassRead.motiveSlot ⟨g.slots, []⟩ t = some st)
     (hw : ConLeche.ScB D w) (hfb : f.looseBVarsBounded 0 = true)
     (hip : g.ihParts t tele w D = some (xs, idx))
     (hty : g.ihTy t tele w f D = some ty0) (r : Nat)
@@ -349,7 +349,7 @@ theorem genIhTy_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
   · rw [hvsE, List.map_append, List.map_cons, List.map_nil]
 
 /-- **The generated `ih` data at a recursive field**, spelled out. -/
-theorem genIhdAV_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : Env} {g : ClassGen}
+theorem genIhdAV_getElem {acval : Name → (Name → Nat) → ITerm} {env : Env} {g : ClassGen}
     {rd : ClassRead} {ψ : Name → Nat} {c j l i t tele : Nat} {fvs : List Expr}
     {res : Expr} {ws xs idx : List Expr}
     (hq : (genCtorAt g rd c j).recs[l]? = some (i, t, tele))
@@ -370,10 +370,10 @@ theorem genIhdAV_getElem {acval : Name → (Name → Nat) → AnnotTerm} {env : 
 /-- **The `l`-th inductive hypothesis type of the minor premise, read at
 its position `rP + nF + l`**: the generated `ih` binder type of the
 `l`-th `ih` datum, lifted past the `l` earlier `ih` binders. -/
-theorem genIhEntry_read {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem genIhEntry_read {acval : Name → (Name → Nat) → ITerm} {env : Env}
     (m : EnvModel V env) (hac : m.acval = acval) {ψ : Name → Nat}
     {g : ClassGen} {rd : ClassRead} {c j l i t tele st : Nat} {fvs : List Expr} {res : Expr}
-    {ws : List Expr} {ty : Expr} {a : AnnotTerm}
+    {ws : List Expr} {ty : Expr} {a : ITerm}
     (hq : (genCtorAt g rd c j).recs[l]? = some (i, t, tele))
     (hop : ConLeche.openPisAtFvars (genCtorAt g rd c j).nF (genCtorAt g rd c j).tyD g.pre.length
       = some (fvs, res))
@@ -441,9 +441,9 @@ theorem EndsInSort.instantiate1' {u : Level} {v : Expr} :
 a truth value, once it is a type** ("not pt" source (1): the caller's
 grading).  On the domains it is a member of `Sort 0`; off them a graph
 applies to `∅`, and the point applies to the point, which is no type. -/
-theorem mem_univZero_of_endsInSort {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem mem_univZero_of_endsInSort {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {φ : Name → Nat} {u : Level} (hu : u.eval φ = 0) :
-    ∀ (m : Nat) {e : Expr} {d : Nat} {T : AnnotTerm}, ConLeche.EndsInSort m u e →
+    ∀ (m : Nat) {e : Expr} {d : Nat} {T : ITerm}, ConLeche.EndsInSort m u e →
       denoteMeta acval env φ d e = some T → ∀ {σ : Nat → V} {f : V}, f ∈ˢ interp V σ T →
       ∀ (args : List V), args.length = m → IsTy (args.foldl SetTheory.app f) →
       args.foldl SetTheory.app f ∈ˢ (univZero : V)
@@ -486,7 +486,7 @@ theorem mem_univZero_of_endsInSort {acval : Name → (Name → Nat) → AnnotTer
 
 /-- The body of a graded Π-tower that is a type is a type at every fitting
 spine (the tower's own `IsTy` when it binds nothing). -/
-theorem isTy_of_wdTy_mkPisAV {B : AnnotTerm} {tl : List AnnotTerm} {ρ : Nat → V}
+theorem isTy_of_wdTy_mkPisAV {B : ITerm} {tl : List ITerm} {ρ : Nat → V}
     {bs : List V} (h : WellDenotedTy V ρ (mkPisAV tl B)) (hsp : SpineFit ρ tl bs) :
     IsTy (interp V (consList bs ρ) B) :=
   match tl, bs, hsp with
@@ -496,8 +496,8 @@ theorem isTy_of_wdTy_mkPisAV {B : AnnotTerm} {tl : List AnnotTerm} {ρ : Nat →
 
 /-- **A λ-tower all of whose body values over the domains are the point is
 the point** (`lamV_eq_pt` per binder). -/
-theorem mkLamsAV_eq_pt {C : AnnotTerm} :
-    ∀ {lds : List AnnotTerm} {ρ : Nat → V},
+theorem mkLamsAV_eq_pt {C : ITerm} :
+    ∀ {lds : List ITerm} {ρ : Nat → V},
       (∀ zs, SpineFit ρ lds zs → interp V (consList zs ρ) C = pt) →
       interp V ρ (mkLamsAV lds C) = pt
   | [], _, h => h [] trivial
@@ -523,8 +523,8 @@ built at the slot, which IS the one built at the rule prefix
 the rule frame's pieces. -/
 theorem genCls_minor (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
@@ -648,7 +648,7 @@ theorem genCls_minor (hμ : μ.verifiedChecks = true)
     exact this
   have hmemB : xs.getD (R.g.nP + s) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) := by
     rw [← hBE, interp_liftN, hsh]; exact hmem
-  -- the rule frame's field domains are the fields' binder data
+  -- the rule frame's field domains are the fields' domains
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
@@ -773,8 +773,8 @@ value (`mem_univZero_of_endsInSort`).  The index count is read off the
 class decoding (`hlenEs`) at the fitting field spines. -/
 theorem genMinor_pt (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
@@ -942,7 +942,7 @@ theorem genMinor_pt (hμ : μ.verifiedChecks = true)
       = (res.getAppArgs.drop (R.g.cls.getD cls default).nPc).map
           fun e => (denoteMeta mpC.base2.acval envC ψ (R.g.pre.length + x.nF) e).getD default := by
     rw [tgtEsAV, hCB, hMaj, hB]
-  -- the field domains are the tower's first binder data
+  -- the field domains are the tower's first domains
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
   have hbsl : bs.length = x.nF + x.recs.length := by rw [hbl]; simp [hfl, hihl]
@@ -978,7 +978,7 @@ theorem genMinor_pt (hμ : μ.verifiedChecks = true)
     rw [← consList_append, show R.g.pre.length + x.nF - 1 - (R.g.nP + sc)
       = (zs.take x.nF).length + xs.length - 1 - (R.g.nP + sc) by omega,
       consList_prefix_getD (by omega)]
-  have hval : interp V (consList zs (consList xs ρ)) ((AnnotTerm.mkAppN (.bvar
+  have hval : interp V (consList zs (consList xs ρ)) ((ITerm.mkAppN (.bvar
         (R.g.pre.length + x.nF - 1 - (R.g.nP + sc))) vs).liftN x.recs.length 0)
       = (vs.map (interp V (consList (zs.take x.nF) (consList xs ρ)))).foldl SetTheory.app
           (xs.getD (R.g.nP + sc) pt) := by

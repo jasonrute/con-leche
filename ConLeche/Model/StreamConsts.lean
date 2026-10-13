@@ -18,8 +18,9 @@ This module carries the other direction, for every record kind that
 declares a constant: **the record's own name is in that environment,
 with the record's own level parameters and the record's own type** —
 `checkDecls_consts`.  The checker stores a declaration as declared
-(`checkConstantVal` returns its input, `let`s included), so the relation
-between the declared type and the stored one is equality.
+(`checkConstantVal` is a guard, `let`s included: it transforms
+nothing), so the relation between the declared type and the stored one
+is equality.
 
 ## Which records are covered, and which are not
 

@@ -24,7 +24,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level PropWhen
   natLitSupported strLitSupported)
 
@@ -40,7 +40,7 @@ valuations agreeing on the stored names denote every term alike.
 Stated as an equation rather than an implication: the two runs are
 `none` together as well, which is what a *fresh* install needs. -/
 theorem denoteMeta_acval_congr
-    {acval₁ acval₂ : Name → (Name → Nat) → AnnotTerm}
+    {acval₁ acval₂ : Name → (Name → Nat) → ITerm}
     (hag : ∀ n, (env.find? n).isSome = true → acval₁ n = acval₂ n) :
     ∀ (d : Nat) (e : Expr),
       denoteMeta acval₁ env φ d e = denoteMeta acval₂ env φ d e := by
@@ -106,11 +106,11 @@ theorem denoteMeta_acval_congr
       | strVal s => exact absurd rfl (hstr s)
 
 /-- **The install corollary**: choosing the new declaration's
-annotated leaf moves no denotation in the environment it was checked
+leaf moves no denotation in the environment it was checked
 in. -/
 theorem denoteMeta_acvalWith_fresh
-    {acval : Name → (Name → Nat) → AnnotTerm} {n : Name}
-    {A : (Name → Nat) → AnnotTerm} (hfresh : env.find? n = none)
+    {acval : Name → (Name → Nat) → ITerm} {n : Name}
+    {A : (Name → Nat) → ITerm} (hfresh : env.find? n = none)
     (d : Nat) (e : Expr) :
     denoteMeta (acvalWith acval n A) env φ d e
       = denoteMeta acval env φ d e := by
@@ -121,14 +121,14 @@ theorem denoteMeta_acvalWith_fresh
 
 /-! ## The spine -/
 
-/-- **Head swap under a spine.**  If the head's annotation survives a
+/-- **Head swap under a spine.**  If the head's reading survives a
 move to another head — for whatever reason: the same term, an
-unfolding, a different term with the same validated annotation — then
+unfolding, a different term with the same reading — then
 so does the whole application's, unchanged. -/
-theorem denoteMeta_mkAppN_swap {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMeta_mkAppN_swap {acval : Name → (Name → Nat) → ITerm}
     {d : Nat} :
-    ∀ (as : List Expr) {f g : Expr} {ea : AnnotTerm},
-      (∀ fa : AnnotTerm, denoteMeta acval env φ d f = some fa →
+    ∀ (as : List Expr) {f g : Expr} {ea : ITerm},
+      (∀ fa : ITerm, denoteMeta acval env φ d f = some fa →
         denoteMeta acval env φ d g = some fa) →
       denoteMeta acval env φ d (Expr.mkAppN f as) = some ea →
       denoteMeta acval env φ d (Expr.mkAppN g as) = some ea := by

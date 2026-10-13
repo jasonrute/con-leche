@@ -26,7 +26,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm eqValT eqReflValT eqRecValT)
+open ConLeche.Semantics (ITerm eqValT eqReflValT eqRecValT)
 open ConLeche (Name)
 
 universe w
@@ -36,27 +36,27 @@ variable {V : Type w} [SetTheory V]
 /-! ## The towers -/
 
 /-- `Eq`'s valuation: `eqValT` in the semantic syntax. -/
-@[expose] def eqValAV (ψ : Name → Nat) : AnnotTerm :=
+@[expose] def eqValAV (ψ : Name → Nat) : ITerm :=
   .lam (.sort (ψ uN)) (.lam (.bvar 0) (.lam (.bvar 1)
     (.eqE (.bvar 1) (.bvar 0))))
 
 /-- `Eq.refl`'s valuation: `.prf` under two binders (`Eq α a a` is a
 proposition, so the tower reads as the point). -/
-@[expose] def eqReflValAV (ψ : Name → Nat) : AnnotTerm :=
+@[expose] def eqReflValAV (ψ : Name → Nat) : ITerm :=
   .lam (.sort (ψ uN)) (.lam (.bvar 0) .prf)
 
 /-- `Eq.rec`'s valuation: the minor premise, returned, under six
 binders. -/
-@[expose] def eqRecValAV (ψ : Name → Nat) : AnnotTerm :=
+@[expose] def eqRecValAV (ψ : Name → Nat) : ITerm :=
   .lam (.sort (ψ uN))
     (.lam (.bvar 0)
       (.lam (.pi (.bvar 1)
-          (.pi (AnnotTerm.mkAppN (eqValAV ψ) [.bvar 2, .bvar 1, .bvar 0])
+          (.pi (ITerm.mkAppN (eqValAV ψ) [.bvar 2, .bvar 1, .bvar 0])
             (.sort (ψ u1N))))
         (.lam (.app (.app (.bvar 0) (.bvar 1))
-            (AnnotTerm.mkAppN (eqReflValAV ψ) [.bvar 2, .bvar 1]))
+            (ITerm.mkAppN (eqReflValAV ψ) [.bvar 2, .bvar 1]))
           (.lam (.bvar 3)
-            (.lam (AnnotTerm.mkAppN (eqValAV ψ) [.bvar 4, .bvar 3, .bvar 0])
+            (.lam (ITerm.mkAppN (eqValAV ψ) [.bvar 4, .bvar 3, .bvar 0])
               (.bvar 2))))))
 
 /-! ### Erasure: the towers project onto the `Term` towers -/
@@ -171,7 +171,7 @@ Both conjuncts come off `eqValAV` directly:
 type readings both mention the spine directly, not through the
 field. -/
 theorem eqValAV_app₃_okP (ψ : Name → Nat) (ρ : Nat → V)
-    {Aa la ra : AnnotTerm} (hAa : WellDenoted V ρ Aa) (hla : WellDenoted V ρ la)
+    {Aa la ra : ITerm} (hAa : WellDenoted V ρ Aa) (hla : WellDenoted V ρ la)
     (hra : WellDenoted V ρ ra)
     (hA : interp V ρ Aa ∈ˢ (univ (ψ uN) : V))
     (ha : interp V ρ la ∈ˢ interp V ρ Aa)
@@ -201,7 +201,7 @@ theorem eqValAV_app₃_okP (ψ : Name → Nat) (ρ : Nat → V)
   exact eqv_mem_univZero _ _
 
 /-- **`EqLaw` from the tower.**  Any environment carrier whose `Eq`
-leaf is the annotated tower satisfies the field. -/
+leaf is the tower `eqValAV` satisfies the field. -/
 theorem eqLaw_of_tower {env : ConLeche.Env} (m : EnvModel V env)
     (hleaf : ∀ ψ : Name → Nat, m.acval eqName ψ = eqValAV ψ) :
     EqLaw m := by

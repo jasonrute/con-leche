@@ -7,7 +7,7 @@ import ConLeche.Verify.Extend.Recs
 import ConLeche.Kernel.Checker
 import ConLeche.Verify.Abstract
 import ConLeche.Verify.EnvWF
-import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Shift
 import ConLeche.Verify.Subst
 
@@ -63,6 +63,13 @@ theorem FueledM.up {α : Type} {x : FueledM α} {F F' : Nat} {v : α}
 theorem throwC_bind_ok {α β : Type} {e : CheckError} {k : α → CheckCM β}
     {s₀ : CState} {v : β} {s' : CState}
     (h : ((throw e : CheckCM α) >>= k) s₀ = .ok (v, s')) : False := by
+  exact nomatch h
+
+/-- A bare `CheckCM` throw never succeeds (the last-guard shape, with no
+continuation to bind: a Unit-returning guard's final condition). -/
+theorem throwC_ok {α : Type} {e : CheckError}
+    {s₀ : CState} {v : α} {s' : CState}
+    (h : (throw e : CheckCM α) s₀ = .ok (v, s')) : False := by
   exact nomatch h
 
 end ConLeche.Cached

@@ -30,7 +30,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level)
 
 universe w
@@ -41,14 +41,14 @@ variable {V : Type w} [SetTheory V]
 
 /-- Entry `l` substituted at the cut `k + l` — a telescope's domains
 through a parallel substitution. -/
-@[expose] def substAt (τ : Nat → AnnotTerm) : Nat → List AnnotTerm → List AnnotTerm
+@[expose] def substAt (τ : Nat → ITerm) : Nat → List ITerm → List ITerm
   | _, [] => []
-  | k, a :: as => AnnotTerm.substAV τ a k :: substAt τ (k + 1) as
+  | k, a :: as => ITerm.substAV τ a k :: substAt τ (k + 1) as
 
 /-- **A spine fits substituted domains exactly when it fits the domains at
 the substituted valuation.** -/
-theorem spineFit_substAt (τ : Nat → AnnotTerm) :
-    ∀ (as : List AnnotTerm) (k : Nat) (σ : Nat → V) (bs : List V),
+theorem spineFit_substAt (τ : Nat → ITerm) :
+    ∀ (as : List ITerm) (k : Nat) (σ : Nat → V) (bs : List V),
       SpineFit σ (substAt τ k as) bs ↔ SpineFit (substE V τ k σ) as bs
   | [], _, _, [] => Iff.rfl
   | [], _, _, _ :: _ => Iff.rfl
@@ -88,7 +88,7 @@ substituted reading**: opened at the rule's variables above `B`, entry
 `l` reads as the walk's entry, opened at the walk's variables above `b`,
 substituted at the cut `q + l`. -/
 theorem teleDoms_substFvars (m : EnvModel V env) {b B : Nat} {s : Nat → Expr}
-    {x : Nat → AnnotTerm}
+    {x : Nat → ITerm}
     (hs : ∀ i, i < b → Expr.WScoped B (s i) ∧ (s i).looseBVarsBounded 0 = true ∧
       denoteMeta m.acval env φ B (s i) = some (x i)) :
     ∀ (tysR tysW : List Expr) (q : Nat) (osR osW : List Expr), LocList B q osR → LocList b q osW →
@@ -119,7 +119,7 @@ theorem teleDoms_substFvars (m : EnvModel V env) {b B : Nat} {s : Nat → Expr}
         (Expr.fvarsBelow_mono (Nat.le_add_right b q) (hfb tW List.mem_cons_self))
     have hread : denoteMeta m.acval env φ (B + q) (tR.instantiateList osR 0)
         = (denoteMeta m.acval env φ (b + q) (tW.instantiateList osW 0)).map
-            (AnnotTerm.substAV (substTau b B x) · q) := by
+            (ITerm.substAV (substTau b B x) · q) := by
       rw [denoteMeta_erasedEq hE0]
       exact denoteMeta_substFvars m hs _ q hfbW
     -- the rest, one binder down
@@ -171,7 +171,7 @@ theorem nestOcc_instantiateList_locList {names : List Name} {lo hi D : Nat} (hD 
 
 /-- **A hole-free term reads alike at two valuations agreeing off the
 holes**, opened at non-hole variables. -/
-theorem interp_holeFree {names : List Name} {lo hi : Nat} {d : Nat} {e : Expr} {ea : AnnotTerm}
+theorem interp_holeFree {names : List Name} {lo hi : Nat} {d : Nat} {e : Expr} {ea : ITerm}
     (hfb : Expr.fvarsBelow d e) (hd : hi ≤ d) (hocc : e.nestOcc names lo hi = false)
     (hea : denoteMeta m.acval env φ d e = some ea) {σ σ' : Nat → V}
     (hag : AgreeOff (holeP d lo hi) σ σ') : interp V σ ea = interp V σ' ea :=
@@ -195,7 +195,7 @@ theorem agreeOff_holeP_consList {lo hi : Nat} :
 /-- **A hole-free telescope fits the same spines at two valuations
 agreeing off the holes.** -/
 theorem spineFit_teleDoms_holeFree {names : List Name} {lo hi D : Nat} (hD : hi ≤ D) :
-    ∀ (tys : List Expr) (q : Nat) (os : List Expr) (ds : List AnnotTerm),
+    ∀ (tys : List Expr) (q : Nat) (os : List Expr) (ds : List ITerm),
       LocList D q os → teleDoms m.acval env φ D os tys = some ds →
       (∀ t ∈ tys, t.nestOcc names lo hi = false ∧ Expr.fvarsBelow D t) →
       ∀ {σ σ' : Nat → V}, AgreeOff (holeP (D + q) lo hi) σ σ' →

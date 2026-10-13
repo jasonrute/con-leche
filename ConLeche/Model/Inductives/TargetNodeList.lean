@@ -41,7 +41,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level NestCtx NestHole NestKey PosTree TargetMajor
   ConstantVal BlockShape)
 
@@ -84,7 +84,7 @@ end Data
 
 section Rel
 
-variable {envC : Env} (acval : Name → (Name → Nat) → AnnotTerm) (ctx : NestCtx)
+variable {envC : Env} (acval : Name → (Name → Nat) → ITerm) (ctx : NestCtx)
   (d : BlockData V) (p : BlockShape) (out : List (ConstantVal × TargetMajor × List Expr))
   (ns : List PosTree) (ψ : Name → Nat) (ρ : Nat → V) (xs : List V)
 
@@ -166,7 +166,7 @@ structure NodeListFacts {envC : Env} (mpC : EnvModelM V μ envC) (ctx : NestCtx)
 /-- **Coverage in `NodeMajor` form** (`outsideClass_reachedNode`'s
 shape): every guarded outside class's major matches some listed
 node's key read back. -/
-@[expose] def NodeListCover (acval : Name → (Name → Nat) → AnnotTerm) (envC : Env)
+@[expose] def NodeListCover (acval : Name → (Name → Nat) → ITerm) (envC : Env)
     (ctx : NestCtx) (d : BlockData V) (p : BlockShape)
     (out : List (ConstantVal × TargetMajor × List Expr)) (ns : List PosTree) (ψ : Name → Nat)
     (ρ : Nat → V) (xs : List V) (F : Nat) (formerTys : List Expr) : Prop :=
@@ -226,7 +226,7 @@ structure TgtNodeDyn (μ : CheckMode) (F : Nat) {envC : Env} (mpC : EnvModelM V 
 
 section Dyn
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {D : LfpDatum V} {ψ : Name → Nat}
+variable {acval : Name → (Name → Nat) → ITerm} {D : LfpDatum V} {ψ : Name → Nat}
 
 /-- **`trans` at the TRUE frame itself** (node `0`, whose only admissible
 frame is its true one): the clause's `fitsMono` along `Y ≤ carrier`. -/

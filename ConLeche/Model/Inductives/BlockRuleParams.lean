@@ -21,7 +21,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
@@ -37,11 +37,11 @@ variable {envC : Env} {p : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))}
   {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
 
-/-- **`pdoms`** — the recursor type's binder data, off its reading
+/-- **`pdoms`** — the recursor type's domains, off its reading
 (`recStage_tyPis`), which is ψ-congruent at any recursor's
 parameters (`blockRecTyAV_params_ext`). -/
 theorem blockRulePdomsAV_params (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs)
     {i : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[i]? = some r) {ψ₁ ψ₂ : Name → Nat} (hq : ∀ q ∈ r.1.levelParams, ψ₁ q = ψ₂ q)
     {c : Nat} (hc : c < rs.length) :
@@ -65,8 +65,8 @@ theorem blockRulePdomsAV_params (hμ : μ.verifiedChecks = true) (mpC : EnvModel
 /-- **The equation list is congruent in its six components** below
 `K` and the rule counts. -/
 theorem blockIotaEqsAV_congr {K : Nat} {nCt : Nat → Nat}
-    {pdoms pdoms' : Nat → List AnnotTerm} {fdoms fdoms' es es' ihs ihs' : Nat → Nat → List AnnotTerm}
-    {mk mk' Rb Rb' : Nat → Nat → AnnotTerm}
+    {pdoms pdoms' : Nat → List ITerm} {fdoms fdoms' es es' ihs ihs' : Nat → Nat → List ITerm}
+    {mk mk' Rb Rb' : Nat → Nat → ITerm}
     (hp : ∀ c, c < K → pdoms c = pdoms' c)
     (hrest : ∀ c, c < K → ∀ j, j < nCt c →
       fdoms c j = fdoms' c j ∧ es c j = es' c j ∧ ihs c j = ihs' c j ∧ mk c j = mk' c j ∧

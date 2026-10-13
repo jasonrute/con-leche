@@ -15,7 +15,7 @@ The checker's certificate is about the stored pin
 *instantiated at the public recursor frame's openers*, at the frame
 depth — and `RecRuleLaw`'s conjunct is about `instRevChain zs vpa`,
 with `vpa` the pin's reading through `openRev 0 rP`.  Those are two
-different `AnnotTerm`s, related by an order-reversing renaming of the
+different `ITerm`s, related by an order-reversing renaming of the
 frame's variables, and the `openRev` pair identifies them:
 
 * `Rules.denoteMeta_openRev_base` and `Rules.denoteMeta_openRev`
@@ -30,7 +30,7 @@ frame's variables, and the `openRev` pair identifies them:
 * `pinCross` — the composite.
 
 Boundedness is stated of the value's **erasure**
-(`AnnotTerm.liftN_eq_self` / `AnnotTerm.inst_eq_self` are keyed
+(`ITerm.liftN_eq_self` / `ITerm.inst_eq_self` are keyed
 there), and `denoteMeta_erase` + `denote_bvarsBelow` produce it.
 -/
 
@@ -39,27 +39,27 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level)
 
 universe w
 
-variable {acval : Name → (Name → Nat) → AnnotTerm} {cval : TConstVal}
+variable {acval : Name → (Name → Nat) → ITerm} {cval : TConstVal}
 variable {env : Env} {φ : Name → Nat}
 
 /-! ## `instSeq` corollaries at bounded readings -/
 
-open ConLeche.Semantics.AnnotTerm in
+open ConLeche.Semantics.ITerm in
 /-- A reading with only low bound variables passes an `instSeq`
 untouched, at the erasure's boundedness. -/
 theorem instSeqAV_eq_self_of_bvarsBelow :
-    ∀ (vs : List AnnotTerm) (t : Nat) {X : AnnotTerm} {m : Nat},
+    ∀ (vs : List ITerm) (t : Nat) {X : ITerm} {m : Nat},
       Term.bvarsBelow m X.erase → m + vs.length ≤ t + 1 →
-      ConLeche.Model.AnnotTerm.instSeq vs t X = X
+      ConLeche.Model.ITerm.instSeq vs t X = X
   | [], _, _, _, _, _ => rfl
   | a :: vs, t, X, m, hb, h => by
-    show ConLeche.Model.AnnotTerm.instSeq vs (t - 1) (X.inst a t) = _
-    rw [AnnotTerm.inst_eq_self X
+    show ConLeche.Model.ITerm.instSeq vs (t - 1) (X.inst a t) = _
+    rw [ITerm.inst_eq_self X
       (Term.bvarsBelow.mono (by simp only [List.length_cons] at h; omega)
         hb) a]
     cases t with
@@ -72,43 +72,43 @@ theorem instSeqAV_eq_self_of_bvarsBelow :
       exact instSeqAV_eq_self_of_bvarsBelow vs t' hb (by
         simp only [List.length_cons] at h; omega)
 
-open ConLeche.Semantics.AnnotTerm in
+open ConLeche.Semantics.ITerm in
 /-- **`instSeq` through a reverse-instantiation chain**, with no side
 conditions. -/
 theorem instSeqAV_instRevChain :
-    ∀ (bs : List AnnotTerm) (X : AnnotTerm) (vs : List AnnotTerm) (t : Nat),
+    ∀ (bs : List ITerm) (X : ITerm) (vs : List ITerm) (t : Nat),
       vs.length ≤ t + 1 →
-      ConLeche.Model.AnnotTerm.instSeq vs t
-          (ConLeche.Model.AnnotTerm.instRevChain bs X)
-        = ConLeche.Model.AnnotTerm.instRevChain
-            (bs.map (ConLeche.Model.AnnotTerm.instSeq vs t))
-            (ConLeche.Model.AnnotTerm.instSeq vs (t + bs.length) X)
+      ConLeche.Model.ITerm.instSeq vs t
+          (ConLeche.Model.ITerm.instRevChain bs X)
+        = ConLeche.Model.ITerm.instRevChain
+            (bs.map (ConLeche.Model.ITerm.instSeq vs t))
+            (ConLeche.Model.ITerm.instSeq vs (t + bs.length) X)
   | [], X, vs, t, _ => rfl
   | b :: bs, X, vs, t, h => by
-    show ConLeche.Model.AnnotTerm.instSeq vs t
-        (ConLeche.Model.AnnotTerm.instRevChain bs
+    show ConLeche.Model.ITerm.instSeq vs t
+        (ConLeche.Model.ITerm.instRevChain bs
           (X.inst (liftN bs.length b 0) 0)) = _
     rw [instSeqAV_instRevChain bs _ vs t h,
       instSeqAV_inst0 vs (t + bs.length) X _ (by omega),
       instSeqAV_liftN0 vs t bs.length b h]
-    show ConLeche.Model.AnnotTerm.instRevChain (List.map _ bs) _ = _
-    rw [show (b :: bs).map (ConLeche.Model.AnnotTerm.instSeq vs t)
-        = ConLeche.Model.AnnotTerm.instSeq vs t b
-            :: bs.map (ConLeche.Model.AnnotTerm.instSeq vs t) from rfl]
-    show _ = ConLeche.Model.AnnotTerm.instRevChain
-      (bs.map (ConLeche.Model.AnnotTerm.instSeq vs t)) _
-    rw [show (bs.map (ConLeche.Model.AnnotTerm.instSeq vs t)).length
+    show ConLeche.Model.ITerm.instRevChain (List.map _ bs) _ = _
+    rw [show (b :: bs).map (ConLeche.Model.ITerm.instSeq vs t)
+        = ConLeche.Model.ITerm.instSeq vs t b
+            :: bs.map (ConLeche.Model.ITerm.instSeq vs t) from rfl]
+    show _ = ConLeche.Model.ITerm.instRevChain
+      (bs.map (ConLeche.Model.ITerm.instSeq vs t)) _
+    rw [show (bs.map (ConLeche.Model.ITerm.instSeq vs t)).length
         = bs.length from by simp]
     simp only [List.length_cons]
     rfl
 
-open ConLeche.Semantics.AnnotTerm in
+open ConLeche.Semantics.ITerm in
 /-- A padded fired spine resolves a frame variable to its slot's
 reading, with `.prf` as the padding element. -/
-theorem padHit {K : Nat} (q : AnnotTerm) :
-    ∀ (n p : Nat) (vals : List AnnotTerm), p < n →
+theorem padHit {K : Nat} (q : ITerm) :
+    ∀ (n p : Nat) (vals : List ITerm), p < n →
     vals.length = n → n ≤ K →
-    ConLeche.Model.AnnotTerm.instSeq
+    ConLeche.Model.ITerm.instSeq
         (vals ++ List.replicate (K - n) q) (K - 1)
         (.bvar (K - 1 - p))
       = vals.getD p default := by
@@ -131,24 +131,24 @@ theorem padHit {K : Nat} (q : AnnotTerm) :
     (K - 1 - p) (vals.getD p default) hidx (by omega)
   simp only [Nat.zero_add] at h1
   rw [hlenT] at h1
-  rw [h1, ConLeche.Semantics.AnnotTerm.liftN_zero]
+  rw [h1, ConLeche.Semantics.ITerm.liftN_zero]
 
-open ConLeche.Semantics.AnnotTerm in
+open ConLeche.Semantics.ITerm in
 /-- **The chain identity at the reading**: a pin's
 frame reading under any fired spine that starts with the prefix
 readings is the canonical reverse chain at those readings. -/
-theorem nestedChain {rP cnF : Nat} {xs : List AnnotTerm} (q : AnnotTerm)
+theorem nestedChain {rP cnF : Nat} {xs : List ITerm} (q : ITerm)
     (hxstakelen : (xs.take rP).length = rP) :
-    ∀ (vals : List AnnotTerm) (n : Nat) (wp : AnnotTerm),
+    ∀ (vals : List ITerm) (n : Nat) (wp : ITerm),
     vals.length = n → n ≤ rP + cnF → rP ≤ n →
     vals.take rP = xs.take rP →
     Term.bvarsBelow rP wp.erase →
-    ConLeche.Model.AnnotTerm.instSeq
+    ConLeche.Model.ITerm.instSeq
       (vals ++ List.replicate (rP + cnF - n) q)
       (rP + cnF - 1)
-      (ConLeche.Model.AnnotTerm.instRevChain ((List.range rP).map fun j =>
-        AnnotTerm.bvar (rP + cnF - 1 - j)) wp)
-      = ConLeche.Model.AnnotTerm.instRevChain (xs.take rP) wp := by
+      (ConLeche.Model.ITerm.instRevChain ((List.range rP).map fun j =>
+        ITerm.bvar (rP + cnF - 1 - j)) wp)
+      = ConLeche.Model.ITerm.instRevChain (xs.take rP) wp := by
   have hpadhit := padHit (K := rP + cnF) q
   intro vals n wp hvl hn hrn hpre hbv
   rw [instSeqAV_instRevChain _ _ _ _ (by
@@ -167,7 +167,7 @@ theorem nestedChain {rP cnF : Nat} {xs : List AnnotTerm} (q : AnnotTerm)
       simp only [id_eq]]
   refine List.map_congr_left fun j hj => ?_
   have hjr : j < rP := List.mem_range.mp hj
-  show ConLeche.Model.AnnotTerm.instSeq (vals ++ List.replicate
+  show ConLeche.Model.ITerm.instSeq (vals ++ List.replicate
       (rP + cnF - n) q) (rP + cnF - 1)
       (.bvar (rP + cnF - 1 - j)) = _
   rw [hpadhit n j vals (by omega) hvl hn, ← hpre]
@@ -176,7 +176,7 @@ theorem nestedChain {rP cnF : Nat} {xs : List AnnotTerm} (q : AnnotTerm)
 
 /-- A reading spine, built positionally. -/
 theorem DenoteMetaSpine.of_getD {d : Nat} :
-    ∀ (as : List Expr) (vs : List AnnotTerm), as.length = vs.length →
+    ∀ (as : List Expr) (vs : List ITerm), as.length = vs.length →
       (∀ q, q < as.length →
         denoteMeta acval env φ d (as.getD q default)
           = some (vs.getD q default)) →
@@ -214,7 +214,7 @@ former being `some` forces the latter. -/
 theorem pinOpenRevReads
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
-    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : AnnotTerm) (k : Nat),
+    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : ITerm) (k : Nat),
       (acval n ψ).inst y k = acval n ψ)
     (hlink : ∀ n ψ, (acval n ψ).erase = cval n ψ)
     (hcl : ∀ n ψ, Term.Closed (cval n ψ))
@@ -226,15 +226,15 @@ theorem pinOpenRevReads
     (hbOs : ∀ x ∈ os, x.looseBVarsBounded 0 = true)
     {p : Expr} (hpw : p.hasFvar = false)
     (hpb : p.looseBVarsBounded rP = true)
-    {w0 : AnnotTerm}
+    {w0 : ITerm}
     (hw0 : denoteMeta acval env φ (rP + cnF)
       (Expr.instSpine os (rP - 1) p) = some w0) :
     ∃ vpa, denoteMeta acval env φ rP (openRev 0 rP p) = some vpa := by
   have hbvslen : ((List.range rP).map
-      (fun j => AnnotTerm.bvar (rP + cnF - 1 - j))).length = rP := by
+      (fun j => ITerm.bvar (rP + cnF - 1 - j))).length = rP := by
     rw [List.length_map, List.length_range]
   have hsp : DenoteMetaSpine acval env φ (rP + cnF) os
-      ((List.range rP).map (fun j => AnnotTerm.bvar (rP + cnF - 1 - j))) := by
+      ((List.range rP).map (fun j => ITerm.bvar (rP + cnF - 1 - j))) := by
     refine DenoteMetaSpine.of_getD os _ (by rw [hoslen, hbvslen]) ?_
     intro q hq
     rw [hoslen] at hq
@@ -246,8 +246,8 @@ theorem pinOpenRevReads
       rw [List.getD, hx]
       rfl
     have h2 : ((List.range rP).map
-        (fun j => AnnotTerm.bvar (rP + cnF - 1 - j))).getD q default
-        = AnnotTerm.bvar (rP + cnF - 1 - q) := by
+        (fun j => ITerm.bvar (rP + cnF - 1 - j))).getD q default
+        = ITerm.bvar (rP + cnF - 1 - q) := by
       rw [List.getD, List.getElem?_map, List.getElem?_range hq]
       rfl
     rw [h1, h2]
@@ -282,11 +282,11 @@ prefix is `zs`, padded to the frame's width. -/
 theorem pinCross
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
-    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : AnnotTerm) (k : Nat),
+    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : ITerm) (k : Nat),
       (acval n ψ).inst y k = acval n ψ)
     (hlink : ∀ n ψ, (acval n ψ).erase = cval n ψ)
     (hcl : ∀ n ψ, Term.Closed (cval n ψ))
-    {rP cnF : Nat} (q : AnnotTerm)
+    {rP cnF : Nat} (q : ITerm)
     {os : List Expr} (hoslen : os.length = rP)
     (hshape : ∀ (i : Nat) (x : Expr), os[i]? = some x →
       ∃ ty, x = Expr.fvar i ty)
@@ -294,23 +294,23 @@ theorem pinCross
     (hbOs : ∀ x ∈ os, x.looseBVarsBounded 0 = true)
     {p : Expr} (hpw : p.hasFvar = false)
     (hpb : p.looseBVarsBounded rP = true)
-    {vpa : AnnotTerm}
+    {vpa : ITerm}
     (hvpden : denoteMeta acval env φ rP (openRev 0 rP p) = some vpa)
-    {zs : List AnnotTerm} (hzslen : zs.length = rP)
-    {vals : List AnnotTerm} {n : Nat} (hvalslen : vals.length = n)
+    {zs : List ITerm} (hzslen : zs.length = rP)
+    {vals : List ITerm} {n : Nat} (hvalslen : vals.length = n)
     (hrPn : rP ≤ n) (hn : n ≤ rP + cnF)
     (hvalspre : vals.take rP = zs) :
     ∃ w0, denoteMeta acval env φ (rP + cnF)
         (Expr.instSpine os (rP - 1) p) = some w0 ∧
-      ConLeche.Model.AnnotTerm.instSeq
+      ConLeche.Model.ITerm.instSeq
           (vals ++ List.replicate (rP + cnF - n) q) (rP + cnF - 1) w0
-        = ConLeche.Model.AnnotTerm.instRevChain zs vpa := by
+        = ConLeche.Model.ITerm.instRevChain zs vpa := by
   -- the frame's prefix openers read to the canonical bvar spine
   have hbvslen : ((List.range rP).map
-      (fun j => AnnotTerm.bvar (rP + cnF - 1 - j))).length = rP := by
+      (fun j => ITerm.bvar (rP + cnF - 1 - j))).length = rP := by
     rw [List.length_map, List.length_range]
   have hsp : DenoteMetaSpine acval env φ (rP + cnF) os
-      ((List.range rP).map (fun j => AnnotTerm.bvar (rP + cnF - 1 - j))) := by
+      ((List.range rP).map (fun j => ITerm.bvar (rP + cnF - 1 - j))) := by
     refine DenoteMetaSpine.of_getD os _ (by rw [hoslen, hbvslen]) ?_
     intro q hq
     rw [hoslen] at hq
@@ -322,8 +322,8 @@ theorem pinCross
       rw [List.getD, hx]
       rfl
     have h2 : ((List.range rP).map
-        (fun j => AnnotTerm.bvar (rP + cnF - 1 - j))).getD q default
-        = AnnotTerm.bvar (rP + cnF - 1 - q) := by
+        (fun j => ITerm.bvar (rP + cnF - 1 - j))).getD q default
+        = ITerm.bvar (rP + cnF - 1 - q) := by
       rw [List.getD, List.getElem?_map, List.getElem?_range hq]
       rfl
     rw [h1, h2]

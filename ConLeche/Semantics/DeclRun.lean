@@ -18,7 +18,7 @@ one is read off a consumer):
 
 | record | kept, and its consumer |
 |---|---|
-| `ConstantValRun` | the six freshness/reservation/level/scoping guards (`hfresh` at every harvest and at `declEtaStepRun`), the annotate output (`stored_syntax`), the two `allLevelParamsDefined`/`constsResolve` guards, and the run chain `∃ stype u, inferTypeCore … ∧ ensureSortCore …` (the type's reading, through `acceptedReads_of`) |
+| `ConstantValRun` | the six freshness/reservation/level/scoping guards (`hfresh` at every harvest and at `declEtaStepRun`), the stored term (`stored_syntax`), the two `allLevelParamsDefined`/`constsResolve` guards, and the run chain `∃ stype u, inferTypeCore … ∧ ensureSortCore …` (the type's reading, through `acceptedReads_of`) |
 | `ValueFrontRun` | the value's two syntactic guards, the stored value (`value' = value`), its two resolution guards, and the run **pair** `∃ vtype, inferTypeCore … ∧ isDefEqCore …` (the leaf's reading, and the membership crossing) |
 | `NatEqsRun` | one `isDefEqCore` run per recurrence, carried by `DeclDefnRun`; `natOps_install` consumes the runs |
 | `DivModPinRun` | the guards and the certificate verdict; `divMod_install` consumes them |

@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Model.Inductives.GenClsData
+import ConLeche.Verify.Inductives.TargetAuxFire
 import ConLeche.Model.Inductives.BlockRecLaw
 import ConLeche.Model.Inductives.GenRecRules
 import ConLeche.Model.Inductives.GenClsSem
@@ -75,7 +76,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState)
 
@@ -206,17 +207,17 @@ variables** (`ctorBodyAVI`'s shape): the syntactic shape (`LfpCaps`)
 opened at variables (`openPisAtFvars_stripPis`) and read
 (`denoteMeta_openPis`), the parameter variables reading as the
 parameters' de Bruijn indices. -/
-theorem denoteMeta_ctorShape {acval : Name → (Name → Nat) → AnnotTerm} {env : Env}
+theorem denoteMeta_ctorShape {acval : Name → (Name → Nat) → ITerm} {env : Env}
     {ψ : Name → Nat} {cv : ConstantVal} {I : Name} {nPc nF : Nat}
-    {bs : List Expr} {es : List Expr} {ciI : ConstantInfo} {ea : AnnotTerm}
+    {bs : List Expr} {es : List Expr} {ciI : ConstantInfo} {ea : ITerm}
     (hfI : env.find? I = some ciI)
     (hlI : (cv.levelParams.map Level.param).length = ciI.toConstantVal.levelParams.length)
     (hst : cv.type.stripPis (nPc + nF)
       = some (bs, Expr.mkAppN (.const I (cv.levelParams.map .param))
           (ConLeche.structPsAt nF nPc ++ es)))
     (hread : denoteMeta acval env ψ 0 cv.type = some ea) :
-    ∃ (pps : List AnnotTerm) (Es : List AnnotTerm),
-      ea = mkPisAV pps (AnnotTerm.mkAppN
+    ∃ (pps : List ITerm) (Es : List ITerm),
+      ea = mkPisAV pps (ITerm.mkAppN
         (acval I (Level.substFn ψ ciI.toConstantVal.levelParams (cv.levelParams.map .param)))
         (paramBvars nPc nF ++ Es)) ∧
       pps.length = nPc + nF ∧ Es.length = es.length := by
@@ -279,7 +280,7 @@ theorem holds_false_of_isNever {lps : List Name} {us : List Level} {pw : ConLech
   exact hh.symm
 
 omit [SetTheory V] in
-theorem domsBelow_drop : ∀ (n : Nat) {k : Nat} {ab : List AnnotTerm},
+theorem domsBelow_drop : ∀ (n : Nat) {k : Nat} {ab : List ITerm},
     DomsBelow k ab → DomsBelow (k + n) (ab.drop n)
   | 0, _, _, h => h
   | _ + 1, _, [], _ => trivial
@@ -296,6 +297,29 @@ omit [SetTheory V] in
 theorem getD_append_right' {α : Type _} {l₁ l₂ : List α} {q : Nat} {x : α} :
     (l₁ ++ l₂).getD (l₁.length + q) x = l₂.getD q x := by
   simp [List.getD_eq_getElem?_getD, List.getElem?_append_right]
+
+/-- **A fit extends across a peel** (`teleFit_peel'`'s converse): a
+fitting prefix spine followed by a fit of the peel's residual is a fit of
+the whole telescope. -/
+theorem teleFit_unpeel :
+    ∀ (ws : List ITerm) {T C : ITerm} {σ : Nat → V} {fs : List V} {X : V},
+      TeleFitPA V σ T ws C → Rules.PiChain (ws.length + fs.length) T →
+      TeleFit V σ C fs X → TeleFit V σ T (ws.map (interp V σ) ++ fs) X
+  | [], T, C, σ, fs, X, h, _, hC => by
+    cases h
+    simpa using hC
+  | w :: ws, _, C, σ, fs, X, h, hpc, hC => by
+    cases h with
+    | @cons A B _ _ _ hmem htail =>
+      have hB : Rules.PiChain (ws.length + fs.length) B := by
+        have e : (w :: ws).length + fs.length = (ws.length + fs.length) + 1 := by
+          simp only [List.length_cons]; omega
+        rw [e] at hpc
+        exact hpc
+      have ih := teleFit_unpeel ws htail (Rules.PiChain.inst w 0 hB) hC
+      rw [List.map_cons, List.cons_append]
+      exact .cons hmem (Rules.teleFit_of_inst0
+        (by rw [List.length_append, List.length_map]; exact hB) ih)
 
 end Generic
 
@@ -339,11 +363,11 @@ set_option maxHeartbeats 4000000 in
 /-- **A member class's facts, from the run** (`genRows3_mem`'s preamble). -/
 theorem genMemAt_of
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+      block ctorsAs out)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-    {ppsOf : Nat → (Name → Nat) → List AnnotTerm}
-    {isRec : Bool} {A : Nat → (Name → Nat) → AnnotTerm} {envI' : Env}
+    {ppsOf : Nat → (Name → Nat) → List ITerm}
+    {isRec : Bool} {A : Nat → (Name → Nat) → ITerm} {envI' : Env}
     (hdR : d = blockDataOf V pp.toBlockShape ctorsAs pk uOfD ppsOf)
     (hN : BlockNamesOk (V := V) d cvTas)
     (hSt : BlockCtorsStage (V := V) μ F d pp.lps cvTas pp.toBlockShape isRec A envI'
@@ -436,8 +460,8 @@ theorem genMemAt_of
 set_option maxHeartbeats 4000000 in
 /-- **The major lies in the member's carrier** at the recursor's
 parameters and index tuple (`genRows3_mem`'s class step). -/
-theorem genMem_major (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genMem_major (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
@@ -446,7 +470,7 @@ theorem genMem_major (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (G : GenMemAt mpC d pp out isRec cvT j i t cA)
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
-    (ψ : Name → Nat) {ρ : Nat → V} {xs : List AnnotTerm} {a restR : AnnotTerm}
+    (ψ : Name → Nat) {ρ : Nat → V} {xs : List ITerm} {a restR : ITerm}
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
       (xs ++ [a]) restR) :
@@ -480,8 +504,8 @@ theorem genMem_major (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
 
 /-- **Above `Prop` the member's carrier holds no point**: the major is an
 injection (`blockCarrier_case`), and no injection is the point there. -/
-theorem genMem_ne_pt (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genMem_ne_pt (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
@@ -491,7 +515,7 @@ theorem genMem_ne_pt (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
     {ψ : Name → Nat} (hw : d.w ψ ≠ 0)
-    (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm)
+    (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm)
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
       (xs ++ [a]) restR) :
@@ -504,31 +528,18 @@ theorem genMem_ne_pt (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   rw [heq]
   exact (mpC.lfp_ok _ G.hlfp).1.injNePt ψ hw t j' fs'
 
-/-- **(S) at a member class**: where the member's sort is never zero at
-the constructor's levels (the licence reads the member's record,
-`blockCapsAt`, which carries the block's sort zero-ness), the member's
-carrier at the recursor's parameters is strict, so the major is not the
-point. -/
-theorem genMem_S (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
-    {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
-    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out)
-    (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
-    {isRec : Bool} {cvT : ConstantVal} {j i t : Nat} {cA : ConstantVal × Nat}
-    (G : GenMemAt mpC d pp out isRec cvT j i t cA)
-    {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
-    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
+/-- **The licence's sort fact at a member class**: where the member's
+sort is never zero at the constructor's levels (the licence reads the
+member's record, `blockCapsAt`, which carries the block's sort
+zero-ness), the member is not `Prop` at the recursor's levels. -/
+theorem genMem_w_of_lic {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
+    {cA : ConstantVal × Nat} (G : GenMemAt mpC d pp out isRec cvT j i t cA)
     {ψ : Name → Nat} {usj : List Level} {φ : Name → Nat}
     (hlv : ∀ q ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj q = ψ q)
     {f : Name → Option ConstantInfo}
     (hfm : f (d.memberName t) = some (.indInfo cvT (ConLeche.blockCapsAt pp.toBlockShape t isRec)))
-    (hlic : ConLeche.iotaCtorLicensed f cA.1 usj = true)
-    (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm)
-    (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
-    (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
-      (xs ++ [a]) restR) :
-    interp V ρ a ≠ pt := by
+    (hlic : ConLeche.iotaCtorLicensed f cA.1 usj = true) :
+    d.w ψ ≠ 0 := by
   obtain ⟨T, us₀, cvT', caps, hhead, hfT, -, hnz⟩ := iotaCtorLicensed_inv hlic
   -- the constructor's family is the member
   obtain ⟨cbs, es, hres, -⟩ := G.hcf.2.2.resid
@@ -545,7 +556,32 @@ theorem genMem_S (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   have hc : d.w (Level.substFn φ cA.1.levelParams usj) = d.w ψ :=
     lfpW_congr mpC (D := d.toLfp) G.hlfp G.htd G.hcaps (fun q hq => by
       rw [G.hlpsT] at hq; exact hlv q hq)
-  exact genMem_ne_pt hμ h R hS G hr hm (hc ▸ hne) ρ xs a restR hxl hfitR
+  exact hc ▸ hne
+
+/-- **(S) at a member class**: where the licence holds, the member's
+carrier at the recursor's parameters is strict (`genMem_w_of_lic`), so
+the major is not the point. -/
+theorem genMem_S (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+    {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
+    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
+      block ctorsAs out)
+    (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
+    {isRec : Bool} {cvT : ConstantVal} {j i t : Nat} {cA : ConstantVal × Nat}
+    (G : GenMemAt mpC d pp out isRec cvT j i t cA)
+    {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
+    {ψ : Name → Nat} {usj : List Level} {φ : Name → Nat}
+    (hlv : ∀ q ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj q = ψ q)
+    {f : Name → Option ConstantInfo}
+    (hfm : f (d.memberName t) = some (.indInfo cvT (ConLeche.blockCapsAt pp.toBlockShape t isRec)))
+    (hlic : ConLeche.iotaCtorLicensed f cA.1 usj = true)
+    (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm)
+    (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
+    (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
+      (xs ++ [a]) restR) :
+    interp V ρ a ≠ pt :=
+  genMem_ne_pt hμ h R hS G hr hm (genMem_w_of_lic G hlv hfm hlic) ρ xs a restR hxl hfitR
 
 /-- **At a `Prop` valuation of a member, its constructor is the point**,
 and so is every application of it: every binder of the constructor's
@@ -554,8 +590,8 @@ member's, a truth value), so the type is a truth value; a constructor with no bi
 member's fibre, whose elements are injections, all the point. -/
 theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
     {cA : ConstantVal × Nat} (G : GenMemAt mpC d pp out isRec cvT j i t cA)
-    {ψj : Name → Nat} (hw : d.w ψj = 0) (ρ : Nat → V) (ys : List AnnotTerm) :
-    interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
+    {ψj : Name → Nat} (hw : d.w ψj = 0) (ρ : Nat → V) (ys : List ITerm) :
+    interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
   refine Rules.interp_mkAppN_pt ?_ ys
   have hcd := G.hcf.2.2
   have hmem := mpC.mem_type _ (ConLeche.Semantics.Env.find?_mem G.hcf.1) ψj _ (hcd.read ψj) ρ
@@ -646,8 +682,8 @@ theorem genMemCtor_pt {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
 the member is `Prop` at the recursor's levels (above it the carrier holds
 no point), hence at the constructor's, and every application of the
 constructor is the point. -/
-theorem genMem_P (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genMem_P (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
@@ -657,12 +693,12 @@ theorem genMem_P (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
     {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
-    (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm)
+    (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm)
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
       (xs ++ [a]) restR)
-    (hapt : interp V ρ a = pt) (ys : List AnnotTerm) :
-    interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
+    (hapt : interp V ρ a = pt) (ys : List ITerm) :
+    interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
   have hw : d.w ψ = 0 := by
     refine Classical.byContradiction fun hw => ?_
     exact genMem_ne_pt hμ h R hS G hr hm hw ρ xs a restR hxl hfitR hapt
@@ -679,10 +715,10 @@ index reading at the fired spine. -/
 theorem genMem_residual {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
     {cA : ConstantVal × Nat} (G : GenMemAt mpC d pp out isRec cvT j i t cA)
     {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
-    {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
+    {ρ : Nat → V} {ys : List ITerm} {restC : ITerm}
     (hys : ys.length = d.nP + cA.2)
     (hfitC : TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψj) ys restC)
-    {Ha : AnnotTerm} {cargsa : List AnnotTerm} (hrestEq : restC = AnnotTerm.mkAppN Ha cargsa)
+    {Ha : ITerm} {cargsa : List ITerm} (hrestEq : restC = ITerm.mkAppN Ha cargsa)
     (hcarLen : cargsa.length = d.nP + (d.esF t i ψ).length) :
     ∀ q, q < (d.esF t i ψ).length →
       interp V ρ (cargsa.getD (d.nP + q) default)
@@ -698,22 +734,22 @@ theorem genMem_residual {isRec : Bool} {cvT : ConstantVal} {j i t : Nat}
     (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψj (d.esF t i ψj))
   rw [hD.len ψj] at hteleC
   have hrest := teleFitPA_rest_eq (d.nP + cA.2) hteleC (by rw [hys]) hfitC
-  have hrest2 : AnnotTerm.mkAppN Ha cargsa
-      = AnnotTerm.mkAppN
-          (ConLeche.Model.AnnotTerm.instSeq ys (d.nP + cA.2 - 1)
+  have hrest2 : ITerm.mkAppN Ha cargsa
+      = ITerm.mkAppN
+          (ConLeche.Model.ITerm.instSeq ys (d.nP + cA.2 - 1)
             (mpC.base2.acval (d.memberName t) ψj))
           ((paramBvars d.nP cA.2 ++ d.esF t i ψj).map
-            (ConLeche.Model.AnnotTerm.instSeq ys (d.nP + cA.2 - 1))) := by
+            (ConLeche.Model.ITerm.instSeq ys (d.nP + cA.2 - 1))) := by
     rw [← hrestEq, hrest]
     unfold ctorBodyAVI
     rw [instSeqAV_mkAppN]
-  obtain ⟨-, hcargs⟩ := AnnotTerm.mkAppN_inj hrest2
+  obtain ⟨-, hcargs⟩ := ITerm.mkAppN_inj hrest2
     (by rw [hcarLen, List.length_map, List.length_append, paramBvars, List.length_map,
       List.length_range, hes])
   intro q hq
   have hqj : q < (d.esF t i ψj).length := by rw [hes]; exact hq
   have hcel : cargsa.getD (d.nP + q) default
-      = ConLeche.Model.AnnotTerm.instSeq ys (d.nP + cA.2 - 1) ((d.esF t i ψj).getD q default) := by
+      = ConLeche.Model.ITerm.instSeq ys (d.nP + cA.2 - 1) ((d.esF t i ψj).getD q default) := by
     have hq' := congrArg (fun l => l[d.nP + q]?) hcargs
     simp only [List.getElem?_map,
       List.getElem?_append_right
@@ -739,8 +775,8 @@ theorem getD_drop' {α : Type _} {l : List α} {n q : Nat} {x : α} :
   simp [List.getD_eq_getElem?_getD, List.getElem?_drop]
 
 /-- A mapped spine's `getD` at a position in range. -/
-theorem getD_map_pt {f : AnnotTerm → V} :
-    ∀ {l : List AnnotTerm} {q : Nat}, q < l.length →
+theorem getD_map_pt {f : ITerm → V} :
+    ∀ {l : List ITerm} {q : Nat}, q < l.length →
       (l.map f).getD q pt = f (l.getD q default) := by
   intro l q hq
   rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_eq_getElem hq,
@@ -754,8 +790,8 @@ parameters and the indices, each conditionally; the parameters are fits
 of the constructor's parameter telescope (a telescope of types), so
 they are equal, and the indices are then fits of the member's index
 telescope at the same parameters, so they are equal too. -/
-theorem genMem_U (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genMem_U (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
@@ -766,10 +802,10 @@ theorem genMem_U (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
     {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
-    {ρ : Nat → V} {xs ys : List AnnotTerm} {restR restC : AnnotTerm}
+    {ρ : Nat → V} {xs ys : List ITerm} {restR restC : ITerm}
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j) (hyl : ys.length = pp.nP + cA.2)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
-      (xs ++ [AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys]) restR)
+      (xs ++ [ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys]) restR)
     (hfitC : TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψj) ys restC)
     (hP : ∀ q, q < pp.nP → interp V ρ (ys.getD q default) ≠ pt →
       interp V ρ (xs.getD q default) ≠ pt →
@@ -865,8 +901,8 @@ constructor's injection at no fields, so it is the value of the
 constructor applied to the recursor's own parameters, whose stored fit's
 index clause is the recursor's index tuple (the index pin); the spine
 fits both types. -/
-theorem genMem_K (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genMem_K (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
@@ -878,19 +914,19 @@ theorem genMem_K (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
     (hone : (d.ctorsM t).length = 1) (hnf0 : cA.2 = 0)
     {ψ ψj : Name → Nat} (hlv : ∀ q ∈ cA.1.levelParams, ψj q = ψ q)
-    (ρ : Nat → V) (xs : List AnnotTerm) (a restR : AnnotTerm)
+    (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm)
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
       (xs ++ [a]) restR) :
     ∃ restR' restC,
       TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
-        (xs ++ [AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) (xs.take pp.nP)]) restR' ∧
+        (xs ++ [ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) (xs.take pp.nP)]) restR' ∧
       TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψj)
         (xs.take pp.nP) restC ∧
       IotaIndexPin (V := V) ρ restC pp.nP (pp.toBlockShape.majorIdxAt j)
         (pp.toBlockShape.rulePrefixAt j) xs ∧
       interp V ρ a
-        = interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) (xs.take pp.nP)) := by
+        = interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) (xs.take pp.nP)) := by
   have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
   have hrPle := blockRecHrPle (p := pp) h hj
   have hnP' : d.nP ≤ pp.toBlockShape.rulePrefixAt j := by rw [G.hdnP]; exact hnP
@@ -927,7 +963,7 @@ theorem genMem_K (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   have hval := blockCtorMajor_value G.hM G.hcj G.hcf.1 G.hmN hlv hqs hfq
   rw [List.drop_eq_nil_of_le (Nat.le_of_eq hyl), List.map_nil] at hval
   have heq : interp V ρ a
-      = interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) (xs.take d.nP)) := by
+      = interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) (xs.take d.nP)) := by
     rw [heqa, hval]
   obtain ⟨restR', hfitR'⟩ := Rules.teleFitPA_snoc_congr xs hfitR heq
   have hct : blockRecCtorTy mpC.base2.acval envC (tgtRs out) j j' ψj
@@ -961,7 +997,7 @@ theorem genMem_K (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
       = pp.toBlockShape.majorIdxAt j - pp.toBlockShape.rulePrefixAt j := by
     rw [hD.lenE ψ, ← G.hlenIds ψ, ← hsp'.length_eq, List.length_map, List.length_drop, hxl]
   have hcarLen : ((paramBvars d.nP cA.2 ++ d.esF t j' ψj).map
-      (ConLeche.Model.AnnotTerm.instSeq (xs.take d.nP) (d.nP + cA.2 - 1))).length
+      (ConLeche.Model.ITerm.instSeq (xs.take d.nP) (d.nP + cA.2 - 1))).length
       = d.nP + (d.esF t j' ψ).length := by
     rw [List.length_map, List.length_append, paramBvars, List.length_map, List.length_range, hes]
   refine ⟨_, _, hrest, Or.inr (by rw [hcarLen, hlenE]), fun q hq => ?_⟩
@@ -978,12 +1014,109 @@ theorem genMem_K (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
   rw [hstep, BlockData.tup, projS_tupW hIdxOk hsp' hql, getD_map_pt (by
     rw [List.length_drop, hxl]; omega), getD_drop']
 
+set_option maxHeartbeats 4000000 in
+/-- **(T) at a member class** (the ι step's case 2): above `Prop` at the
+recursor's levels, a fired constructor application that is not the
+point is also the same constructor applied to the recursor's own
+parameters and the same fields, at the comparand levels `ψl`.  Its
+value is the injection of its fields at its own frame `ψj`, which is
+not `Prop` (`genMemCtor_pt`); injections read no level above `Prop`
+(`LfpClause.injFrame`), and the major lies in the member's carrier at
+the recursor's parameters (`genMem_major`), whose elements are
+injections of spines hole-fitting there (`blockCarrier_case`); by
+injectivity (`mkInj`) the fields are that spine, so they fit at the
+recursor's parameter frame. -/
+theorem genMem_T (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+    {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
+    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
+      block ctorsAs out)
+    (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
+    {isRec : Bool} {cvT : ConstantVal} {j i t : Nat} {cA : ConstantVal × Nat}
+    (G : GenMemAt mpC d pp out isRec cvT j i t cA)
+    {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : (tgtRs out)[j]? = some r) (hm : (tgtMajor out j).member = some t)
+    (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
+    {ψ ψj ψl : Name → Nat} (hlvl : ∀ q ∈ cA.1.levelParams, ψl q = ψ q) (hw : d.w ψ ≠ 0)
+    {ρ : Nat → V} {xs ys : List ITerm} {restR restC : ITerm}
+    (hxl : xs.length = pp.toBlockShape.majorIdxAt j) (hyl : ys.length = pp.nP + cA.2)
+    (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
+      (xs ++ [ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys]) restR)
+    (hfitC : TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψj) ys restC)
+    (hne : interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) ≠ pt) :
+    ∃ restC',
+      TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψl)
+        (xs.take pp.nP ++ ys.drop pp.nP) restC' ∧
+      interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψl) (xs.take pp.nP ++ ys.drop pp.nP))
+        = interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) := by
+  have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
+  have hrPle := blockRecHrPle (p := pp) h hj
+  have hD := G.hcf.2.2
+  have hys : ys.length = d.nP + cA.2 := by rw [hyl, G.hdnP]
+  have hnP' : d.nP ≤ pp.toBlockShape.rulePrefixAt j := by rw [G.hdnP]; exact hnP
+  rw [← G.hdnP]
+  -- the fired application at its own frame: its value is an injection, not `Prop`
+  obtain ⟨hqsj, hfqj⟩ := blockRuleCtorFit_run (ψ := ψj) G.hcj G.hcf (fun _ _ => rfl)
+    (G.hlenP ψj) (G.hparamsC ψj) hys (G.hctorRead ψj) hfitC
+  have hvalj := blockCtorMajor_value G.hM G.hcj G.hcf.1 G.hmN (fun _ _ => rfl) hqsj hfqj
+  have hwj : d.w ψj ≠ 0 := fun h0 => hne (genMemCtor_pt G h0 ρ ys)
+  -- the major, in the member's carrier at the recursor's parameters
+  obtain ⟨hpar, hsp', hmaj⟩ := genMem_major hμ h R hS G hr hm ψ hxl hfitR
+  have hpsV : ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)).take d.nP
+      = (xs.take d.nP).map (interp V ρ) := by
+    rw [← List.map_take, List.take_take, Nat.min_eq_left hnP']
+  rw [hpsV] at hpar hsp' hmaj
+  have ht : d.tup ψ t ((xs.drop (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ))
+      ∈ˢ d.idx ψ (consList ((xs.take d.nP).map (interp V ρ)) ρ) t := tupW_mem hsp'
+  obtain ⟨j', fs', hfit', heq⟩ := blockCarrier_case G.hM (d.satOfSpine hpar) G.hmN ht hmaj
+  -- one injection: the same constructor, the same fields
+  have hinj : d.inj ψj t i ((ys.drop d.nP).map (interp V ρ))
+      = d.inj ψ t i ((ys.drop d.nP).map (interp V ρ)) :=
+    (mpC.lfp_ok _ G.hlfp).1.injFrame ψj ψ hwj hw t i _
+  have hFssD : (d.Fss t ψ).getD i [] = ((d.dsF t i ψ).drop d.nP) :=
+    fssOfR_fixCtorDataList_getD G.hcj
+  obtain ⟨rfl, rfl⟩ := G.hM.mkInj ψ hw t G.hmN i ((ys.drop d.nP).map (interp V ρ)) j' fs'
+    G.hjl hfit'.1
+    (by rw [hFssD, List.length_drop, hD.len ψ, List.length_map, List.length_drop, hys])
+    hfit'.length_eq (by rw [← hinj, ← hvalj]; exact heq)
+  -- the witness: the recursor's parameters, then the same fields
+  have hxlP : d.nP ≤ xs.length := by rw [hxl]; omega
+  have hpl : (xs.take d.nP).length = d.nP := by rw [List.length_take]; omega
+  have htk : (xs.take d.nP ++ ys.drop d.nP).take d.nP = xs.take d.nP := List.take_left' hpl
+  have hdr : (xs.take d.nP ++ ys.drop d.nP).drop d.nP = ys.drop d.nP := List.drop_left' hpl
+  have hval := blockCtorMajor_value (ys := xs.take d.nP ++ ys.drop d.nP) G.hM G.hcj G.hcf.1
+    G.hmN hlvl (by rw [htk]; exact hpar) (by rw [htk, hdr]; exact hfit'.2.1)
+  rw [hdr] at hval
+  have hfitW : ∃ restC', TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψl)
+      (xs.take d.nP ++ ys.drop d.nP) restC' := by
+    have hct : blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψl
+        = mkPisAV (d.dsF t i ψl)
+            (ctorBodyAVI mpC.base2 (d.memberName t) d.nP cA.2 ψl (d.esF t i ψl)) :=
+      Option.some.inj ((G.hctorRead ψl).symm.trans (hD.read ψl))
+    have hds : d.dsF t i ψl = d.dsF t i ψ := (hD.params ψl ψ hlvl).1
+    have hlenD : ((d.dsF t i ψ).take d.nP).length = d.nP := by
+      rw [List.length_take, hD.len ψ]; omega
+    have hpC := (spineFit_iff_of_sat_iff (by rw [G.hlenP ψ, hlenD]) (G.hparamsC ψ) ρ _
+      (by rw [hpar.length_eq])).mp hpar
+    have hfC : SpineFit (consList ((xs.take d.nP).map (interp V ρ)) ρ)
+        ((d.dsF t i ψ).drop d.nP) ((ys.drop d.nP).map (interp V ρ)) := by
+      rw [← hFssD]; exact hfit'.2.1
+    have hsp : SpineFit ρ (d.dsF t i ψl)
+        ((xs.take d.nP ++ ys.drop d.nP).map (interp V ρ)) := by
+      rw [hds, List.map_append, ← List.take_append_drop d.nP (d.dsF t i ψ)]
+      exact SpineFit.append hpC hfC
+    rw [hct]
+    exact teleFitPA_mkPisAV_of_spineFit (by
+      rw [hds, hD.len ψ, List.length_append, hpl, List.length_drop, hys]; omega) hsp
+  obtain ⟨restC', hfitW⟩ := hfitW
+  exact ⟨restC', hfitW, by rw [hval, ← hinj, ← hvalj]⟩
+
 set_option maxHeartbeats 8000000 in
 /-- **The licence's facts at a member rule**, at the recursors' cons:
 the reading crossings (`blockRuleTVa_run`, `blockRecDenote_cross`), then
 the base-frame facts above. -/
-theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genMemExtra (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
@@ -995,7 +1128,7 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
     (hctorCB : ConstsBound envC cA.1.type)
     {Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List AnnotTerm}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
     {m₃ : EnvModel V (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC)}
     (hac : m₃.acval = blockRecAcv mpC.base2.acval envC (tgtRs out) s eqs) (φ : Name → Nat)
     {rl : ConLeche.RecRule} (hct : ConLeche.RecRule.ctor rl = cA.1.name)
@@ -1066,15 +1199,42 @@ theorem genMemExtra (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
     obtain ⟨rfl, rfl, rfl⟩ : cA.1 = cvj ∧ d.nP = cnP ∧ cA.2 = cnF := by
       injection hfind with h'; injection h' with a b c; exact ⟨a, b, c⟩
     obtain ⟨cbs, es, hres, -⟩ := G.hcf.2.2.resid
-    refine ⟨by rw [hnpd, hnf, hres]; rfl, fun _ usj husj hψ TVja hTVja => ?_⟩
     obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa
+    rw [hstored]
+    refine ⟨by rw [hnpd, hnf, hres]; rfl, fun _ => ⟨fun hlic ρ xs a restR hxl hfit => ?_, ?_,
+      fun usj husj hψ TVja hTVja => ?_⟩⟩
+    · -- (S), at the comparand levels
+      have hlv := blockRuleLevelAgree (φ := φ) (lps := cA.1.levelParams)
+        (lpsR := r.1.levelParams) (us := us)
+        (usj := (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
+          (pp.toBlockShape.rulePrefixAt j)).1) (rP := pp.toBlockShape.rulePrefixAt j) hfire rfl
+      exact genMem_S hμ h R hS G hr hm hlv (hkeep _ _ G.hcaps) hlic ρ xs a restR hxl hfit
+    · -- (T), at the comparand levels: the recursor's parameters, the same fields
+      intro hlic usj _ TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hxsW hysW hne
+      rw [hTVjaOf] at hTVja
+      obtain rfl := Option.some.inj hTVja
+      have hlv := blockRuleLevelAgree (φ := φ) (lps := cA.1.levelParams)
+        (lpsR := r.1.levelParams) (us := us)
+        (usj := (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
+          (pp.toBlockShape.rulePrefixAt j)).1) (rP := pp.toBlockShape.rulePrefixAt j) hfire rfl
+      rw [hnp, hnf] at hyl
+      obtain ⟨restC', hfitC', hval⟩ := genMem_T hμ h R hS G hr hm hnP hlv
+        (genMem_w_of_lic G hlv (hkeep _ _ G.hcaps) hlic) hxl hyl hfitR hfitC hne
+      have hxlP : pp.nP ≤ xs.length := by rw [hxl]; have := hrPle; omega
+      have hpl : (xs.take pp.nP).length = pp.nP := by rw [List.length_take]; omega
+      refine ⟨_, xs.take pp.nP ++ ys.drop pp.nP, _, restC', ?_, rfl, hTVjaOf _, ?_,
+        by rw [hnp]; exact List.drop_left' hpl, ?_, hfitC', hval⟩
+      · rw [ConLeche.recFireComparands_plain hfire, List.length_map]
+      · rw [List.length_append, hpl, List.length_drop, hyl]; omega
+      · intro y hy
+        rcases List.mem_append.mp hy with hy | hy
+        · exact hxsW y (List.mem_of_mem_take hy)
+        · exact hysW y (List.mem_of_mem_drop hy)
     rw [hTVjaOf] at hTVja
     obtain rfl := Option.some.inj hTVja
     have hlv := blockRuleLevelAgree hfire hψ
-    rw [hstored]
-    refine ⟨fun hlic ρ xs a restR hxl hfit => ?_, fun ρ xs a restR hxl hfit hapt ys restC _ _ _ =>
+    refine ⟨fun ρ xs a restR hxl hfit hapt ys restC _ _ _ =>
       genMem_P hμ h R hS G hr hm hlv ρ xs a restR hxl hfit hapt ys, ?_⟩
-    · exact genMem_S hμ h R hS G hr hm hlv (hkeep _ _ G.hcaps) hlic ρ xs a restR hxl hfit
     · intro ρ xs ys restR restC hxl hyl hfitR hfitC _ _ hcP _ hpinC hpt
       rw [hnp] at hpinC hyl ⊢
       rw [hnf] at hyl
@@ -1119,47 +1279,47 @@ there, whose satisfaction carries to the constructor's binders
 conditional comparison is an equation (`spineFit_eq_of_cond`). -/
 theorem genOut_pins (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC []) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+      block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC [])
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) (hMo : (tgtMajor out j).member = none)
     {i : Nat} {cA : ConstantVal × Nat} (hcA : r.2.2.2[i]? = some cA)
     {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
     {lvls : List Level} {pins : List Expr}
-    (hf : ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
+    (hf : ConLeche.tgtFireOf pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
       = .nested lvls pins)
     {φ : Name → Nat} {us usj : List Level}
     (hlv : ∀ p ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj p
       = Level.substFn (Level.substFn φ r.1.levelParams us) cvI.levelParams (tgtMajor out j).lvls p)
-    {ρ : Nat → V} {xs ys : List AnnotTerm} {maj restR restC : AnnotTerm}
+    {ρ : Nat → V} {xs ys : List ITerm} {maj restR restC : ITerm}
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out)
       (Level.substFn φ r.1.levelParams us) j) (xs ++ [maj]) restR)
     (hfitC : TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i
       (Level.substFn φ cA.1.levelParams usj)) ys restC)
     (hyl : ys.length = (tgtMajor out j).nPc + cA.2)
-    (hN : ∀ q, q < (tgtMajor out j).nPc → ∀ vpa : AnnotTerm,
+    (hN : ∀ q, q < (tgtMajor out j).nPc → ∀ vpa : ITerm,
       denoteMeta mpC.base2.acval envC φ (pp.toBlockShape.rulePrefixAt j)
         (openRev 0 (pp.toBlockShape.rulePrefixAt j)
           ((pins.getD q default).instantiateLevelParams r.1.levelParams us)) = some vpa →
       interp V ρ (ys.getD q default) ≠ pt →
-      interp V ρ (AnnotTerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) vpa) ≠ pt →
+      interp V ρ (ITerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) vpa) ≠ pt →
       interp V ρ (ys.getD q default)
-        = interp V ρ (AnnotTerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) vpa)) :
-    ∀ q, q < (tgtMajor out j).nPc → ∀ vpa : AnnotTerm,
+        = interp V ρ (ITerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) vpa)) :
+    ∀ q, q < (tgtMajor out j).nPc → ∀ vpa : ITerm,
       denoteMeta mpC.base2.acval envC φ (pp.toBlockShape.rulePrefixAt j)
         (openRev 0 (pp.toBlockShape.rulePrefixAt j)
           ((pins.getD q default).instantiateLevelParams r.1.levelParams us)) = some vpa →
       interp V ρ (ys.getD q default)
-        = interp V ρ (AnnotTerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) vpa) := by
+        = interp V ρ (ITerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) vpa) := by
   have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
   have hi : i < blockRecNCt (tgtRs out) j :=
     Nat.lt_of_lt_of_le (List.getElem?_eq_some_iff.mp hcA).1 (blockRecNCt_ge hr)
   have hcAM : (tgtMajor out j).ctors[i]? = some cA := by rw [← tgtRs_ctors hr]; exact hcA
   have hrPle : pp.toBlockShape.rulePrefixAt j ≤ pp.toBlockShape.majorIdxAt j :=
     blockRecHrPle (p := pp) h hj
-  obtain ⟨-, hpinV⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
+  obtain ⟨-, hpinV⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
   generalize hψe : Level.substFn φ r.1.levelParams us = ψ at hfitR hlv hpinV
   obtain ⟨hpref, -, hxvl, -⟩ := genRow3_frame hμ h hr ψ hxl hfitR
   obtain ⟨T0, pps, b0, hcons, hlpsI, hT0, hT0E, hplen, hT0wd, hT0cl, -, hTFall⟩ :=
@@ -1196,11 +1356,11 @@ theorem genOut_pins (hμ : μ.verifiedChecks = true)
   have hlenPs : (pps).length = (tgtMajor out j).nPc := by
     rw [hplen']
   -- the pins' chains are their readings
-  have hchain : ∀ q, q < (tgtMajor out j).nPc → ∀ vpa : AnnotTerm,
+  have hchain : ∀ q, q < (tgtMajor out j).nPc → ∀ vpa : ITerm,
       denoteMeta mpC.base2.acval envC φ (pp.toBlockShape.rulePrefixAt j)
         (openRev 0 (pp.toBlockShape.rulePrefixAt j)
           ((pins.getD q default).instantiateLevelParams r.1.levelParams us)) = some vpa →
-      interp V ρ (AnnotTerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) vpa)
+      interp V ρ (ITerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) vpa)
         = interp V (consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) ρ)
             ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).getD q default) := by
     intro q hq vpa hvpa
@@ -1235,13 +1395,13 @@ set_option maxHeartbeats 4000000 in
 /-- **The major lies in an outside class's carrier** at the class's
 parameter frame (the pins' readings at the prefix) and the recursor's
 index tuple (`genRows3_out`'s class step). -/
-theorem genOut_major (hμ : μ.verifiedChecks = true) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genOut_major (hμ : μ.verifiedChecks = true)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r)
     {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
-    (ψ : Name → Nat) {ρ : Nat → V} {xs : List AnnotTerm} {maj restR : AnnotTerm}
+    (ψ : Name → Nat) {ρ : Nat → V} {xs : List ITerm} {maj restR : ITerm}
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
       (xs ++ [maj]) restR) :
@@ -1370,11 +1530,11 @@ theorem genOut_S {j : Nat} {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp
 
 /-- A closed leaf is fixed by every instantiation sequence. -/
 theorem instSeq_acval {env : Env} (m : EnvModel V env) (n : Name) (ψ : Name → Nat) :
-    ∀ (ws : List AnnotTerm) (t : Nat),
-      ConLeche.Model.AnnotTerm.instSeq ws t (m.acval n ψ) = m.acval n ψ
+    ∀ (ws : List ITerm) (t : Nat),
+      ConLeche.Model.ITerm.instSeq ws t (m.acval n ψ) = m.acval n ψ
   | [], _ => rfl
   | w :: ws, t => by
-    show ConLeche.Model.AnnotTerm.instSeq ws (t - 1) ((m.acval n ψ).inst w t) = _
+    show ConLeche.Model.ITerm.instSeq ws (t - 1) ((m.acval n ψ).inst w t) = _
     rw [acval_inst_self, instSeq_acval m n ψ ws (t - 1)]
 
 /-- **An outside class's constructor residual**: the fit of the
@@ -1384,15 +1544,15 @@ read). -/
 theorem genOut_residual (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
     {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
-    {ψj : Name → Nat} {TVja : AnnotTerm}
+    {ψj : Name → Nat} {TVja : ITerm}
     (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
-    {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
+    {ρ : Nat → V} {ys : List ITerm} {restC : ITerm}
     (hys : ys.length = (tgtMajor out j).nPc + cA.2)
     (hfitC : TeleFitPA V ρ TVja ys restC) :
-    ∃ Es : List AnnotTerm,
-      restC = AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
+    ∃ Es : List ITerm,
+      restC = ITerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
         ((paramBvars (tgtMajor out j).nPc cA.2 ++ Es).map
-          (ConLeche.Model.AnnotTerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1))) ∧
+          (ConLeche.Model.ITerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1))) ∧
       ∀ ψ : Name → Nat, (paramBvars (tgtMajor out j).nPc cA.2 ++ Es).length
         = (tgtMajor out j).nPc
           + ((tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) ψ).length := by
@@ -1401,13 +1561,13 @@ theorem genOut_residual (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   obtain ⟨pps, Es, hT, hplen, hEl⟩ := denoteMeta_ctorShape hfc
     (by show (cA.1.levelParams.map Level.param).length = cvI.levelParams.length
         rw [List.length_map, hlpC]) hst hread
-  change TVja = mkPisAV pps (AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind
+  change TVja = mkPisAV pps (ITerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind
     (Level.substFn ψj cvI.levelParams (cA.1.levelParams.map Level.param)))
     (paramBvars (tgtMajor out j).nPc cA.2 ++ Es)) at hT
   rw [show Level.substFn ψj cvI.levelParams (cA.1.levelParams.map Level.param) = ψj from by
     rw [← hlpC]; exact ConLeche.Level.substFn_param_self ψj _] at hT
   subst hT
-  have htele := piTeleAV_mkPisAV pps (AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
+  have htele := piTeleAV_mkPisAV pps (ITerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
     (paramBvars (tgtMajor out j).nPc cA.2 ++ Es))
   rw [hplen] at htele
   have hrest := teleFitPA_rest_eq ((tgtMajor out j).nPc + cA.2) htele hys hfitC
@@ -1444,18 +1604,18 @@ container's universe. -/
 theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
     {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
-    {ψj : Name → Nat} {TVja : AnnotTerm}
+    {ψj : Name → Nat} {TVja : ITerm}
     (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
-    {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
+    {ρ : Nat → V} {ys : List ITerm} {restC : ITerm}
     (hys : ys.length = (tgtMajor out j).nPc + cA.2)
     (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenoted V ρ y) :
-    ∃ args : List AnnotTerm,
+    ∃ args : List ITerm,
       args.length = (tgtMajor out j).nPc
         + ((tgtClsD d Dc out j).ids (tgtClsM mc pp.toBlockShape out j) ψj).length ∧
       (∀ q, q < (tgtMajor out j).nPc →
         interp V ρ (args.getD q default) = interp V ρ (ys.getD q default)) ∧
-      restC = AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj) args ∧
-      interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
+      restC = ITerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj) args ∧
+      interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
         ∈ˢ (args.map (interp V ρ)).foldl SetTheory.app
             (interp V ρ (mpC.base2.acval (tgtMajor out j).ind ψj)) ∧
       SpineFit ρ ((tgtClsD d Dc out j).pars (tgtClsM mc pp.toBlockShape out j) ψj
@@ -1505,14 +1665,14 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   rw [← hnPc] at hPl
   have hparsL := (mpC.lfp_ok _ Rd.hD).1.parsLen _ Rd.hmm ψj
   have hlab : ((paramBvars (tgtMajor out j).nPc cA.2 ++ Es).map
-      (ConLeche.Model.AnnotTerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1))).length
+      (ConLeche.Model.ITerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1))).length
       = ab.length := by
     rw [List.length_map, hlenA ψj, hmap, List.length_append, hparsL, hPl, Rd.hnpc]
   -- "not pt" source (1): the residual is the constructor type's codomain,
   -- a type
-  have hne : interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
+  have hne : interp V ρ (ITerm.mkAppN (mpC.base2.acval (tgtMajor out j).ind ψj)
       ((paramBvars (tgtMajor out j).nPc cA.2 ++ Es).map
-        (ConLeche.Model.AnnotTerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1)))) ≠ pt := by
+        (ConLeche.Model.ITerm.instSeq ys ((tgtMajor out j).nPc + cA.2 - 1)))) ≠ pt := by
     have hty := Rules.teleFitPA_rest_isTy hfitC
       (mpC.type_wellDenotedTy _ hcons ψj TVja hread ρ) hWD
     rw [hrest] at hty
@@ -1539,46 +1699,53 @@ theorem genOut_typed (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     exact this
 
 set_option maxHeartbeats 8000000 in
-/-- **An outside class's constructor, at its OWN parameters** (task #342
-S5b): at a graded spine fitting the constructor's stored type (read at
-the class's levels), the application is the class's injection of the
-spine's fields, which have the recorded constructor's length.  The ι
-step compares the constructor's parameters with nothing outside case 3,
-so the injection is read at the spine's own parameters: they fit the
-container's parameter telescope — the residual is a type, "not pt"
-source (1) (`genOut_typed`) — so the key frame at the canonical
-parameters is their frame, the fields fit the instantiated
-constructor's fields there (peeled off the stored type's fit), and
-`instCtor_decode` reads the application. -/
+/-- **An outside class's constructor, at its OWN parameters and levels**
+(task #342 S5b, S5c): at a graded spine fitting the constructor's stored
+type read at any level valuation `ψc`, the application is the container's
+injection of the spine's fields at `ψc`, which have the recorded
+constructor's length.  The ι step compares the constructor's parameters
+(and, outside case 3, its levels) with nothing, so the injection is read
+at the spine's own parameters: they fit the container's parameter
+telescope — the residual is a type, "not pt" source (1) (`genOut_typed`)
+— so the key frame at the canonical parameters is their frame, the
+fields fit the instantiated constructor's fields there (peeled off the
+stored type's fit), and `instCtor_decode` reads the application.  The
+container datum is parametric in its level valuation: the instantiation
+is at the constructor's own level parameters. -/
 theorem genOutCtorOwn (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
     {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
-    (ψ : Name → Nat) {T0 : AnnotTerm}
-    (hT0 : denoteMeta mpC.base2.acval envC
-      (Level.substFn ψ cvI.levelParams (tgtMajor out j).lvls) 0 cA.1.type = some T0)
+    (ψc : Name → Nat) {T0 : ITerm}
+    (hT0 : denoteMeta mpC.base2.acval envC ψc 0 cA.1.type = some T0)
     (hT0cl : Term.bvarsBelow 0 T0.erase)
     (hpc : Rules.PiChain ((tgtMajor out j).ds.length + cA.2) T0)
-    {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
+    {ρ : Nat → V} {ys : List ITerm} {restC : ITerm}
     (hys : ys.length = (tgtMajor out j).ds.length + cA.2)
     (hfitC : TeleFitPA V ρ T0 ys restC) (hWD : ∀ y ∈ ys, WellDenoted V ρ y) :
     ((ys.drop (tgtMajor out j).ds.length).map (interp V ρ)).length
-        = ((tgtClsD d Dc out j).fields (tgtClsψ cvc out ψ j) (tgtClsM mc pp.toBlockShape out j)
-            i).length ∧
-      interp V ρ (AnnotTerm.mkAppN
-          (mpC.base2.acval cA.1.name (Level.substFn ψ cvI.levelParams (tgtMajor out j).lvls)) ys)
-        = tgtClsInj d Dc mc cvc pp.toBlockShape out ψ j i
+        = ((tgtClsD d Dc out j).fields ψc (tgtClsM mc pp.toBlockShape out j) i).length ∧
+      interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψc) ys)
+        = (tgtClsD d Dc out j).inj ψc (tgtClsM mc pp.toBlockShape out j) i
             ((ys.drop (tgtMajor out j).ds.length).map (interp V ρ)) := by
   have hacl := mpC.base2.acval_closed
   obtain ⟨hiD, hfc0, hlpC, hlpsR⟩ := Rd.hctor i cA hcAM
-  obtain ⟨hC, -⟩ := mpC.lfp_ok _ Rd.hD
+  obtain ⟨hC, -, -, ⟨-, hrdC⟩, -⟩ := mpC.lfp_ok _ Rd.hD
   have hcons := List.mem_of_find?_eq_some hfc0
   have hwfC := mpC.base2.wf _ hcons
   have hCf : cA.1.type.hasFvar = false := hwfC.1
   have hCb : cA.1.type.looseBVarsBounded 0 = true := hwfC.2.2.2.1
   have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i :=
     ConLeche.Semantics.Env.find?_name hfc0
-  have hlenP := Rd.hlenP ψ
-  rw [Rd.hψ] at hlenP
+  -- the instantiation at the constructor's own level parameters
+  have hself := ConLeche.Level.substFn_param_self ψc cvI.levelParams
+  have hul : (cvI.levelParams.map Level.param).length = cvI.levelParams.length :=
+    List.length_map _
+  have hlenP : ((tgtClsD d Dc out j).params ψc).length = (tgtMajor out j).ds.length := by
+    obtain ⟨cv', nPc, nF, hf', -, -, -, A0, -, -, hrdA⟩ := hrdC _ Rd.hmm i hiD
+    rw [hfc0] at hf'
+    have hnPc : (tgtMajor out j).ds.length = nPc := by
+      injection hf' with h; injection h
+    rw [(hrdA ψc).1, hnPc]
   -- the spine's parameters fit the container's parameter telescope ("not pt"
   -- source (1): the residual is a type)
   obtain ⟨args, hlenA, hparA, -, -, hfitA, -⟩ :=
@@ -1586,8 +1753,7 @@ theorem genOutCtorOwn (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   rw [Rd.hnpc] at hparA hlenA
   generalize hn : (tgtMajor out j).ds.length = n at hys hfc0 hlenP hparA hlenA hpc ⊢
   obtain ⟨as₁, as₂, hasE, hfit1, -⟩ := spineFit_append_inv hfitA
-  have hparsL : ((tgtClsD d Dc out j).pars (tgtClsM mc pp.toBlockShape out j)
-      (Level.substFn ψ cvI.levelParams (tgtMajor out j).lvls)).length = n := by
+  have hparsL : ((tgtClsD d Dc out j).pars (tgtClsM mc pp.toBlockShape out j) ψc).length = n := by
     rw [hC.parsLen _ Rd.hmm, hlenP]
   have has1L : as₁.length = n := by rw [hfit1.length_eq, hparsL]
   have has1 : as₁ = (ys.take n).map (interp V ρ) := by
@@ -1604,8 +1770,7 @@ theorem genOutCtorOwn (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]; rfl
     rw [e1, e2]
     exact hA.symm
-  have hsat : Sat V ((tgtClsD d Dc out j).params
-      (Level.substFn ψ cvI.levelParams (tgtMajor out j).lvls)).reverse (consList as₁ ρ) := by
+  have hsat : Sat V ((tgtClsD d Dc out j).params ψc).reverse (consList as₁ ρ) := by
     have hs := sat_of_spineFit (Δ₀ := []) (Sat_nil V ρ) hfit1
     rw [List.append_nil] at hs
     exact hC.parsSatInv _ Rd.hmm _ _ hs
@@ -1615,7 +1780,7 @@ theorem genOutCtorOwn (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     obtain ⟨k, hk, rfl⟩ := mem_canonParams hx
     exact ⟨by simp [Expr.WScoped, hk], rfl⟩
   obtain ⟨dsa, hdsa⟩ := Rules.DenoteMetaSpine.exists_of_all (acval := mpC.base2.acval)
-    (env := envC) (φ := ψ) (d := n) (canonParams n) fun x hx => by
+    (env := envC) (φ := ψc) (d := n) (canonParams n) fun x hx => by
       obtain ⟨k, -, rfl⟩ := mem_canonParams hx
       exact ⟨_, denoteMeta_fvar _ _ _ _⟩
   have hdl : dsa.length = n := by
@@ -1643,19 +1808,20 @@ theorem genOutCtorOwn (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     exact consList_apply_add as₁ ρ k
   -- the instantiated constructor, at the canonical parameters
   have hlenP' : ((tgtClsD d Dc out j).params
-      (Level.substFn ψ cvI.levelParams (tgtMajor out j).lvls)).length
-      = (canonParams n).length := by rw [canonParams_length]; exact hlenP
+      (Level.substFn ψc cvI.levelParams (cvI.levelParams.map Level.param))).length
+      = (canonParams n).length := by rw [canonParams_length, hself]; exact hlenP
   have hfc' : envC.find? ((tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i)
       = some (.ctorInfo cA.1 (canonParams n).length cA.2) := by
     rw [canonParams_length]; exact hfc0
   obtain ⟨-, crest, ab, hcr, ⟨Tys, hlT, hTys, hEq⟩, hlab, hcrRead⟩ :=
-    instCtor_read mpC Rd.hD hlpsR Rd.hnd Rd.hul hds hdsa hlenP' Rd.hmm hiD hfc'
+    instCtor_read mpC Rd.hD hlpsR Rd.hnd hul hds hdsa hlenP' Rd.hmm hiD hfc'
   rw [ConLeche.instPisWith_eq_instPisAt] at hcr
   obtain ⟨⟨doms, crest'⟩, hinst, hcr'⟩ := Option.map_eq_some_iff.mp hcr
   obtain rfl : crest' = crest := hcr'
-  have hTy : denoteMeta mpC.base2.acval envC ψ n
-      (cA.1.type.instantiateLevelParams cA.1.levelParams (tgtMajor out j).lvls) = some T0 := by
-    rw [denoteMeta_instLevels (acvalParamsAt_of_core mpC.base2) ψ, hlpC]
+  have hTy : denoteMeta mpC.base2.acval envC ψc n
+      (cA.1.type.instantiateLevelParams cA.1.levelParams (cvI.levelParams.map Level.param))
+      = some T0 := by
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core mpC.base2) ψc, hlpC, hself]
     exact denoteMeta_depth_of_closed hacl hCf
       (fun k => denoteMeta_closed mpC.base2.acval_erase mpC.base2.cval_closed hCf hCb hT0 1 k)
       hT0 _
@@ -1679,12 +1845,301 @@ theorem genOutCtorOwn (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
   have hfit := spineFit_of_teleFit
     (by rw [substTele_length, hlab, List.length_map, List.length_drop, hys]; omega) h3
   -- the application, decoded
-  obtain ⟨-, hHF, hval⟩ := instCtor_decode mpC Rd.hD hlpsR Rd.hul hds hdsa hlenP' Rd.hmm hiD
-    hlT hTys hEq hlab (by rw [hkey]; exact hsat) hfit
-  refine ⟨by rw [Rd.hψ]; exact hHF.2.1.length_eq, ?_⟩
-  unfold tgtClsInj
-  rw [Rd.hψ, ← hval, interp_mkAppN_foldl, hysv, hname,
+  obtain ⟨-, hHF, hval⟩ := instCtor_decode mpC Rd.hD hlpsR hul hds hdsa hlenP' Rd.hmm hiD
+    hlT hTys hEq hlab (by rw [hkey, hself]; exact hsat) hfit
+  rw [hself] at hHF hval
+  refine ⟨hHF.2.1.length_eq, ?_⟩
+  rw [← hval, interp_mkAppN_foldl, hysv, hname,
     acval_interp_closed mpC.base2 _ _ ρ (consList as₁ ρ)]
+
+set_option maxHeartbeats 8000000 in
+/-- **An outside class's constructor, fitted back** (`genOutCtorOwn`'s
+converse): at parameter values satisfying the container's parameter
+telescope at a level valuation `ψc`, fields fitting the constructor's
+recorded fields at the carrier's hole frame there fit, after the
+parameters, the constructor's stored type read at `ψc` — the parameters
+fit its parameter binders (`LfpCtorReads`), and the fields the
+instantiated constructor's fields (`instCtor_fit`), which are the peel's
+residual. -/
+theorem genOutCtorRefit {j : Nat} {cvI : ConstantVal}
+    (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI) (hcov : LfpCover mpC [])
+    {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
+    (ψc : Name → Nat) {T0 : ITerm}
+    (hT0 : denoteMeta mpC.base2.acval envC ψc 0 cA.1.type = some T0)
+    (hT0cl : Term.bvarsBelow 0 T0.erase)
+    (hpc : Rules.PiChain ((tgtMajor out j).ds.length + cA.2) T0)
+    {σ : Nat → V} {as₁ fs : List V} (has1L : as₁.length = (tgtMajor out j).ds.length)
+    (hsat : Sat V ((tgtClsD d Dc out j).params ψc).reverse (consList as₁ σ))
+    (hfs : SpineFit ((tgtClsD d Dc out j).frame ψc (consList as₁ σ)
+        ((tgtClsD d Dc out j).carrier ψc (consList as₁ σ)))
+      ((tgtClsD d Dc out j).fields ψc (tgtClsM mc pp.toBlockShape out j) i) fs) :
+    ∃ X, TeleFit V σ T0 (as₁ ++ fs) X := by
+  have hacl := mpC.base2.acval_closed
+  obtain ⟨hiD, hfc0, hlpC, hlpsR⟩ := Rd.hctor i cA hcAM
+  obtain ⟨-, -, -, ⟨-, hrdC⟩, -⟩ := mpC.lfp_ok _ Rd.hD
+  have hcons := List.mem_of_find?_eq_some hfc0
+  have hwfC := mpC.base2.wf _ hcons
+  have hCf : cA.1.type.hasFvar = false := hwfC.1
+  have hCb : cA.1.type.looseBVarsBounded 0 = true := hwfC.2.2.2.1
+  have hself := ConLeche.Level.substFn_param_self ψc cvI.levelParams
+  have hul : (cvI.levelParams.map Level.param).length = cvI.levelParams.length :=
+    List.length_map _
+  obtain ⟨cv', nPc, nF, hf', -, -, hpars, A0, -, -, hrdA⟩ := hrdC _ Rd.hmm i hiD
+  rw [hfc0] at hf'
+  obtain ⟨rfl, rfl, rfl⟩ : cA.1 = cv' ∧ (tgtMajor out j).ds.length = nPc ∧ cA.2 = nF := by
+    injection hf' with h; injection h with h1 h2 h3; exact ⟨h1, h2, h3⟩
+  have hlenP := (hrdA ψc).1
+  have hfl : fs.length = cA.2 := by rw [hfs.length_eq, (hrdA ψc).2.1]
+  -- the constructor's parameter binders
+  have harity : (cA.1.type.stripPis ((tgtMajor out j).ds.length + cA.2)).isSome = true := by
+    rw [← Rd.hnpc]; exact genCls_arity hcov Rd hcAM
+  obtain ⟨fvsA, oA, hopA⟩ := openPisAtFvars_of_stripPis_isSome
+    ((tgtMajor out j).ds.length + cA.2) (e := cA.1.type) 0 harity
+  obtain ⟨oP, hopP⟩ := ConLeche.openPisAtFvars_prefix (tgtMajor out j).ds.length
+    ((tgtMajor out j).ds.length + cA.2) _ 0 (Nat.le_add_right _ _) hopA
+  obtain ⟨pps, b0, hst, -, hplen, -⟩ := denoteMeta_openPis (tgtMajor out j).ds.length hopP hT0
+  obtain ⟨hT0E, -⟩ := stripPisAV_eq_mkPis hst
+  have hsatC := hpars _ pps b0 (by rw [← hT0E]; exact hT0) (Nat.le_of_eq hplen.symm) _ hsat
+  rw [List.take_of_length_le (Nat.le_of_eq hplen)] at hsatC
+  have hspK : SpineFit σ pps as₁ := spineFit_of_sat_consList (by rw [has1L, hplen]) hsatC
+  generalize hn : (tgtMajor out j).ds.length = n at has1L hfc0 hlenP hpc hplen ⊢
+  -- the canonical parameters, read at the parameters' frame
+  have hds : ∀ x ∈ canonParams n, Expr.WScoped n x ∧ x.looseBVarsBounded 0 = true := by
+    intro x hx
+    obtain ⟨k, hk, rfl⟩ := mem_canonParams hx
+    exact ⟨by simp [Expr.WScoped, hk], rfl⟩
+  obtain ⟨dsa, hdsa⟩ := Rules.DenoteMetaSpine.exists_of_all (acval := mpC.base2.acval)
+    (env := envC) (φ := ψc) (d := n) (canonParams n) fun x hx => by
+      obtain ⟨k, -, rfl⟩ := mem_canonParams hx
+      exact ⟨_, denoteMeta_fvar _ _ _ _⟩
+  have hdl : dsa.length = n := by
+    rw [← DenoteMetaSpine.length_eq hdsa, canonParams_length]
+  have hdsaV : dsa.map (interp V (consList as₁ σ)) = as₁ := by
+    refine List.ext_getElem (by rw [List.length_map, hdl, has1L]) fun q h1 h2 => ?_
+    have hq : q < n := by rw [List.length_map, hdl] at h1; exact h1
+    have hr := DenoteMetaSpine.getD hdsa default q (by rw [canonParams_length]; exact hq)
+    have hcq : (canonParams n).getD q default = .fvar q (.sort .zero) := by
+      simp [canonParams, ConLeche.nestPhs, List.getD_eq_getElem?_getD, hq]
+    rw [hcq, denoteMeta_fvar] at hr
+    have e1 : dsa[q] = dsa.getD q default := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]; rfl
+    have e2 : as₁[q] = as₁.getD q pt := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2]; rfl
+    rw [List.getElem_map, e1, ← Option.some.inj hr, interp_bvar,
+      consList_getD_of_lt _ _ _ (by rw [has1L]; omega), has1L,
+      show n - 1 - (n - 1 - q) = q by omega, e2]
+  have hkey : keyFrame dsa n (consList as₁ σ) = consList as₁ σ := by
+    unfold keyFrame
+    rw [hdsaV]
+    congr 1
+    funext k
+    rw [← has1L]
+    exact consList_apply_add as₁ σ k
+  -- the instantiated constructor, at the canonical parameters
+  have hlenP' : ((tgtClsD d Dc out j).params
+      (Level.substFn ψc cvI.levelParams (cvI.levelParams.map Level.param))).length
+      = (canonParams n).length := by rw [canonParams_length, hself]; exact hlenP
+  have hfc' : envC.find? ((tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i)
+      = some (.ctorInfo cA.1 (canonParams n).length cA.2) := by
+    rw [canonParams_length]; exact hfc0
+  obtain ⟨-, crest, ab, hcr, ⟨Tys, hlT, hTys, hEq⟩, hlab, hcrRead⟩ :=
+    instCtor_read mpC Rd.hD hlpsR Rd.hnd hul hds hdsa hlenP' Rd.hmm hiD hfc'
+  rw [ConLeche.instPisWith_eq_instPisAt] at hcr
+  obtain ⟨⟨doms, crest'⟩, hinst, hcr'⟩ := Option.map_eq_some_iff.mp hcr
+  obtain rfl : crest' = crest := hcr'
+  have hTy : denoteMeta mpC.base2.acval envC ψc n
+      (cA.1.type.instantiateLevelParams cA.1.levelParams (cvI.levelParams.map Level.param))
+      = some T0 := by
+    rw [denoteMeta_instLevels (acvalParamsAt_of_core mpC.base2) ψc, hlpC, hself]
+    exact denoteMeta_depth_of_closed hacl hCf
+      (fun k => denoteMeta_closed mpC.base2.acval_erase mpC.base2.cval_closed hCf hCb hT0 1 k)
+      hT0 _
+  obtain ⟨restA, hrest, hpeel⟩ := Rules.denoteMeta_instPisAt_peel hacl
+    (acval_inst_self mpC.base2) _ hinst
+    (Expr.WScoped.of_not_hasFvar (by rw [Expr.hasFvar_instantiateLevelParams]; exact hCf))
+    hds hTy hdsa
+  have hrestE := hrest.symm.trans hcrRead
+  -- the fields fit the instantiated constructor's fields, the peel's residual
+  have hF := (instCtor_fit mpC Rd.hD hlpsR hul hds hdsa hlenP' Rd.hmm hiD hlT hTys hEq hlab
+    (ρ := consList as₁ σ) (by rw [hkey, hself]; exact hsat)).1 fs
+  rw [hkey, hself] at hF
+  have hT1 : ∃ X, TeleFit V (consList as₁ σ) restA fs X := by
+    rw [Option.some.inj hrestE]
+    exact ⟨_, teleFit_mkPisAV_of_spineFit (hF.mpr hfs)⟩
+  obtain ⟨X1, hT1⟩ := hT1
+  -- the parameters fit the parameter binders, up to the peel
+  rw [hT0E] at hT0cl
+  have hbnd : ∀ l, l < pps.length → Term.bvarsBelow l ((pps.getD l default).erase) := by
+    intro l hl
+    have := (bvarsBelow_mkPisAV_inv hT0cl).1.getD_below l hl
+    rwa [Nat.zero_add] at this
+  obtain ⟨rest, hTP⟩ := teleFitPA_mkPisAV_of_spineFit (pds := pps) (b := b0) (ws := dsa)
+    (by rw [hdl, hplen]) (by rw [hdsaV]; exact spineFit_frame_of_bounded hbnd hspK)
+  rw [← hT0E] at hTP hT0cl
+  obtain rfl : rest = restA := Option.some.inj (hTP.peelPis.symm.trans hpeel)
+  have hT2 := teleFit_unpeel dsa hTP (by rw [hdl, hfl]; exact hpc) hT1
+  rw [hdsaV] at hT2
+  exact teleFit_congr_frame' _ (n := 0) (ρ' := σ) hT0cl
+    (fun k hk => absurd hk (Nat.not_lt_zero k)) hT2
+
+set_option maxHeartbeats 8000000 in
+/-- **(T) at an outside class**: where the class is never `Prop` at the
+recursor's levels, a fired application that is not the point, at the
+constructor's own levels `ψj` and parameters, is the container's
+injection of its fields at `ψj` (`genOutCtorOwn`); not the point, the
+container is above `Prop` at `ψj` (`mkZero`), so that injection is the
+one at the class's levels (`injFrame`); the major lies in the class's
+carrier there, so its decomposition is that injection (`mkInj`): the
+fields hole-fit the constructor at the class's frame.  Hence the
+constructor at the class's levels, applied to the pins' readings
+(`ys₀`, the class's parameters) and the same fields, fits its type there
+(`genOutCtorRefit`) and is the same injection (`LfpClause.ctor`). -/
+theorem genOut_T (hμ : μ.verifiedChecks = true)
+    (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
+      block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC [])
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+    (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
+    {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
+    (hr : (tgtRs out)[j]? = some r) (hMo : (tgtMajor out j).member = none)
+    {i : Nat} {cA : ConstantVal × Nat} (hcA : r.2.2.2[i]? = some cA)
+    {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
+    (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
+    (ψ : Name → Nat) {ψj ψl : Name → Nat}
+    (hlv : ∀ p ∈ cA.1.levelParams, ψl p = tgtClsψ cvc out ψ j p)
+    (hw : (tgtClsD d Dc out j).w (tgtClsψ cvc out ψ j) ≠ 0)
+    {TVja : ITerm} (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
+    {ρ : Nat → V} {xs ys : List ITerm} {restR restC : ITerm}
+    (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
+    (hyl : ys.length = (tgtMajor out j).nPc + cA.2)
+    (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
+      (xs ++ [ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys]) restR)
+    (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenoted V ρ y)
+    (hne : interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) ≠ pt)
+    {ys₀ : List ITerm} (hyl0 : ys₀.length = (tgtMajor out j).nPc)
+    (hysv : ∀ q, q < (tgtMajor out j).nPc → interp V ρ (ys₀.getD q default)
+      = interp V (consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) ρ)
+          ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).getD q default)) :
+    ∃ restC', TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψl)
+        (ys₀ ++ ys.drop (tgtMajor out j).nPc) restC' ∧
+      interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψl)
+          (ys₀ ++ ys.drop (tgtMajor out j).nPc))
+        = interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) := by
+  have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
+  have hi : i < blockRecNCt (tgtRs out) j :=
+    Nat.lt_of_lt_of_le (List.getElem?_eq_some_iff.mp hcA).1 (blockRecNCt_ge hr)
+  have hcAM : (tgtMajor out j).ctors[i]? = some cA := by rw [← tgtRs_ctors hr]; exact hcA
+  obtain ⟨hpref, hsat, hsp, hmaj⟩ := genOut_major hμ h hS hr Rd ψ hxl hfitR
+  obtain ⟨-, -, hxvl, -⟩ := genRow3_frame hμ h hr ψ hxl hfitR
+  obtain ⟨T0, pps, b0, hcons, -, hT0, -, -, -, hT0cl, hpc, -⟩ :=
+    genOutCtorFit hμ R hg hcov hj hi Rd hMo hnP ψ ρ hpref hcAM
+  have hwfC := mpC.base2.wf _ hcons
+  have hCf : cA.1.type.hasFvar = false := hwfC.1
+  have hCb : cA.1.type.looseBVarsBounded 0 = true := hwfC.2.2.2.1
+  have hctorTy : blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψl = T0 := by
+    have hrd : (tgtRs out).getD j default = r := by rw [List.getD_eq_getElem?_getD, hr]; rfl
+    have hsel : (((tgtRs out).getD j default).2.2.2.getD i default) = cA := by
+      rw [hrd, List.getD_eq_getElem?_getD, hcA]; rfl
+    have hT0' : denoteMeta mpC.base2.acval envC (tgtClsψ cvc out ψ j) 0 cA.1.type = some T0 := by
+      rw [Rd.hψ]; exact hT0
+    rw [blockRecCtorTy, hsel, denoteMeta_params_ext mpC.base2 (φ₂ := tgtClsψ cvc out ψ j) hlv 0
+      cA.1.type hwfC.2.1, hT0']
+    rfl
+  obtain ⟨hiD, hfc0, -, -⟩ := Rd.hctor i cA hcAM
+  have hname : cA.1.name = (tgtClsD d Dc out j).ctorName (tgtClsM mc pp.toBlockShape out j) i :=
+    ConLeche.Semantics.Env.find?_name hfc0
+  have hfindC : envC.find? cA.1.name = some (.ctorInfo cA.1 (tgtMajor out j).ds.length cA.2) := by
+    rw [hname]; exact hfc0
+  -- the fired application, at its own levels and parameters
+  have hTjcl : Term.bvarsBelow 0 TVja.erase :=
+    bvarsBelow_of_reading (m := mpC.base2) (Expr.WScoped.of_not_hasFvar hCf) hCb hread
+  have hpcj : Rules.PiChain ((tgtMajor out j).ds.length + cA.2) TVja :=
+    Rules.piChain_of_stripPis _ (by rw [← Rd.hnpc]; exact genCls_arity hcov Rd hcAM) hread
+  obtain ⟨hflj, hvalj⟩ := genOutCtorOwn hcov Rd hcAM ψj hread hTjcl hpcj
+    (by rw [hyl, Rd.hnpc]) hfitC hWD
+  rw [← Rd.hnpc] at hflj hvalj
+  generalize hfV : (ys.drop (tgtMajor out j).nPc).map (interp V ρ) = fsY at hflj hvalj
+  obtain ⟨hC, -, -, ⟨-, hrdC⟩, -⟩ := mpC.lfp_ok _ Rd.hD
+  -- not the point: the container is above `Prop` at the constructor's levels
+  have hwj : (tgtClsD d Dc out j).w ψj ≠ 0 := fun h0 =>
+    hne (by rw [hvalj]; exact hC.mkZero _ h0 _ _ _)
+  -- the major's decomposition at the class's frame is that injection
+  have hmN : tgtClsM mc pp.toBlockShape out j < (tgtClsD d Dc out j).N :=
+    Nat.lt_of_lt_of_le Rd.hmm hC.kN
+  have ht : tupW ((tgtClsD d Dc out j).u (tgtClsM mc pp.toBlockShape out j) (tgtClsψ cvc out ψ j))
+        ((xs.drop (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ))
+      ∈ˢ (tgtClsD d Dc out j).idx (tgtClsψ cvc out ψ j)
+        (keyFrame (tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j)
+          (tgtRP pp.toBlockShape j)
+          (consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) ρ))
+        (tgtClsM mc pp.toBlockShape out j) := tupW_mem hsp
+  obtain ⟨j', fs', hfit', heq⟩ := hC.carrier_case hsat hmN ht hmaj
+  rw [hvalj, hC.injFrame _ _ hwj hw] at heq
+  have hfl : fsY.length
+      = ((tgtClsD d Dc out j).fields (tgtClsψ cvc out ψ j) (tgtClsM mc pp.toBlockShape out j)
+          i).length := by
+    obtain ⟨cv', nPc, nF, -, -, -, -, A0, -, -, hrdA⟩ := hrdC _ Rd.hmm i hiD
+    rw [hflj, (hrdA ψj).2.1, (hrdA _).2.1]
+  obtain ⟨hjj, rfl⟩ := hC.mkInj _ hw _ hmN i fsY j' fs' hiD hfit'.1 hfl
+    hfit'.2.1.length_eq heq
+  subst hjj
+  -- the pins' values, the class's frame
+  have hdl : (tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).length
+      = (tgtMajor out j).nPc :=
+    (DenoteMetaSpine.length_eq (Rd.hdsa ψ)).symm.trans Rd.hnpc.symm
+  generalize hxV : (xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ) = xsV
+    at hsat hsp hmaj hysv hxvl hfit' ht
+  have hys0V : ys₀.map (interp V ρ)
+      = (tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).map (interp V (consList xsV ρ)) := by
+    refine List.ext_getElem (by rw [List.length_map, List.length_map, hyl0, hdl])
+      fun q h1 h2 => ?_
+    rw [List.length_map, hyl0] at h1
+    have hq2 : q < (tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).length := by
+      rw [hdl]; exact h1
+    have e1 := hysv q h1
+    rw [List.getElem_map, List.getElem_map]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by rw [hyl0]; exact h1),
+      Option.getD_some, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hq2,
+      Option.getD_some] at e1
+    exact e1
+  have hkeyE : keyFrame (tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j)
+      (tgtRP pp.toBlockShape j) (consList xsV ρ)
+      = consList ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).map
+          (interp V (consList xsV ρ))) ρ := by
+    unfold keyFrame
+    congr 1
+    funext k
+    rw [show tgtRP pp.toBlockShape j = pp.toBlockShape.rulePrefixAt j from rfl, ← hxvl]
+    exact consList_apply_add xsV ρ k
+  have hysV : (ys₀ ++ ys.drop (tgtMajor out j).nPc).map (interp V ρ)
+      = (tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).map (interp V (consList xsV ρ))
+        ++ fsY := by
+    rw [List.map_append, hys0V, hfV]
+  have hlen' : (ys₀ ++ ys.drop (tgtMajor out j).nPc).length
+      = (tgtMajor out j).ds.length + cA.2 := by
+    rw [List.length_append, List.length_drop, hyl0, hyl, ← Rd.hnpc]; omega
+  -- the constructor at the class's levels, at the pins and the fields: fitted
+  have hT0c : denoteMeta mpC.base2.acval envC (tgtClsψ cvc out ψ j) 0 cA.1.type = some T0 := by
+    rw [Rd.hψ]; exact hT0
+  have hfit2 := hfit'.2.1
+  rw [hkeyE] at hsat hfit2
+  obtain ⟨X, hTF⟩ := genOutCtorRefit Rd hcov hcAM _ hT0c hT0cl hpc
+    (by rw [List.length_map, hdl, Rd.hnpc]) hsat hfit2
+  rw [← hysV] at hTF
+  obtain ⟨restC', hfitPA⟩ := Rules.teleFitPA_of_teleFit _ (by rw [hlen']; exact hpc) hTF
+  refine ⟨restC', by rw [hctorTy]; exact hfitPA, ?_⟩
+  -- … and the same injection
+  have hsa : SpineFit (fun k => consList xsV ρ (k + tgtRP pp.toBlockShape j))
+      ((tgtClsD d Dc out j).params (tgtClsψ cvc out ψ j))
+      ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).map
+        (interp V (consList xsV ρ))) := by
+    refine spineFit_of_sat_consList (by rw [List.length_map, Rd.hlenP ψ, hdl, Rd.hnpc]) ?_
+    rw [← hkeyE] at hsat
+    exact hsat
+  have hval := hC.ctor _ hmN i _ _ _ _ _ hsa ht hfit'
+  rw [hvalj, hC.injFrame _ _ hwj hw, mpC.base2.acval_params cA.1.name _ hfindC _ _ hlv,
+    interp_mkAppN_foldl, hysV, hname,
+    acval_interp_closed mpC.base2 _ _ ρ (fun k => consList xsV ρ (k + tgtRP pp.toBlockShape j)),
+    hval]
 
 set_option maxHeartbeats 8000000 in
 /-- **The rows at an OUTSIDE class** (the rule fires `.nested`): the
@@ -1697,8 +2152,8 @@ that injection (`mkInj`): the fields hole-fit at the pins' frame —
 `genRow3_core` does the rest. -/
 theorem genRows3_out (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC []) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+      block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC [])
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
     (hD : ∀ ψ ρ, GenClsDec pp out mpC d Dc mc cvc ψ ρ)
     (hDI : ∀ ψ ρ, GenClsDecInv pp out mpC d Dc mc cvc ψ ρ)
@@ -1709,7 +2164,7 @@ theorem genRows3_out (hμ : μ.verifiedChecks = true)
     (hcl : TgtOutCls mpC (tgtMajor out j) (Dc j) (mc j) (cvc j))
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
     {lvls : List Level} {pins : List Expr}
-    (hf : ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
+    (hf : ConLeche.tgtFireOf pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
       = .nested lvls pins)
     {rl : ConLeche.RecRule} (hrl : ConLeche.RecRule.fire rl = .nested lvls pins) :
     BlockRuleRows3 (V := V) mpC pp (ConLeche.tgtMajorsOf out j).nPc (tgtRs out)
@@ -1723,7 +2178,7 @@ theorem genRows3_out (hμ : μ.verifiedChecks = true)
   have hi : i < blockRecNCt (tgtRs out) j :=
     Nat.lt_of_lt_of_le (List.getElem?_eq_some_iff.mp hcA).1 (blockRecNCt_ge hr)
   have hcAM : (tgtMajor out j).ctors[i]? = some cA := by rw [← tgtRs_ctors hr]; exact hcA
-  obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
+  obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
   have hMM : (ConLeche.tgtMajorsOf out j).nPc = (tgtMajor out j).nPc := rfl
   rw [hMM] at hyl ⊢
   -- the level assignment of the rule, and the constructor's
@@ -1754,9 +2209,9 @@ theorem genRows3_out (hμ : μ.verifiedChecks = true)
     rfl
   replace hfitC : TeleFitPA V ρ T0 ys restC := by rw [← hctorTy]; exact hfitC
   -- the fired application, at its own parameters
-  obtain ⟨hfl, hval0⟩ := genOutCtorOwn hcov Rd hcAM ψ hT0 hT0cl hpc
+  obtain ⟨hfl, hval0⟩ := genOutCtorOwn hcov Rd hcAM _ hT0 hT0cl hpc
     (by rw [hyl, Rd.hnpc]) hfitC hyWD
-  rw [← Rd.hnpc] at hfl hval0
+  rw [← Rd.hnpc, ← Rd.hψ] at hfl hval0
   generalize hfV : (ys.drop (tgtMajor out j).nPc).map (interp V ρ) = fsY at hfl hval0 ⊢
   obtain ⟨hC, -, -, -⟩ := mpC.lfp_ok _ Rd.hD
   obtain ⟨hiD, hfc0, -, -⟩ := Rd.hctor i cA hcAM
@@ -1774,10 +2229,10 @@ theorem genRows3_out (hμ : μ.verifiedChecks = true)
           (tgtClsM mc pp.toBlockShape out j) := by
     unfold tgtClsIs; rw [ite_eq_left hG]
   have hsatK := Rd.hsat ψ ρ xsV hpref
-  have hval3 : interp V ρ (AnnotTerm.mkAppN
+  have hval3 : interp V ρ (ITerm.mkAppN
       (mpC.base2.acval cA.1.name (Level.substFn φ cA.1.levelParams usj)) ys)
       = tgtClsInj d Dc mc cvc pp.toBlockShape out ψ j i fsY := by
-    rw [mpC.base2.acval_params cA.1.name _ hfindC _ _ hlv]
+    rw [mpC.base2.acval_params cA.1.name _ hfindC _ _ hlv, ← Rd.hψ]
     exact hval0
   -- the class is never `Prop` here
   have hw : (tgtClsD d Dc out j).w (tgtClsψ cvc out ψ j) ≠ 0 := by
@@ -1818,12 +2273,12 @@ theorem genOut_P (hcov : LfpCover mpC []) {j : Nat} {cvI : ConstantVal}
     (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
     {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
     {ψj ψc : Name → Nat} (hlv : ∀ p ∈ cA.1.levelParams, ψj p = ψc p)
-    (hw : (tgtClsD d Dc out j).w ψc = 0) {TVja : AnnotTerm}
+    (hw : (tgtClsD d Dc out j).w ψc = 0) {TVja : ITerm}
     (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
-    {ρ : Nat → V} {ys : List AnnotTerm} {restC : AnnotTerm}
+    {ρ : Nat → V} {ys : List ITerm} {restC : ITerm}
     (hys : ys.length = (tgtMajor out j).nPc + cA.2)
     (hfitC : TeleFitPA V ρ TVja ys restC) (hWD : ∀ y ∈ ys, WellDenoted V ρ y) :
-    interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
+    interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) = pt := by
   obtain ⟨args, -, -, -, hin, -, hU⟩ := genOut_typed hcov Rd hcAM hread hys hfitC hWD
   rw [genOut_wCongr Rd hcAM hlv, hw] at hU
   exact mem_univ_zero hU hin
@@ -1835,17 +2290,17 @@ arguments and the recursor's indices are fits of the container's index
 telescope at the same parameters (the constructor's are the pins', the
 recursor's the class's: equal by the `.nested` pins), compared where
 neither is the point — so equal. -/
-theorem genOut_pin (hμ : μ.verifiedChecks = true) (hcov : LfpCover mpC []) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+theorem genOut_pin (hμ : μ.verifiedChecks = true) (hcov : LfpCover mpC [])
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r)
     {cvI : ConstantVal} (Rd : GenClsRd mpC d Dc mc cvc pp out j cvI)
     {i : Nat} {cA : ConstantVal × Nat} (hcAM : (tgtMajor out j).ctors[i]? = some cA)
     (ψ : Name → Nat) {ψj : Name → Nat}
-    (hlv : ∀ p ∈ cA.1.levelParams, ψj p = tgtClsψ cvc out ψ j p) {TVja : AnnotTerm}
+    (hlv : ∀ p ∈ cA.1.levelParams, ψj p = tgtClsψ cvc out ψ j p) {TVja : ITerm}
     (hread : denoteMeta mpC.base2.acval envC ψj 0 cA.1.type = some TVja)
-    {ρ : Nat → V} {xs ys : List AnnotTerm} {maj restR restC : AnnotTerm}
+    {ρ : Nat → V} {xs ys : List ITerm} {maj restR restC : ITerm}
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hys : ys.length = (tgtMajor out j).nPc + cA.2)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
@@ -1956,7 +2411,7 @@ theorem genOut_pin (hμ : μ.verifiedChecks = true) (hcov : LfpCover mpC []) {me
     rcases hcarLen with hc | hc
     · omega
     · exact hc
-  obtain ⟨-, hcargs⟩ := AnnotTerm.mkAppN_inj (hrestEq.symm.trans hrestE)
+  obtain ⟨-, hcargs⟩ := ITerm.mkAppN_inj (hrestEq.symm.trans hrestE)
     (by rw [hcarLen', hlenA, hlenI])
   subst hcargs
   -- the residual's index values, by position
@@ -1983,8 +2438,8 @@ constructor at the pins' readings, which fit its parameter binders
 (`genOutCtorFit`); above `Prop` it is not the point. -/
 theorem genOut_Kwit (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC []) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+      block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC [])
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) (hMo : (tgtMajor out j).member = none)
@@ -1995,20 +2450,20 @@ theorem genOut_Kwit (hμ : μ.verifiedChecks = true)
     (hnf0 : cA.2 = 0) (ψ : Name → Nat) {ψj : Name → Nat}
     (hlv : ∀ p ∈ cA.1.levelParams, ψj p = tgtClsψ cvc out ψ j p)
     (hw : (tgtClsD d Dc out j).w (tgtClsψ cvc out ψ j) ≠ 0)
-    {ρ : Nat → V} {xs : List AnnotTerm} {a restR : AnnotTerm}
+    {ρ : Nat → V} {xs : List ITerm} {a restR : ITerm}
     (hxl : xs.length = pp.toBlockShape.majorIdxAt j)
     (hfitR : TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
       (xs ++ [a]) restR)
-    {ys : List AnnotTerm} (hyl : ys.length = (tgtMajor out j).nPc)
+    {ys : List ITerm} (hyl : ys.length = (tgtMajor out j).nPc)
     (hysv : ∀ q, q < (tgtMajor out j).nPc → interp V ρ (ys.getD q default)
       = interp V (consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) ρ)
           ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).getD q default)) :
     ∃ restR' restC,
       TeleFitPA V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ j)
-        (xs ++ [AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys]) restR' ∧
+        (xs ++ [ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys]) restR' ∧
       TeleFitPA V ρ (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψj) ys restC ∧
-      interp V ρ a = interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) ∧
-      interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) ≠ pt := by
+      interp V ρ a = interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) ∧
+      interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) ≠ pt := by
   have hj : j < (tgtRs out).length := (List.getElem?_eq_some_iff.mp hr).1
   have hi : i < blockRecNCt (tgtRs out) j :=
     Nat.lt_of_lt_of_le (List.getElem?_eq_some_iff.mp hcA).1 (blockRecNCt_ge hr)
@@ -2089,7 +2544,7 @@ theorem genOut_Kwit (hμ : μ.verifiedChecks = true)
       ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out ψ j).map
         (interp V (consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) ρ))) :=
     spineFit_of_sat_consList (by rw [List.length_map, Rd.hlenP ψ, hdl, Rd.hnpc]) hsat
-  have hval : interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
+  have hval : interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys)
       = (tgtClsD d Dc out j).inj (tgtClsψ cvc out ψ j) (tgtClsM mc pp.toBlockShape out j) j' [] := by
     rw [mpC.base2.acval_params cA.1.name _ hfindC _ _ hlv, interp_mkAppN_foldl, hysV, hname,
       acval_interp_closed mpC.base2 _ _ ρ
@@ -2098,7 +2553,7 @@ theorem genOut_Kwit (hμ : μ.verifiedChecks = true)
     have := hC.ctor _ hmN j' _ _ _ [] _ hsa ht hfit'
     rw [List.append_nil] at this
     exact this
-  have heq : interp V ρ a = interp V ρ (AnnotTerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) := by
+  have heq : interp V ρ a = interp V ρ (ITerm.mkAppN (mpC.base2.acval cA.1.name ψj) ys) := by
     rw [heqa, hval]
   obtain ⟨restR', hfitR'⟩ := Rules.teleFitPA_snoc_congr xs hfitR heq
   exact ⟨restR', restC, hfitR', hfitC, heq, by rw [hval]; exact hC.injNePt _ hw _ _ _⟩
@@ -2107,8 +2562,8 @@ set_option maxHeartbeats 16000000 in
 /-- **The licence's facts at an outside rule**, at the recursors' cons. -/
 theorem genOutExtra (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC []) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+      block ctorsAs out) (hg : ClassGenScoped R.g) (hcov : LfpCover mpC [])
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     (hS : ∀ ψ ρ, GenClsSplit pp out mpC d Dc mc cvc ψ ρ)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : (tgtRs out)[j]? = some r) (hMo : (tgtMajor out j).member = none)
@@ -2117,13 +2572,13 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
     (hcl : TgtOutCls mpC (tgtMajor out j) (Dc j) (mc j) (cvc j))
     (hnP : pp.nP ≤ pp.toBlockShape.rulePrefixAt j)
     {lvls : List Level} {pins : List Expr}
-    (hf : ConLeche.tgtFireOf (·.constsResolve envC) pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
+    (hf : ConLeche.tgtFireOf pp.toBlockShape (ConLeche.tgtMajorsOf out) j r
       = .nested lvls pins)
     (hctorCB : ConstsBound envC cA.1.type)
     (hctorRead : ∀ ψ' : Name → Nat, denoteMeta mpC.base2.acval envC ψ' 0 cA.1.type
       = some (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ'))
     {Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List AnnotTerm}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
     {m₃ : EnvModel V (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC)}
     (hac : m₃.acval = blockRecAcv mpC.base2.acval envC (tgtRs out) s eqs) (φ : Name → Nat)
     {rl : ConLeche.RecRule} (hct : ConLeche.RecRule.ctor rl = cA.1.name)
@@ -2136,7 +2591,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
       Level.eval (Level.substFn φ r.1.levelParams us)
         (ConLeche.structElimLevel pp.toBlockShape.elim pp.toBlockShape.large) = 0 →
       (∀ ρ : Nat → V, interp V ρ (m₃.acval r.1.name (Level.substFn φ r.1.levelParams us)) = pt) ∧
-      ∀ Ra : AnnotTerm,
+      ∀ Ra : ITerm,
         denoteMeta m₃.acval (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC) φ 0
           ((ConLeche.RecRule.rhs rl).instantiateLevelParams r.1.levelParams us) = some Ra →
         ∀ ρ : Nat → V, interp V ρ Ra = pt) :
@@ -2169,8 +2624,8 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
     exact blockRecDenote_cross h hac _ 0 cA.1.type hctorCB (hctorRead _)
   have hnpd : (tgtMajor out j).nPc = (tgtMajor out j).ds.length := Rd.hnpc
   -- the pins, read at the cons as at the constructors' environment
-  obtain ⟨-, -, hpinsWf, -⟩ := ConLeche.tgtFireOf_nested hf
-  have hpinCross : ∀ (us : List Level) q (vpa : AnnotTerm),
+  obtain ⟨-, -, hpinsWf, -⟩ := R.fire_nestedRead hr hf
+  have hpinCross : ∀ (us : List Level) q (vpa : ITerm),
       denoteMeta mpC.base2.acval envC φ (pp.toBlockShape.rulePrefixAt j)
         (openRev 0 (pp.toBlockShape.rulePrefixAt j)
           ((pins.getD q default).instantiateLevelParams r.1.levelParams us)) = some vpa →
@@ -2194,13 +2649,62 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
       ∀ p ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj p
         = tgtClsψ cvc out (Level.substFn φ r.1.levelParams us) j p := by
     intro us usj hψ p hp
-    obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
+    obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
     rw [hψ]
     simp only [ConLeche.recFireComparands, hfire]
     rw [hlvls, ConLeche.Level.substFn_map_subst (by rw [Rd.hul, hlpC]) hp, hlpC, Rd.hψ]
   have hrPle : pp.toBlockShape.rulePrefixAt j ≤ pp.toBlockShape.majorIdxAt j :=
     blockRecHrPle (p := pp) h hj
+  -- the pins' readings at the recursor's prefix: the class's parameters, graded
+  have hpinSp : ∀ us : List Level, us.length = r.1.levelParams.length →
+      ∀ TVa : ITerm,
+        denoteMeta m₃.acval (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC) φ 0
+          (r.1.type.instantiateLevelParams r.1.levelParams us) = some TVa →
+      ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
+        xs.length = pp.toBlockShape.majorIdxAt j → TeleFitPA V ρ TVa (xs ++ [a]) restR →
+      ∃ ys₀ : List ITerm, ys₀.length = (tgtMajor out j).nPc ∧
+        (∀ q, q < (tgtMajor out j).nPc → interp V ρ (ys₀.getD q default)
+          = interp V (consList ((xs.take (pp.toBlockShape.rulePrefixAt j)).map (interp V ρ)) ρ)
+              ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out
+                (Level.substFn φ r.1.levelParams us) j).getD q default)) ∧
+        ((∀ x ∈ xs, WellDenoted V ρ x) → ∀ y ∈ ys₀, WellDenoted V ρ y) := by
+    intro us hus TVa hTVa ρ xs a restR hxl hfit
+    obtain ⟨-, hpinV⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
+    obtain ⟨vF, hvF⟩ : ∃ vF : Nat → ITerm, ∀ q, q < (tgtMajor out j).nPc →
+        denoteMeta mpC.base2.acval envC φ (pp.toBlockShape.rulePrefixAt j)
+          (openRev 0 (pp.toBlockShape.rulePrefixAt j)
+            ((pins.getD q default).instantiateLevelParams r.1.levelParams us)) = some (vF q) ∧
+        ∀ (ρ : Nat → V) (zs : List ITerm), zs.length = pp.toBlockShape.rulePrefixAt j →
+          interp V ρ (ITerm.instRevChain zs (vF q))
+            = interp V (consList (zs.map (interp V ρ)) ρ)
+                ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out
+                  (Level.substFn φ r.1.levelParams us) j).getD q default) :=
+      ⟨fun q => if hq : q < (tgtMajor out j).nPc then Classical.choose (hpinV q hq) else default,
+        fun q hq => by
+          simp only [hq, dite_true]
+          exact Classical.choose_spec (hpinV q hq)⟩
+    let ys : List ITerm := (List.range (tgtMajor out j).nPc).map fun q =>
+      ITerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) (vF q)
+    refine ⟨ys, by simp [ys], fun q hq => ?_, fun hxs y hy => ?_⟩
+    · have hysq : ys.getD q default
+          = ITerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) (vF q) := by
+        simp [ys, List.getD_eq_getElem?_getD, List.getElem?_range hq]
+      rw [hysq]
+      exact (hvF q hq).2 ρ _ (by rw [List.length_take]; omega)
+    · obtain ⟨q, hq, rfl⟩ : ∃ q, q < (tgtMajor out j).nPc ∧
+          y = ITerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) (vF q) := by
+        simp only [ys, List.mem_map, List.mem_range] at hy
+        obtain ⟨q, hq, rfl⟩ := hy
+        exact ⟨q, hq, rfl⟩
+      obtain ⟨vpa', hvpa', hgr⟩ := hpinsOk us hus lvls pins hfire q (by rw [hnp]; exact hq)
+      rw [hpinCross us q _ (hvF q hq).1] at hvpa'
+      obtain rfl := Option.some.inj hvpa'
+      obtain ⟨mid, hmid⟩ := hfit.take (pp.toBlockShape.rulePrefixAt j)
+      rw [List.take_append_of_le_length (by omega)] at hmid
+      exact hgr ρ _ _ mid (by rw [List.length_take]; omega)
+        (fun z hz => hxs z (List.mem_of_mem_take hz)) hTVa hmid
   refine ⟨fun hk1 => ?_, ?_⟩
+
   · ------------------------------------------------------------------ K
     rw [hk] at hk1
     obtain ⟨cvj', cnP', T, us₀, cvT', caps', h1, h2, h3, h4⟩ := ConLeche.recRuleKOf_inv hk1
@@ -2233,74 +2737,60 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
       exact Or.inl ⟨Rules.interp_mkAppN_pt (hL ρ) _, fun Ra hRa' => hRa Ra hRa' ρ⟩
     · -- above `Prop`: the witness at the pins
       refine Or.inr ?_
-      obtain ⟨hlvls, hpinV⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
-      obtain ⟨vF, hvF⟩ : ∃ vF : Nat → AnnotTerm, ∀ q, q < (tgtMajor out j).nPc →
-          denoteMeta mpC.base2.acval envC φ (pp.toBlockShape.rulePrefixAt j)
-            (openRev 0 (pp.toBlockShape.rulePrefixAt j)
-              ((pins.getD q default).instantiateLevelParams r.1.levelParams us)) = some (vF q) ∧
-          ∀ (ρ : Nat → V) (zs : List AnnotTerm), zs.length = pp.toBlockShape.rulePrefixAt j →
-            interp V ρ (AnnotTerm.instRevChain zs (vF q))
-              = interp V (consList (zs.map (interp V ρ)) ρ)
-                  ((tgtOutDsa mpC.base2.acval envC pp.toBlockShape out
-                    (Level.substFn φ r.1.levelParams us) j).getD q default) :=
-        ⟨fun q => if hq : q < (tgtMajor out j).nPc then Classical.choose (hpinV q hq) else default,
-          fun q hq => by
-            simp only [hq, dite_true]
-            exact Classical.choose_spec (hpinV q hq)⟩
-      let ys : List AnnotTerm := (List.range (tgtMajor out j).nPc).map fun q =>
-        AnnotTerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) (vF q)
-      have hyl : ys.length = (tgtMajor out j).nPc := by simp [ys]
-      have hysq : ∀ q, q < (tgtMajor out j).nPc →
-          ys.getD q default = AnnotTerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j))
-            (vF q) := by
-        intro q hq
-        simp [ys, List.getD_eq_getElem?_getD, List.getElem?_range hq]
+      obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
+      obtain ⟨ys, hyl, hysv, hgr⟩ := hpinSp us hus _ hTVa0 ρ xs a restR hxl hfit
       let usj := (ConLeche.recFireComparands rl r.1.levelParams us cA.1.levelParams []
         (pp.toBlockShape.rulePrefixAt j)).1
       have hlv := hlvOf us usj rfl
       obtain ⟨restR', restC, hfitR', hfitC, heq, hne⟩ :=
-        genOut_Kwit hμ R hg hcov h hS hr hMo hcA Rd hnP hone hnf0 _ hlv hw hxl hfit hyl
-          (fun q hq => by
-            rw [hysq q hq]
-            exact (hvF q hq).2 ρ _ (by rw [List.length_take]; omega))
+        genOut_Kwit hμ R hg hcov h hS hr hMo hcA Rd hnP hone hnf0 _ hlv hw hxl hfit hyl hysv
       refine ⟨cA.1, (tgtMajor out j).ds.length, cA.2, usj, ys, _, restR', restC, hfind3,
         by rw [hyl, hnp, hnf, hnf0]; rfl, ?_, rfl, ?_, hTVjaOf _,
-        by rw [hstored]; exact hfitR', hfitC, by rw [hstored]; exact heq, fun hxs y hy => ?_⟩
+        by rw [hstored]; exact hfitR', hfitC, by rw [hstored]; exact heq, hgr⟩
       · simp only [usj, ConLeche.recFireComparands, hfire, List.length_map]
         rw [hlvls, Rd.hul, hlpC]
       · -- above `Prop` the fired application is not the point: the pin is not consulted
         intro hpt
         rw [hstored] at hpt
         exact absurd hpt hne
-      · obtain ⟨q, hq, rfl⟩ : ∃ q, q < (tgtMajor out j).nPc ∧
-            y = AnnotTerm.instRevChain (xs.take (pp.toBlockShape.rulePrefixAt j)) (vF q) := by
-          simp only [ys, List.mem_map, List.mem_range] at hy
-          obtain ⟨q, hq, rfl⟩ := hy
-          exact ⟨q, hq, rfl⟩
-        obtain ⟨vpa', hvpa', hgr⟩ := hpinsOk us hus lvls pins hfire q (by rw [hnp]; exact hq)
-        rw [hpinCross us q _ (hvF q hq).1] at hvpa'
-        obtain rfl := Option.some.inj hvpa'
-        obtain ⟨mid, hmid⟩ := hfit.take (pp.toBlockShape.rulePrefixAt j)
-        rw [List.take_append_of_le_length (by omega)] at hmid
-        exact hgr ρ _ _ mid (by rw [List.length_take]; omega)
-          (fun z hz => hxs z (List.mem_of_mem_take hz)) hTVa0 hmid
   · ------------------------------------------------------------------ NK
     intro us hus TVa hTVa cvj cnP cnF hfind
     rw [hfind3] at hfind
     obtain ⟨rfl, rfl, rfl⟩ : cA.1 = cvj ∧ (tgtMajor out j).ds.length = cnP ∧ cA.2 = cnF := by
       injection hfind with h'; injection h' with a b c; exact ⟨a, b, c⟩
-    refine ⟨by rw [hnp, hnf]; exact genCls_arity hcov Rd hcAM,
-      fun _ usj husj hψ TVja hTVja => ?_⟩
     obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa
+    rw [hstored]
+    refine ⟨by rw [hnp, hnf]; exact genCls_arity hcov Rd hcAM,
+      fun _ => ⟨fun hlic ρ xs a restR hxl hfit => ?_, ?_, fun usj husj hψ TVja hTVja => ?_⟩⟩
+    · -- (S), at the comparand levels
+      have hlv := hlvOf us _ rfl
+      obtain ⟨-, hsat, hsp, hmaj⟩ := genOut_major hμ h hS hr Rd _ hxl hfit
+      exact genOut_ne_pt Rd hsat hsp hmaj
+        (genOut_S Rd hcAM (fun caps hc => hkeep _ _ hc) hlv hlic)
+    · -- (T), at the class's levels and parameters (the pins' readings)
+      intro hlic usj husj TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hWDx hWDy hne
+      rw [hTVjaOf] at hTVja
+      obtain rfl := Option.some.inj hTVja
+      rw [hnp, hnf] at hyl
+      rw [hnp]
+      have hlv := hlvOf us _ rfl
+      obtain ⟨hlvls, -⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
+      obtain ⟨ys₀, hyl0, hysv, hgr⟩ := hpinSp us hus _ hTVa ρ xs _ restR hxl hfitR
+      obtain ⟨restC', hfit', hval⟩ := genOut_T hμ R hg hcov h hS hr hMo hcA Rd hnP _ hlv
+        (genOut_S Rd hcAM (fun caps hc => hkeep _ _ hc) hlv hlic) (hctorRead _) hxl hyl hfitR
+        hfitC hWDy hne hyl0 hysv
+      refine ⟨_, ys₀ ++ ys.drop (tgtMajor out j).nPc, _, restC', ?_, rfl, hTVjaOf _, ?_,
+        by rw [List.drop_left' hyl0], fun y hy => ?_, hfit', hval⟩
+      · simp only [ConLeche.recFireComparands, hfire, List.length_map]
+        rw [hlvls, Rd.hul, hlpC]
+      · rw [List.length_append, List.length_drop, hyl0, hyl]; omega
+      · rcases List.mem_append.mp hy with hy | hy
+        · exact hgr hWDx y hy
+        · exact hWDy y (List.mem_of_mem_drop hy)
     rw [hTVjaOf] at hTVja
     obtain rfl := Option.some.inj hTVja
     have hlv := hlvOf us usj hψ
-    rw [hstored]
-    refine ⟨fun hlic ρ xs a restR hxl hfit => ?_,
-      fun ρ xs a restR hxl hfit hapt ys restC hfitC hyl hWD => ?_, ?_⟩
-    · obtain ⟨-, hsat, hsp, hmaj⟩ := genOut_major hμ h hS hr Rd _ hxl hfit
-      exact genOut_ne_pt Rd hsat hsp hmaj
-        (genOut_S Rd hcAM (fun caps hc => hkeep _ _ hc) hlv hlic)
+    refine ⟨fun ρ xs a restR hxl hfit hapt ys restC hfitC hyl hWD => ?_, ?_⟩
     · obtain ⟨-, hsat, hsp, hmaj⟩ := genOut_major hμ h hS hr Rd _ hxl hfit
       have hw : (tgtClsD d Dc out j).w
           (tgtClsψ cvc out (Level.substFn φ r.1.levelParams us) j) = 0 :=
@@ -2308,7 +2798,7 @@ theorem genOutExtra (hμ : μ.verifiedChecks = true)
       exact genOut_P hcov Rd hcAM hlv hw (hctorRead _) (by rw [hyl, hnp, hnf]) hfitC hWD
     · intro ρ xs ys restR restC hxl hyl hfitR hfitC _ hWDy _ hcN hpinC hpt
       rw [hnp, hnf] at hyl
-      obtain ⟨-, hpinV⟩ := genOutPinVal hμ R hg h hr hMo Rd hf φ us
+      obtain ⟨-, hpinV⟩ := genOutPinVal hμ R hg h hr Rd hf φ us
       have hlv' : ∀ p ∈ cA.1.levelParams, Level.substFn φ cA.1.levelParams usj p
           = Level.substFn (Level.substFn φ r.1.levelParams us) cvI.levelParams
               (tgtMajor out j).lvls p := fun p hp => by rw [hlv p hp, Rd.hψ]

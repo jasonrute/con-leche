@@ -34,7 +34,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   RecRule uN u1N vN)
 
@@ -52,7 +52,7 @@ extension's fresh leaf is stepped over by `acvalWith_ne`, the prefix
 lookup by `Env.find?_cons`, and the leaf itself is
 `acval_basis_pinned`. -/
 theorem denoteMeta_pinned_const {m : EnvModel V env}
-    {c₀ : ConstantInfo} {A : (Name → Nat) → AnnotTerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     {n : Name} {ci : ConstantInfo} {ψ : Name → Nat} {ls : List Level}
     (hne : ¬ c₀.name = n)
     (hf : env.find? n = some ci)
@@ -63,7 +63,7 @@ theorem denoteMeta_pinned_const {m : EnvModel V env}
       (Level.substFn ψ ci.toConstantVal.levelParams ls)
         = some (Term.const c us)) (d : Nat) :
     denoteMeta (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
-        (.const n ls) = some (AnnotTerm.const c us) := by
+        (.const n ls) = some (ITerm.const c us) := by
   have hf' : (⟨c₀ :: env.consts⟩ : Env).find? n = some ci := by
     rw [ConLeche.Env.find?_cons, ite_eq_right hne]; exact hf
   rw [denoteMeta_const hf' hlen, acvalWith_ne (fun h => hne h.symm),
@@ -78,7 +78,7 @@ instances the basis recursors' step spaces need. -/
 
 /-- The general absorption: lifting past `k + 1` binders and
 instantiating at `k` shifts the environment down by `k`. -/
-theorem interp_liftN_succ_inst (e a : AnnotTerm) (k : Nat)
+theorem interp_liftN_succ_inst (e a : ITerm) (k : Nat)
     (ρ : Nat → V) :
     interp V ρ ((e.liftN (k + 1) 0).inst a k)
       = interp V (fun i => ρ (i + k)) e := by
@@ -93,12 +93,12 @@ theorem interp_liftN_succ_inst (e a : AnnotTerm) (k : Nat)
   rw [ite_eq_right (by omega), ite_eq_right (by omega),
     show i + (k + 1) - 1 = i + k from by omega]
 
-theorem interp_liftN2_inst1 (e a : AnnotTerm) (x : V) (ρ : Nat → V) :
+theorem interp_liftN2_inst1 (e a : ITerm) (x : V) (ρ : Nat → V) :
     interp V (cons x ρ) ((e.liftN 2 0).inst a 1) = interp V ρ e := by
   rw [interp_liftN_succ_inst (k := 1)]
   rfl
 
-theorem interp_liftN3_inst2 (e a : AnnotTerm) (x y : V) (ρ : Nat → V) :
+theorem interp_liftN3_inst2 (e a : ITerm) (x y : V) (ρ : Nat → V) :
     interp V (cons y (cons x ρ)) ((e.liftN 3 0).inst a 2)
       = interp V ρ e := by
   rw [interp_liftN_succ_inst (k := 2)]
@@ -117,12 +117,12 @@ section Nat
 open ConLeche (natA natZeroA natSuccA natRecA natName natZeroName
   natSuccName)
 
-variable {m : EnvModel V env} {A : (Name → Nat) → AnnotTerm}
+variable {m : EnvModel V env} {A : (Name → Nat) → ITerm}
 
 /-- `Nat`'s type reading: `Sort 1`, `BConst.typeAV .nat []` on the
 nose. -/
 theorem denoteMeta_natA_type
-    {acval : Name → (Name → Nat) → AnnotTerm} (ψ : Name → Nat) :
+    {acval : Name → (Name → Nat) → ITerm} (ψ : Name → Nat) :
     denoteMeta acval ⟨natA :: env.consts⟩ ψ 0 natA.toConstantVal.type
       = some (BConst.typeAV .nat []) := by
   rw [show natA.toConstantVal.type = Expr.sort (.succ .zero) from rfl,
@@ -134,7 +134,7 @@ theorem denoteMeta_natLeaf {c₀ : ConstantInfo} (ψ : Name → Nat)
     (hne : ¬ c₀.name = natName)
     (hN : env.find? natName = some natA) (d : Nat) :
     denoteMeta (acvalWith m.acval c₀.name A) ⟨c₀ :: env.consts⟩ ψ d
-        (.const natName []) = some (AnnotTerm.const .nat []) := by
+        (.const natName []) = some (ITerm.const .nat []) := by
   refine denoteMeta_pinned_const (m := m) hne hN (by decide) (by rfl) ?_ d
   simp +decide [ConLeche.Verify.pinnedStructT]
 
@@ -147,8 +147,7 @@ theorem denoteMeta_natZeroA_type (ψ : Name → Nat)
   rw [show natZeroA.toConstantVal.type = Expr.const natName [] from rfl]
   exact denoteMeta_natLeaf (m := m) (A := A) ψ (by decide) hN 0
 
-/-- `Nat.succ`'s type reading — one binder, pinned `.never`, so the
-numeral is `1` on both sides.  Stated at *any* extension whose cons is
+/-- `Nat.succ`'s type reading — one binder, `Nat → Nat`.  Stated at *any* extension whose cons is
 not `Nat`, because the `Nat.rec` row reads it too (its rule's
 constructor is `Nat.succ`). -/
 theorem denoteMeta_natSuccTy {c₀ : ConstantInfo} (ψ : Name → Nat)
@@ -175,7 +174,7 @@ theorem denoteMeta_natSuccA_type (ψ : Name → Nat)
 
 /-- The reading of `Nat.succ`'s type is its spelled type. -/
 theorem natSuccA_reading_eq :
-    (AnnotTerm.pi (.const .nat []) (.const .nat []))
+    (ITerm.pi (.const .nat []) (.const .nat []))
       = BConst.typeAV .natSucc [] := rfl
 
 /-- The three pinned `Nat` leaves at the `Nat.rec` extension. -/
@@ -185,13 +184,13 @@ theorem denoteMeta_natRec_leaves (ψ : Name → Nat)
     (hS : env.find? natSuccName = some natSuccA) :
     (∀ d : Nat, denoteMeta (acvalWith m.acval natRecA.name A)
         ⟨natRecA :: env.consts⟩ ψ d (.const natName [])
-        = some (AnnotTerm.const .nat [])) ∧
+        = some (ITerm.const .nat [])) ∧
     (∀ d : Nat, denoteMeta (acvalWith m.acval natRecA.name A)
         ⟨natRecA :: env.consts⟩ ψ d (.const natZeroName [])
-        = some (AnnotTerm.const .natZero [])) ∧
+        = some (ITerm.const .natZero [])) ∧
     (∀ d : Nat, denoteMeta (acvalWith m.acval natRecA.name A)
         ⟨natRecA :: env.consts⟩ ψ d (.const natSuccName [])
-        = some (AnnotTerm.const .natSucc [])) := by
+        = some (ITerm.const .natSucc [])) := by
   refine ⟨fun d => denoteMeta_natLeaf (m := m) (A := A) ψ (by decide) hN d,
     fun d => ?_, fun d => ?_⟩
   · refine denoteMeta_pinned_const (m := m) (by decide) hZ (by decide)
@@ -238,7 +237,7 @@ theorem denoteMeta_natRecA_type (ψ : Name → Nat)
 
 /-- The reading of `Nat.rec`'s type is its spelled type. -/
 theorem natRecA_reading_eq (ψ : Name → Nat) :
-    (AnnotTerm.pi (.pi (.const .nat []) (.sort (ψ uN)))
+    (ITerm.pi (.pi (.const .nat []) (.sort (ψ uN)))
       (.pi (.app (.bvar 0) (.const .natZero []))
         (.pi (.pi (.const .nat [])
             (.pi (.app (.bvar 2) (.bvar 0))
@@ -266,7 +265,7 @@ theorem extendNat (mp : EnvModelM V μ env)
   -- the pinned block's lfp clause is recorded at its last constructor's
   -- cons (`extendNatSucc`: the clause's `ctor` reads the constructors' leaves)
   refine coverTo_pend hfresh (declStep_preserves_of_basis_cons_gen mp
-    (A := fun _ => AnnotTerm.const .nat []) hfresh
+    (A := fun _ => ITerm.const .nat []) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (Or.inl (fun _ h => nomatch h))
     (ConsHead.ofBasis hwf (fun _ => trivial) rfl
@@ -308,11 +307,11 @@ theorem extendNatZero (mp : EnvModelM V μ env)
     CoverTo mp ex ⟨natZeroA :: env.consts⟩ ex := by
   have hty := fun ψ =>
     denoteMeta_natZeroA_type (m := mp.base2)
-      (A := fun _ => AnnotTerm.const .natZero []) ψ hN
+      (A := fun _ => ITerm.const .natZero []) ψ hN
   refine coverTo_cons hfresh (fun _ _ h => nomatch h)
     (hhead := hhead_ctor (c₀ := natZeroA) rfl rfl rfl (Or.inl hNex))
     (declStep_preserves_of_basis_cons_gen mp
-    (A := fun _ => AnnotTerm.const .natZero []) hfresh
+    (A := fun _ => ITerm.const .natZero []) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (Or.inl (fun _ h => nomatch h))
     (ConsHead.ofBasis hwf (fun _ => trivial) rfl
@@ -351,12 +350,12 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
     CoverTo mp [natName] ⟨natSuccA :: env.consts⟩ [] := by
   have hty := fun ψ =>
     denoteMeta_natSuccA_type (m := mp.base2)
-      (A := fun _ => AnnotTerm.const .natSucc []) ψ hN
+      (A := fun _ => ITerm.const .natSucc []) ψ hN
   -- the pinned block's lfp clause, recorded at its last constructor's cons
   -- (the constructors' leaves are read by `ctor`)
-  have hNl0 : ∀ ψ : Name → Nat, mp.base2.acval natName ψ = AnnotTerm.const .nat [] :=
+  have hNl0 : ∀ ψ : Name → Nat, mp.base2.acval natName ψ = ITerm.const .nat [] :=
     fun ψ => acval_basis_pinned (m := mp.base2) hN (by decide) rfl
-  have hZl0 : ∀ ψ : Name → Nat, mp.base2.acval natZeroName ψ = AnnotTerm.const .natZero [] :=
+  have hZl0 : ∀ ψ : Name → Nat, mp.base2.acval natZeroName ψ = ITerm.const .natZero [] :=
     fun ψ => acval_basis_pinned (m := mp.base2) hZ (by decide) rfl
   refine coverTo_addLfp (D := natLfp natName natZeroName natSuccName)
     (hL := natLfp_clause
@@ -439,7 +438,7 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
     (coverA_cons hfresh (fun _ h => h) (fun _ _ h => nomatch h)
       (hhead := hhead_ctor (c₀ := natSuccA) rfl rfl rfl (Or.inl List.mem_cons_self)) <|
       declStep_preserves_of_basis_cons_gen mp
-    (A := fun _ => AnnotTerm.const .natSucc []) hfresh
+    (A := fun _ => ITerm.const .natSucc []) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (Or.inl (fun _ h => nomatch h))
     (ConsHead.ofBasis hwf (fun _ => trivial) rfl
@@ -466,17 +465,17 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
     -- and the fresh one
     intro m₂ hac φ _ ρ
     have hZl : m₂.acval natZeroName (Level.substFn φ [] [])
-        = AnnotTerm.const .natZero [] := by
+        = ITerm.const .natZero [] := by
       rw [hac, acvalWith_ne (by decide)]
       refine acval_basis_pinned (m := mp.base2) hZ (by decide) ?_
       simp +decide [ConLeche.Verify.pinnedStructT]
     have hNl : m₂.acval natName (Level.substFn φ [] [])
-        = AnnotTerm.const .nat [] := by
+        = ITerm.const .nat [] := by
       rw [hac, acvalWith_ne (by decide)]
       refine acval_basis_pinned (m := mp.base2) hN (by decide) ?_
       simp +decide [ConLeche.Verify.pinnedStructT]
     have hSl : m₂.acval natSuccName (Level.substFn φ [] [])
-        = AnnotTerm.const .natSucc [] := by
+        = ITerm.const .natSucc [] := by
       rw [hac, show natSuccName = natSuccA.name from rfl,
         acvalWith_self]
     rw [hZl, hNl, hSl]
@@ -495,11 +494,11 @@ The three telescope domains, named once.  Their readings are
 `natRecV` abstracts over. -/
 
 /-- The motive binder's domain reading. -/
-def natMotiveTy (ψ : Name → Nat) : AnnotTerm :=
+def natMotiveTy (ψ : Name → Nat) : ITerm :=
   .pi (.const .nat []) (.sort (ψ uN))
 
 /-- The step binder's domain reading. -/
-def natStepTy : AnnotTerm :=
+def natStepTy : ITerm :=
   .pi (.const .nat [])
     (.pi (.app (.bvar 2) (.bvar 0))
       (.app (.bvar 3) (.app (.const .natSucc []) (.bvar 1))))
@@ -520,14 +519,14 @@ theorem natStepTy_interp (ρ : Nat → V) (M z : V) :
   exact piV_congr fun _ _ => by rw [natSuccV_app V hn]
 
 /-- The `zero` rule's RHS reading. -/
-def natZeroRa (ψ : Name → Nat) : AnnotTerm :=
+def natZeroRa (ψ : Name → Nat) : ITerm :=
   .lam (natMotiveTy ψ)
     (.lam (.app (.bvar 0) (.const .natZero []))
       (.lam (natStepTy) (.bvar 1)))
 
 /-- The `succ` rule's RHS reading — the recursive occurrence is the
 *fresh* leaf, so it reads to `.const .natRec [ψ u]`. -/
-def natSuccRa (ψ : Name → Nat) : AnnotTerm :=
+def natSuccRa (ψ : Name → Nat) : ITerm :=
   .lam (natMotiveTy ψ)
     (.lam (.app (.bvar 0) (.const .natZero []))
       (.lam (natStepTy)
@@ -565,25 +564,25 @@ theorem denoteMeta_natRec_succRhs (ψ : Name → Nat)
     (hZ : env.find? natZeroName = some natZeroA)
     (hS : env.find? natSuccName = some natSuccA) :
     denoteMeta (acvalWith m.acval natRecA.name
-        (fun ψ => AnnotTerm.const .natRec [ψ uN]))
+        (fun ψ => ITerm.const .natRec [ψ uN]))
         ⟨natRecA :: env.consts⟩ ψ 0 natRecSuccRule.rhs
       = some (natSuccRa ψ) := by
   obtain ⟨hNc, hZc, hSc⟩ :=
     denoteMeta_natRec_leaves (m := m)
-      (A := fun ψ => AnnotTerm.const .natRec [ψ uN]) ψ hN hZ hS
+      (A := fun ψ => ITerm.const .natRec [ψ uN]) ψ hN hZ hS
   have hRc : ∀ d : Nat,
       denoteMeta (acvalWith m.acval natRecA.name
-          (fun ψ => AnnotTerm.const .natRec [ψ uN]))
+          (fun ψ => ITerm.const .natRec [ψ uN]))
         ⟨natRecA :: env.consts⟩ ψ d
         (.const (natName.str "rec") [.param uN])
-        = some (AnnotTerm.const .natRec [ψ uN]) := by
+        = some (ITerm.const .natRec [ψ uN]) := by
     intro d
     have hf : (⟨natRecA :: env.consts⟩ : Env).find? (natName.str "rec")
         = some natRecA := by
       rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl
     rw [denoteMeta_const hf (by rfl),
       show natName.str "rec" = natRecA.name from rfl, acvalWith_self]
-    show some (AnnotTerm.const .natRec
+    show some (ITerm.const .natRec
       [Level.substFn ψ natRecA.toConstantVal.levelParams
         [Level.param uN] uN]) = _
     rw [show Level.substFn ψ natRecA.toConstantVal.levelParams
@@ -607,7 +606,7 @@ theorem denoteMeta_natRec_succRhs (ψ : Name → Nat)
     denoteMeta_fvar, Expr.instantiate1, hNc, hZc, hSc, hRc, Level.eval,
     natSuccRa, natMotiveTy, natStepTy]
 
-/-- The motive binder's domain is graded — no numeral is read. -/
+/-- The motive binder's domain is graded. -/
 theorem natMotiveTy_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
     WellDenoted V ρ (natMotiveTy ψ) :=
   ⟨trivial, IsTy_omega, fun _ _ => trivial, fun _ _ => IsTy_univ _⟩
@@ -686,7 +685,7 @@ theorem natSuccRa_interp (ψ : Name → Nat) (ρ : Nat → V) :
 `bconst_app_data` steps at `Nat.rec`'s own `typeAV` binders, with the
 four domains identified with `SetModel/Value.lean`'s spaces.  Used at
 the `succ` rule, where the RHS mentions the recursor. -/
-theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotTerm}
+theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : ITerm}
     (h1 : WellDenoted V ρ e1) (h2 : WellDenoted V ρ e2)
     (h3 : WellDenoted V ρ e3) (h4 : WellDenoted V ρ e4)
     (m1 : interp V ρ e1 ∈ˢ natMotiveSpace V u)
@@ -698,7 +697,7 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotT
   have hlv : ConLeche.Term.lv [u] 0 = u := rfl
   have d1 : interp V ρ (arrowA natTyAV (.sort u))
       = natMotiveSpace V u := by
-    simp only [arrowA, natTyAV, AnnotTerm.lift, AnnotTerm.liftN, interp_pi,
+    simp only [arrowA, natTyAV, ITerm.lift, ITerm.liftN, interp_pi,
       interp_const, interp_sort, bval, natMotiveSpace]
   have d2 : ∀ a1 : V, interp V (cons a1 ρ)
       (.app (.bvar 0) natZeroAV) = app a1 natzero := by
@@ -706,7 +705,7 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotT
     simp [natZeroAV, interp_app, interp_bvar, interp_const, cons,
       bval]
   have d3 : ∀ a1 a2 : V, interp V (cons a2 (cons a1 ρ))
-      (AnnotTerm.pi natTyAV (.pi (.app (.bvar 2) (.bvar 0))
+      (ITerm.pi natTyAV (.pi (.app (.bvar 2) (.bvar 0))
         (.app (.bvar 3) (natSuccAV (.bvar 1)))))
       = natStepSpace V a1 := by
     intro a1 a2
@@ -745,7 +744,7 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : AnnotT
 theorem natZeroRa_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
     WellDenoted V ρ (natZeroRa ψ) := by
   have hzty : ∀ M : V, interp V (cons M ρ)
-      (AnnotTerm.app (.bvar 0) (.const .natZero [])) = app M natzero := by
+      (ITerm.app (.bvar 0) (.const .natZero [])) = app M natzero := by
     intro M; simp [interp_app, interp_bvar, interp_const, cons, bval]
   rw [natZeroRa, WellDenoted_lam, natMotiveTy_interp]
   have hMz : ∀ M : V, M ∈ˢ natMotiveSpace V (ψ uN) → IsTy (app M natzero) :=
@@ -791,7 +790,7 @@ set_option maxHeartbeats 1000000 in
 theorem natSuccRa_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
     WellDenoted V ρ (natSuccRa ψ) := by
   have hzty : ∀ M : V, interp V (cons M ρ)
-      (AnnotTerm.app (.bvar 0) (.const .natZero [])) = app M natzero := by
+      (ITerm.app (.bvar 0) (.const .natZero [])) = app M natzero := by
     intro M; simp [interp_app, interp_bvar, interp_const, cons, bval]
   have hMty : ∀ M : V, M ∈ˢ natMotiveSpace V (ψ uN) → ∀ n : V, n ∈ˢ (omega : V) →
       IsTy (app M n) := fun M hM n hn => IsTy_of_mem_univ (natMotive_apply V hM hn)
@@ -823,7 +822,7 @@ theorem natSuccRa_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
       simp [interp_app, interp_bvar, interp_const, cons, bval,
         ConLeche.Term.lv]
     have eapp : interp V (cons n (cons s (cons z (cons M ρ))))
-        (AnnotTerm.app (.bvar 1) (.bvar 0)) = app s n := by
+        (ITerm.app (.bvar 1) (.bvar 0)) = app s n := by
       simp [interp_app, interp_bvar, cons]
     have hs'' : s ∈ˢ piR (propN omega fun k => piV (app M k) fun _ => app M (natsucc k))
         omega (fun k => piV (app M k) fun _ => app M (natsucc k)) := hs
@@ -929,7 +928,7 @@ itself, read through the **fresh** leaf. -/
 /-- The recursor's telescope, unpacked into the four memberships
 `SetModel/Value.lean`'s laws are stated with. -/
 theorem natRecTelescope (ψ : Name → Nat) (ρ : Nat → V)
-    {xs : List AnnotTerm} (hxs : xs.length = 3) (tl rest : AnnotTerm)
+    {xs : List ITerm} (hxs : xs.length = 3) (tl rest : ITerm)
     (hfit : TeleFitPA V ρ
       (.pi (natMotiveTy ψ)
         (.pi (.app (.bvar 0) (.const .natZero []))
@@ -937,7 +936,7 @@ theorem natRecTelescope (ψ : Name → Nat) (ρ : Nat → V)
             (.pi (.const .nat [])
               (.app (.bvar 3) (.bvar 0))))))
       (xs ++ [tl]) rest) :
-    ∃ M z s : AnnotTerm, xs = [M, z, s] ∧
+    ∃ M z s : ITerm, xs = [M, z, s] ∧
       interp V ρ M ∈ˢ natMotiveSpace V (ψ uN) ∧
       interp V ρ z ∈ˢ app (interp V ρ M) natzero ∧
       interp V ρ s ∈ˢ natStepSpace V (interp V ρ M) ∧
@@ -951,7 +950,7 @@ theorem natRecTelescope (ψ : Name → Nat) (ρ : Nat → V)
   cases hfit with | cons h4 _ =>
   rw [natMotiveTy_interp] at h1
   refine ⟨M, z, s, rfl, h1, ?_, ?_, ?_⟩
-  · simpa [AnnotTerm.inst, AnnotTerm.liftN_zero, interp_app, interp_bvar,
+  · simpa [ITerm.inst, ITerm.liftN_zero, interp_app, interp_bvar,
       interp_const, cons, bval] using h2
   · have heq : (piV (omega : V) fun x =>
           piV (app (interp V ρ M) x)
@@ -959,11 +958,11 @@ theorem natRecTelescope (ψ : Name → Nat) (ρ : Nat → V)
         = natStepSpace V (interp V ρ M) :=
       piV_congr fun n hn => piV_congr fun _ _ => by rw [natSuccV_app V hn]
     rw [← heq]
-    simpa [AnnotTerm.inst, AnnotTerm.liftN_zero, natStepTy,
+    simpa [ITerm.inst, ITerm.liftN_zero, natStepTy,
       interp_liftN2_inst1, interp_liftN3_inst2, interp_pi,
       interp_app, interp_bvar, interp_const, cons_zero, cons_succ,
       bval] using h3
-  · simpa [AnnotTerm.inst, AnnotTerm.liftN_zero, interp_const, bval]
+  · simpa [ITerm.inst, ITerm.liftN_zero, interp_const, bval]
       using h4
 
 /-- The `zero` tower's membership in its function space. -/
@@ -998,7 +997,7 @@ theorem natSuccRa_mem (ψ : Name → Nat) (ρ : Nat → V) :
 /-- The `zero` rule's transport: three `WellDenoted_app` steps over
 `natZeroRa_mem`. -/
 theorem natZeroRa_transport (ψ : Name → Nat) (ρ : Nat → V)
-    {M z s : AnnotTerm}
+    {M z s : ITerm}
     (hM : interp V ρ M ∈ˢ natMotiveSpace V (ψ uN))
     (hz : interp V ρ z ∈ˢ app (interp V ρ M) natzero)
     (hs : interp V ρ s ∈ˢ natStepSpace V (interp V ρ M))
@@ -1019,7 +1018,7 @@ theorem natZeroRa_transport (ψ : Name → Nat) (ρ : Nat → V)
 
 /-- The `succ` rule's transport: four steps. -/
 theorem natSuccRa_transport (ψ : Name → Nat) (ρ : Nat → V)
-    {M z s n : AnnotTerm}
+    {M z s n : ITerm}
     (hM : interp V ρ M ∈ˢ natMotiveSpace V (ψ uN))
     (hz : interp V ρ z ∈ˢ app (interp V ρ M) natzero)
     (hs : interp V ρ s ∈ˢ natStepSpace V (interp V ρ M))
@@ -1069,11 +1068,11 @@ theorem natRecMajor_ne_pt (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     (hZ : env.find? natZeroName = some natZeroA)
     (hS : env.find? natSuccName = some natSuccA)
     (hac : m₂.acval = acvalWith m.acval natRecA.name A)
-    (φ : Name → Nat) (us : List Level) {TVa : AnnotTerm}
+    (φ : Name → Nat) (us : List Level) {TVa : ITerm}
     (hTVa : denoteMeta m₂.acval ⟨natRecA :: env.consts⟩ φ 0
         (natRecA.toConstantVal.type.instantiateLevelParams
           natRecA.toConstantVal.levelParams us) = some TVa)
-    (ρ : Nat → V) {xs : List AnnotTerm} {a restR : AnnotTerm}
+    (ρ : Nat → V) {xs : List ITerm} {a restR : ITerm}
     (hxs : xs.length = 3) (hfit : TeleFitPA V ρ TVa (xs ++ [a]) restR) :
     interp V ρ a ≠ pt := by
   obtain rfl : TVa = _ := (Option.some.inj
@@ -1085,8 +1084,9 @@ theorem natRecMajor_ne_pt (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
   exact pt_not_mem_omega ha
 
 /-- **`Nat.rec`'s licence facts**, either rule: not K; the major's
-domain `ω` holds no point, so (S) and (P) hold outright; no indices,
-so (U) is the trivial index pin. -/
+domain `ω` holds no point, so (S) and (P) hold outright; the
+constructors have no level parameters, so (T) is the fired application
+itself; no indices, so (U) is the trivial index pin. -/
 theorem natRecExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     (hN : env.find? natName = some natA)
     (hZ : env.find? natZeroName = some natZeroA)
@@ -1096,13 +1096,22 @@ theorem natRecExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     (harity : ∀ (cvj : ConstantVal) (cnP cnF : Nat),
       (⟨natRecA :: env.consts⟩ : Env).find? rl.ctor
         = some (.ctorInfo cvj cnP cnF) →
-      (cvj.type.stripPis (rl.ctorParams + rl.nfields)).isSome = true) :
+      (cvj.type.stripPis (rl.ctorParams + rl.nfields)).isSome = true)
+    (hlps : ∀ (cvj : ConstantVal) (cnP cnF : Nat),
+      (⟨natRecA :: env.consts⟩ : Env).find? rl.ctor
+        = some (.ctorInfo cvj cnP cnF) → cvj.levelParams = []) :
     RecRuleExtra m₂ φ natRecA.name natRecA.toConstantVal 3 3 rl := by
   intro us _ TVa hTVa
   refine ⟨fun h => by simp [hk] at h, fun cvj cnP cnF hfj =>
-    ⟨harity cvj cnP cnF hfj, fun _ usj _ _ TVja _ => ⟨?_, ?_, ?_⟩⟩⟩
+    ⟨harity cvj cnP cnF hfj, fun _ => ⟨?_, ?_, fun usj _ _ TVja _ => ⟨?_, ?_⟩⟩⟩⟩
   · intro _ ρ xs a restR hxs hfit
     exact natRecMajor_ne_pt (m := m) m₂ hN hZ hS hac φ us hTVa ρ hxs hfit
+  · -- no level parameters: the fired application is at the comparand levels
+    intro _ usj husj TVja hTVja ρ xs ys restR restC _ _ _ hfitC _ hyWD _
+    have hl := hlps cvj cnP cnF hfj
+    refine ⟨usj, ys, TVja, restC, husj, ?_, hTVja, rfl, rfl, hyWD, hfitC, rfl⟩
+    rw [hl]
+    rfl
   · intro ρ xs a restR hxs hfit ha
     exact absurd ha
       (natRecMajor_ne_pt (m := m) m₂ hN hZ hS hac φ us hTVa ρ hxs hfit)
@@ -1119,7 +1128,15 @@ theorem natRecZeroExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     RecRuleExtra m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecZeroRule :=
   natRecExtra (m := m) m₂ hN hZ hS hac φ _ rfl
-    (fun _ _ _ _ => rfl)
+    (fun _ _ _ _ => rfl) (by
+      intro cvj cnP cnF hfj
+      have hZ' : (⟨natRecA :: env.consts⟩ : Env).find? natZeroName
+          = some natZeroA := by
+        rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hZ
+      rw [show RecRule.ctor natRecZeroRule = natZeroName from rfl,
+        hZ'] at hfj
+      injection Option.some.inj hfj with a1 _ _
+      rw [← a1])
 
 /-- `Nat.rec`'s `succ` rule's licence facts. -/
 theorem natRecSuccExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
@@ -1130,17 +1147,22 @@ theorem natRecSuccExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     (φ : Name → Nat) :
     RecRuleExtra m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecSuccRule := by
-  refine natRecExtra (m := m) m₂ hN hZ hS hac φ _ rfl ?_
-  intro cvj cnP cnF hfj
   have hS' : (⟨natRecA :: env.consts⟩ : Env).find? natSuccName
       = some natSuccA := by
     rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hS
-  rw [show RecRule.ctor natRecSuccRule = natSuccName from rfl,
-    hS'] at hfj
-  injection Option.some.inj hfj with a1 _ _
-  have hcvj : cvj = natSuccA.toConstantVal := a1.symm
-  subst hcvj
-  rfl
+  refine natRecExtra (m := m) m₂ hN hZ hS hac φ _ rfl ?_ ?_
+  · intro cvj cnP cnF hfj
+    rw [show RecRule.ctor natRecSuccRule = natSuccName from rfl,
+      hS'] at hfj
+    injection Option.some.inj hfj with a1 _ _
+    have hcvj : cvj = natSuccA.toConstantVal := a1.symm
+    subst hcvj
+    rfl
+  · intro cvj cnP cnF hfj
+    rw [show RecRule.ctor natRecSuccRule = natSuccName from rfl,
+      hS'] at hfj
+    injection Option.some.inj hfj with a1 _ _
+    rw [← a1]
 
 /-- **`Nat.rec`'s `zero` row.** -/
 theorem natRecZeroLaw {m : EnvModel V env}
@@ -1149,7 +1171,7 @@ theorem natRecZeroLaw {m : EnvModel V env}
     (hZ : env.find? natZeroName = some natZeroA)
     (hS : env.find? natSuccName = some natSuccA)
     (hac : m₂.acval = acvalWith m.acval natRecA.name
-      (fun ψ => AnnotTerm.const .natRec [ψ uN]))
+      (fun ψ => ITerm.const .natRec [ψ uN]))
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecZeroRule := by
@@ -1172,19 +1194,19 @@ theorem natRecZeroLaw {m : EnvModel V env}
     natRecTelescope ψ ρ hxs _ restR hfitR
   have hctorL : m₂.acval (RecRule.ctor natRecZeroRule)
       (Level.substFn φ cvj.levelParams usj)
-      = AnnotTerm.const .natZero [] := by
+      = ITerm.const .natZero [] := by
     rw [show RecRule.ctor natRecZeroRule = natZeroName from rfl, hac,
       acvalWith_ne (by decide)]
     refine acval_basis_pinned (m := m) hZ (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hrecL : m₂.acval natRecA.name
       (Level.substFn φ natRecA.toConstantVal.levelParams us)
-      = AnnotTerm.const .natRec [ψ uN] := by
+      = ITerm.const .natRec [ψ uN] := by
     rw [hac, acvalWith_self, hψ]
   refine ⟨?_, ?_⟩
   · simp only [show natRecZeroRule.ctorParams = 0 from rfl,
       List.take, List.drop, List.cons_append, List.nil_append,
-      List.append_nil, AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil, hrecL,
+      List.append_nil, ITerm.mkAppN_cons, ITerm.mkAppN_nil, hrecL,
       hctorL, interp_app, interp_const, bval, ConLeche.Term.lv,
       List.getD_cons_zero]
     rw [natRecV_app V hM hz hs (natzero_mem (V := V)), natrec_zero,
@@ -1202,7 +1224,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
     (hZ : env.find? natZeroName = some natZeroA)
     (hS : env.find? natSuccName = some natSuccA)
     (hac : m₂.acval = acvalWith m.acval natRecA.name
-      (fun ψ => AnnotTerm.const .natRec [ψ uN]))
+      (fun ψ => ITerm.const .natRec [ψ uN]))
     (φ : Name → Nat) :
     RecRuleLaw m₂ φ natRecA.name natRecA.toConstantVal 3 3
       natRecSuccRule := by
@@ -1227,14 +1249,14 @@ theorem natRecSuccLaw {m : EnvModel V env}
     natRecTelescope ψ ρ hxs _ restR hfitR
   have hctorL : m₂.acval (RecRule.ctor natRecSuccRule)
       (Level.substFn φ cvj.levelParams usj)
-      = AnnotTerm.const .natSucc [] := by
+      = ITerm.const .natSucc [] := by
     rw [show RecRule.ctor natRecSuccRule = natSuccName from rfl, hac,
       acvalWith_ne (by decide)]
     refine acval_basis_pinned (m := m) hS (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hrecL : m₂.acval natRecA.name
       (Level.substFn φ natRecA.toConstantVal.levelParams us)
-      = AnnotTerm.const .natRec [ψ uN] := by
+      = ITerm.const .natRec [ψ uN] := by
     rw [hac, acvalWith_self, hψ]
   -- `n`'s membership comes from the *constructor's* telescope
   have hcvj : cvj = natSuccA.toConstantVal := by
@@ -1256,7 +1278,7 @@ theorem natRecSuccLaw {m : EnvModel V env}
     simpa [interp_const, bval] using hn
   refine ⟨?_, ?_⟩
   · simp only [List.take, List.drop, List.cons_append, List.nil_append,
-      AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil, hrecL,
+      ITerm.mkAppN_cons, ITerm.mkAppN_nil, hrecL,
       hctorL, interp_app, interp_const, bval, ConLeche.Term.lv,
       List.getD_cons_zero, show natRecSuccRule.ctorParams = 0 from rfl]
     rw [natSuccV_app V hn',
@@ -1281,9 +1303,9 @@ theorem extendNatRec (mp : EnvModelM V μ env)
     CoverTo mp ex ⟨natRecA :: env.consts⟩ ex := by
   have hty := fun ψ =>
     denoteMeta_natRecA_type (m := mp.base2)
-      (A := fun ψ => AnnotTerm.const .natRec [ψ uN]) ψ hN hZ hS
+      (A := fun ψ => ITerm.const .natRec [ψ uN]) ψ hN hZ hS
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_basis_rec_cons mp
-    (A := fun ψ => AnnotTerm.const .natRec [ψ uN]) hfresh
+    (A := fun ψ => ITerm.const .natRec [ψ uN]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (by decide) (Or.inl (fun _ h => nomatch h))

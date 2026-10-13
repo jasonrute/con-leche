@@ -25,7 +25,7 @@ identity wrappers (`outParam`, …), ends in a sort that is zero at every
 valuation.  `prf_of_isProofFast` is the model licence: such a term is
 the point.
 
-The steps, all at the value reading (no binder datum is read):
+The steps, all at the value reading:
 * **a type former's application lands in its peeled sort**
   (`typeFormer_mem_univ`): the application is a type, so not the point;
   every prefix of its spine is then a graph ("not pt" source (2)), whose
@@ -43,7 +43,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -245,8 +245,8 @@ theorem redSem_unwrapIdDefs (hin : RulesInputs V m φ) {d : Nat} :
 
 /-- An instantiated ∀-body's frame, context discipline, reading and
 leaves, from the ∀'s and the argument's. -/
-theorem forallE_inst_facts {d : Nat} {Δa : List AnnotTerm} {A B x : Expr}
-    {Ba xa : AnnotTerm} {ρ : Nat → V}
+theorem forallE_inst_facts {d : Nat} {Δa : List ITerm} {A B x : Expr}
+    {Ba xa : ITerm} {ρ : Nat → V}
     (hf : Frame d (.forallE A B)) (hC : CtxOkS m φ d Δa (.forallE A B))
     (hBa : denoteMeta m.acval env φ (d + 1) (B.instantiate1 (.fvar d A)) = some Ba)
     (hfx : Frame d x) (hCx : CtxOkS m φ d Δa x)
@@ -289,8 +289,8 @@ application is not the point, so every prefix of its spine is a graph
 ("not pt" source (2)) whose domain is the binder's (`slotTransfer`), and
 an identity wrapper on the way is a reduction (`redSem_unwrapIdDefs`). -/
 theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
-    {Δa : List AnnotTerm} {ρ : Nat → V} (hρ : Sat V Δa ρ) :
-    ∀ (args : List Expr) {vs : List AnnotTerm} {Ty : Expr} {TyA Ha : AnnotTerm}
+    {Δa : List ITerm} {ρ : Nat → V} (hρ : Sat V Δa ρ) :
+    ∀ (args : List Expr) {vs : List ITerm} {Ty : Expr} {TyA Ha : ITerm}
       {u0 : ConLeche.Level},
       Frame d Ty → CtxOkS m φ d Δa Ty →
       denoteMeta m.acval env φ d Ty = some TyA → LeavesGr m φ d Ty ρ →
@@ -298,10 +298,10 @@ theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
       (∀ x ∈ args, Frame d x ∧ CtxOkS m φ d Δa x) →
       (∀ x ∈ args, LeavesGr m φ d x ρ) →
       DenoteMetaSpine m.acval env φ d args vs →
-      WellDenoted V ρ (AnnotTerm.mkAppN Ha vs) →
-      interp V ρ (AnnotTerm.mkAppN Ha vs) ≠ pt →
+      WellDenoted V ρ (ITerm.mkAppN Ha vs) →
+      interp V ρ (ITerm.mkAppN Ha vs) ≠ pt →
       ConLeche.peelPisW env.find? args.length Ty = some (.sort u0) →
-      interp V ρ (AnnotTerm.mkAppN Ha vs) ∈ˢ (univ (u0.eval φ) : V)
+      interp V ρ (ITerm.mkAppN Ha vs) ∈ˢ (univ (u0.eval φ) : V)
   | [], vs, Ty, TyA, Ha, u0, hf, hC, hTy, hL, hwT, hmem, _, _, hsp, _, _, hpeel => by
     cases hsp
     simp only [List.length_nil, ConLeche.peelPisW] at hpeel
@@ -334,8 +334,8 @@ theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
         rw [heq, interp_pi] at h2
         exact h2
       -- the spine is not the point, so its head is a graph
-      have hgS' : WellDenoted V ρ (AnnotTerm.mkAppN (.app Ha xa) vs') := hgS
-      have hne' : interp V ρ (AnnotTerm.mkAppN (.app Ha xa) vs') ≠ pt := hne
+      have hgS' : WellDenoted V ρ (ITerm.mkAppN (.app Ha xa) vs') := hgS
+      have hne' : interp V ρ (ITerm.mkAppN (.app Ha xa) vs') ≠ pt := hne
       have happ : WellDenoted V ρ (.app Ha xa) := mkAppN_head vs' hgS'
       obtain ⟨v', A', B', hslot, hx, -⟩ := (cast (WellDenoted_app V ρ Ha xa) happ).2.2
       have hHne : interp V ρ Ha ≠ pt := by
@@ -362,7 +362,7 @@ theorem typeFormer_mem_univ (hin : RulesInputs V m φ) {d : Nat}
 /-- A free-variable head's facts: its carried type is framed and read,
 graded at the valuation, and the variable's value inhabits it (the
 context's satisfaction). -/
-theorem fvarHead_facts {d : Nat} {Δa : List AnnotTerm} {a ty : Expr} {k : Nat}
+theorem fvarHead_facts {d : Nat} {Δa : List ITerm} {a ty : Expr} {k : Nat}
     {ρ : Nat → V} (hfn : a.getAppFn = .fvar k ty) (hf : Frame d a)
     (hC : CtxOkS m φ d Δa a) (hρ : Sat V Δa ρ) (hL : LeavesGr m φ d a ρ) :
     Frame d ty ∧ CtxOkS m φ d Δa ty ∧ LeavesGr m φ d ty ρ ∧
@@ -384,7 +384,7 @@ theorem fvarHead_facts {d : Nat} {Δa : List AnnotTerm} {a ty : Expr} {k : Nat}
 type former's application, whose type's peeled sort is zero at the
 valuation (`typeFormer_mem_univ`). -/
 theorem typeSort_head (hin : RulesInputs V m φ) {T : Expr} {d : Nat}
-    {Δa : List AnnotTerm} {TA : AnnotTerm} {ρ : Nat → V} {pw : ConLeche.PropWhen}
+    {Δa : List ITerm} {TA : ITerm} {ρ : Nat → V} {pw : ConLeche.PropWhen}
     (h1 : ∀ ty b, T ≠ .forallE ty b) (h2 : ∀ u, T ≠ .sort u)
     (hf : Frame d T) (hC : CtxOkS m φ d Δa T)
     (hTA : denoteMeta m.acval env φ d T = some TA) (hρ : Sat V Δa ρ)
@@ -470,7 +470,7 @@ residual type-former application lands in its zero sort
 (`typeFormer_mem_univ`), and a function space of truth values is one. -/
 theorem typeSort_mem_univZero (hin : RulesInputs V m φ) :
     ∀ (n : Nat) (T : Expr), T.sizeB < n →
-      ∀ {d : Nat} {Δa : List AnnotTerm} {TA : AnnotTerm} {ρ : Nat → V}
+      ∀ {d : Nat} {Δa : List ITerm} {TA : ITerm} {ρ : Nat → V}
         {pw : ConLeche.PropWhen},
         Frame d T → CtxOkS m φ d Δa T → denoteMeta m.acval env φ d T = some TA →
         Sat V Δa ρ → LeavesGr m φ d T ρ → WellDenotedTy V ρ TA →
@@ -532,8 +532,8 @@ theorem typeSort_mem_univZero (hin : RulesInputs V m φ) :
 /-- A head the proof reader answers for: a constant or a free variable
 whose type the type-sort reader reads as a proposition at the valuation
 is the point. -/
-theorem prf_head (hin : RulesInputs V m φ) {d : Nat} {Δa : List AnnotTerm} {a : Expr}
-    {aa : AnnotTerm} {ρ : Nat → V} {pw : ConLeche.PropWhen}
+theorem prf_head (hin : RulesInputs V m φ) {d : Nat} {Δa : List ITerm} {a : Expr}
+    {aa : ITerm} {ρ : Nat → V} {pw : ConLeche.PropWhen}
     (hf : Frame d a) (hC : CtxOkS m φ d Δa a)
     (hda : denoteMeta m.acval env φ d a = some aa) (hρ : Sat V Δa ρ)
     (hL : LeavesGr m φ d a ρ)
@@ -612,7 +612,7 @@ through its λs (an abstraction of the point), `let`s (the ζ-reduct) and
 applications (the point applied) to its head (`prf_head`). -/
 theorem prf_core (hin : RulesInputs V m φ) :
     ∀ (n : Nat) (a : Expr), a.proofDepth < n →
-      ∀ {d : Nat} {Δa : List AnnotTerm} {aa : AnnotTerm} {ρ : Nat → V}
+      ∀ {d : Nat} {Δa : List ITerm} {aa : ITerm} {ρ : Nat → V}
         {pw : ConLeche.PropWhen},
         Frame d a → CtxOkS m φ d Δa a → denoteMeta m.acval env φ d a = some aa →
         Sat V Δa ρ → LeavesGr m φ d a ρ → WellDenoted V ρ aa →
@@ -669,7 +669,7 @@ theorem prf_core (hin : RulesInputs V m φ) :
 /-- **A term whose stored data say "proof" is the point** — the
 `isProofFast` yes-arm's licence (`DefEq.proofFast`). -/
 theorem prf_of_isProofFast (hin : RulesInputs V m φ)
-    {d : Nat} {a : Expr} {Δa : List AnnotTerm} {aa : AnnotTerm}
+    {d : Nat} {a : Expr} {Δa : List ITerm} {aa : ITerm}
     (h : ConLeche.isProofFast env.find? a = true) (hfa : Frame d a)
     (hCa : CtxOkS m φ d Δa a)
     (hda : denoteMeta m.acval env φ d a = some aa)

@@ -10,14 +10,14 @@ public section
 Generic facts the call's typing (`TargetCallCore.lean`) is read with:
 
 * `interp_mkPisAV_congr` — a Π-tower's value reads only the domains of
-  its binder data.
+  its domains.
 -/
 
 namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal CheckMode)
 
 universe w
@@ -38,19 +38,19 @@ theorem mem_dom_of_mem_piSet_two {A A' f x : V} {B B' : V → V} (hf : f ∈ˢ p
   exact hx'
 
 theorem WellDenoted_mkAppN_head {ρ : Nat → V} :
-    ∀ (as : List AnnotTerm) {g : AnnotTerm},
-      WellDenoted V ρ (AnnotTerm.mkAppN g as) → WellDenoted V ρ g
+    ∀ (as : List ITerm) {g : ITerm},
+      WellDenoted V ρ (ITerm.mkAppN g as) → WellDenoted V ρ g
   | [], _, h => h
   | a :: as, g, h => by
     have h1 := WellDenoted_mkAppN_head as (g := .app g a) h
     exact (cast (WellDenoted_app V ρ g a) h1).1
 
 /-- A spine headed by the point is the point. -/
-theorem interp_mkAppN_pt {ρ : Nat → V} {f : AnnotTerm} (hf : interp V ρ f = pt) :
-    ∀ (as : List AnnotTerm), interp V ρ (AnnotTerm.mkAppN f as) = pt
+theorem interp_mkAppN_pt {ρ : Nat → V} {f : ITerm} (hf : interp V ρ f = pt) :
+    ∀ (as : List ITerm), interp V ρ (ITerm.mkAppN f as) = pt
   | [] => hf
   | a :: as => by
-    rw [AnnotTerm.mkAppN_cons]
+    rw [ITerm.mkAppN_cons]
     exact interp_mkAppN_pt (by rw [interp_app, hf, app_pt]) as
 
 /-- **A graded application spine that is not the point, of a value of a
@@ -58,11 +58,11 @@ theorem interp_mkAppN_pt {ρ : Nat → V} {f : AnnotTerm} (hf : interp V ρ f = 
 (`mem_piSet_of_mem_piV`); each application node's package puts its
 argument in a domain the head inhabits as a graph, and a graph's domain
 is rigid. -/
-theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
-    ∀ {pds : List AnnotTerm} {h : AnnotTerm} {args : List AnnotTerm}
+theorem spineFit_of_wellDenoted_mkAppN_pi {R : ITerm} :
+    ∀ {pds : List ITerm} {h : ITerm} {args : List ITerm}
       {τ σ : Nat → V},
-      interp V τ (AnnotTerm.mkAppN h args) ≠ pt →
-      WellDenoted V τ (AnnotTerm.mkAppN h args) →
+      interp V τ (ITerm.mkAppN h args) ≠ pt →
+      WellDenoted V τ (ITerm.mkAppN h args) →
       interp V τ h ∈ˢ interp V σ (mkPisAV pds R) →
       args.length = pds.length →
       SpineFit σ (pds) (args.map (interp V τ))
@@ -71,7 +71,7 @@ theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
   | _ :: _, _, [], _, _, _, _, _, hlen => by simp at hlen
   | d :: pds, h, a :: args, τ, σ, hne, hwd, hmem, hlen => by
     simp only [List.map_cons, SpineFit]
-    rw [AnnotTerm.mkAppN_cons] at hwd hne
+    rw [ITerm.mkAppN_cons] at hwd hne
     have hwdA := WellDenoted_mkAppN_head args hwd
     obtain ⟨-, -, v, A, Bf, hf, ha, -⟩ := cast (WellDenoted_app V τ h a) hwdA
     have hhne : interp V τ h ≠ pt := fun h0 =>
@@ -99,14 +99,14 @@ theorem spineFit_of_wellDenoted_mkAppN_pi {R : AnnotTerm} :
 
 /-- Two optional readings agree: both absent, or both present and
 related. -/
-@[expose] def ReadAgree (P : AnnotTerm → AnnotTerm → Prop) : Option AnnotTerm → Option AnnotTerm → Prop
+@[expose] def ReadAgree (P : ITerm → ITerm → Prop) : Option ITerm → Option ITerm → Prop
   | some a2, some a1 => P a2 a1
   | none, none => True
   | _, _ => False
 
 /-- A projection spelling keeps a value and a truthfulness transfer. -/
 theorem projAV_agree {ρ : Nat → V} :
-    ∀ (n : Nat) {e2 e1 : AnnotTerm}, interp V ρ e2 = interp V ρ e1 →
+    ∀ (n : Nat) {e2 e1 : ITerm}, interp V ρ e2 = interp V ρ e1 →
       (WellDenoted V ρ e2 → WellDenoted V ρ e1) →
       interp V ρ (projAV n e2) = interp V ρ (projAV n e1) ∧
         (WellDenoted V ρ (projAV n e2) → WellDenoted V ρ (projAV n e1))
@@ -130,12 +130,12 @@ variable {env : Env} {m : EnvModel V env} {φ : Name → Nat}
 hole slots carry the members' values, the abstract reading has the
 concrete one's value, and its truthfulness gives the concrete one's. -/
 @[expose] def AbsAgree (V : Type w) [SetTheory V] (k d : Nat) (hvC : Nat → V)
-    (a2 a1 : AnnotTerm) : Prop :=
+    (a2 a1 : ITerm) : Prop :=
   ∀ (vals : List V) (τ : Nat → V), vals.length = d → (∀ t, t < k → τ (k - 1 - t) = hvC t) →
     interp V (consList vals τ) a2 = interp V (consList vals τ) a1 ∧
       (WellDenoted V (consList vals τ) a2 → WellDenoted V (consList vals τ) a1)
 
-theorem readAgree_refl {k d : Nat} (o : Option AnnotTerm) :
+theorem readAgree_refl {k d : Nat} (o : Option ITerm) :
     ReadAgree (AbsAgree V k d hvC) o o := by
   cases o with
   | none => trivial

@@ -18,7 +18,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps)
 
 universe w'
@@ -32,42 +32,42 @@ section Below
 omit [SetTheory V] in
 /-- The non-dependent tower is closed at its components' bound plus
 its own depth. -/
-theorem ndTowerAV_below {r b : Nat} {G : Nat → AnnotTerm} :
+theorem ndTowerAV_below {r b : Nat} {G : Nat → ITerm} :
     ∀ (n s d : Nat), (∀ i, i < s + n → Term.bvarsBelow b (G i).erase) →
       Term.bvarsBelow (b + d) (ndTowerAV r G s d n).erase
   | 0, _, _, _ => by simp [ndTowerAV, Term.bvarsBelow]
   | n + 1, s, d, hG => by
-    show Term.bvarsBelow (b + d) (AnnotTerm.erase
+    show Term.bvarsBelow (b + d) (ITerm.erase
       (.app (.app (.const .psigma [r, r]) ((G s).liftN d 0))
         (.lam ((G s).liftN d 0) (ndTowerAV r G (s + 1) (d + 1) n))))
     have hC : Term.bvarsBelow (b + d) ((G s).liftN d 0).erase := by
-      rw [AnnotTerm.erase_liftN]
+      rw [ITerm.erase_liftN]
       exact VExprAux.bvarsBelow_liftN d (G s).erase b 0 (hG s (by omega))
     have htail : Term.bvarsBelow (b + d + 1) (ndTowerAV r G (s + 1) (d + 1) n).erase := by
       have := ndTowerAV_below (r := r) (G := G) (b := b) n (s + 1) (d + 1)
         (fun i hi => hG i (by omega))
       rwa [show b + (d + 1) = b + d + 1 from by omega] at this
-    simp only [AnnotTerm.erase_app, AnnotTerm.erase_lam, Term.bvarsBelow]
+    simp only [ITerm.erase_app, ITerm.erase_lam, Term.bvarsBelow]
     exact ⟨⟨trivial, hC⟩, hC, htail⟩
 
 omit [SetTheory V] in
 /-- The non-dependent tuple VALUE is closed at its components' bound. -/
-theorem ndMkTowerAV_below {r b : Nat} {Gty G : Nat → AnnotTerm} :
+theorem ndMkTowerAV_below {r b : Nat} {Gty G : Nat → ITerm} :
     ∀ (n s : Nat), (∀ i, i < s + n → Term.bvarsBelow b (Gty i).erase) →
       (∀ i, i < s + n → Term.bvarsBelow b (G i).erase) →
       Term.bvarsBelow b (ndMkTowerAV r Gty G s n).erase
   | 0, _, _, _ => by simp [ndMkTowerAV, Term.bvarsBelow]
   | n + 1, s, hGty, hG => by
-    show Term.bvarsBelow b (AnnotTerm.erase (AnnotTerm.mkAppN (.const .psigmaMk [r, r])
+    show Term.bvarsBelow b (ITerm.erase (ITerm.mkAppN (.const .psigmaMk [r, r])
       [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
        G s, ndMkTowerAV r Gty G (s + 1) n]))
-    rw [AnnotTerm.erase_mkAppN]
+    rw [ITerm.erase_mkAppN]
     refine VExprAux.bvarsBelow_mkAppN (by simp [Term.bvarsBelow]) ?_
     intro a ha
     simp only [List.map_cons, List.map_nil, List.mem_cons] at ha
     rcases ha with rfl | rfl | rfl | rfl | h
     · exact hGty s (by omega)
-    · simp only [AnnotTerm.erase_lam, Term.bvarsBelow]
+    · simp only [ITerm.erase_lam, Term.bvarsBelow]
       refine ⟨hGty s (by omega), ?_⟩
       have := ndTowerAV_below (r := r) (G := Gty) (b := b) n (s + 1) 1
         (fun i hi => hGty i (by omega))
@@ -83,14 +83,14 @@ theorem ndMkTowerAV_below {r b : Nat} {Gty G : Nat → AnnotTerm} :
 
 section LeafBelow
 
-variable {k w nP nIdx : Nat} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
-  {Chs : Nat → List (List AnnotTerm)}
+variable {k w nP nIdx : Nat} {uf : Nat → Nat} {Idss : Nat → List ITerm}
+  {Chs : Nat → List (List ITerm)}
 
 omit [SetTheory V] in
-theorem famTyAV_below {u w : Nat} {Ids : List AnnotTerm} (h : DomsBelow nP Ids) :
+theorem famTyAV_below {u w : Nat} {Ids : List ITerm} (h : DomsBelow nP Ids) :
     Term.bvarsBelow nP (famTyAV u w Ids).erase := by
   unfold famTyAV
-  simp only [AnnotTerm.erase_pi, AnnotTerm.erase_sort, Term.bvarsBelow]
+  simp only [ITerm.erase_pi, ITerm.erase_sort, Term.bvarsBelow]
   exact ⟨towerBodyAV_below h, trivial⟩
 
 omit [SetTheory V] in
@@ -100,9 +100,9 @@ theorem blockArmAV_below {m : Nat} (hIds : ∀ c, DomsBelow nP (Idss c))
     Term.bvarsBelow (nP + 1)
       (blockArmG w uf Idss Chs m).erase := by
   unfold blockArmG
-  simp only [AnnotTerm.erase_lam, Term.bvarsBelow]
+  simp only [ITerm.erase_lam, Term.bvarsBelow]
   refine ⟨?_, ?_⟩
-  · rw [AnnotTerm.erase_liftN]
+  · rw [ITerm.erase_liftN]
     exact VExprAux.bvarsBelow_liftN 1 (idxTyAV (uf m) (Idss m)).erase nP 0
       (towerBodyAV_below (hIds m))
   · exact sumBodyAV_below hchains
@@ -113,7 +113,7 @@ theorem blockFunAV_below (hIds : ∀ c, DomsBelow nP (Idss c))
     (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, DomsBelow (nP + 2) chain) :
     Term.bvarsBelow nP (blockFunG k w uf Idss Chs).erase := by
   unfold blockFunG
-  simp only [AnnotTerm.erase_lam, Term.bvarsBelow]
+  simp only [ITerm.erase_lam, Term.bvarsBelow]
   refine ⟨?_, ?_⟩
   · unfold famsTyBAV
     have := ndTowerAV_below (r := blockR k w uf)
@@ -122,7 +122,7 @@ theorem blockFunAV_below (hIds : ∀ c, DomsBelow nP (Idss c))
     rwa [Nat.add_zero] at this
   · exact ndMkTowerAV_below (r := blockR k w uf) (b := nP + 1) k 0
       (fun i _ => by
-        rw [AnnotTerm.erase_liftN]
+        rw [ITerm.erase_liftN]
         exact VExprAux.bvarsBelow_liftN 1 (famTyAV (uf i) w (Idss i)).erase nP 0
           (famTyAV_below (hIds i)))
       (fun i hi => blockArmAV_below hIds (hchains i (by omega)))
@@ -133,7 +133,7 @@ theorem idxTupAV_below (hIds : ∀ c, DomsBelow nP (Idss c)) :
     Term.bvarsBelow nP (idxTupAV k w uf Idss).erase := by
   unfold idxTupAV
   exact ndMkTowerAV_below (r := blockS k w uf) (b := nP) k 0
-    (fun _ _ => by simp only [AnnotTerm.erase_sort]; trivial)
+    (fun _ _ => by simp only [ITerm.erase_sort]; trivial)
     (fun i _ => towerBodyAV_below (hIds i))
 
 omit [SetTheory V] in
@@ -142,7 +142,7 @@ theorem blockBodyAV_below (hIds : ∀ c, DomsBelow nP (Idss c))
     (hchains : ∀ m, m < k → ∀ chain ∈ Chs m, DomsBelow (nP + 2) chain) :
     Term.bvarsBelow nP (blockBodyG k w uf Idss Chs).erase := by
   unfold blockBodyG
-  rw [AnnotTerm.erase_mkAppN]
+  rw [ITerm.erase_mkAppN]
   refine VExprAux.bvarsBelow_mkAppN (by simp [Term.bvarsBelow]) ?_
   intro a ha
   simp only [List.map_cons, List.map_nil, List.mem_cons] at ha
@@ -153,7 +153,7 @@ theorem blockBodyAV_below (hIds : ∀ c, DomsBelow nP (Idss c))
 
 omit [SetTheory V] in
 /-- **A member's former leaf is closed.** -/
-theorem blockTyAV_below {m : Nat} {pps : List AnnotTerm}
+theorem blockTyAV_below {m : Nat} {pps : List ITerm}
     (hp : DomsBelow 0 pps) (hlen : pps.length = nP + nIdx)
     (hIdsLen : (Idss m).length = nIdx)
     (hIds : ∀ c, DomsBelow nP (Idss c))
@@ -162,10 +162,10 @@ theorem blockTyAV_below {m : Nat} {pps : List AnnotTerm}
       (blockTyG k w uf Idss Chs pps m).erase := by
   refine mkLamsAV_below hp ?_
   rw [hlen, Nat.zero_add, ← hIdsLen]
-  simp only [AnnotTerm.erase_app, Term.bvarsBelow]
+  simp only [ITerm.erase_app, Term.bvarsBelow]
   refine ⟨?_, ?_⟩
   · refine projAV_below ?_
-    rw [AnnotTerm.erase_liftN]
+    rw [ITerm.erase_liftN]
     exact VExprAux.bvarsBelow_liftN (Idss m).length
       (blockBodyG k w uf Idss Chs).erase nP 0
       (blockBodyAV_below hIds hchains)
@@ -179,13 +179,13 @@ end Below
 
 section Currency
 
-variable {k w nP : Nat} {uf : Nat → Nat} {Idss : Nat → List AnnotTerm}
-  {Chs : Nat → List (List AnnotTerm)}
+variable {k w nP : Nat} {uf : Nat → Nat} {Idss : Nat → List ITerm}
+  {Chs : Nat → List (List ITerm)}
 
 /-- **The block former leaf's P currency**: graded at the hereditary
 premise. -/
 theorem blockTyAV_wellDenoted {m : Nat} (hm : m < k)
-    {pps : List AnnotTerm} {ρ : Nat → V}
+    {pps : List ITerm} {ρ : Nat → V}
     (hok : ParamsOkG k w ρ uf Idss Chs m pps) :
     WellDenoted V ρ (blockTyG k w uf Idss Chs pps m) :=
   blockTyG_wellDenoted hm hok

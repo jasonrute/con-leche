@@ -252,7 +252,7 @@ structure CSOK (mode : CheckMode) (env : Env) (s : CState) : Prop where
       inferTypeCore mode env F d k = .ok v
   /-- The io memo's clause (task #172 B4, the task-#170 memo ruling):
   an entry is backed by an io-*slot* run — the WEAKER invariant, since
-  at the gated mode the slot witnesses fewer checks than `inferC`'s
+  the io slot witnesses fewer checks than `inferC`'s
   clause consumes.  A hit here never serves a full-infer query (the
   maps are separate), which is exactly what lets this clause be
   weaker. -/

@@ -53,7 +53,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal IndCaps CheckM NestCtx NestKey NestHole NestState
   NestFieldKind CheckError instPisWith fueledOps PosD PosJ ProgScoped grpNews grpHoles
   groupCtors)
@@ -97,10 +97,10 @@ formedness), at every recorded block holding the frame's head. -/
       cv.levelParams = lps) →
     us.length = lps.length →
     (∀ x ∈ ds, Expr.WScoped (ctx.hiAt prog.length) x ∧ x.looseBVarsBounded 0 = true) →
-    ∀ {dsa : List AnnotTerm}, DenoteMetaSpine mp.base2.acval env φ (ctx.hiAt prog.length) ds dsa →
+    ∀ {dsa : List ITerm}, DenoteMetaSpine mp.base2.acval env φ (ctx.hiAt prog.length) ds dsa →
     (D.params (Level.substFn φ lps us)).length = ds.length →
     ((∃ nP' L, ConLeche.nestContainer ctx (D.member mm) = some (nP', L) ∧ L ≠ []) ∨ lps.Nodup) →
-    ∀ {Δh : List AnnotTerm} {R₀ : FrameRel V},
+    ∀ {Δh : List ITerm} {R₀ : FrameRel V},
     HoleRel mp.base2 φ ctx prog (ctx.hiAt prog.length) Δh R₀ → Δh.length = ctx.hiAt prog.length →
     (∀ x ∈ ds, CtxOkP mp.base2 φ (ctx.hiAt prog.length) Δh x) →
     (∀ x ∈ ds, Expr.LeavesBounded x) →
@@ -122,19 +122,19 @@ module docstring). -/
   | .field prog dep _ e k _ =>
     (k.flat = false → ContCover mp ctx) →
     ctx.hiAt prog.length ≤ dep → Frame dep e →
-    ∀ {Δa : List AnnotTerm} {ea : AnnotTerm} {R : FrameRel V},
+    ∀ {Δa : List ITerm} {ea : ITerm} {R : FrameRel V},
       CtxOkP mp.base2 φ dep Δa e → denoteMeta mp.base2.acval env φ dep e = some ea →
       GradedTy V Δa ea → HoleRel mp.base2 φ ctx prog dep Δa R → MonoOn R ea
   | .tele prog base nF j cur ks _ res =>
     ((∃ k ∈ ks, k.flat = false) → ContCover mp ctx) →
     ctx.hiAt prog.length ≤ base + j → Frame (base + j) cur →
-    ∀ {Δa : List AnnotTerm} {ca : AnnotTerm} {R : FrameRel V},
+    ∀ {Δa : List ITerm} {ca : ITerm} {R : FrameRel V},
       CtxOkP mp.base2 φ (base + j) Δa cur → denoteMeta mp.base2.acval env φ (base + j) cur = some ca →
       GradedTy V Δa ca → HoleRel mp.base2 φ ctx prog (base + j) Δa R →
       PiPosThen (ResultAt mp.base2 φ ctx.nP (ctx.hiAt prog.length) (base + j + nF) res) nF R ca
   | .ctors prog hi us ds names holes cs =>
     ContCover mp ctx → ctx.hiAt prog.length = hi →
-    ∀ {Δ : List AnnotTerm} {R : FrameRel V}, HoleRel mp.base2 φ ctx prog hi Δ R →
+    ∀ {Δ : List ITerm} {R : FrameRel V}, HoleRel mp.base2 φ ctx prog hi Δ R →
     ∀ (Q : ConstantVal × Nat → Prop),
     (∀ (x : ConstantVal × Nat) (crest : Expr), Q x →
       ConLeche.nestCrest names us ds holes (x.1.type.instantiateLevelParams x.1.levelParams us)
@@ -229,7 +229,7 @@ the step is `red_sound_ty`. -/
 theorem mono_of_whnf {μ : ConLeche.CheckMode} {mp : EnvModelM V μ env}
     (hin : RulesInputs V mp.base2 φ) {F dep : Nat} {e w : Expr}
     (hw : (fueledOps .verified F).whnf env dep e = .ok w) (hfr : Frame dep e)
-    {Δa : List AnnotTerm} {ea : AnnotTerm} {R : FrameRel V}
+    {Δa : List ITerm} {ea : ITerm} {R : FrameRel V}
     (hC : CtxOkP mp.base2 φ dep Δa e) (hea : denoteMeta mp.base2.acval env φ dep e = some ea)
     (hgr : GradedTy V Δa ea) (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ')
     (k : Frame dep w → CtxOkP mp.base2 φ dep Δa w → ∀ wa,
@@ -295,8 +295,8 @@ theorem frameKey_of_infer {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     (hf : env.find? (D.member mm) = some (.indInfo cv caps)) {us : List Level}
     (hul : us.length = cv.levelParams.length) {hi : Nat} {ds : List Expr}
     (hds : ∀ x ∈ ds, Expr.WScoped hi x ∧ x.looseBVarsBounded 0 = true)
-    (hLds : ∀ x ∈ ds, Expr.LeavesBounded x) {Δh : List AnnotTerm} (hΔ : Δh.length = hi)
-    (hCds : ∀ x ∈ ds, CtxOkP mp.base2 φ hi Δh x) {dsa : List AnnotTerm}
+    (hLds : ∀ x ∈ ds, Expr.LeavesBounded x) {Δh : List ITerm} (hΔ : Δh.length = hi)
+    (hCds : ∀ x ∈ ds, CtxOkP mp.base2 φ hi Δh x) {dsa : List ITerm}
     (hdsa : DenoteMetaSpine mp.base2.acval env φ hi ds dsa)
     (hlenP : (D.params (Level.substFn φ cv.levelParams us)).length = ds.length)
     (hkty : ∃ ty, ConLeche.inferTypeCore .verified env F hi
@@ -459,10 +459,10 @@ theorem contNew_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx : 
     (hlenP : ∀ ψ, (D.params ψ).length = ds.length)
     (hnL : (∃ L', ConLeche.nestContainer ctx (D.member mm) = some (ds.length, L') ∧ L' ≠ []) ∨
       lps.Nodup)
-    {wa : AnnotTerm}
+    {wa : ITerm}
     (hwa : denoteMeta mp.base2.acval env φ dep
       (Expr.mkAppN (.const (D.member mm) us) (ds ++ is)) = some wa)
-    {Δa : List AnnotTerm} {R : FrameRel V}
+    {Δa : List ITerm} {R : FrameRel V}
     (hC : CtxOkP mp.base2 φ dep Δa (Expr.mkAppN (.const (D.member mm) us) (ds ++ is)))
     (hgr : GradedTy V Δa wa) (hR : HoleRel mp.base2 φ ctx prog dep Δa R)
     (hisC : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
@@ -517,7 +517,7 @@ group transfers its hole fits to the carrier (`frameIter`). -/
       key.lvls.length = cv.levelParams.length →
       cv.levelParams.Nodup ∧
       (D.params (Level.substFn φ cv.levelParams key.lvls)).length = key.ds.length ∧
-      ∀ (Δ0 : List AnnotTerm) (R00 : FrameRel V), HoleRel mp.base2 φ ctx [] (ctx.hiAt 0) Δ0 R00 →
+      ∀ (Δ0 : List ITerm) (R00 : FrameRel V), HoleRel mp.base2 φ ctx [] (ctx.hiAt 0) Δ0 R00 →
         Δ0.length = ctx.hiAt 0 → (∀ x ∈ key.ds, CtxOkP mp.base2 φ (ctx.hiAt 0) Δ0 x) →
         ∀ dsa, DenoteMetaSpine mp.base2.acval env φ (ctx.hiAt 0) key.ds dsa →
         ∀ ρ ρ', R00 ρ ρ' →
@@ -641,9 +641,9 @@ grow. -/
 theorem contHit_mono {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx : NestCtx} {F : Nat}
     (hcov : ContCover mp ctx) {prog prog' : List NestHole} {dep : Nat}
     (hhid : ctx.hiAt prog.length ≤ dep) {n : Name} {us : List Level} {ds is : List Expr}
-    {wa : AnnotTerm}
+    {wa : ITerm}
     (hwa : denoteMeta mp.base2.acval env φ dep (Expr.mkAppN (.const n us) (ds ++ is)) = some wa)
-    {Δa : List AnnotTerm} {R : FrameRel V}
+    {Δa : List ITerm} {R : FrameRel V}
     (hC : CtxOkP mp.base2 φ dep Δa (Expr.mkAppN (.const n us) (ds ++ is)))
     (hgr : GradedTy V Δa wa) (hR : HoleRel mp.base2 φ ctx prog dep Δa R)
     (hisC : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
@@ -874,7 +874,7 @@ check), read at a depth above the block's own. -/
 theorem resultIdxConst_of_resultAt {m : EnvModel V env} {ctx : NestCtx} {D : Nat} {res : Expr}
     (hD : ctx.hiAt 0 ≤ D) (hhead : ConLeche.nestResHead res = true)
     (hok : res.getAppArgs.all (fun a => !a.nestOcc ctx.names ctx.nP (ctx.hiAt 0)) = true)
-    {R : FrameRel V} {r : AnnotTerm} (hres : ResultAt m φ ctx.nP (ctx.hiAt 0) D res R r) :
+    {R : FrameRel V} {r : ITerm} (hres : ResultAt m φ ctx.nP (ctx.hiAt 0) D res R r) :
     ResultIdxConst R r := by
   obtain ⟨hag, hrd, hws⟩ := hres
   have hspine := Expr.mkAppN_getApp res

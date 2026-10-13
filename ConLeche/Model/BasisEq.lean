@@ -32,7 +32,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm eqValT eqReflValT eqRecValT)
+open ConLeche.Semantics (ITerm eqValT eqReflValT eqRecValT)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   RecRule uN u1N vN)
 
@@ -45,16 +45,16 @@ section Eq
 
 open ConLeche (eqA eqReflA eqRecA eqName eqReflName)
 
-variable {m : EnvModel V env} {A : (Name → Nat) → AnnotTerm}
+variable {m : EnvModel V env} {A : (Name → Nat) → ITerm}
 
 /-! ## The two spines the block's types are built from -/
 
 /-- `@Eq.{u} α a b`, read through the tower. -/
-def eqSpine (ψ : Name → Nat) (i j k : Nat) : AnnotTerm :=
+def eqSpine (ψ : Name → Nat) (i j k : Nat) : ITerm :=
   .app (.app (.app (eqValAV ψ) (.bvar i)) (.bvar j)) (.bvar k)
 
 /-- `@Eq.refl.{u} α a`, read through the tower. -/
-def eqReflSpine (ψ : Name → Nat) (i j : Nat) : AnnotTerm :=
+def eqReflSpine (ψ : Name → Nat) (i j : Nat) : ITerm :=
   .app (.app (eqReflValAV ψ) (.bvar i)) (.bvar j)
 
 theorem eqSpine_interp {ψ : Name → Nat} {i j k : Nat} {ρ : Nat → V}
@@ -63,11 +63,11 @@ theorem eqSpine_interp {ψ : Name → Nat} {i j k : Nat} {ρ : Nat → V}
     interp V ρ (eqSpine ψ i j k) = eqv a b ∧
       WellDenoted V ρ (eqSpine ψ i j k) ∧
       interp V ρ (eqSpine ψ i j k) ∈ˢ (univZero : V) := by
-  have hAi : interp V ρ (AnnotTerm.bvar i) = Aset := by
+  have hAi : interp V ρ (ITerm.bvar i) = Aset := by
     rw [interp_bvar, hi]
-  have haj : interp V ρ (AnnotTerm.bvar j) = a := by
+  have haj : interp V ρ (ITerm.bvar j) = a := by
     rw [interp_bvar, hj]
-  have hbk : interp V ρ (AnnotTerm.bvar k) = b := by
+  have hbk : interp V ρ (ITerm.bvar k) = b := by
     rw [interp_bvar, hk]
   obtain ⟨hok, hz⟩ := eqValAV_app₃_okP ψ ρ (Aa := .bvar i) (la := .bvar j)
     (ra := .bvar k) trivial trivial
@@ -84,30 +84,30 @@ theorem eqReflSpine_data {ψ : Name → Nat} {i j : Nat} {ρ : Nat → V}
       WellDenoted V ρ (eqReflSpine ψ i j) := by
   have hpt : interp V ρ (eqReflValAV ψ) = (pt : V) :=
     eqReflValAV_interp ψ ρ
-  have hAi : interp V ρ (AnnotTerm.bvar i) = Aset := by
+  have hAi : interp V ρ (ITerm.bvar i) = Aset := by
     rw [interp_bvar, hi]
-  have haj : interp V ρ (AnnotTerm.bvar j) = a := by
+  have haj : interp V ρ (ITerm.bvar j) = a := by
     rw [interp_bvar, hj]
   have h1 := WellDenoted_app_pt (S := (univ (ψ uN) : V))
-    (a := AnnotTerm.bvar i) (eqReflValAV_wellDenoted ψ ρ) hpt
+    (a := ITerm.bvar i) (eqReflValAV_wellDenoted ψ ρ) hpt
     trivial (by rw [hAi]; exact hA)
-  have h2 := WellDenoted_app_pt (S := Aset) (a := AnnotTerm.bvar j)
+  have h2 := WellDenoted_app_pt (S := Aset) (a := ITerm.bvar j)
     h1.1 h1.2 trivial (by rw [haj]; exact ha)
   exact ⟨h2.2, h2.1⟩
 
 /-! ## `Eq` and `Eq.refl` -/
 
 /-- `Eq`'s type reading. -/
-@[expose] def eqTy (ψ : Name → Nat) : AnnotTerm :=
+@[expose] def eqTy (ψ : Name → Nat) : ITerm :=
   .pi (.sort (ψ uN)) (.pi (.bvar 0) (.pi (.bvar 1) (.sort 0)))
 
 /-- `Eq.refl`'s type reading: two binders over the spine. -/
-def eqReflTy (ψ : Name → Nat) : AnnotTerm :=
+def eqReflTy (ψ : Name → Nat) : ITerm :=
   .pi (.sort (ψ uN)) (.pi (.bvar 0) (eqSpine ψ 1 0 0))
 
 /-- **`Eq`'s type reading.** -/
 theorem denoteMeta_eqA_type {env' : Env}
-    {acval : Name → (Name → Nat) → AnnotTerm} (ψ : Name → Nat) :
+    {acval : Name → (Name → Nat) → ITerm} (ψ : Name → Nat) :
     denoteMeta acval env' ψ 0 eqA.toConstantVal.type
       = some (eqTy ψ) := by
   simp [eqA, ConstantInfo.toConstantVal, denoteMeta_forallE, denoteMeta_sort,
@@ -179,7 +179,7 @@ theorem eqReflTy_data (ψ : Name → Nat) (ρ : Nat → V) :
     all_goals (
       intro Aset hAset
       rw [interp_sort] at hAset
-      have hlev := WellDenoted_pi_zero (Aa := AnnotTerm.bvar 0)
+      have hlev := WellDenoted_pi_zero (Aa := ITerm.bvar 0)
         (ρ := cons Aset ρ) trivial
         (by simpa [interp_bvar, cons] using IsTy_of_mem_univ hAset)
         (fun x hx => (hstep Aset x hAset
@@ -218,7 +218,7 @@ theorem extendEq (mp : EnvModelM V μ env)
           = none from rfl] at hp
         exact nomatch hp)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun ψ k => AnnotTerm.liftN_eq_self _
+    (fun ψ k => ITerm.liftN_eq_self _
       (Term.bvarsBelow.mono (Nat.zero_le k)
         (by rw [eqValAV_erase]; exact eqValT_closed ψ)) 1)
     (fun ψ₁ ψ₂ hp => eqValAV_congr
@@ -269,7 +269,7 @@ theorem extendEqRefl (mp : EnvModelM V μ env)
           = none from rfl] at hp
         exact nomatch hp)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun ψ k => AnnotTerm.liftN_eq_self _
+    (fun ψ k => ITerm.liftN_eq_self _
       (Term.bvarsBelow.mono (Nat.zero_le k)
         (by rw [eqReflValAV_erase]; exact eqReflValT_closed ψ)) 1)
     (fun ψ₁ ψ₂ hp => eqReflValAV_congr
@@ -295,15 +295,15 @@ membership forces `a = b` and the proof to be `pt`: an inhabitant of
 the inhabitant is the canonical proof by `mem_univ_zero`. -/
 
 /-- `Eq.rec`'s motive binder domain reading. -/
-def eqRecMotiveTy (ψ : Name → Nat) : AnnotTerm :=
+def eqRecMotiveTy (ψ : Name → Nat) : ITerm :=
   .pi (.bvar 1) (.pi (eqSpine ψ 2 1 0) (.sort (ψ u1N)))
 
 /-- `Eq.rec`'s minor binder domain reading. -/
-def eqRecMinorTy (ψ : Name → Nat) : AnnotTerm :=
+def eqRecMinorTy (ψ : Name → Nat) : ITerm :=
   .app (.app (.bvar 0) (.bvar 1)) (eqReflSpine ψ 2 1)
 
 /-- `Eq.rec`'s type reading. -/
-def eqRecTy (ψ : Name → Nat) : AnnotTerm :=
+def eqRecTy (ψ : Name → Nat) : ITerm :=
   .pi (.sort (ψ uN))
     (.pi (.bvar 0)
       (.pi (eqRecMotiveTy ψ)
@@ -314,7 +314,7 @@ def eqRecTy (ψ : Name → Nat) : AnnotTerm :=
 
 /-- `Eq.rec`'s rule's RHS reading: the same four domains, over the
 minor premise. -/
-def eqRecRa (ψ : Name → Nat) : AnnotTerm :=
+def eqRecRa (ψ : Name → Nat) : ITerm :=
   .lam (.sort (ψ uN))
     (.lam (.bvar 0)
       (.lam (eqRecMotiveTy ψ)
@@ -338,7 +338,7 @@ theorem eqRecMotiveTy_data {ψ : Name → Nat} {Aset a : V}
           ∈ˢ (univZero : V) := fun b hb =>
     eqSpine_interp (ρ := cons b (cons a (cons Aset ρ)))
       (by simp [cons]) (by simp [cons]) (by simp [cons]) hA ha hb
-  have hdom : interp V (cons a (cons Aset ρ)) (AnnotTerm.bvar 1)
+  have hdom : interp V (cons a (cons Aset ρ)) (ITerm.bvar 1)
       = Aset := by simp [interp_bvar, cons]
   refine ⟨?_, ?_⟩
   · rw [eqRecMotiveTy, interp_pi, eqRecMotiveSpace, hdom]
@@ -368,9 +368,9 @@ theorem eqRecMinorTy_data {ψ : Name → Nat} {Aset a M : V}
   have hMap : app (app M a) pt ∈ˢ (univ (ψ u1N) : V) :=
     app_mem_piV hMa (pt_mem_eqv_self a)
   have hMb : interp V (cons M (cons a (cons Aset ρ)))
-      (AnnotTerm.bvar 0) = M := by simp [interp_bvar, cons]
+      (ITerm.bvar 0) = M := by simp [interp_bvar, cons]
   have hab : interp V (cons M (cons a (cons Aset ρ)))
-      (AnnotTerm.bvar 1) = a := by simp [interp_bvar, cons]
+      (ITerm.bvar 1) = a := by simp [interp_bvar, cons]
   have hint : interp V (cons M (cons a (cons Aset ρ))) (eqRecMinorTy ψ)
       = app (app M a) pt := by
     rw [eqRecMinorTy, interp_app, interp_app, hrint, hMb, hab]
@@ -392,7 +392,7 @@ theorem eqRec_major_collapse {a b h : V} (hh : h ∈ˢ eqv a b) :
 /-! ### The tower, spelled as the walk reads it -/
 
 /-- The tower with the reading's own binder domains. -/
-def eqRecRaTower (ψ : Name → Nat) : AnnotTerm :=
+def eqRecRaTower (ψ : Name → Nat) : ITerm :=
   .lam (.sort (ψ uN))
     (.lam (.bvar 0)
       (.lam (eqRecMotiveTy ψ)
@@ -445,7 +445,7 @@ theorem eqRecRaTower_data (ψ : Name → Nat)
         rw [hsint] at hh
         refine ⟨trivial, ?_⟩
         rw [show interp V (cons h (cons bb (cons mn (cons M
-            (cons a (cons Aset ρ)))))) (AnnotTerm.bvar 2) = mn
+            (cons a (cons Aset ρ)))))) (ITerm.bvar 2) = mn
           from by simp [interp_bvar, cons], (key h hh).1]
         exact hmn)
       (fun h hh => by rw [hsint] at hh; exact IsTy_of_mem_univ (key h hh).2)
@@ -463,9 +463,9 @@ theorem eqRecRaTower_data (ψ : Name → Nat)
             (fun bb => piV (eqv a bb) fun h => app (app M bb) h) := by
     intro Aset a M mn hA ha hM hmn
     have hdom : interp V (cons mn (cons M (cons a (cons Aset ρ))))
-        (AnnotTerm.bvar 3) = Aset := by simp [interp_bvar, cons]
+        (ITerm.bvar 3) = Aset := by simp [interp_bvar, cons]
     have hstep := WellDenoted_lam_piV (V := V)
-      (Aa := AnnotTerm.bvar 3)
+      (Aa := ITerm.bvar 3)
       (bd := .lam (eqSpine ψ 4 3 0) (.bvar 2))
       (F := fun bb => piV (eqv a bb) fun h => app (app M bb) h)
       trivial (by rw [hdom]; exact IsTy_of_mem_univ hA)
@@ -545,10 +545,10 @@ theorem eqRecRaTower_data (ψ : Name → Nat)
                 (fun bb => piV (eqv a bb)
                   fun h => app (app M bb) h)))) := by
     intro Aset hA
-    have hdom : interp V (cons Aset ρ) (AnnotTerm.bvar 0) = Aset := by
+    have hdom : interp V (cons Aset ρ) (ITerm.bvar 0) = Aset := by
       simp [interp_bvar, cons]
     have hstep := WellDenoted_lam_piV (V := V)
-      (Aa := AnnotTerm.bvar 0)
+      (Aa := ITerm.bvar 0)
       (F := fun a => piV (eqRecMotiveSpace V (ψ u1N) Aset a)
         (fun M => piV (app (app M a) pt) (fun _ => piV Aset
           (fun bb => piV (eqv a bb) fun h => app (app M bb) h))))
@@ -574,7 +574,7 @@ theorem eqRecRaTower_data (ψ : Name → Nat)
         (fun M => piV (app (app M a) pt) (fun _ => piV Aset
           (fun bb => piV (eqv a bb)
             fun h => app (app M bb) h)))))) ▸ hstep.2
-  -- the type reading's own six products, in the same order
+  -- the type reading's own six function spaces, in the same order
   rw [eqRecTy, interp_pi, interp_sort]
   refine piV_congr fun Aset hAset => ?_
   rw [interp_pi]
@@ -719,7 +719,7 @@ theorem eqRecRa_data (ψ : Name → Nat)
         rw [hmint] at hmn
         exact ⟨trivial, by
           rw [show interp V (cons mn (cons M (cons a (cons Aset ρ))))
-            (AnnotTerm.bvar 0) = mn from by simp [interp_bvar, cons]]
+            (ITerm.bvar 0) = mn from by simp [interp_bvar, cons]]
           exact hmn⟩)
       (fun _ _ => IsTy_of_mem_univ hmuniv)
     rw [hmint] at hstep
@@ -756,10 +756,10 @@ theorem eqRecRa_data (ψ : Name → Nat)
               (fun M => piV (app (app M a) pt)
                 (fun _ => app (app M a) pt))) := by
     intro Aset hA
-    have hdom : interp V (cons Aset ρ) (AnnotTerm.bvar 0) = Aset := by
+    have hdom : interp V (cons Aset ρ) (ITerm.bvar 0) = Aset := by
       simp [interp_bvar, cons]
     have hstep := WellDenoted_lam_piV (V := V)
-      (Aa := AnnotTerm.bvar 0)
+      (Aa := ITerm.bvar 0)
       (F := fun a => piV (eqRecMotiveSpace V (ψ u1N) Aset a)
         (fun M => piV (app (app M a) pt)
           (fun _ => app (app M a) pt)))
@@ -797,14 +797,14 @@ theorem eqRecRaTower_app₆ (ψ : Name → Nat) (ρ : Nat → V) {Aset a M mn bb
     (by simp [cons]) (by simp [cons]) (by simp [cons]) hA ha hbb
   rw [eqRecRaTower, interp_lam, interp_sort, app_lamV hA,
     interp_lam,
-    show interp V (cons Aset ρ) (AnnotTerm.bvar 0) = Aset
+    show interp V (cons Aset ρ) (ITerm.bvar 0) = Aset
       from by simp [interp_bvar, cons],
     app_lamV ha,
     interp_lam, hmoint, app_lamV hM,
     interp_lam, hmint, app_lamV hmn,
     interp_lam,
     show interp V (cons mn (cons M (cons a (cons Aset ρ))))
-      (AnnotTerm.bvar 3) = Aset from by simp [interp_bvar, cons],
+      (ITerm.bvar 3) = Aset from by simp [interp_bvar, cons],
     app_lamV hbb,
     interp_lam, hsint, app_lamV hh]
   simp [interp_bvar, cons]
@@ -820,7 +820,7 @@ theorem eqRecRa_app₄ (ψ : Name → Nat) (ρ : Nat → V) {Aset a M mn : V}
   obtain ⟨hmoint, -⟩ := eqRecMotiveTy_data ρ hA ha
   rw [eqRecRa, interp_lam, interp_sort, app_lamV hA,
     interp_lam,
-    show interp V (cons Aset ρ) (AnnotTerm.bvar 0) = Aset
+    show interp V (cons Aset ρ) (ITerm.bvar 0) = Aset
       from by simp [interp_bvar, cons],
     app_lamV ha,
     interp_lam, hmoint, app_lamV hM,
@@ -911,13 +911,13 @@ theorem eqRecExtra {m : EnvModel V env}
     refine ⟨?_, ?_⟩
     · -- the fired equality: both sides are the minor premise
       simp only [List.take, List.cons_append, List.nil_append,
-        AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil, hrecL, interp_app]
+        ITerm.mkAppN_cons, ITerm.mkAppN_nil, hrecL, interp_app]
       rw [← eqRecRaTower_eq ψ,
         eqRecRaTower_app₆ ψ ρ f1 f2 f3 f4 f5 f6,
         eqRecRa_app₄ ψ ρ f1 f2 f3 f4]
     · -- the transport
       intro hxsA
-      simp only [List.take, AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil]
+      simp only [List.take, ITerm.mkAppN_cons, ITerm.mkAppN_nil]
       have hRm := (eqRecRa_data ψ ρ).2
       rw [eqRecRaSpace] at hRm
       have h1 := WellDenoted_app_fibre ((eqRecRa_data ψ ρ).1)
@@ -1044,14 +1044,14 @@ theorem eqRecLaw {m : EnvModel V env}
         (Level.substFn φ eqReflA.toConstantVal.levelParams usj) := by
     rw [hac, acvalWith_ne (by decide), hRv]
   simp only [show RecRule.ctor eqRecRule = eqReflName from rfl,
-    AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil, interp_app, hctorL,
+    ITerm.mkAppN_cons, ITerm.mkAppN_nil, interp_app, hctorL,
     eqReflValAV_interp, app_pt] at f6
   refine ⟨?_, ?_⟩
   · -- the fired equality
     simp only [show RecRule.ctor eqRecRule = eqReflName from rfl,
       show eqRecRule.ctorParams = 2 from rfl,
       List.take, List.drop, List.cons_append, List.nil_append,
-      List.append_nil, AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil, hrecL,
+      List.append_nil, ITerm.mkAppN_cons, ITerm.mkAppN_nil, hrecL,
       interp_app, hctorL, eqReflValAV_interp, app_pt]
     rw [← eqRecRaTower_eq ψ,
       eqRecRaTower_app₆ ψ ρ f1 f2 f3 f4 f5 f6,
@@ -1060,7 +1060,7 @@ theorem eqRecLaw {m : EnvModel V env}
     intro hxsA _
     simp only [show eqRecRule.ctorParams = 2 from rfl,
       List.take, List.drop, List.append_nil,
-      AnnotTerm.mkAppN_cons, AnnotTerm.mkAppN_nil]
+      ITerm.mkAppN_cons, ITerm.mkAppN_nil]
     have hRm := (eqRecRa_data ψ ρ).2
     rw [eqRecRaSpace] at hRm
     have h1 := WellDenoted_app_fibre ((eqRecRa_data ψ ρ).1)
@@ -1099,13 +1099,13 @@ theorem eqRecTy_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
           (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0)) = app (app M bb) h := by
       intro h _; simp [interp_app, interp_bvar, cons]
     have hM3 : ∀ h : V, interp V (cons h (cons bb (cons mn (cons M
-        (cons a (cons Aset ρ)))))) (AnnotTerm.bvar 3) = M := fun h => by
+        (cons a (cons Aset ρ)))))) (ITerm.bvar 3) = M := fun h => by
       simp [interp_bvar, cons]
     have hb1 : ∀ h : V, interp V (cons h (cons bb (cons mn (cons M
-        (cons a (cons Aset ρ)))))) (AnnotTerm.bvar 1) = bb := fun h => by
+        (cons a (cons Aset ρ)))))) (ITerm.bvar 1) = bb := fun h => by
       simp [interp_bvar, cons]
     have hh0 : ∀ h : V, interp V (cons h (cons bb (cons mn (cons M
-        (cons a (cons Aset ρ)))))) (AnnotTerm.bvar 0) = h := fun h => by
+        (cons a (cons Aset ρ)))))) (ITerm.bvar 0) = h := fun h => by
       simp [interp_bvar, cons]
     refine WellDenoted_pi_of hsok (by rw [hsint]; exact IsTy_eqv _ _) (fun h hh => ?_)
       (fun h hh => by
@@ -1126,7 +1126,7 @@ theorem eqRecTy_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
           (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0)))) := by
     intro Aset a M mn hA ha hM
     have hdom : interp V (cons mn (cons M (cons a (cons Aset ρ))))
-        (AnnotTerm.bvar 3) = Aset := by simp [interp_bvar, cons]
+        (ITerm.bvar 3) = Aset := by simp [interp_bvar, cons]
     refine WellDenoted_pi_of (Aa := .bvar 3) trivial
       (by rw [hdom]; exact IsTy_of_mem_univ hA)
       (fun bb hbb => h6 Aset a M mn bb hA ha hM (by rwa [hdom] at hbb))
@@ -1158,7 +1158,7 @@ theorem eqRecTy_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
             (.pi (.bvar 3) (.pi (eqSpine ψ 4 3 0)
               (.app (.app (.bvar 3) (.bvar 1)) (.bvar 0))))))) := by
     intro Aset hA
-    have hdom : interp V (cons Aset ρ) (AnnotTerm.bvar 0) = Aset := by
+    have hdom : interp V (cons Aset ρ) (ITerm.bvar 0) = Aset := by
       simp [interp_bvar, cons]
     refine WellDenoted_pi_of (Aa := .bvar 0) trivial
       (by rw [hdom]; exact IsTy_of_mem_univ hA)
@@ -1204,7 +1204,7 @@ theorem extendEqRec (mp : EnvModelM V μ env)
         · exact ⟨⟨_, _, _, hR⟩, fun _ => recRuleKOf_of hR rfl hE rfl,
             fun hb => Bool.noConfusion hb⟩
         · exact nomatch hr'))
-    (fun ψ k => AnnotTerm.liftN_eq_self _
+    (fun ψ k => ITerm.liftN_eq_self _
       (Term.bvarsBelow.mono (Nat.zero_le k)
         (by rw [eqRecValAV_erase]; exact eqRecValT_closed ψ)) 1)
     (fun ψ₁ ψ₂ hp => eqRecValAV_congr

@@ -19,7 +19,7 @@ tupler; the projection spine on tower members.
 The tuple tier (`ConLeche/SetModel/TupleTower.lean`) states its laws over
 an abstract dependent telescope `TeleS V n`.  A checked
 direct-structure block does not hand the install a `TeleS` — it hands
-a list of **annotated field domains** (`Fs : List AnnotTerm`, the
+a list of **field domains** (`Fs : List ITerm`, the
 constructor type reading's pi-domains after the parameters, each
 scoped under its predecessors).  This module is the bridge:
 
@@ -34,7 +34,7 @@ machinery: `B a` is the tail's telescope at `cons a ρ`.
 
 The tier's premise/conclusion currencies transpose:
 
-| tier | AnnotTerm currency (this file) |
+| tier | ITerm currency (this file) |
 |---|---|
 | `FitsS T as` | `SpineFit ρ Fs as` (`fitsS_teleOfFields`) |
 | `teleNth T i pre` | `⟦Fs[i]⟧` at `consList pre ρ` (`teleNth_teleOfFields`) |
@@ -47,7 +47,7 @@ R2 (recursive fields) never reaches this file: O2 excludes the class syntactical
 The four capstone corollaries (`mkTower_mem_teleOfFields`,
 `towerSet_elim_teleOfFields`, `projS_mem_teleOfFields`,
 `towerSet_univ_teleOfFields`) are the tier's intro/eta/projection/
-formation laws restated in the AnnotTerm currency — the shapes the
+formation laws restated in the ITerm currency — the shapes the
 install battery consumes.  `projS_mem_teleOfFields`'s premise
 `(w = 0 → FieldsBound 0 ρ Fs)` IS the per-use O4/R1 branch: vacuous at
 graph instantiations, the proof-field legality (`infer_proj`'s Prop
@@ -85,29 +85,29 @@ interpreted binder chain.  Field `i`'s set is `⟦Fs[i]⟧` at the
 environment binding the earlier fields' values — the dependent tail is
 the interpretation environment itself. -/
 noncomputable def teleOfFields (ρ : Nat → V) :
-    (Fs : List AnnotTerm) → TeleS V Fs.length
+    (Fs : List ITerm) → TeleS V Fs.length
   | [] => .nil
   | F :: Fs => .cons (interp V ρ F) fun a => teleOfFields (cons a ρ) Fs
 
 @[simp] theorem teleOfFields_nil (ρ : Nat → V) :
-    teleOfFields ρ ([] : List AnnotTerm) = .nil := rfl
+    teleOfFields ρ ([] : List ITerm) = .nil := rfl
 
-@[simp] theorem teleOfFields_cons (ρ : Nat → V) (F : AnnotTerm)
-    (Fs : List AnnotTerm) :
+@[simp] theorem teleOfFields_cons (ρ : Nat → V) (F : ITerm)
+    (Fs : List ITerm) :
     teleOfFields ρ (F :: Fs)
       = .cons (interp V ρ F) (fun a => teleOfFields (cons a ρ) Fs) := rfl
 
 /-- `SpineFit ρ Fs as`: the values fit the interpreted chain — right
 length, each value in its domain's interpretation at the earlier
-values.  The AnnotTerm currency of the tier's `FitsS`. -/
-def SpineFit (ρ : Nat → V) : List AnnotTerm → List V → Prop
+values.  The ITerm currency of the tier's `FitsS`. -/
+def SpineFit (ρ : Nat → V) : List ITerm → List V → Prop
   | [], [] => True
   | F :: Fs, a :: as => a ∈ˢ interp V ρ F ∧ SpineFit (cons a ρ) Fs as
   | _, _ => False
 
 /-- `FieldsBound w ρ Fs`: every field's interpretation lives in
 `univ w`, hereditarily — O5's semantic form, the tier's `BoundS`. -/
-def FieldsBound (w : Nat) (ρ : Nat → V) : List AnnotTerm → Prop
+def FieldsBound (w : Nat) (ρ : Nat → V) : List ITerm → Prop
   | [] => True
   | F :: Fs => interp V ρ F ∈ˢ (univ w : V) ∧
       ∀ a, a ∈ˢ interp V ρ F → FieldsBound w (cons a ρ) Fs
@@ -122,7 +122,7 @@ theorem consList_append (xs ys : List V) (ρ : Nat → V) :
 /-- Fits concatenate: a fit of the first chain and a fit of the second
 at the extended environment give a fit of the concatenation. -/
 theorem SpineFit.append :
-    ∀ {Fs₁ : List AnnotTerm} {as₁ : List V} {Fs₂ : List AnnotTerm}
+    ∀ {Fs₁ : List ITerm} {as₁ : List V} {Fs₂ : List ITerm}
       {as₂ : List V} {ρ : Nat → V},
       SpineFit ρ Fs₁ as₁ → SpineFit (consList as₁ ρ) Fs₂ as₂ →
       SpineFit ρ (Fs₁ ++ Fs₂) (as₁ ++ as₂)
@@ -133,7 +133,7 @@ theorem SpineFit.append :
     ⟨h₁.1, SpineFit.append (Fs₁ := Fs₁) (as₁ := as₁) h₁.2 h₂⟩
 
 theorem SpineFit.length_eq :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V} {as : List V},
+    ∀ {Fs : List ITerm} {ρ : Nat → V} {as : List V},
       SpineFit ρ Fs as → as.length = Fs.length
   | [], _, [], _ => rfl
   | [], _, _ :: _, h => h.elim
@@ -144,7 +144,7 @@ theorem SpineFit.length_eq :
 /-- The fit currencies coincide: the tier's `FitsS` at `teleOfFields`
 is `SpineFit`. -/
 theorem fitsS_teleOfFields :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V} {as : List V},
+    ∀ {Fs : List ITerm} {ρ : Nat → V} {as : List V},
       FitsS (teleOfFields ρ Fs) as ↔ SpineFit ρ Fs as
   | [], _, [] => Iff.rfl
   | [], _, _ :: _ => Iff.rfl
@@ -155,7 +155,7 @@ theorem fitsS_teleOfFields :
 /-- The `i`-th field set at a prefix valuation is the `i`-th domain's
 interpretation at the prefix environment. -/
 theorem teleNth_teleOfFields :
-    ∀ {Fs : List AnnotTerm} (ρ : Nat → V) (i : Nat) (h : i < Fs.length)
+    ∀ {Fs : List ITerm} (ρ : Nat → V) (i : Nat) (h : i < Fs.length)
       (pre : List V), pre.length = i →
       teleNth (teleOfFields ρ Fs) i pre = interp V (consList pre ρ) Fs[i]
   | F :: Fs, ρ, 0, _, [], _ => rfl
@@ -167,7 +167,7 @@ theorem teleNth_teleOfFields :
 /-- The bound currencies coincide: the tier's `BoundS` at
 `teleOfFields` is `FieldsBound`. -/
 theorem boundS_teleOfFields :
-    ∀ {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V},
+    ∀ {w : Nat} {Fs : List ITerm} {ρ : Nat → V},
       BoundS w (teleOfFields ρ Fs) ↔ FieldsBound w ρ Fs
   | _, [], _ => Iff.rfl
   | _, _ :: Fs, _ =>
@@ -177,7 +177,7 @@ theorem boundS_teleOfFields :
 /-- The squash currency: the tier's `PropS` at `teleOfFields` is
 `FieldsBound 0` (`univ 0 = univZero` definitionally). -/
 theorem propS_teleOfFields :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V},
+    ∀ {Fs : List ITerm} {ρ : Nat → V},
       PropS (teleOfFields ρ Fs) ↔ FieldsBound 0 ρ Fs
   | [], _ => Iff.rfl
   | _ :: Fs, _ =>
@@ -193,14 +193,14 @@ telescope), and coherence (`mkTower_inj`) likewise. -/
 /-- **Introduction** (graph regime): a fitting spine's tower inhabits
 the interpreted carrier. -/
 theorem mkTower_mem_teleOfFields {w : Nat} (hw : w ≠ 0)
-    {Fs : List AnnotTerm} {ρ : Nat → V} {as : List V}
+    {Fs : List ITerm} {ρ : Nat → V} {as : List V}
     (hsp : SpineFit ρ Fs as) :
     mkTower as ∈ˢ towerSet w (teleOfFields ρ Fs) :=
   mkTower_mem hw (fitsS_teleOfFields.mpr hsp)
 
 /-- **Introduction** (squash regime): a fitting spine puts `pt` in the
 interpreted carrier. -/
-theorem pt_mem_tower_teleOfFields {Fs : List AnnotTerm} {ρ : Nat → V}
+theorem pt_mem_tower_teleOfFields {Fs : List ITerm} {ρ : Nat → V}
     {as : List V} (hsp : SpineFit ρ Fs as) :
     (pt : V) ∈ˢ towerSet 0 (teleOfFields ρ Fs) :=
   pt_mem_tower (fitsS_teleOfFields.mpr hsp)
@@ -209,7 +209,7 @@ theorem pt_mem_tower_teleOfFields {Fs : List AnnotTerm} {ρ : Nat → V}
 carrier is the tower of its own projections, and those projections fit
 the interpreted chain. -/
 theorem towerSet_elim_teleOfFields {w : Nat} (hw : w ≠ 0)
-    {Fs : List AnnotTerm} {ρ : Nat → V} {x : V}
+    {Fs : List ITerm} {ρ : Nat → V} {x : V}
     (hx : x ∈ˢ towerSet w (teleOfFields ρ Fs)) :
     SpineFit ρ Fs (projList Fs.length x)
       ∧ x = mkTower (projList Fs.length x) := by
@@ -221,7 +221,7 @@ theorem towerSet_elim_teleOfFields {w : Nat} (hw : w ≠ 0)
 earlier projections.  The premise is the O4/R1 per-use branch —
 vacuous at a graph instantiation, the proof-field legality (`PropS`
 via `propS_teleOfFields`) at a squash one. -/
-theorem projS_mem_teleOfFields {w : Nat} {Fs : List AnnotTerm}
+theorem projS_mem_teleOfFields {w : Nat} {Fs : List ITerm}
     {ρ : Nat → V} {x : V} (hreg : w = 0 → FieldsBound 0 ρ Fs)
     (hx : x ∈ˢ towerSet w (teleOfFields ρ Fs)) {i : Nat}
     (h : i < Fs.length) :
@@ -236,14 +236,14 @@ theorem projS_mem_teleOfFields {w : Nat} {Fs : List AnnotTerm}
 
 /-- **Formation** (graph regime): the interpreted carrier lives at the
 structure's own level, from the hereditary bound. -/
-theorem towerSet_univ_teleOfFields {w : Nat} {Fs : List AnnotTerm}
+theorem towerSet_univ_teleOfFields {w : Nat} {Fs : List ITerm}
     {ρ : Nat → V} (hb : FieldsBound w ρ Fs) :
     towerSet w (teleOfFields ρ Fs) ∈ˢ (univ w : V) :=
   towerSet_mem_univ _ (boundS_teleOfFields.mpr hb)
 
 /-- **Formation** (squash regime) needs nothing: restated for the
 consumer's symmetry. -/
-theorem towerSet_zero_univZero_teleOfFields {Fs : List AnnotTerm}
+theorem towerSet_zero_univZero_teleOfFields {Fs : List ITerm}
     {ρ : Nat → V} :
     towerSet 0 (teleOfFields ρ Fs) ∈ˢ (univZero : V) :=
   towerSet_zero_mem_univZero _
@@ -254,7 +254,7 @@ theorem towerSet_zero_univZero_teleOfFields {Fs : List AnnotTerm}
 
 The value-introduction half of the direct-structure bridge: the tier's
 semantic values must be *stored*, and the P dialect stores constant
-denotations as closed `AnnotTerm` leaves over the `BConst` alphabet
+denotations as closed `ITerm` leaves over the `BConst` alphabet
 (`EnvModel.acval`).  This module supplies the two body spellings and
 their interpretation equations:
 
@@ -263,9 +263,8 @@ their interpretation equations:
   interface facts make this land exactly on the tier's `towerSet w`:
   `sigmaSet` reads its level only through the zero test
   (`sigmaSet_pos`/`sigmaSet_zero`), so `max w w = w` closes the level
-  bookkeeping; and the fibre λ's annotation is the *codomain type's*
-  sort `w + 1 ≠ 0`, so the fibre computes by `app_lamR_pos` in **both**
-  regimes and `sigma_congr` rewrites it to the tier's fibre.  The
+  bookkeeping; and the fibre λ's body is a type at every point, so
+  `lamV_mem` places the fibre in the pair former's fibre space.  The
   premises of `psigmaV_app` are exactly `FieldsBound w` — O5 plus
   cumulativity, nothing else.
 
@@ -281,44 +280,44 @@ their interpretation equations:
 `towerBodyAV_wellDenoted` grades the body (`WellDenoted`) from the hereditary
 `FieldsOkB` premise (the domains' own `WellDenoted` + `FieldsBound`);
 the app slots are discharged by `psigmaV_rr_mem`, the `[w, w]`
-instance of the pinned pair former's product membership.
+instance of the pinned pair former's function-space membership.
 -/
 
 
 /-- The carrier body, graph regime: the right-nested `.psigma [w, w]`
 application tower over the field domains, terminated by `PUnit.{w}`
-(`{∅}` above `Prop`, task #342 C).  The fibre λ is annotated `w + 1`
-(its body is a type of sort `w`), so it is a graph at every regime. -/
-def towerBodyAVPos (w : Nat) : List AnnotTerm → AnnotTerm
+(`{∅}` above `Prop`, task #342 C).  The fibre λ's body is a type of
+sort `w`, so it reads as a graph (`lamV`). -/
+def towerBodyAVPos (w : Nat) : List ITerm → ITerm
   | [] => .const .punit [w]
   | F :: Fs => .app (.app (.const .psigma [w, w]) F)
       (.lam F (towerBodyAVPos w Fs))
 
 /-- `(_ : P) → Empty`: the truth value of `P`'s emptiness (a ∀ over an
 empty codomain). -/
-def negAV (P : AnnotTerm) : AnnotTerm := .pi P (.const .empty [0])
+def negAV (P : ITerm) : ITerm := .pi P (.const .empty [0])
 
 /-- The carrier body, **squash regime** (O4): the truth
 value of the field chain's inhabitation, spelled classically as
-`¬ ∀ x₀ : F₀, ¬ ∀ x₁ : F₁, … ¬ True` with bit-`0` Π nodes.  The
+`¬ ∀ x₀ : F₀, ¬ ∀ x₁ : F₁, … ¬ True`, every Π node a truth value.  The
 `.psigma [0, 0]` spelling cannot serve here — its pinned valuation
 reads the first component in `univ 0`, and a `Prop`-declared
 structure may carry data fields (arena tutorial 087) — while `piR 0`
 truncates whatever its domain is, exactly as `sigmaSet 0` does.  No
 field bound is needed for the interpretation. -/
-def sqBodyAV : List AnnotTerm → AnnotTerm
+def sqBodyAV : List ITerm → ITerm
   | [] => .const .punit [0]
   | F :: Fs => negAV (.pi F (negAV (sqBodyAV Fs)))
 
 /-- The carrier body, both regimes: the squash spelling at `w = 0`,
 the pair tower above. -/
-def towerBodyAV (w : Nat) (Fs : List AnnotTerm) : AnnotTerm :=
+def towerBodyAV (w : Nat) (Fs : List ITerm) : ITerm :=
   if w = 0 then sqBodyAV Fs else towerBodyAVPos w Fs
 
-theorem towerBodyAV_zero (Fs : List AnnotTerm) :
+theorem towerBodyAV_zero (Fs : List ITerm) :
     towerBodyAV 0 Fs = sqBodyAV Fs := ite_eq_left rfl
 
-theorem towerBodyAV_pos {w : Nat} (hw : w ≠ 0) (Fs : List AnnotTerm) :
+theorem towerBodyAV_pos {w : Nat} (hw : w ≠ 0) (Fs : List ITerm) :
     towerBodyAV w Fs = towerBodyAVPos w Fs := ite_eq_right hw
 
 /-- `FieldsOkB w ρ Fs`: the hereditary grading the body's `WellDenoted`
@@ -327,14 +326,14 @@ regime, its interpretation is bounded, at every fitting prefix.  (At
 squash the carrier is a truth value whatever the fields are —
 `towerBodyAV`'s `sqBodyAV` spelling — so no bound is asked; the domains
 are still types, which the spelling's `Π`s need.) -/
-def FieldsOkB (w : Nat) (ρ : Nat → V) : List AnnotTerm → Prop
+def FieldsOkB (w : Nat) (ρ : Nat → V) : List ITerm → Prop
   | [] => True
   | F :: Fs => WellDenoted V ρ F ∧ IsTy (interp V ρ F) ∧
       (w ≠ 0 → interp V ρ F ∈ˢ (univ w : V)) ∧
       ∀ a, a ∈ˢ interp V ρ F → FieldsOkB w (cons a ρ) Fs
 
 theorem FieldsOkB.toBound {w : Nat} (hw : w ≠ 0) :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V},
+    ∀ {Fs : List ITerm} {ρ : Nat → V},
       FieldsOkB w ρ Fs → FieldsBound w ρ Fs
   | [], _, _ => trivial
   | _ :: Fs, _, h =>
@@ -346,7 +345,7 @@ theorem exists_mem_truthVal {p : Prop} :
     (∃ y : V, y ∈ˢ (truthVal p : V)) ↔ p :=
   ⟨fun ⟨_, hy⟩ => of_mem_truthVal hy, fun hp => ⟨pt, pt_mem_truthVal hp⟩⟩
 
-theorem interp_negAV (ρ : Nat → V) (P : AnnotTerm) :
+theorem interp_negAV (ρ : Nat → V) (P : ITerm) :
     interp V ρ (negAV P) = truthVal (¬ ∃ x, x ∈ˢ interp V ρ P) := by
   show piV (interp V ρ P) (fun _ => (empty : V)) = _
   rw [piV_eq_zero (fun _ _ => univ_zero (V := V) ▸ empty_mem_univ 0), piR_zero]
@@ -357,7 +356,7 @@ theorem interp_negAV (ρ : Nat → V) (P : AnnotTerm) :
 /-- **The squash body reads back as the squash carrier**, with no
 premise at all. -/
 theorem sqBodyAV_interp :
-    ∀ (Fs : List AnnotTerm) (ρ : Nat → V),
+    ∀ (Fs : List ITerm) (ρ : Nat → V),
       interp V ρ (sqBodyAV Fs) = towerSet 0 (teleOfFields ρ Fs)
   | [], _ => rfl
   | F :: Fs, ρ => by
@@ -381,14 +380,14 @@ theorem sqBodyAV_interp :
       exact (hin x).mp (hall x hx) ⟨y, hy⟩
 
 /-- The squash body's reading is a type (a truth value). -/
-theorem IsTy_sqBody (Fs : List AnnotTerm) (ρ : Nat → V) :
+theorem IsTy_sqBody (Fs : List ITerm) (ρ : Nat → V) :
     IsTy (interp V ρ (sqBodyAV Fs)) := by
   rw [sqBodyAV_interp]
   exact Or.inl towerSet_zero_univZero_teleOfFields
 
 /-- **The squash body is graded** from the chain's own gradings. -/
 theorem sqBodyAV_wellDenoted :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsOkB 0 ρ Fs →
+    ∀ {Fs : List ITerm} {ρ : Nat → V}, FieldsOkB 0 ρ Fs →
       WellDenoted V ρ (sqBodyAV Fs)
   | [], ρ, _ => by simp [sqBodyAV]
   | F :: Fs, ρ, hok => by
@@ -407,7 +406,7 @@ hereditary bound (O5's semantic form), the `.psigma` spelling
 interprets to `towerSet w` of the interpreted telescope — at every
 level, both regimes. -/
 theorem towerBodyAVPos_interp {w : Nat} :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsBound w ρ Fs →
+    ∀ {Fs : List ITerm} {ρ : Nat → V}, FieldsBound w ρ Fs →
       interp V ρ (towerBodyAVPos w Fs)
         = towerSet w (teleOfFields ρ Fs)
   | [], _, _ => rfl
@@ -438,7 +437,7 @@ theorem towerBodyAVPos_interp {w : Nat} :
 /-- **The carrier body reads back as the tier's carrier**, both
 regimes: unconditionally at squash, under the hereditary bound (O5's
 semantic form) in the graph regime. -/
-theorem towerBodyAV_interp {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
+theorem towerBodyAV_interp {w : Nat} {Fs : List ITerm} {ρ : Nat → V}
     (hb : w ≠ 0 → FieldsBound w ρ Fs) :
     interp V ρ (towerBodyAV w Fs) = towerSet w (teleOfFields ρ Fs) := by
   by_cases hw : w = 0
@@ -446,7 +445,7 @@ theorem towerBodyAV_interp {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
   · rw [towerBodyAV_pos hw]; exact towerBodyAVPos_interp (hb hw)
 
 /-- The carrier's formation, both regimes. -/
-theorem towerSet_univ_of_okB {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
+theorem towerSet_univ_of_okB {w : Nat} {Fs : List ITerm} {ρ : Nat → V}
     (hb : w ≠ 0 → FieldsBound w ρ Fs) :
     towerSet w (teleOfFields ρ Fs) ∈ˢ (univ w : V) := by
   by_cases hw : w = 0
@@ -457,14 +456,14 @@ theorem towerSet_univ_of_okB {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
 
 /-- `projAV` commutes with lifting (it introduces no binders). -/
 theorem projAV_liftN :
-    ∀ (i : Nat) (e : AnnotTerm) (n k : Nat),
+    ∀ (i : Nat) (e : ITerm) (n k : Nat),
       (projAV i e).liftN n k = projAV i (e.liftN n k)
   | 0, _, _, _ => rfl
   | i + 1, e, n, k => projAV_liftN i (.snd e) n k
 
 /-- `projAV` commutes with instantiation. -/
 theorem projAV_inst :
-    ∀ (i : Nat) (e a : AnnotTerm) (k : Nat),
+    ∀ (i : Nat) (e a : ITerm) (k : Nat),
       (projAV i e).inst a k = projAV i (e.inst a k)
   | 0, _, _, _ => rfl
   | i + 1, e, a, k => projAV_inst i (.snd e) a k
@@ -474,7 +473,7 @@ supplied by `psigmaV_rr_mem` and the fibre package by the tier's
 formation laws; the hereditary premise carries the domains' own
 grading. -/
 theorem towerBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsOkB w ρ Fs →
+    ∀ {Fs : List ITerm} {ρ : Nat → V}, FieldsOkB w ρ Fs →
       WellDenoted V ρ (towerBodyAVPos w Fs)
   | [], ρ, _ => by simp [towerBodyAVPos]
   | F :: Fs, ρ, hok => by
@@ -519,7 +518,7 @@ theorem towerBodyAVPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
           exact towerSet_univ_teleOfFields (hb.2 x hx)) fun _ _ => IsTy_univ w
 
 /-- **The carrier body is graded** (`WellDenoted`), both regimes. -/
-theorem towerBodyAV_wellDenoted {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
+theorem towerBodyAV_wellDenoted {w : Nat} {Fs : List ITerm} {ρ : Nat → V}
     (hok : FieldsOkB w ρ Fs) : WellDenoted V ρ (towerBodyAV w Fs) := by
   by_cases hw : w = 0
   · subst hw; rw [towerBodyAV_zero]; exact sqBodyAV_wellDenoted hok
@@ -528,22 +527,22 @@ theorem towerBodyAV_wellDenoted {w : Nat} {Fs : List AnnotTerm} {ρ : Nat → V}
 /-! ## The λ/Π-tower formers
 
 `mkLamsAV`/`mkPisAV` are the generic tower formers over peeled binder
-data; `stripPisAV` is the peel whose inversion hands the wiring the
-`(binder data, body)` decomposition of a stored type's reading. -/
+domains; `stripPisAV` is the peel whose inversion hands the wiring the
+`(domains, body)` decomposition of a stored type's reading. -/
 
 /-- The λ-tower former over a list of domains. -/
-def mkLamsAV : List AnnotTerm → AnnotTerm → AnnotTerm
+def mkLamsAV : List ITerm → ITerm → ITerm
   | [], b => b
   | d :: ds, b => .lam d (mkLamsAV ds b)
 
 /-- The Π-tower former over a list of domains — the shape of a stored
 Π-type's reading. -/
-def mkPisAV : List AnnotTerm → AnnotTerm → AnnotTerm
+def mkPisAV : List ITerm → ITerm → ITerm
   | [], b => b
   | d :: ds, b => .pi d (mkPisAV ds b)
 
-/-- A Π-tower over a sort reads to a type: a product, or the universe. -/
-theorem IsTy_mkPisAV_sort (ds : List AnnotTerm) (w : Nat) (ρ : Nat → V) :
+/-- A Π-tower over a sort reads to a type: a function space, or the universe. -/
+theorem IsTy_mkPisAV_sort (ds : List ITerm) (w : Nat) (ρ : Nat → V) :
     IsTy (interp V ρ (mkPisAV ds (.sort w))) := by
   cases ds with
   | nil => exact IsTy_univ w
@@ -551,7 +550,7 @@ theorem IsTy_mkPisAV_sort (ds : List AnnotTerm) (w : Nat) (ρ : Nat → V) :
 
 /-! ### Fits of one telescope of types, compared off the point (task #342 L7)
 
-The conditional claims of the annotation-free design compare two
+The conditional claims compare two
 values only where neither is the point.  Two spines fitting ONE
 telescope whose domains are types are still equal everywhere: position
 by position, under equal earlier values, the two values lie in one
@@ -560,13 +559,13 @@ type, whose members are all the point or none of them
 
 /-- **The domains of a telescope are types** under every fitting
 prefix. -/
-def SpineTy (ρ : Nat → V) : List AnnotTerm → Prop
+def SpineTy (ρ : Nat → V) : List ITerm → Prop
   | [] => True
   | F :: Fs => IsTy (interp V ρ F) ∧ ∀ a, a ∈ˢ interp V ρ F → SpineTy (cons a ρ) Fs
 
 /-- A graded Π-tower's domains are types (`WellDenoted`'s Π clause). -/
-theorem spineTy_of_wellDenoted_mkPisAV {B : AnnotTerm} :
-    ∀ {ab : List AnnotTerm} {ρ : Nat → V},
+theorem spineTy_of_wellDenoted_mkPisAV {B : ITerm} :
+    ∀ {ab : List ITerm} {ρ : Nat → V},
       WellDenoted V ρ (mkPisAV ab B) → SpineTy ρ ab
   | [], _, _ => trivial
   | d :: ab, ρ, h => by
@@ -576,14 +575,14 @@ theorem spineTy_of_wellDenoted_mkPisAV {B : AnnotTerm} :
 
 /-- A telescope's prefix is a telescope of types. -/
 theorem SpineTy.take :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V} (n : Nat), SpineTy ρ Fs → SpineTy ρ (Fs.take n)
+    ∀ {Fs : List ITerm} {ρ : Nat → V} (n : Nat), SpineTy ρ Fs → SpineTy ρ (Fs.take n)
   | [], _, _, _ => by rw [List.take_nil]; trivial
   | _ :: _, _, 0, _ => trivial
   | _ :: _, _, n + 1, h => ⟨h.1, fun a ha => SpineTy.take n (h.2 a ha)⟩
 
 /-- A graded field telescope (`FieldsOkB`) is a telescope of types. -/
 theorem FieldsOkB.spineTy {w : Nat} :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V}, FieldsOkB w ρ Fs → SpineTy ρ Fs
+    ∀ {Fs : List ITerm} {ρ : Nat → V}, FieldsOkB w ρ Fs → SpineTy ρ Fs
   | [], _, _ => trivial
   | _ :: _, _, h => ⟨h.2.1, fun a ha => FieldsOkB.spineTy (h.2.2.2 a ha)⟩
 
@@ -591,7 +590,7 @@ theorem FieldsOkB.spineTy {w : Nat} :
 (`FitsVals_eq_of_cond`): two spines fitting one telescope of types,
 equal at every position where neither value is the point, are equal. -/
 theorem spineFit_eq_of_cond :
-    ∀ {Fs : List AnnotTerm} {ρ : Nat → V} {as bs : List V},
+    ∀ {Fs : List ITerm} {ρ : Nat → V} {as bs : List V},
       SpineTy ρ Fs → SpineFit ρ Fs as → SpineFit ρ Fs bs →
       (∀ p ∈ as.zip bs, p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) → as = bs
   | [], _, [], [], _, _, _, _ => rfl
@@ -607,7 +606,7 @@ theorem spineFit_eq_of_cond :
 
 /-- `spineFit_eq_of_cond` positionwise: equal where neither is the
 point, at every position below the spines' common length. -/
-theorem spineFit_eq_of_cond_getD {Fs : List AnnotTerm} {ρ : Nat → V} {as bs : List V}
+theorem spineFit_eq_of_cond_getD {Fs : List ITerm} {ρ : Nat → V} {as bs : List V}
     (hT : SpineTy ρ Fs) (ha : SpineFit ρ Fs as) (hb : SpineFit ρ Fs bs)
     (h : ∀ i, i < Fs.length → as.getD i pt ≠ pt → bs.getD i pt ≠ pt →
       as.getD i pt = bs.getD i pt) : as = bs := by
@@ -626,7 +625,7 @@ theorem spineFit_eq_of_cond_getD {Fs : List AnnotTerm} {ρ : Nat → V} {as bs :
   exact this
 
 /-- Peel `n` Π-binders off a reading. -/
-def stripPisAV : Nat → AnnotTerm → Option (List AnnotTerm × AnnotTerm)
+def stripPisAV : Nat → ITerm → Option (List ITerm × ITerm)
   | 0, e => some ([], e)
   | n + 1, .pi A B =>
     (stripPisAV n B).map fun p => (A :: p.1, p.2)
@@ -635,7 +634,7 @@ def stripPisAV : Nat → AnnotTerm → Option (List AnnotTerm × AnnotTerm)
 /-- The peel's inversion: a successful strip exhibits the reading as
 the Π-tower of its parts (the wiring's hook). -/
 theorem stripPisAV_eq_mkPis :
-    ∀ {n : Nat} {e : AnnotTerm} {ps : List AnnotTerm} {b : AnnotTerm},
+    ∀ {n : Nat} {e : ITerm} {ps : List ITerm} {b : ITerm},
       stripPisAV n e = some (ps, b) → e = mkPisAV ps b ∧ ps.length = n
   | 0, e, ps, b, h => by
     obtain ⟨rfl, rfl⟩ : ps = [] ∧ b = e := by
@@ -653,7 +652,7 @@ theorem stripPisAV_eq_mkPis :
 spine computes the body at the spine's environment (`app_lamV`
 iterated). -/
 theorem mkLamsAV_fold :
-    ∀ {ds : List AnnotTerm} {b : AnnotTerm} {ρ : Nat → V} {as : List V},
+    ∀ {ds : List ITerm} {b : ITerm} {ρ : Nat → V} {as : List V},
       SpineFit ρ ds as →
       as.foldl SetTheory.app (interp V ρ (mkLamsAV ds b))
         = interp V (consList as ρ) b
@@ -667,7 +666,7 @@ theorem mkLamsAV_fold :
     rw [app_lamV hsp.1]
     exact mkLamsAV_fold hsp.2
 
-/-! ### The λ-tower over a Π-tower's binder data, generically
+/-! ### The λ-tower over a Π-tower's domains, generically
 
 The constructor and recursor leaves are λ-towers over their Π-type's
 own domains.  `UnderTowerOk` is the single hereditary premise;
@@ -677,16 +676,16 @@ membership and grading. -/
 /-- The hereditary premise of the tower's laws: each domain graded and
 a type, and at every fitting spine the body is graded and a member of
 the result type's reading, which is a type. -/
-def UnderTowerOk (ρ : Nat → V) (b T : AnnotTerm) :
-    List AnnotTerm → Prop
+def UnderTowerOk (ρ : Nat → V) (b T : ITerm) :
+    List ITerm → Prop
   | [] => WellDenoted V ρ b ∧ interp V ρ b ∈ˢ interp V ρ T ∧ IsTy (interp V ρ T)
   | d :: ds => WellDenoted V ρ d ∧ IsTy (interp V ρ d) ∧
       ∀ a, a ∈ˢ interp V ρ d → UnderTowerOk (cons a ρ) b T ds
 
 /-- The residual Π-tower's reading is a type: a function space, or the
 base's type. -/
-theorem underTowerOk_res_IsTy {b T : AnnotTerm} :
-    ∀ {ds : List AnnotTerm} {ρ : Nat → V},
+theorem underTowerOk_res_IsTy {b T : ITerm} :
+    ∀ {ds : List ITerm} {ρ : Nat → V},
       UnderTowerOk ρ b T ds → IsTy (interp V ρ (mkPisAV ds T))
   | [], _, h => h.2.2
   | _ :: _, _, _ => IsTy_piV
@@ -694,8 +693,8 @@ theorem underTowerOk_res_IsTy {b T : AnnotTerm} :
 /-- **The tower's membership**: the λ-tower lies in the Π-tower over
 the same domains (`lamV_mem` per binder, the residual towers' types as
 the fibres, the base's membership at the bottom). -/
-theorem mkLamsAV_mem {b T : AnnotTerm} :
-    ∀ {ds : List AnnotTerm} {ρ : Nat → V},
+theorem mkLamsAV_mem {b T : ITerm} :
+    ∀ {ds : List ITerm} {ρ : Nat → V},
       UnderTowerOk ρ b T ds →
       interp V ρ (mkLamsAV ds b) ∈ˢ interp V ρ (mkPisAV ds T)
   | [], _, h => h.2.1
@@ -710,8 +709,8 @@ theorem mkLamsAV_mem {b T : AnnotTerm} :
 /-- **The tower's grading**: the λ-tower is graded; its fibre
 packages are the interpreted residual Π-towers, membership from
 `mkLamsAV_mem` at each suffix. -/
-theorem mkLamsAV_wellDenoted {b T : AnnotTerm} :
-    ∀ {ds : List AnnotTerm} {ρ : Nat → V},
+theorem mkLamsAV_wellDenoted {b T : ITerm} :
+    ∀ {ds : List ITerm} {ρ : Nat → V},
       UnderTowerOk ρ b T ds →
       WellDenoted V ρ (mkLamsAV ds b)
   | [], _, h => h.1
@@ -802,7 +801,7 @@ theorem consList_getD_of_lt : ∀ (as : List V) (σ : Nat → V) (k : Nat), k < 
 
 /-- The constructor tupler at the λ-frame (see the module docstring
 for the de Bruijn accounting). -/
-def mkTowerGoPos (w : Nat) : List AnnotTerm → AnnotTerm
+def mkTowerGoPos (w : Nat) : List ITerm → ITerm
   | [] => .const .punitUnit [w]
   | F :: Fs =>
     .app (.app (.app (.app (.const .psigmaMk [w, w])
@@ -816,13 +815,13 @@ def mkTowerGoPos (w : Nat) : List AnnotTerm → AnnotTerm
 proof point outright (`.punitUnit`, O4 — the pair
 constructor's pinned valuation cannot take a data field there), the
 pair tower above. -/
-def mkTowerGo (w : Nat) (Fs : List AnnotTerm) : AnnotTerm :=
+def mkTowerGo (w : Nat) (Fs : List ITerm) : ITerm :=
   if w = 0 then .const .punitUnit [] else mkTowerGoPos w Fs
 
-theorem mkTowerGo_zero (Fs : List AnnotTerm) :
+theorem mkTowerGo_zero (Fs : List ITerm) :
     mkTowerGo 0 Fs = .const .punitUnit [] := ite_eq_left rfl
 
-theorem mkTowerGo_pos {w : Nat} (hw : w ≠ 0) (Fs : List AnnotTerm) :
+theorem mkTowerGo_pos {w : Nat} (hw : w ≠ 0) (Fs : List ITerm) :
     mkTowerGo w Fs = mkTowerGoPos w Fs := ite_eq_right hw
 
 /-- **The tupler reads back as the tier's tupler**, two regimes in one
@@ -830,7 +829,7 @@ statement: at a fitting spine, `mkTower bs` in the graph regime and
 `pt` at squash — `psigmaMkV_app`'s own collapse, matching the tier's
 `mkTower_mem`/`pt_mem_tower` intro pair. -/
 theorem mkTowerGoPos_interp {w : Nat} (hw : w ≠ 0) :
-    ∀ {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
+    ∀ {Fs : List ITerm} {ρp : Nat → V} {bs : List V},
       FieldsBound w ρp Fs → SpineFit ρp Fs bs →
       interp V (consList bs ρp) (mkTowerGoPos w Fs)
         = if w = 0 then pt else mkTower bs
@@ -904,7 +903,7 @@ theorem mkTowerGoPos_interp {w : Nat} (hw : w ≠ 0) :
     split <;> rfl
 
 /-- **The tupler reads back as the tier's tupler**, both regimes. -/
-theorem mkTowerGo_interp {w : Nat} {Fs : List AnnotTerm} {ρp : Nat → V}
+theorem mkTowerGo_interp {w : Nat} {Fs : List ITerm} {ρp : Nat → V}
     {bs : List V} (hb : w ≠ 0 → FieldsBound w ρp Fs)
     (hsp : SpineFit ρp Fs bs) :
     interp V (consList bs ρp) (mkTowerGo w Fs)
@@ -931,7 +930,7 @@ are `psigmaMkV_ww_mem` chained down by `app_mem_piR`, the squash-side
 fibre conditions all landing on `piR_zero_mem_univZero`/`sigmaSet`'s
 truth value. -/
 theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
-    ∀ {Fs : List AnnotTerm} {ρp : Nat → V} {bs : List V},
+    ∀ {Fs : List ITerm} {ρp : Nat → V} {bs : List V},
       FieldsOkB w ρp Fs → SpineFit ρp Fs bs →
       WellDenoted V (consList bs ρp) (mkTowerGoPos w Fs)
   | [], _, [], _, _ => by simp [mkTowerGoPos]
@@ -961,7 +960,7 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
       mkTowerGoPos_interp hw (hb.2 b hsp.1) hsp.2
     have hAm : interp V ρp F ∈ˢ (univ w : V) := hb.1
     have hBv : interp V (consList bs (cons b ρp))
-        (AnnotTerm.lam (F.liftN (Fs.length + 1))
+        (ITerm.lam (F.liftN (Fs.length + 1))
           ((towerBodyAV w Fs).liftN (Fs.length + 1) 1))
         = lamV (interp V ρp F)
             (fun x => interp V (cons x ρp) (towerBodyAV w Fs)) := by
@@ -1062,7 +1061,7 @@ theorem mkTowerGoPos_wellDenoted {w : Nat} (hw : w ≠ 0) :
         rw [hfib]; exact IsTy_of_mem_univ (towerSet_univ_teleOfFields (hb.2 b hsp.1)))
 
 /-- **The tupler is graded** (`WellDenoted`), both regimes. -/
-theorem mkTowerGo_wellDenoted {w : Nat} {Fs : List AnnotTerm} {ρp : Nat → V}
+theorem mkTowerGo_wellDenoted {w : Nat} {Fs : List ITerm} {ρp : Nat → V}
     {bs : List V} (hok : FieldsOkB w ρp Fs) (hsp : SpineFit ρp Fs bs) :
     WellDenoted V (consList bs ρp) (mkTowerGo w Fs) := by
   by_cases hw : w = 0
@@ -1074,7 +1073,7 @@ theorem mkTowerGo_wellDenoted {w : Nat} {Fs : List AnnotTerm} {ρp : Nat → V}
 /-- Walking a fitting prefix spine drops the graded chain to the
 suffix. -/
 theorem FieldsOkB.drop {w : Nat} :
-    ∀ {Fs₁ : List AnnotTerm} {as : List V} {Fs₂ : List AnnotTerm}
+    ∀ {Fs₁ : List ITerm} {as : List V} {Fs₂ : List ITerm}
       {ρ : Nat → V},
       FieldsOkB w ρ (Fs₁ ++ Fs₂) → SpineFit ρ Fs₁ as →
       FieldsOkB w (consList as ρ) Fs₂
@@ -1112,7 +1111,7 @@ each `.proj` node's `WellDenoted` package is one `sigmaSet w` level of
 the carrier, peeled by `mem_sigma_elim` — both regimes (at squash the
 subject is `pt` throughout and the tail memberships are `pt`'s). -/
 theorem projAV_wellDenoted_tower {w : Nat} :
-    ∀ {i : Nat} {Fs : List AnnotTerm} {ρ : Nat → V} {e : AnnotTerm}
+    ∀ {i : Nat} {Fs : List ITerm} {ρ : Nat → V} {e : ITerm}
       {σ : Nat → V},
       WellDenoted V σ e →
       interp V σ e ∈ˢ towerSet w (teleOfFields ρ Fs) →

@@ -21,26 +21,26 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level PropWhen)
 
 variable {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → ITerm}
 
 /-- The `Nat`-literal spine is lift-invariant when its two heads are. -/
-theorem natLitAV_liftN {za sa : AnnotTerm} {k : Nat}
+theorem natLitAV_liftN {za sa : ITerm} {k : Nat}
     (hz : za.liftN 1 k = za) (hs : sa.liftN 1 k = sa) :
     ∀ n : Nat, (natLitAV za sa n).liftN 1 k = natLitAV za sa n := by
   intro n
   induction n with
   | zero => exact hz
   | succ n ih =>
-    show (AnnotTerm.app sa (natLitAV za sa n)).liftN 1 k = _
-    rw [AnnotTerm.liftN_app, hs, ih]
+    show (ITerm.app sa (natLitAV za sa n)).liftN 1 k = _
+    rw [ITerm.liftN_app, hs, ih]
     rfl
 
 /-- Ditto the character-list spine. -/
-private theorem charListAV_liftN {nilA consA ofNatA za sa : AnnotTerm}
+private theorem charListAV_liftN {nilA consA ofNatA za sa : ITerm}
     {k : Nat} (hn : nilA.liftN 1 k = nilA)
     (hc : consA.liftN 1 k = consA) (ho : ofNatA.liftN 1 k = ofNatA)
     (hz : za.liftN 1 k = za) (hs : sa.liftN 1 k = sa) :
@@ -51,8 +51,8 @@ private theorem charListAV_liftN {nilA consA ofNatA za sa : AnnotTerm}
   induction cs with
   | nil => exact hn
   | cons c cs ih =>
-    show (AnnotTerm.app (.app consA (.app ofNatA _)) _).liftN 1 k = _
-    rw [AnnotTerm.liftN_app, AnnotTerm.liftN_app, AnnotTerm.liftN_app, hc, ho,
+    show (ITerm.app (.app consA (.app ofNatA _)) _).liftN 1 k = _
+    rw [ITerm.liftN_app, ITerm.liftN_app, ITerm.liftN_app, hc, ho,
       natLitAV_liftN hz hs, ih]
     rfl
 
@@ -67,7 +67,7 @@ theorem denoteMeta_shiftFrom
       (acval n ψ).liftN 1 k = acval n ψ) {p : Nat} :
     ∀ (e : Expr) (d : Nat), p ≤ d → Expr.WScoped d e →
       denoteMeta acval env φ (d + 1) (e.shiftFrom p) =
-        (denoteMeta acval env φ d e).map (AnnotTerm.liftN 1 · (d - p))
+        (denoteMeta acval env φ d e).map (ITerm.liftN 1 · (d - p))
   | .bvar i, d, _, _ => by
     have h1 : denoteMeta acval env φ (d + 1) (.bvar i) = none := by
       rw [denoteMeta.eq_def]
@@ -92,11 +92,11 @@ theorem denoteMeta_shiftFrom
     simp only [ConLeche.Expr.shiftFrom]
     split
     · next hge =>
-      rw [denoteMeta, denoteMeta, Option.map_some, AnnotTerm.liftN_bvar,
+      rw [denoteMeta, denoteMeta, Option.map_some, ITerm.liftN_bvar,
         ite_eq_left (show d - 1 - idx < d - p by omega),
         show d + 1 - 1 - (idx + 1) = d - 1 - idx from by omega]
     · next hge =>
-      rw [denoteMeta, denoteMeta, Option.map_some, AnnotTerm.liftN_bvar,
+      rw [denoteMeta, denoteMeta, Option.map_some, ITerm.liftN_bvar,
         ite_eq_right (show ¬ d - 1 - idx < d - p by omega),
         show d + 1 - 1 - idx = d - 1 - idx + 1 from by omega]
   | .app fe a, d, hpd, hw => by
@@ -177,8 +177,8 @@ theorem denoteMeta_shiftFrom
         dsimp only
         rcases i with _ | _ | i <;> rfl
       | some entry =>
-        show some (projAV (i + entry.off) (AnnotTerm.liftN 1 ea (d - p)))
-          = Option.map (fun x => AnnotTerm.liftN 1 x (d - p))
+        show some (projAV (i + entry.off) (ITerm.liftN 1 ea (d - p)))
+          = Option.map (fun x => ITerm.liftN 1 x (d - p))
             (some (projAV (i + entry.off) ea))
         simp only [Option.map_some, projAV_liftN]
   | .lit (.natVal k), d, _, _ => by
@@ -193,9 +193,9 @@ theorem denoteMeta_shiftFrom
     · simp only [Option.map_some]
       refine congrArg some ?_
       symm
-      rw [AnnotTerm.liftN_app, hacl,
-        charListAV_liftN (by rw [AnnotTerm.liftN_app, hacl, hacl])
-          (by rw [AnnotTerm.liftN_app, hacl, hacl]) (hacl _ _ _)
+      rw [ITerm.liftN_app, hacl,
+        charListAV_liftN (by rw [ITerm.liftN_app, hacl, hacl])
+          (by rw [ITerm.liftN_app, hacl, hacl]) (hacl _ _ _)
           (hacl _ _ _) (hacl _ _ _)]
     · rfl
 termination_by e => e.sizeB
@@ -207,13 +207,13 @@ decreasing_by
   | (simp [ConLeche.Expr.sizeB])
 
 /-- **One level of weakening**: a `d`-scoped term denoted at `d + 1` is
-its depth-`d` annotation, lifted. -/
+its depth-`d` reading, lifted. -/
 theorem denoteMeta_weaken_top
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ) {d : Nat} {e : Expr}
     (hw : Expr.WScoped d e) :
     denoteMeta acval env φ (d + 1) e
-      = (denoteMeta acval env φ d e).map (AnnotTerm.liftN 1 · 0) := by
+      = (denoteMeta acval env φ d e).map (ITerm.liftN 1 · 0) := by
   have h := denoteMeta_shiftFrom (env := env) (φ := φ) hacl (p := d) e d
     (Nat.le_refl d) hw
   rw [ConLeche.Expr.shiftFrom_eq_self hw.fvarsBelow, Nat.sub_self] at h

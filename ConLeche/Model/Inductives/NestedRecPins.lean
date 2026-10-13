@@ -29,7 +29,7 @@ public section
 `tgtRecPinsOk`: `RecRulePinsOk` at every stored rule of the target
 family.  A rule fires `.nested` only at an OUTSIDE major
 (`tgtFireOf`); there its pins are the major's parameters closed over the
-rule prefix (`nestedRuleSyn_open`), so instantiated back at the prefix
+rule prefix (`nestedRead_open`), so instantiated back at the prefix
 openers they ARE the parameters (`instSeq_abstractRange_open`), whose
 readings are graded at every prefix spine (`tgtOutSatW`).
 `nestedPinGrade` (cnF = 0) carries that grading to the conjunct's chain.
@@ -150,7 +150,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo BlockParts TargetMajor)
 
 universe w

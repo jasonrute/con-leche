@@ -10,7 +10,7 @@ import ConLeche.Semantics.DefEqList
 public section
 
 /-!
-# The soundness of the ι rule and the three stuck-major rescues (task #305, #342 L10)
+# The soundness of the ι rule and the three stuck-major rescues (task #305, #342 L10, S5c)
 
 One lemma per constructor: `Red.iota`, `Red.rescueK`, `Red.rescueEta`,
 `Red.rescueAnd`; the master induction (`Sound.lean`) consumes them by
@@ -24,14 +24,17 @@ their premises' CONDITIONAL claims (`RedSem`, `DefEqSem`,
 induction of `Sound.lean` weakens the conclusion (`RedSemU.cond`).  The ι step's licence is read through the law's
 `RecRuleExtra` (`Model/Env/Laws.lean`): the recursor's spine fits by
 its licensed certificate; a K rule fires by the law at the recursor's
-own parameters; otherwise the fired constructor application's value is
-the major's (by the major's reduction where the major is not the
-point, which at case 2 it never is; by the slot law where it is,
-case 3), its spine fits (case 3's full-grade certificate, or the graph
-regime of a graded application that is not the point,
-`teleFitPA_of_graded_ne_pt`), and where it is the point the case-3
-comparisons the step ran give the law's index pin (`RecRuleExtra`'s
-(U)).  The two fabricating rescues (K,
+own parameters.  At case 2 (the family never `Prop` at the comparand
+levels; the step compared nothing) the major is not the point ((S)),
+so its reduction is an equation and the fired application, not the
+point either, fits its telescope (`teleFitPA_of_graded_ne_pt`); (T)
+reads it at the comparand levels, where the law fires.  At case 3 the
+step compared the constructor's levels, so the law fires at the
+constructor's own levels: the fired application's value is the major's
+(by the major's reduction where the major is not the point; by the
+slot law (P) where it is), its spine fits (the full-grade certificate),
+and where it is the point the comparisons the step ran give the law's
+index pin ((U)).  The two fabricating rescues (K,
 `And`) equate their fabrication with the major through the one type
 both inhabit (`IsTy.eq_of_ne_pt`).  The structure-η rescue
 (`Red.rescueEta_sound`, task #342 L11b) reads no certificate: the major
@@ -52,7 +55,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -61,10 +64,11 @@ universe w
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env}
   {φ : Name → Nat}
 set_option linter.unusedVariables false in
-/-- **The ι row** (task #342 L10): the stored recursor's fired contract
-(`RecRuleLaw`) and its licence facts (`RecRuleExtra`), at the
+/-- **The ι row** (task #342 L10, S5c): the stored recursor's fired
+contract (`RecRuleLaw`) and its licence facts (`RecRuleExtra`), at the
 recursor's licensed telescope certificate over the redex's own spine,
-the major prepared by a reduction, and — at case 3 only — the
+the major prepared by a reduction, and — at case 3 only, decided at
+the comparand levels — the level and parameter comparisons, the
 constructor's full-grade certificate and the index comparison.  The
 premises are the CONDITIONAL claims, the conclusion is the
 unconditional one: no step reads that the redex is not the point; the
@@ -72,13 +76,15 @@ induction weakens it (`RedSemU.cond`).
 
 Per valuation: the recursor's telescope fits the spine (the licensed
 certificate).  At a K rule the law at the recursor's own parameters
-gives everything; the major is not read.  Otherwise the fired
-constructor application's value is the major's — by the major's
-reduction where the major is not the point (case 2 always: (S)), by
-the slot law where it is (case 3: (P)) — its spine fits (the
-full-grade certificate, or a graded application that is not the point
-fitting its ∀-telescope), where it is the point the case-3 comparisons
-the step ran give the index pin ((U)), and the law fires. -/
+gives everything; the major is not read.  At case 2 the major's domain
+holds no point ((S)), so the major's reduction is an equation, the
+fired application is not the point and fits its ∀-telescope, and (T)
+moves it to the comparand levels, where the law fires.  At case 3 the
+level comparison gives the law's level premise; the fired application's
+value is the major's — by the major's reduction where the major is not
+the point, by the slot law (P) where it is — its spine fits (the
+full-grade certificate), where it is the point the comparisons the
+step ran give the index pin ((U)), and the law fires. -/
 theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name}
     {us : List Level} {cv : ConstantVal} {mI rP : Nat} {rules : List RecRule}
     {major : Expr} {cj : Name} {usj : List Level} {cvj : ConstantVal}
@@ -92,22 +98,33 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     (hctor : env.find? cj = some (.ctorInfo cvj cnP cnF))
     (hrule : rules.find? (fun r' => r'.ctor == cj) = some rl)
     (hmlen : major.getAppArgs.length = rl.ctorParams + rl.nfields)
-    (hlv : Level.isEquivList usj
-      (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
-        e.getAppArgs rP).1 = some true)
-    (hparams : ConLeche.iotaCase3 env.find? rl cvj usj = true →
+    (hlv : ConLeche.iotaCase3 env.find? rl cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
+          e.getAppArgs rP).1 = true →
+      Level.isEquivList usj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
+          e.getAppArgs rP).1 = some true)
+    (hparams : ConLeche.iotaCase3 env.find? rl cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
+          e.getAppArgs rP).1 = true →
       DefEqListSem m φ d (major.getAppArgs.take rl.ctorParams)
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
           e.getAppArgs rP).2)
     (hcertR : CertsSem m φ d (cv.type.instantiateLevelParams cv.levelParams us)
       e.getAppArgs)
-    (hcertC : ConLeche.iotaCase3 env.find? rl cvj usj = true →
+    (hcertC : ConLeche.iotaCase3 env.find? rl cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
+          e.getAppArgs rP).1 = true →
       CertsFSem m φ d (cvj.type.instantiateLevelParams cvj.levelParams usj)
         major.getAppArgs)
-    (hres : ConLeche.iotaCase3 env.find? rl cvj usj = true → mI ≠ rP →
+    (hres : ConLeche.iotaCase3 env.find? rl cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
+          e.getAppArgs rP).1 = true → mI ≠ rP →
       ConLeche.piResidual (cvj.type.instantiateLevelParams cvj.levelParams usj)
         major.getAppArgs = some residual)
-    (hidx : ConLeche.iotaCase3 env.find? rl cvj usj = true → mI ≠ rP →
+    (hidx : ConLeche.iotaCase3 env.find? rl cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
+          e.getAppArgs rP).1 = true → mI ≠ rP →
       DefEqListSem m φ d (residual.getAppArgs.drop rl.ctorParams)
         ((e.getAppArgs.take mI).drop rP)) :
     RedSem m φ d e
@@ -161,13 +178,6 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
   obtain ⟨restR, hfitR⟩ :=
     hcertR (fa := m.acval c (Level.substFn φ cv.levelParams us))
       hfR hCR (hTVaD d) hfrE hspx
-  -- the level congruence (currency-free: the comparand reads no arguments)
-  have hψ : Level.substFn φ cvj.levelParams usj
-      = Level.substFn φ cvj.levelParams
-          (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
-            [] rP).1 := by
-    rw [recFireComparands_fst_nil] at hlv
-    exact ConLeche.Level.substFn_congr (ConLeche.Level.isEquivList_sound hlv φ)
   -- the licence facts at the recursor's levels
   obtain ⟨hK, hext⟩ := hextra us hus TVa (hTVaD 0)
   obtain ⟨hstrip, hextNK⟩ := hext cvj cnP cnF hctor
@@ -177,19 +187,11 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     rw [hlenYs]
     exact piChain_of_stripPis _
       (ConLeche.Expr.stripPis_instantiateLevelParams_isSome _ _ _ hstrip) (hTVjaD d)
-  -- the case split the checker ran
-  have hcase3_of : rl.k = false →
-      ConLeche.iotaCtorLicensed env.find? cvj usj = false →
-      ConLeche.iotaCase3 env.find? rl cvj usj = true := by
-    intro hk hl
-    simp [ConLeche.iotaCase3, hk, hl]
-  have hlic_of : rl.k = false →
-      ConLeche.iotaCase3 env.find? rl cvj usj = false →
-      ConLeche.iotaCtorLicensed env.find? cvj usj = true := by
-    intro hk h3
-    cases hl : ConLeche.iotaCtorLicensed env.find? cvj usj
-    · rw [hcase3_of hk hl] at h3; exact nomatch h3
-    · rfl
+  -- the comparand levels (currency-free: they read no arguments)
+  have hcmpE : (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
+      e.getAppArgs rP).1
+      = (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 :=
+    recFireComparands_fst_nil _ _ _ _ _ _
   -- the reduct: framed, leaf-covered, read, and graded/equal at any ρ
   have hspOut : DenoteMetaSpine m.acval env φ d
       (e.getAppArgs.take rP ++ major.getAppArgs.drop (RecRule.ctorParams rl))
@@ -230,9 +232,9 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     fun x hx => hoX x (List.mem_of_mem_take hx)
   have hxs0len : (xs.take mI).length = mI := by
     rw [List.length_take, hxsLen]; omega
-  have hsubj0 : interp V ρ (AnnotTerm.mkAppN
+  have hsubj0 : interp V ρ (ITerm.mkAppN
       (m.acval c (Level.substFn φ cv.levelParams us)) xs)
-      = interp V ρ (AnnotTerm.mkAppN
+      = interp V ρ (ITerm.mkAppN
         (m.acval c (Level.substFn φ cv.levelParams us))
         (xs.take mI ++ [xs.getD mI default])) := by
     rw [← hsplit]
@@ -247,34 +249,82 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     rw [hred]
     exact ⟨htrK hoX0, hsubj0.trans heqK⟩
   have hk' : rl.k = false := by simpa using hk
-  obtain ⟨hS, hP, hU⟩ := hextNK hk' usj hlenUj hψ TVja (hTVjaD 0)
+  obtain ⟨hS, hT, hPU⟩ := hextNK hk'
+  by_cases h2 : ConLeche.iotaCase3 env.find? rl cvj
+      (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams e.getAppArgs rP).1
+      = false
+  · ---------------------------------------------------------------- case 2
+    -- the licence at the comparand levels: the step compared nothing
+    have hlic : ConLeche.iotaCtorLicensed env.find? cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true := by
+      rw [← hcmpE]
+      cases hl : ConLeche.iotaCtorLicensed env.find? cvj
+          (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams e.getAppArgs rP).1
+      · simp [ConLeche.iotaCase3, hk', hl] at h2
+      · rfl
+    -- the major is not the point (S): its reduction is an equation, and
+    -- the fired application, not the point either, fits its telescope
+    have hapt : interp V ρ (xs.getD mI default) ≠ pt :=
+      hS hlic ρ (xs.take mI) _ restR hxs0len hfitRVal
+    obtain ⟨hokMj, heqA⟩ := hInnerMaj ρ hρ hLmajSlot hokMajArg hapt
+    obtain ⟨-, hoY⟩ := hoist_spineV ys hokMj
+    have hne : interp V ρ (ITerm.mkAppN
+        (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) ≠ pt := heqA ▸ hapt
+    obtain ⟨restC, hfitC⟩ :=
+      teleFitPA_of_graded_ne_pt ys hpcC (hokTVja ρ) (hmemJ ρ) hokMj hne
+    obtain ⟨restR', hfitR'⟩ := teleFitPA_snoc_congr (xs.take mI) hfitRVal heqA
+    -- (T): the fired application, read at the comparand levels
+    obtain ⟨usj', ys', TVja', restC', hlen', hψ', hTVja', hyl', hdrop', hoY', hfitC', hval'⟩ :=
+      hT hlic usj hlenUj TVja (hTVjaD 0) ρ (xs.take mI) ys restR' restC hxs0len hlenYs
+        hfitR' hfitC hoX0 hoY hne
+    obtain ⟨restR'', hfitR''⟩ := teleFitPA_snoc_congr (xs.take mI) hfitR' hval'.symm
+    -- **fire the law** at the comparand levels
+    obtain ⟨heqLaw, htrans⟩ := hlaw cvj cnP cnF hctor usj' ρ (xs.take mI) ys'
+      TVa TVja' restR'' restC' hxs0len (by rw [hyl', hlenYs]) hlen' hψ' hoY'
+      (fun hpt => absurd (hval' ▸ hpt) hne) (hTVaD 0) hTVja' hfitR'' hfitC'
+    rw [List.take_take, Nat.min_eq_left hrPle, hdrop'] at heqLaw htrans
+    have hsubj : interp V ρ (ITerm.mkAppN
+        (m.acval c (Level.substFn φ cv.levelParams us)) xs)
+        = interp V ρ (ITerm.mkAppN
+          (m.acval c (Level.substFn φ cv.levelParams us))
+          (xs.take mI ++ [ITerm.mkAppN
+            (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj')) ys'])) := by
+      rw [hsubj0]
+      refine interp_mkAppN_congrK _ _ rfl ?_
+      simp only [List.map_append, List.map_cons, List.map_nil, heqA, hval']
+      rfl
+    exact ⟨htrans hoX0 hoY', hsubj.trans heqLaw⟩
+  ------------------------------------------------------------------ case 3
+  have h3 : ConLeche.iotaCase3 env.find? rl cvj
+      (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams e.getAppArgs rP).1
+      = true := by simpa using h2
+  -- the level comparison ran: the constructor's levels are the
+  -- comparands' (currency-free: the comparand reads no arguments)
+  have hψ : Level.substFn φ cvj.levelParams usj
+      = Level.substFn φ cvj.levelParams
+          (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
+            [] rP).1 := by
+    have hlv' := hlv h3
+    rw [recFireComparands_fst_nil] at hlv'
+    exact ConLeche.Level.substFn_congr (ConLeche.Level.isEquivList_sound hlv' φ)
+  obtain ⟨hP, hU⟩ := hPU usj hlenUj hψ TVja (hTVjaD 0)
   -- the case-3 run, at this valuation
-  have hC3 : ConLeche.iotaCase3 env.find? rl cvj usj = true →
-      (∀ y ∈ ys, WellDenoted V ρ y) ∧ ∃ restC, TeleFitPA V ρ TVja ys restC := by
-    intro h3
+  have hC3 : (∀ y ∈ ys, WellDenoted V ρ y) ∧ ∃ restC, TeleFitPA V ρ TVja ys restC := by
     obtain ⟨restC, hC3⟩ := hcertC h3 hfJ hCJ (hTVjaD d) hfrC hspy
     obtain ⟨hoY, hfitC, -⟩ := hC3 ρ hρ
       (LeavesGr.of_fvarLeaves_nil
         (ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfJ))
       hLargsC (hokTVja ρ)
     exact ⟨hoY, restC, hfitC⟩
-  -- where the major is the point, the redex is a case-3 one: at case 2
-  -- the major's domain holds no point (S)
-  have hcase3_of_pt : interp V ρ (xs.getD mI default) = pt →
-      ConLeche.iotaCase3 env.find? rl cvj usj = true := by
-    intro hapt
-    cases h3 : ConLeche.iotaCase3 env.find? rl cvj usj
-    · exact absurd hapt (hS (hlic_of hk' h3) ρ (xs.take mI) _ restR hxs0len hfitRVal)
-    · rfl
   -- **the fired constructor application is the major's value**
   have hcase : interp V ρ (xs.getD mI default)
-        = interp V ρ (AnnotTerm.mkAppN
+        = interp V ρ (ITerm.mkAppN
             (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) ∧
       (∀ y ∈ ys, WellDenoted V ρ y) ∧
       ∃ restC, TeleFitPA V ρ TVja ys restC := by
     by_cases hapt : interp V ρ (xs.getD mI default) = pt
     · -- case 3 at a `Prop` valuation: the slot law (P)
-      obtain ⟨hoY, restC, hfitC⟩ := hC3 (hcase3_of_pt hapt)
+      obtain ⟨hoY, restC, hfitC⟩ := hC3
       refine ⟨?_, hoY, restC, hfitC⟩
       rw [hapt, hP ρ (xs.take mI) _ restR hxs0len hfitRVal hapt ys restC hfitC hlenYs hoY]
     · -- the major is not the point: its reduction is an equation
@@ -285,15 +335,17 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
         (heqAll ▸ hapt)
   obtain ⟨heqA, hoY, restC, hfitC⟩ := hcase
   obtain ⟨restR', hfitR'⟩ := teleFitPA_snoc_congr (xs.take mI) hfitRVal heqA
-  have hcase3_of_ptC : interp V ρ (AnnotTerm.mkAppN
+  have hcase3_of_ptC : interp V ρ (ITerm.mkAppN
       (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) = pt →
-      ConLeche.iotaCase3 env.find? rl cvj usj = true :=
-    fun hpt => hcase3_of_pt (heqA.trans hpt)
+      ConLeche.iotaCase3 env.find? rl cvj
+        (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
+          e.getAppArgs rP).1 = true :=
+    fun _ => h3
   -- **the comparisons the step ran (case 3: where the fired
   -- application is the point), conditional**
   -- the `.plain` parameters
   have hplainC : RecRule.fire rl = .plain →
-      interp V ρ (AnnotTerm.mkAppN
+      interp V ρ (ITerm.mkAppN
         (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) = pt →
       ∀ i, i < RecRule.ctorParams rl → i < mI →
         interp V ρ (ys.getD i default) ≠ pt →
@@ -329,17 +381,17 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     exact hgi
   -- the `.nested` pins
   have hnestedC : ∀ lvls pins, RecRule.fire rl = .nested lvls pins →
-      interp V ρ (AnnotTerm.mkAppN
+      interp V ρ (ITerm.mkAppN
         (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) = pt →
       ∀ i, i < RecRule.ctorParams rl →
-      ∀ vpa : AnnotTerm,
+      ∀ vpa : ITerm,
         denoteMeta m.acval env φ rP (ConLeche.Verify.openRev 0 rP
           ((pins.getD i default).instantiateLevelParams cv.levelParams us))
           = some vpa →
         interp V ρ (ys.getD i default) ≠ pt →
-        interp V ρ (AnnotTerm.instRevChain ((xs.take mI).take rP) vpa) ≠ pt →
+        interp V ρ (ITerm.instRevChain ((xs.take mI).take rP) vpa) ≠ pt →
         interp V ρ (ys.getD i default)
-          = interp V ρ (AnnotTerm.instRevChain ((xs.take mI).take rP) vpa) := by
+          = interp V ρ (ITerm.instRevChain ((xs.take mI).take rP) vpa) := by
     intro lvls pins hn hpt i hi vpa hvpa hy hx
     have hdefP' := hparams (hcase3_of_ptC hpt)
     obtain ⟨-, -, -, -, -, hrec', -⟩ :=
@@ -414,7 +466,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
               (p.instantiateLevelParams cv.levelParams us))
           = (denoteMeta m.acval env φ rP (ConLeche.Verify.openRev 0 rP
               (p.instantiateLevelParams cv.levelParams us))).map
-              (AnnotTerm.instRevChain (xs.take rP)) := by
+              (ITerm.instRevChain (xs.take rP)) := by
       intro p hp
       have hpinF0 : (p.instantiateLevelParams cv.levelParams us).hasFvar
           = false := hpinF' p hp
@@ -448,11 +500,11 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
       rw [hcompRead p hp, ← hpj, hvpa']
       exact ⟨_, rfl⟩
     obtain ⟨bsa, hspB⟩ := DenoteMetaSpine.exists_of_all _ hbsRead
-    have hokChain : ∀ (vv : AnnotTerm) (j : Nat), j < pins.length →
+    have hokChain : ∀ (vv : ITerm) (j : Nat), j < pins.length →
         denoteMeta m.acval env φ rP (ConLeche.Verify.openRev 0 rP
           ((pins.getD j default).instantiateLevelParams cv.levelParams us))
           = some vv →
-        WellDenoted V ρ (AnnotTerm.instRevChain (xs.take rP) vv) := by
+        WellDenoted V ρ (ITerm.instRevChain (xs.take rP) vv) := by
       intro vv j hj hvv
       obtain ⟨vpa', hvpa', hok'⟩ := hpinsOk lvls pins hn j (by omega)
       obtain rfl : vpa' = vv := Option.some.inj (hvpa'.symm.trans hvv)
@@ -467,7 +519,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
               (p.instantiateLevelParams cv.levelParams us))).getD j default)
           = (denoteMeta m.acval env φ rP (ConLeche.Verify.openRev 0 rP
               ((pins.getD j default).instantiateLevelParams cv.levelParams us))).map
-              (AnnotTerm.instRevChain (xs.take rP)) := by
+              (ITerm.instRevChain (xs.take rP)) := by
       intro j hj
       rw [show (pins.map (fun p => Expr.instSpine (e.getAppArgs.take rP) (rP - 1)
           (p.instantiateLevelParams cv.levelParams us))).getD j default
@@ -522,7 +574,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     rw [getD_takeAK hi, ← hiB] at hgi
     exact hgi
   -- the index pin, where the fired application is the point (case 3)
-  have hpinC : interp V ρ (AnnotTerm.mkAppN
+  have hpinC : interp V ρ (ITerm.mkAppN
       (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys) = pt →
       IotaIndexPinC (V := V) ρ restC (RecRule.ctorParams rl) mI rP (xs.take mI) := by
     intro hpt
@@ -545,7 +597,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
       (ConLeche.Expr.mkAppN_getApp residual).symm] at hresC
     obtain ⟨Ha, cargsa, -, hspRes, hCeq⟩ := denoteMeta_mkAppN_inv hresC
     -- the residual is graded: the constructor's fit grades its residual
-    have hRcA : WellDenoted V ρ (AnnotTerm.mkAppN Ha cargsa) :=
+    have hRcA : WellDenoted V ρ (ITerm.mkAppN Ha cargsa) :=
       hCeq ▸ teleFitPA_rest_graded hfitC (hokTVja ρ) hoY
     obtain ⟨-, hoCargs⟩ := hoist_spineV cargsa hRcA
     have hspIdx : DenoteMetaSpine m.acval env φ d ((e.getAppArgs.take mI).drop rP)
@@ -589,11 +641,11 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     TVa TVja restR' restC hxs0len hlenYs hlenUj hψ hoY hpinU
     (hTVaD 0) (hTVjaD 0) hfitR' hfitC
   rw [List.take_take, Nat.min_eq_left hrPle] at heqLaw htrans
-  have hsubj : interp V ρ (AnnotTerm.mkAppN
+  have hsubj : interp V ρ (ITerm.mkAppN
       (m.acval c (Level.substFn φ cv.levelParams us)) xs)
-      = interp V ρ (AnnotTerm.mkAppN
+      = interp V ρ (ITerm.mkAppN
         (m.acval c (Level.substFn φ cv.levelParams us))
-        (xs.take mI ++ [AnnotTerm.mkAppN
+        (xs.take mI ++ [ITerm.mkAppN
           (m.acval rl.ctor (Level.substFn φ cvj.levelParams usj)) ys])) := by
     rw [hsubj0]
     refine interp_mkAppN_congrK _ _ rfl ?_
@@ -648,7 +700,7 @@ theorem Red.rescueK_sound (hin : RulesInputs V m φ) {d : Nat}
       = some (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust)) :=
     denoteMeta_const hctor (show ust.length = _ from hlv.symm)
   have hdF : denoteMeta m.acval env φ d fab
-      = some (AnnotTerm.mkAppN
+      = some (ITerm.mkAppN
         (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust)) (tsa.take cnP)) := by
     rw [hfab]; exact denoteMeta_mkAppN (hspt.take cnP) hheadCj
   refine ⟨hfF, hsub, _, hdF, fun ρ hρ hL hg hne => ?_⟩
@@ -733,7 +785,7 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
       (ConLeche.etaFabArgsE T tmaj.getAppArgs major caps.etaFields)
       (tsa ++ ps) := hspt.append hsps
   have hdF : denoteMeta m.acval env φ d fab
-      = some (AnnotTerm.mkAppN
+      = some (ITerm.mkAppN
         (m.acval caps.etaCtor (Level.substFn φ cvT.levelParams ust)) (tsa ++ ps)) := by
     rw [hfab]; exact denoteMeta_mkAppN hspF hheadC
   -- the constructor's type reading holds its leaf
@@ -745,9 +797,9 @@ theorem Red.rescueEta_sound (hin : RulesInputs V m φ) {d : Nat}
   obtain ⟨hgT0, hmemM0⟩ := (IORel.mem_of_red (hInnerTm0 ρ hρ hL hg).1 hne htmajr
     (not_forallE_of_getAppFn hthead)).of_reading htm0a
   obtain ⟨hgTm, heqTm⟩ := hInnerTmaj ρ hρ (hL.of_subset hsubT0) hgT0.1 hgT0.ne_pt
-  have hmemMW : interp V ρ ea ∈ˢ interp V ρ (AnnotTerm.mkAppN
+  have hmemMW : interp V ρ ea ∈ˢ interp V ρ (ITerm.mkAppN
       (m.acval T (Level.substFn φ cvT.levelParams ust)) tsa) := heqTm ▸ hmemM0
-  have hneW : interp V ρ (AnnotTerm.mkAppN
+  have hneW : interp V ρ (ITerm.mkAppN
       (m.acval T (Level.substFn φ cvT.levelParams ust)) tsa) ≠ pt := by
     rw [← heqTm]; exact hgT0.ne_pt
   have hLtmaj : LeavesGr m φ d tmaj ρ := (hL.of_subset hsubT0).of_subset hsubTm
@@ -831,7 +883,7 @@ theorem Red.rescueAnd_sound (hin : RulesInputs V m φ) {d : Nat}
     hspt.append (DenoteMetaSpine.cons (hprojR 0 (by decide))
       (DenoteMetaSpine.cons (hprojR 1 (by decide)) DenoteMetaSpine.nil))
   have hdF : denoteMeta m.acval env φ d fab
-      = some (AnnotTerm.mkAppN
+      = some (ITerm.mkAppN
         (m.acval rl.ctor (Level.substFn φ cvj.levelParams ust))
         (tsa ++ [projAV (0 + env.projOff andName) ea,
           projAV (1 + env.projOff andName) ea])) := by

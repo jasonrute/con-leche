@@ -87,14 +87,14 @@ structure ConstantVal where
 /-- How a stored recursor rule fires (install-computed; parse
 placeholder `.plain`).  The official kernel fires a rule by constructor
 name and field count and compares nothing; the fire here compares what
-the rule's law (`RecRuleLaw`) is stated at, in the same case split for
-both modes: the levels always; the parameters (and the indices) only at
-a case-3 redex (`iotaCase3`: not K, and the family may be `Prop` at the
-constructor's levels).  There the constructor application may be the
-point, and at a `Prop` valuation nothing else ties the constructor's
-parameters to the comparands; elsewhere the major's membership in the
-family at the comparands ties its fields, and the law reads nothing
-else of the constructor's parameters.
+the rule's law (`RecRuleLaw`) is stated at, and only at a case-3 redex
+(`iotaCase3`: not K, and the family may be `Prop` at the comparand
+levels): the levels, the parameters and the indices.  There the
+constructor application may be the point, and at a `Prop` valuation
+nothing else ties the constructor's levels and parameters to the
+comparands; elsewhere the major's membership in the family at the
+comparands ties its fields, and the law reads nothing else of the
+constructor's levels or parameters.
 
 * `.plain` — the installer's rule at a member major: the comparands
   are the recursor's own instantiation and leading arguments (the
@@ -102,12 +102,11 @@ else of the constructor's parameters.
   the recursor's leading arguments).
 * `.nested lvls pins` — an auxiliary recursor's rule at an outside
   major (a nested block): the comparands are fixed instantiations,
-  read at install off the recursor type's major domain
-  (`Expr.nestedRuleSyn`; an auxiliary recursor whose major domain does
-  not read fails the install, `genRecCheck`) — `lvls` are levels over the
-  recursor's level parameters, `pins` expressions in the recursor's
-  rule-prefix context, instantiated at the redex's levels and leading
-  arguments. -/
+  the class's levels and parameters the generated recursor type's major
+  domain applies the container to (`auxRuleFire`) — `lvls` are levels
+  over the recursor's level parameters, `pins` expressions in the
+  recursor's rule-prefix context, instantiated at the redex's levels and
+  leading arguments. -/
 inductive RecRuleFire where
   | plain
   | nested (lvls : List Level) (pins : List Expr)
@@ -253,8 +252,8 @@ spelled as projections of the subject), instantiated at a use by ONE
 (`ProjEntry.typeAt`); reduced by the generic structural rule `proj_i
 (ctor p⃗ x⃗) ↦ x_i`, guarded at possibly-Prop instances by the stored
 `guards[i]`/`structSort` levels.  The bodies are taken from the
-annotated constructor type by substitution alone (`structProjBodies`)
-— no annotate, no infer, no pins: a slot with no legal instantiation
+stored constructor type by substitution alone (`structProjBodies`)
+— no inference, no pins: a slot with no legal instantiation
 simply fails the guard at every use.
 
 **No table kinds** (task #175 tower-flag): every stored table carries

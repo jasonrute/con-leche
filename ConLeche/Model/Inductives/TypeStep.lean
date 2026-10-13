@@ -32,7 +32,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level)
 
 universe w
@@ -43,7 +43,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name 
 graded type (`red_sound_ty`). -/
 theorem whnf_ty (hin : RulesInputs V m φ) {F d : Nat} {e w : Expr}
     (hw : ConLeche.whnf .verified env F d e = .ok w) (hf : Frame d e)
-    {Δa : List AnnotTerm} {ea : AnnotTerm} (hC : CtxOk m φ d Δa e)
+    {Δa : List ITerm} {ea : ITerm} (hC : CtxOk m φ d Δa e)
     (hea : denoteMeta m.acval env φ d e = some ea) (hg : GradedTy V Δa ea) :
     Frame d w ∧ LeavesSub w e ∧
       ∃ wa, denoteMeta m.acval env φ d w = some wa ∧ GradedTy V Δa wa ∧
@@ -55,7 +55,7 @@ TYPES (`WellDenoted.hoist_piTy` already gives the domain; the body's
 `IsTy` at `ρ ⊨ A :: Δa` is the fibre `IsTy` at `ρ 0 ∈ ⟦A⟧` of the tail
 valuation, the same move `Semantics.WellDenoted.hoist_pi` makes for the body's
 grading). -/
-theorem _root_.ConLeche.Semantics.WellDenoted.hoist_piTy' {Δa : List AnnotTerm} {A B : AnnotTerm}
+theorem _root_.ConLeche.Semantics.WellDenoted.hoist_piTy' {Δa : List ITerm} {A B : ITerm}
     (h : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (.pi A B)) :
     (∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ A) ∧
       (∀ ρ : Nat → V, Sat V (A :: Δa) ρ → WellDenotedTy V ρ B) := by
@@ -69,7 +69,7 @@ theorem _root_.ConLeche.Semantics.WellDenoted.hoist_piTy' {Δa : List AnnotTerm}
 /-- A `GradedTy` Π-type from `Graded` parts and their `IsTy` facts, the way
 `graded_pi_intro` (`NestPosRed.lean`) does for `Graded`: the Π's own
 `IsTy` is free (`IsTy_piV`). -/
-theorem gradedTy_pi_intro {Δ : List AnnotTerm} {A B : AnnotTerm}
+theorem gradedTy_pi_intro {Δ : List ITerm} {A B : ITerm}
     (hA : Graded V Δ A) (hB : Graded V (A :: Δ) B)
     (hAt : ∀ ρ : Nat → V, Sat V Δ ρ → IsTy (interp V ρ A))
     (hBt : ∀ ρ : Nat → V, Sat V (A :: Δ) ρ → IsTy (interp V ρ B)) :
@@ -87,7 +87,7 @@ universe, whose members are types. -/
 theorem gradedTy_of_sort (hin : RulesInputs V m φ) {F d : Nat} {e ty : Expr} {u : Level}
     (hty : ConLeche.inferTypeCore .verified env F d e = .ok ty)
     (hsort : ConLeche.ensureSortCore .verified env F d ty = .ok u) (hf : Frame d e)
-    {Δa : List AnnotTerm} {ea : AnnotTerm} (hC : CtxOk m φ d Δa e)
+    {Δa : List ITerm} {ea : ITerm} (hC : CtxOk m φ d Δa e)
     (hea : denoteMeta m.acval env φ d e = some ea) : GradedTy V Δa ea := by
   have hI : InferSemFull m φ d e ty := infer_sound hin (ConLeche.Rules.inferTypeCore_bridge hty)
   obtain ⟨hft, hsub, ta, hta, hs⟩ := hI hf hC.toS hea

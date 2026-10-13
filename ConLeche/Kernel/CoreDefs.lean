@@ -29,7 +29,7 @@ relational description of the core's moves — a relation over `Expr`
 and `Env` — must name these without importing the executable bodies,
 and every one of them is exactly what such a relation needs.  The
 bodies (`whnfCoreBody`, `whnfBody`, `inferBody`, `defeqBody`,
-`annotateBody`, the knot and the fuel constants) stay in `Core.lean`,
+the knot and the fuel constants) stay in `Core.lean`,
 which re-exports this module, so every importer of `Core` sees the
 names unchanged.  Nothing here was rewritten: the definitions keep
 their names, docstrings, attributes and relative order.
@@ -71,32 +71,37 @@ def capsNeverZero (lps : List Name) (us : List Level) (caps : IndCaps) :
 
 /-- **The ι licence's case test** (task #342 L10, the licence of task
 #349's prototype): is the constructor's family never `Prop` at the
-constructor's levels?  Then (case 2) the ι step fires with no
-constructor certificate and no index comparison: the family's fibres
-are strict there, so the major is not the point and its reduction is
-an equation, and the constructor application, not being the point
-either, fits its telescope.  Read off the family's recorded sort
-zero-ness (`IndCaps.sortZ`, recorded for every block member and for
-the pinned `Nat`, `Empty` and `Quot`). -/
+level instantiation `us`?  The ι step asks it at the rule's comparand
+levels (`recFireComparands`: the recursor's own instantiation, or a
+nested rule's stored one), not at the constructor's, which it does not
+compare there.  Then (case 2) the ι step fires with no check of the
+constructor application: the family's fibres at the recursor's major
+domain are strict, so the major is not the point and its reduction is
+an equation, and the constructor application, being the major's value
+and not the point, is an injection of fields that fit the family's
+constructor there.  Read off the family's recorded sort zero-ness
+(`IndCaps.sortZ`, recorded for every block member and for the pinned
+`Nat`, `Empty` and `Quot`). -/
 def iotaCtorLicensed (find? : Name → Option ConstantInfo) (cvj : ConstantVal)
-    (usj : List Level) : Bool :=
+    (us : List Level) : Bool :=
   match (cvj.type.piResult).getAppFn with
   | .const T _ =>
     match find? T with
     | some (.indInfo cvT caps) =>
-      cvT.levelParams.length == usj.length && capsNeverZero cvT.levelParams usj caps
+      cvT.levelParams.length == us.length && capsNeverZero cvT.levelParams us caps
     | _ => false
   | _ => false
 
-/-- **Case 3 of the ι licence** (task #342 L10): a rule that is not K
-whose constructor's family may be `Prop` at the constructor's levels.
-There the constructor telescope is certified at the full grade, and the
-parameters and the indices are compared (task #342 L7's counterexample:
-at a `Prop` valuation nothing else ties the two parameter spines), for
-a `.plain` and a `.nested` rule alike (task #342 S5b). -/
+/-- **Case 3 of the ι licence** (task #342 L10, S5c): a rule that is not
+K whose constructor's family may be `Prop` at the comparand levels `us`.
+There the constructor's levels and parameters are compared with the
+comparands, the constructor telescope is certified at the full grade,
+and the indices are compared (task #342 L7's counterexample: at a
+`Prop` valuation nothing else ties the two spines), for a `.plain` and
+a `.nested` rule alike. -/
 def iotaCase3 (find? : Name → Option ConstantInfo) (rl : RecRule) (cvj : ConstantVal)
-    (usj : List Level) : Bool :=
-  !rl.k && !iotaCtorLicensed find? cvj usj
+    (us : List Level) : Bool :=
+  !rl.k && !iotaCtorLicensed find? cvj us
 
 /-- Unfold the (application of a) definition at the head, one step.
 `none` when the head is not an unfoldable constant.  **Theorems are
@@ -176,8 +181,7 @@ def natZeroOk : Option ConstantInfo → Bool
     cv.levelParams.isEmpty && cv.type == .const natName []
   | _ => false
 
-/-- The stored `Nat.succ` declaration has the expected (annotated)
-shape. -/
+/-- The stored `Nat.succ` declaration has the expected shape. -/
 def natSuccOk : Option ConstantInfo → Bool
   | some (.ctorInfo cv _ _) =>
     cv.levelParams.isEmpty &&
@@ -189,7 +193,7 @@ def natSuccOk : Option ConstantInfo → Bool
 
 /-- Whether the environment supports `Nat` literals: `Nat`, `Nat.zero`
 and `Nat.succ` are stored with exactly the expected kinds, level
-parameters and (annotated) types.  Every literal code path is guarded
+parameters and types.  Every literal code path is guarded
 on this — the model interprets a literal by iterating the `Nat.succ`
 value on the `Nat.zero` value, and the soundness proofs read the
 declaration shapes off this guard. -/
@@ -245,10 +249,12 @@ each character built by `Char.ofNat` from a `Nat` literal — the
 reference kernels' `strLitToConstructor` (lean4lean `Expr.lean`, nanoda
 `expr.rs`), mirrored exactly.  The names below are *pinned* like the
 `Nat` literal names: the guard `strLitSupported` checks that the stored
-declarations have exactly the expected (annotated) types, which is what
-the model's interpretation of a string literal reads its meaning off.
+declarations have exactly the expected types, which is what the
+model's interpretation of a string literal reads its meaning off.
 A string literal in the input while the guard fails is a positively
-detected unsupported feature — annotation *declines* (exit 2). -/
+detected unsupported feature: inference *declines* (exit 2), and so
+does the constant-resolution guard's error path
+(`unresolvedConstsErrorL`). -/
 
 /-- The constructor form of a `String` literal:
 `String.ofList (List.cons.{0} Char (Char.ofNat (lit c₁)) (… (List.nil.{0}
@@ -279,7 +285,7 @@ def charTyOk : Option ConstantInfo → Bool
       ci.toConstantVal.type == .sort (.succ .zero)
   | none => false
 
-/-- The stored `List` declaration has the expected (annotated) shape
+/-- The stored `List` declaration has the expected shape
 `List.{p} : Type p → Type p`. -/
 def listTyOk : Option ConstantInfo → Bool
   | some ci =>
@@ -292,7 +298,7 @@ def listTyOk : Option ConstantInfo → Bool
     | _ => false
   | none => false
 
-/-- The stored `List.nil` declaration has the expected (annotated) shape
+/-- The stored `List.nil` declaration has the expected shape
 `List.nil.{p} : ∀ (α : Type p), List.{p} α`. -/
 def listNilTyOk : Option ConstantInfo → Bool
   | some ci =>
@@ -305,10 +311,9 @@ def listNilTyOk : Option ConstantInfo → Bool
     | _ => false
   | none => false
 
-/-- The stored `List.cons` declaration has the expected (annotated) shape
+/-- The stored `List.cons` declaration has the expected shape
 `List.cons.{p} : ∀ (α : Type p) (head : α) (tail : List.{p} α),
-List.{p} α` (with the codomain-sort annotations the annotation pass
-produces on that type). -/
+List.{p} α`. -/
 def listConsTyOk : Option ConstantInfo → Bool
   | some ci =>
     match ci.toConstantVal.levelParams with
@@ -324,7 +329,7 @@ def listConsTyOk : Option ConstantInfo → Bool
     | _ => false
   | none => false
 
-/-- The stored `Char.ofNat` declaration has the expected (annotated)
+/-- The stored `Char.ofNat` declaration has the expected
 shape `Char.ofNat : Nat → Char`. -/
 def charOfNatTyOk : Option ConstantInfo → Bool
   | some ci =>
@@ -335,7 +340,7 @@ def charOfNatTyOk : Option ConstantInfo → Bool
        | _ => false)
   | none => false
 
-/-- The stored `String.ofList` declaration has the expected (annotated)
+/-- The stored `String.ofList` declaration has the expected
 shape `String.ofList : List.{0} Char → String`. -/
 def stringOfListTyOk : Option ConstantInfo → Bool
   | some ci =>
@@ -350,7 +355,7 @@ def stringOfListTyOk : Option ConstantInfo → Bool
 /-- Whether the environment supports `String` literals: the `Nat`
 literal guard plus `String`, `String.ofList`, `List`, `List.nil`,
 `List.cons`, `Char` and `Char.ofNat` stored with exactly the expected
-level parameters and (annotated) types.  Every string-literal code path
+level parameters and types.  Every string-literal code path
 is guarded on this; the model interprets a string literal through the
 values of these constants, and the soundness proofs read the
 declaration shapes off this guard.  (The reference kernels only check
@@ -380,7 +385,7 @@ certification's own `pred zero` equation re-enters the fast path).
 
 The certification runs in the environment *before* the operation is
 stored, on the equations with the operation's self-references replaced
-by its (annotated) definition value (`Expr.substConst0`): running it
+by its stored definition value (`Expr.substConst0`): running it
 after insertion would let the operation's own just-enabled fast path
 discharge its all-literal-argument equations (`pred zero ≡ zero`,
 `beq zero zero ≡ true`) vacuously — accepting definitions that
@@ -516,8 +521,8 @@ def natOpDeps (c : Name) : List Name :=
   else []
 
 /-- The defining recurrence equations of a structural-Nat operation,
-over constructor forms with free variables `d`, `d + 1` (binder-free,
-so the equation sides carry no annotations). -/
+over constructor forms with free variables `d`, `d + 1` (the equation
+sides are binder-free). -/
 def natOpEquations (d : Nat) (c : Name) : List (Expr × Expr) :=
   let natTy : Expr := .const natName []
   let x : Expr := .fvar d natTy
@@ -737,7 +742,7 @@ def etaFabArgsE (T : Name) (targs : List Expr) (major : Expr) (nF : Nat) :
     List Expr :=
   targs ++ etaProjs T major nF
 
-/-- **The licensed telescope check of a spine** (task #342 L18): the
+/-- **The telescope check of a spine** (task #342 L18): the
 telescope's syntactic arity, nothing else.  It is applied to spines of
 the subject (the projection fire, `projCert`; the recursor's own
 telescope in `iotaRec`): where the redex is not the point, its spine
@@ -758,7 +763,7 @@ A guard "the structure's sort is provably nonzero at this
 instantiation" is *not* what the official kernel does (`reduce_proj`
 reduces every constructor redex): it rejects
 `PSigma'.fst (PSigma'.mk a b) ≡ a` at symbolic `u v`, where `max u v`
-is neither provably zero nor nonzero.  The model licence: at a squash
+is neither provably zero nor nonzero.  The model's justification: at a squash
 instance (the structure's
 sort is `0` at the valuation) the constructor application reads as
 the point, and so does the selected field — for a non-`Prop`-declared

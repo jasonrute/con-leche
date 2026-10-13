@@ -21,7 +21,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo FEnv BlockParts BlockShape
   TargetMajor RecShape)
 
@@ -36,7 +36,7 @@ recursor family's calls from a major's decoding at its class.  The call
 relation is a parameter; the recursors' stage uses it at the generated
 calls (`GenClassInd`, `GenRecAssembly.lean`). -/
 @[expose] def TgtClassIndG (envC : Env)
-    (acval : Name → (Name → Nat) → AnnotTerm) (p : BlockShape)
+    (acval : Name → (Name → Nat) → ITerm) (p : BlockShape)
     (out : List (ConstantVal × TargetMajor × List Expr)) (d : BlockData V)
     (Dc : Nat → LfpDatum V) (mc : Nat → Nat) (cvc : Nat → ConstantVal)
     (ψ : Name → Nat) (ρ : Nat → V) (call : List V → Nat → Nat → List V → V → Prop) : Prop :=
@@ -65,7 +65,7 @@ variable {envC : Env} {mpC : EnvModelM V μ envC} {F : Nat} {pp : BlockParts}
   {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
 
 /-- A class's index set lives under the prefix guard. -/
-theorem tgtClsIs_pref {acval : Name → (Name → Nat) → AnnotTerm} {p : BlockShape}
+theorem tgtClsIs_pref {acval : Name → (Name → Nat) → ITerm} {p : BlockShape}
     {ψ : Name → Nat} {ρ : Nat → V} {xs : List V} {c : Nat} {i : V}
     (hi : i ∈ˢ tgtClsIs d Dc mc cvc acval envC p out ψ ρ xs c) :
     SpineFit ρ (blockRulePdomsAV acval envC p (tgtRs out) ψ c) xs := by

@@ -13,31 +13,30 @@ public section
 /-!
 # The stored generated rule, as syntax (lane GENREC-C)
 
-The kernel stores the ANNOTATION of the reset generated rule
-(`classRuleOk`: `annotate … 0 gen.resetMeta`), where
+The kernel stores the generated rule as generated (`classRuleOk`,
+kernel D1), where
 
     gen = λ (prefix) (f⃗ : fields), minor_s f⃗ ih⃗,
     ih_l = λ a⃗, rec_t (prefix vars) e⃗ (f_i a⃗)
 
 (`classGenRule`).  What the rule's reading needs of the stored term,
-read off the generator's syntax and the annotation pass alone
-(`genRule_shape`): opened at its `rP + nF` λs it is the minor's variable
+read off the generator's syntax alone (`genRule_shapeD`): opened at its `rP + nF` λs it is the minor's variable
 applied to the fields' variables and one term per recursive field, each
 of which opens its telescope to the call of the callee's recursor
 constant at the prefix variables and further arguments.  Everything
 holds up to the annotations of free variables (`Expr.ErasedEq`), which
 no reading consults.
 
-The λ-twins of the Π lemmas the type side uses
-(`annotateCore_closeTelescope_gen`, `open_of_erasedEq_closeTelescope`)
-are proved here.
+The λ-twin of the Π lemma the type side uses
+(`open_of_erasedEq_closeTelescope`) is proved here
+(`open_of_erasedEq_closeLams`).
 -/
 
 namespace ConLeche.Model
 open ConLeche.Term ConLeche.Verify
 open ConLeche (Env Expr Name Level ConstantVal ClassGen ClassCtor CheckMode
   closeLams TargetMajor ClassRead)
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 /-! ## The stored rule, opened and read -/
 
@@ -53,8 +52,8 @@ instantiated at the earlier variables, exactly as `denoteMeta` reads a
 
 /-- An opened λ-telescope's binders (`openLamsM`, from depth `j`), read:
 each binder's domain read at its depth. -/
-@[expose] def readLamBs (acval : Name → (Name → Nat) → AnnotTerm) (env : Env) (ψ : Name → Nat) :
-    Nat → List Expr → List AnnotTerm
+@[expose] def readLamBs (acval : Name → (Name → Nat) → ITerm) (env : Env) (ψ : Name → Nat) :
+    Nat → List Expr → List ITerm
   | _, [] => []
   | j, b :: bs => (denoteMeta acval env ψ j b).getD default ::
       readLamBs acval env ψ (j + 1) bs
@@ -67,13 +66,13 @@ opened): the minor premise applied to the fields and the `ih` λs. -/
     fun (o : List Expr × Expr) => o.2).getD default).getAppArgs
 
 /-- **The `ih` data of the generated rule**, read off the STORED
-(annotated) rule at its frame (depth `rP + nF`): per recursive field
+rule at its frame (depth `rP + nF`): per recursive field
 `(i, t, tele)` (`ClassCtor.recs`), the callee RECURSOR (`genRecIdx rd t`,
-the graph's class index), the `ih` λ's telescope (its binders' own bits
-and domains), and its call's index arguments and major argument (the
+the graph's class index), the `ih` λ's telescope (its binders'
+domains), and its call's index arguments and major argument (the
 call's arguments past the prefix variables).  The recursor constant the
 call names is not read: the chain variable stands for it (`genIhAV`). -/
-@[expose] noncomputable def genIhdR (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
+@[expose] noncomputable def genIhdR (acval : Name → (Name → Nat) → ITerm) (env : Env)
     (out : List (ConstantVal × TargetMajor × List Expr)) (g : ClassGen) (rd : ClassRead)
     (ψ : Name → Nat) (c j : Nat) : List IhDatum :=
   let x := genCtorAt g rd c j
@@ -91,9 +90,9 @@ call names is not read: the chain variable stands for it (`genIhAV`). -/
 
 /-- **The `ih` terms** read off the STORED rule, in chain form (`genIhAV`:
 the callee its chain variable below the frame). -/
-@[expose] noncomputable def genIhsR (acval : Name → (Name → Nat) → AnnotTerm) (env : Env)
+@[expose] noncomputable def genIhsR (acval : Name → (Name → Nat) → ITerm) (env : Env)
     (K : Nat) (out : List (ConstantVal × TargetMajor × List Expr)) (g : ClassGen)
-    (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) : List AnnotTerm :=
+    (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) : List ITerm :=
   (genIhdR acval env out g rd ψ c j).map
     (genIhAV K g.pre.length (g.pre.length + (genCtorAt g rd c j).nF))
 
@@ -136,7 +135,7 @@ theorem closeLams_bounded :
 
 /-- **Opening a term erasure-equal to a closed λ-telescope**: it opens
 its λs, its body is the telescope's body and its binders the closed
-pieces, up to erasure (the binder data equal). -/
+pieces, up to erasure. -/
 theorem open_of_erasedEq_closeLams :
     ∀ (nds : List Expr) (d : Nat) (body e : Expr),
       (∀ p ∈ nds, p.looseBVarsBounded 0 = true) → body.looseBVarsBounded 0 = true →
@@ -171,8 +170,6 @@ theorem open_of_erasedEq_closeLams :
           simp only [List.getElem?_cons_succ] at hb' hnd
           exact hdoms i b' nd hb' hnd
     | _ => simp [closeLams, Expr.ErasedEq] at he
-
-/-! ## Annotating a closed λ-telescope -/
 
 /-! ## Lists: `find?` over an indexed zip, `filterMapM` against `filterMap` -/
 
@@ -409,7 +406,7 @@ open ConLeche (ScB ClassGenScoped) in
 kernel D1): its binders are the generator's (up to the annotations of
 free variables), its body the minor's variable over the fields' variables
 and one `ih` λ per recursive field, each opening its telescope — the
-walked field's, the generator's binder datum — to the call of the
+walked field's, as the generator writes it — to the call of the
 callee's recursor constant at the prefix variables, the index arguments
 and the applied field. -/
 theorem genRule_shapeD {g : ClassGen} (hg : ClassGenScoped g)

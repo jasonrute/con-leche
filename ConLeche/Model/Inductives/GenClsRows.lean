@@ -35,7 +35,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
@@ -46,8 +46,8 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-- **A graded Π-tower grades its binder domains** along any spine
 fitting the domains before them. -/
-theorem wellDenoted_piDom_at {B : AnnotTerm} :
-    ∀ {tl : List AnnotTerm} {ρ : Nat → V},
+theorem wellDenoted_piDom_at {B : ITerm} :
+    ∀ {tl : List ITerm} {ρ : Nat → V},
       WellDenoted V ρ (mkPisAV tl B) → ∀ l, l < tl.length → ∀ zs : List V,
       SpineFit ρ (tl.take l) zs →
         WellDenotedTy V (consList zs ρ) (tl.getD l default)
@@ -80,14 +80,14 @@ whose first binder domains are the rule frame's declared field domains,
 graded at every prefix spine fitting the rule prefix. -/
 theorem genMinorTower (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
     (ψ : Name → Nat) {c j : Nat} (hc : c < (tgtRs out).length)
     (hj : j < blockRecNCt (tgtRs out) c) :
-    ∃ (bs : List AnnotTerm) (b : AnnotTerm),
+    ∃ (bs : List ITerm) (b : ITerm),
       (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length ≤ bs.length ∧
       bs.take (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length
         = tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j ∧
@@ -181,7 +181,7 @@ theorem genMinorTower (hμ : μ.verifiedChecks = true)
   obtain ⟨bs, b, hBE, hbl, hbs, hb⟩ :=
     denoteMeta_closeTelescope_read _ _ _ T hcl hbbS.2 (by rw [← hTE]; exact Expr.ErasedEq.rfl _)
       hlift
-  -- the rule frame's field domains are the tower's first binder data
+  -- the rule frame's field domains are the tower's first domains
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
@@ -223,8 +223,8 @@ domains (the stored type's), then the declared field domains (the minor
 premise's, `genMinorTower`). -/
 theorem genCls_frameV (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))

@@ -121,10 +121,6 @@ theorem constsResolveF_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.fin
       constsResolveF_congr hfe b]
   | .proj s _ e => by simp only [Expr.constsResolveF, hfe, constsResolveF_congr hfe e]
 
-theorem constsResolveF_congr' {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :
-    (fun e : Expr => e.constsResolveF fe₁) = (fun e => e.constsResolveF fe₂) :=
-  funext (constsResolveF_congr hfe)
-
 theorem stdAxiomOkF_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cv : ConstantVal) :
     stdAxiomOkF fe₁ cv = stdAxiomOkF fe₂ cv := by
   simp only [stdAxiomOkF, hfe]
@@ -338,15 +334,15 @@ theorem checkConstantValC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.
 
 /-- A definition's value check reads its index only through `find?`. -/
 theorem checkDefnValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
-    (jty value : Expr) (hint : ReducibilityHint) :
-    checkDefnValCI mode fe₁ cvA jty value hint = checkDefnValCI mode fe₂ cvA jty value hint := by
+    (value : Expr) (hint : ReducibilityHint) :
+    checkDefnValCI mode fe₁ cvA value hint = checkDefnValCI mode fe₂ cvA value hint := by
   unfold checkDefnValCI
   simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 
 /-- An opaque's value check reads its index only through `find?`. -/
 theorem checkOpaqueValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
-    (jty value : Expr) :
-    checkOpaqueValCI mode fe₁ cvA jty value = checkOpaqueValCI mode fe₂ cvA jty value := by
+    (value : Expr) :
+    checkOpaqueValCI mode fe₁ cvA value = checkOpaqueValCI mode fe₂ cvA value := by
   unfold checkOpaqueValCI
   simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 
@@ -938,14 +934,13 @@ theorem genRecCheck_twin {fe₁ fe₂ : FEnv} (ht : Twin fe₁ fe₂) (p : Block
     classesNfs_env (sharedOpsC_envFree mode fe₂) fe₂.env,
     classesCtors_env (sharedOpsC_envFree mode fe₂) fe₁.env,
     classesCtors_env (sharedOpsC_envFree mode fe₂) fe₂.env,
-    classFormerTy_congr' hfe, classRecTysOk_congr (sharedOpsC_envFree mode fe₂) hfe,
-    constsResolveF_congr' hfe]
+    classFormerTy_congr' hfe, classRecTysOk_congr (sharedOpsC_envFree mode fe₂) hfe]
 
 theorem blockRecInfosTF_twin {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (p : BlockShape)
     (k : Nat) (out : List (ConstantVal × TargetMajor × List Expr)) :
-    blockRecInfosTF fe₁.find? (·.constsResolveF fe₁) p k out =
-      blockRecInfosTF fe₂.find? (·.constsResolveF fe₂) p k out := by
-  rw [hfe, constsResolveF_congr' hfe]
+    blockRecInfosTF fe₁.find? p k out =
+      blockRecInfosTF fe₂.find? p k out := by
+  rw [hfe]
 
 end RecStageC
 
@@ -1136,9 +1131,7 @@ theorem checkDeclC_twin (pins : List NatOpPinSet) {fe₁ fe₂ : FEnv} (ht : Twi
   | defnDecl cv value hint =>
     unfold checkDeclC
     simp only [checkConstantValC_congr hfe]
-    refine RelRun.bind_same fun r => ?_
-    obtain ⟨cvA, jty⟩ := r
-    simp only []
+    refine RelRun.bind_same fun _ => ?_
     split
     · -- the pinned arm: the same record on both sides, certified against
       -- overlays that answer as the twin pushes do, pushed last
@@ -1160,9 +1153,7 @@ theorem checkDeclC_twin (pins : List NatOpPinSet) {fe₁ fe₂ : FEnv} (ht : Twi
   | opaqueDecl cv value =>
     unfold checkDeclC
     simp only [checkConstantValC_congr hfe]
-    refine RelRun.bind_same fun r => ?_
-    obtain ⟨cvA, jty⟩ := r
-    simp only []
+    refine RelRun.bind_same fun _ => ?_
     split
     · -- the pinned arm, as the definitions'
       rw [checkOpaqueValCI_congr hfe]

@@ -38,7 +38,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Name)
 
 universe w
@@ -65,7 +65,7 @@ theorem foldlApp_pt : ∀ (vs : List V), vs.foldl app (pt : V) = pt
 fitting spine and is junk otherwise: `∅` where a graph is applied off its
 domain, the point where a level is (no spine fits its telescope). -/
 theorem holeFam_foldl_full :
-    ∀ {ρ : Nat → V} {Fs : List AnnotTerm} {vs : List V} (g : List V → V),
+    ∀ {ρ : Nat → V} {Fs : List ITerm} {vs : List V} (g : List V → V),
       vs.length = Fs.length →
       (SpineFit ρ Fs vs ∧ vs.foldl app (holeFam ρ Fs g) = g vs) ∨
         (¬ SpineFit ρ Fs vs ∧
@@ -252,7 +252,7 @@ theorem fitAcc_holeOp {ψ : Name → Nat} {ρp : Nat → V} (hkN : D.k ≤ D.N)
     (ord : Nat → Nat → Nat → Bool) (Af : Nat → Nat → Nat → (Nat → V) → V)
     (hAf : ∀ c, c < D.N → ∀ j, j < D.nctors c →
       ∀ l τ τ', TAgr D.k (ord c j) l τ τ' → Af c j l τ = Af c j l τ')
-    (hF : ∀ c, c < D.N → ∀ j, j < D.nctors c → ∀ (i : Nat) (F : AnnotTerm),
+    (hF : ∀ c, c < D.N → ∀ j, j < D.nctors c → ∀ (i : Nat) (F : ITerm),
       (D.fields ψ c j)[i]? = some F → ord c j i = true →
         ∀ τ τ', TAgr D.k (ord c j) i τ τ' → interp V τ F = interp V τ' F)
     (htele : ∀ c, c < D.N → ∀ j, j < D.nctors c →
@@ -271,7 +271,7 @@ theorem fitAcc_holeOp {ψ : Name → Nat} {ρp : Nat → V} (hkN : D.k ≤ D.N)
   refine ⟨finUnion (fun c => finUnion (TB c) (D.nctors c)) D.N,
     fun hw => finUnion_mem hw fun c _ => finUnion_mem hw fun j _ => teleBound_mem hw _ _ _ _ _, ?_⟩
   rintro X hX m hm i j fs ⟨hj, hsp, hidx⟩
-  have hF0 : ∀ (i : Nat) (F : AnnotTerm), (D.fields ψ m j)[i]? = some F →
+  have hF0 : ∀ (i : Nat) (F : ITerm), (D.fields ψ m j)[i]? = some F →
       ord m j (0 + i) = true → ∀ τ τ', TAgr D.k (ord m j) (0 + i) τ τ' →
         interp V τ F = interp V τ' F := by
     intro i F h1 h2 τ τ' h3

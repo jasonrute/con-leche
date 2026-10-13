@@ -104,10 +104,10 @@ theorem FreshNames.step {env : Env} {c : ConstantInfo} {ns : List Name}
 theorem checkConstantValC_fresh (mode : CheckMode) (fe : FEnv)
     (cv : ConstantVal) :
     Yields (checkConstantValC mode fe cv)
-      (fun p => p.1.name = cv.name ∧ fe.find? cv.name = none) := by
+      (fun _ => fe.find? cv.name = none) := by
   unfold checkConstantValC
   yields
-  all_goals exact Yields.pure ⟨rfl, Option.not_isSome_iff_eq_none.mp (by assumption)⟩
+  all_goals exact Yields.pure (Option.not_isSome_iff_eq_none.mp (by assumption))
 
 /-! ## The constructors' conses -/
 
@@ -302,18 +302,18 @@ theorem genRecCheckS_fresh (mode : CheckMode) (fe : FEnv)
   rw [hname]; exact hfr
 
 /-- The recursors' pushes at their majors: a fresh chain. -/
-theorem pushAll_blockRecInfosTF_push (find? : Name → Option ConstantInfo) (resolves : Expr → Bool)
+theorem pushAll_blockRecInfosTF_push (find? : Name → Option ConstantInfo)
     (q : BlockShape) {env : Env} :
     ∀ {out : List (ConstantVal × TargetMajor × List Expr)} {m : Nat}
       {fe : FEnv}, PushChain env fe → FreshNames fe.env (out.map (·.1.name)) →
-      PushChain env (FEnv.pushAll (blockRecInfosTF find? resolves q m out) fe)
+      PushChain env (FEnv.pushAll (blockRecInfosTF find? q m out) fe)
   | [], _, _, h, _ => h
   | (cv, M, rhss) :: rest, m, fe, h, hf => by
     have hfr : fe.find? cv.name = none := by
       rw [h.find?]; exact hf.2 _ (by simp)
     let ci : ConstantInfo := .recInfo cv (q.majorIdxAt m) (q.rulePrefixAt m)
-      (tgtStoredRules find? resolves cv (q.majorIdxAt m) (q.rulePrefixAt m) M rhss)
-    exact pushAll_blockRecInfosTF_push find? resolves q (out := rest) (m := m + 1)
+      (tgtStoredRules find? cv (q.rulePrefixAt m) M rhss)
+    exact pushAll_blockRecInfosTF_push find? q (out := rest) (m := m + 1)
       (h.push (ci := ci) hfr) (FreshNames.step (c := ci) hf)
 
 /-- The projection tables: every push is guarded by its own lookup. -/
@@ -360,7 +360,7 @@ theorem checkBlockTailS_push (mode : CheckMode) {env : Env}
     exact hfrs c hc
   refine Yields.bind' (genRecCheckS_fresh mode _ p _ _ _ _ _ block cvTas)
     fun out hrs => ?_
-  refine checkBlockTablesF_push _ _ (pushAll_blockRecInfosTF_push _ _ _ h₂ ⟨hrs.1, ?_⟩)
+  refine checkBlockTablesF_push _ _ (pushAll_blockRecInfosTF_push _ _ h₂ ⟨hrs.1, ?_⟩)
   intro n hn
   obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hn
   rw [← h₂.find?]
@@ -417,32 +417,24 @@ theorem checkDeclC_push (mode : CheckMode) {env : Env} {fe : FEnv}
   cases pd with
   | defnDecl cv value hint =>
     simp only []
-    refine Yields.bind' (checkConstantValC_fresh mode fe cv) fun p hp => ?_
-    obtain ⟨cvA, jty⟩ := p
-    obtain ⟨hp, hfr⟩ := hp
-    simp only []
-    have hfrA : fe.find? cvA.name = none := by rw [hp]; exact hfr
+    refine Yields.bind' (checkConstantValC_fresh mode fe cv) fun _ hfr => ?_
     split
     · -- the pinned arm: certified against the overlay, pushed last
-      refine Yields.bind' (checkDefnValCI_shape mode fe cvA jty value hint) fun ci hci => ?_
+      refine Yields.bind' (checkDefnValCI_shape mode fe cv value hint) fun ci hci => ?_
       obtain ⟨v, rfl⟩ := hci
       yields
-      all_goals (apply Yields.pure; exact h.push hfrA)
+      all_goals (apply Yields.pure; exact h.push hfr)
     · exact Yields.ofThrow
   | thmDecl cv value => exact Yields.ofThrow
   | opaqueDecl cv value =>
     simp only []
-    refine Yields.bind' (checkConstantValC_fresh mode fe cv) fun p hp => ?_
-    obtain ⟨cvA, jty⟩ := p
-    obtain ⟨hp, hfr⟩ := hp
-    simp only []
-    have hfrA : fe.find? cvA.name = none := by rw [hp]; exact hfr
+    refine Yields.bind' (checkConstantValC_fresh mode fe cv) fun _ hfr => ?_
     split
     · -- the pinned arm: certified against the overlay, pushed last
-      refine Yields.bind' (checkOpaqueValCI_shape mode fe cvA jty value) fun ci hci => ?_
+      refine Yields.bind' (checkOpaqueValCI_shape mode fe cv value) fun ci hci => ?_
       subst hci
       yields
-      all_goals (apply Yields.pure; exact h.push hfrA)
+      all_goals (apply Yields.pure; exact h.push hfr)
     · exact Yields.ofThrow
   | axiomDecl cv =>
     simp only []
@@ -452,20 +444,16 @@ theorem checkDeclC_push (mode : CheckMode) {env : Env} {fe : FEnv}
     · split
       · exact Yields.pure h
       · exact Yields.ofThrow
-    refine Yields.bind' (checkConstantValC_fresh mode fe cv) fun p hp => ?_
-    obtain ⟨cvA, jty⟩ := p
-    obtain ⟨hp, hfr⟩ := hp
-    simp only []
-    have hfrA : fe.find? cvA.name = none := by rw [hp]; exact hfr
-    by_cases ht : cvA.name = sorryAxName
-    · rw [ite_eq_right (by rw [tolerated_not_std fe cvA ht]; exact Bool.false_ne_true),
+    refine Yields.bind' (checkConstantValC_fresh mode fe cv) fun _ hfr => ?_
+    by_cases ht : cv.name = sorryAxName
+    · rw [ite_eq_right (by rw [tolerated_not_std fe cv ht]; exact Bool.false_ne_true),
         ite_eq_right (tolerated_ne_trust ht), ite_eq_right (tolerated_ne_ofReduce ht),
         ite_eq_right (tolerated_ne_std ht), ite_eq_left ht]
       exact Yields.pure h
     · rw [ite_eq_right ht]
       yields
       all_goals first
-        | (apply Yields.pure; exact h.push hfrA)
+        | (apply Yields.pure; exact h.push hfr)
         | exact absurd (by assumption) ht
   | basisDecl kind => exact checkBasisDeclC_push h kind
   | quotDecl k cv =>
@@ -514,27 +502,19 @@ theorem installStepC_push (mode : CheckMode) (i : Nat) {env : Env} {fe : FEnv}
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun r hr => ?_
-      obtain ⟨cvA, jv⟩ := r
-      obtain ⟨hp, hfr⟩ := hr
-      exact Yields.pure ⟨h.push (by show fe.find? cvA.name = none; rw [hp]; exact hfr), _,
-        Array.toList_push⟩
+    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun _ hfr => ?_
+      exact Yields.pure ⟨h.push hfr, _, Array.toList_push⟩
   | thmDecl cv value =>
     simp only []
     ybind
-    refine Yields.bind' (installHeaderC_fresh fe cv) fun cvA hr => ?_
-    obtain ⟨hp, hfr⟩ := hr
-    exact Yields.pure ⟨h.push (by show fe.find? cvA.name = none; rw [hp]; exact hfr), _,
-      Array.toList_push⟩
+    refine Yields.bind' (installHeaderC_fresh fe cv) fun _ hfr => ?_
+    exact Yields.pure ⟨h.push hfr, _, Array.toList_push⟩
   | opaqueDecl cv value =>
     simp only []
     split
     · exact hord _
-    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun r hr => ?_
-      obtain ⟨cvA, jv⟩ := r
-      obtain ⟨hp, hfr⟩ := hr
-      exact Yields.pure ⟨h.push (by show fe.find? cvA.name = none; rw [hp]; exact hfr), _,
-        Array.toList_push⟩
+    · refine Yields.bind' (installGuardsC_fresh fe cv value) fun _ hfr => ?_
+      exact Yields.pure ⟨h.push hfr, _, Array.toList_push⟩
   | axiomDecl cv => exact hord _
   | basisDecl kind => exact hord _
   | quotDecl k cv => exact hord _

@@ -126,7 +126,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal NestCtx)
 open ConLeche.SetTheory.Tower (projS)
 
@@ -145,7 +145,7 @@ their readings, every member its application's reading (the depth-`hi`
 readings of `instS`). -/
 @[expose] noncomputable def instTau {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     (φ : Name → Nat) (D : LfpDatum V) (us : List Level) (hi : Nat) (ds : List Expr) :
-    Nat → AnnotTerm :=
+    Nat → ITerm :=
   substTau (ds.length + D.k) hi fun q => (denoteMeta mp.base2.acval env φ hi (instS D us ds q)).getD .prf
 
 section Inst
@@ -155,7 +155,7 @@ variable {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
   (hlps : ∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
       cv.levelParams = lps)
   (hnd : lps.Nodup) {us : List Level} (hul : us.length = lps.length) {hi : Nat} {ds : List Expr}
-  (hds : ∀ x ∈ ds, Expr.WScoped hi x ∧ x.looseBVarsBounded 0 = true) {dsa : List AnnotTerm}
+  (hds : ∀ x ∈ ds, Expr.WScoped hi x ∧ x.looseBVarsBounded 0 = true) {dsa : List ITerm}
   (hdsa : DenoteMetaSpine mp.base2.acval env φ hi ds dsa)
   (hlenP : (D.params (Level.substFn φ lps us)).length = ds.length)
 
@@ -169,7 +169,7 @@ theorem instS_read (q : Nat) (hq : q < ds.length + D.k) :
     Expr.WScoped hi (instS D us ds q) ∧ (instS D us ds q).looseBVarsBounded 0 = true ∧
     denoteMeta mp.base2.acval env φ hi (instS D us ds q)
       = some (if q < ds.length then dsa.getD q default else
-          AnnotTerm.mkAppN (mp.base2.acval (D.member (q - ds.length)) (Level.substFn φ lps us))
+          ITerm.mkAppN (mp.base2.acval (D.member (q - ds.length)) (Level.substFn φ lps us))
             dsa) := by
   unfold instS
   by_cases hqd : q < ds.length
@@ -198,7 +198,7 @@ theorem instCtor_read {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
     {nF : Nat} (hfc : env.find? (D.ctorName c j) = some (.ctorInfo cv ds.length nF)) :
     cv.levelParams = lps ∧ ∃ crest ab,
       ConLeche.instPisWith ds (cv.type.instantiateLevelParams cv.levelParams us) = some crest ∧
-      (∃ Tys : List AnnotTerm, Tys.length = D.k ∧
+      (∃ Tys : List ITerm, Tys.length = D.k ∧
         (∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
           ConLeche.instPisWith (canonParams ds.length) cvm.type = some ty ∧
           denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
@@ -206,9 +206,9 @@ theorem instCtor_read {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
         FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse (ab)
           (D.fields (Level.substFn φ lps us) c j)) ∧ ab.length = nF ∧
       denoteMeta mp.base2.acval env φ hi crest
-        = some (mkPisAV (AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)
-            (AnnotTerm.substAV (instTau mp φ D us hi ds)
-              (AnnotTerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
+        = some (mkPisAV (ITerm.substTele (instTau mp φ D us hi ds) 0 ab)
+            (ITerm.substAV (instTau mp φ D us hi ds)
+              (ITerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
                 (D.resIdx (Level.substFn φ lps us) c j)) ab.length)) := by
   obtain ⟨-, -, -, ⟨hk, hrd⟩, -⟩ := mp.lfp_ok D hD
   obtain ⟨cv', nPc', nF', hf', hcl, hlpsC, -, A, hA, hocc, hread⟩ := hrd c hc j hj
@@ -298,7 +298,7 @@ theorem instCtor_read {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
       exact ⟨h1, h2, by rw [h3]; rfl⟩) _ 0 (by rw [Nat.add_zero]; exact hAb)
   rw [Nat.add_zero, Nat.add_zero, denotePInstLevels mp.base2 φ cv.levelParams us,
     hab, Option.map_some,
-    AnnotTerm.substAV_mkPisAV, Nat.zero_add] at h
+    ITerm.substAV_mkPisAV, Nat.zero_add] at h
   unfold instTau
   rw [hn]
   exact h
@@ -352,7 +352,7 @@ parameter telescope, a spine fits the instantiated constructor's fields
 as read exactly when it fits the recorded fields at the carrier's hole
 frame; and the recorded result indices read alike at the two. -/
 theorem instCtor_fit {c j : Nat} (_hc : c < D.k) (_hj : j < D.nctors c) {nF : Nat}
-    {ab : List AnnotTerm} {Tys : List AnnotTerm} (hlT : Tys.length = D.k)
+    {ab : List ITerm} {Tys : List ITerm} (hlT : Tys.length = D.k)
     (hTys : ∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
       ConLeche.instPisWith (canonParams ds.length) cvm.type = some ty ∧
       denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
@@ -361,21 +361,21 @@ theorem instCtor_fit {c j : Nat} (_hc : c < D.k) (_hj : j < D.nctors c) {nF : Na
       (D.fields (Level.substFn φ lps us) c j)) (hlen : ab.length = nF)
     {ρ : Nat → V} (hs : Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ)) :
     (∀ fs : List V,
-      SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs ↔
+      SpineFit ρ ((ITerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs ↔
         SpineFit (D.frame (Level.substFn φ lps us) (keyFrame dsa hi ρ)
             (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)))
           (D.fields (Level.substFn φ lps us) c j) fs) ∧
     ∀ fs : List V,
-      SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs →
+      SpineFit ρ ((ITerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs →
       ∀ e ∈ D.resIdx (Level.substFn φ lps us) c j,
-        interp V (consList fs ρ) (AnnotTerm.substAV (instTau mp φ D us hi ds) e nF)
+        interp V (consList fs ρ) (ITerm.substAV (instTau mp φ D us hi ds) e nF)
           = interp V (consList fs (D.frame (Level.substFn φ lps us) (keyFrame dsa hi ρ)
               (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)))) e := by
   have hS := instTau_frame mp hD hlps hul hds hdsa hlenP ρ hs
   have hsat := frameVals_sat mp hD hs hlenP hlT hTys
     (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)) (lfpTuple_mem _ _ _ _)
   have hfit : ∀ fs : List V,
-      SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs ↔
+      SpineFit ρ ((ITerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs ↔
         SpineFit (D.frame (Level.substFn φ lps us) (keyFrame dsa hi ρ)
             (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)))
           (D.fields (Level.substFn φ lps us) c j) fs := by
@@ -398,7 +398,7 @@ the carrier at that tuple, and the constructor's leaf applied to the
 parameters and the spine is the clause's injection. -/
 theorem instCtor_decode {c j : Nat} (hc : c < D.k)
     (hj : j < D.nctors c) {nF : Nat}
-    {ab : List AnnotTerm} {Tys : List AnnotTerm} (hlT : Tys.length = D.k)
+    {ab : List ITerm} {Tys : List ITerm} (hlT : Tys.length = D.k)
     (hTys : ∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
       ConLeche.instPisWith (canonParams ds.length) cvm.type = some ty ∧
       denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
@@ -407,15 +407,15 @@ theorem instCtor_decode {c j : Nat} (hc : c < D.k)
       (D.fields (Level.substFn φ lps us) c j)) (hlen : ab.length = nF)
     {ρ : Nat → V} (hs : Sat V (D.params (Level.substFn φ lps us)).reverse (keyFrame dsa hi ρ))
     {fs : List V}
-    (hfit : SpineFit ρ ((AnnotTerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs) :
+    (hfit : SpineFit ρ ((ITerm.substTele (instTau mp φ D us hi ds) 0 ab)) fs) :
     SpineFit (keyFrame dsa hi ρ) (D.ids c (Level.substFn φ lps us))
         ((D.resIdx (Level.substFn φ lps us) c j).map fun e =>
-          interp V (consList fs ρ) (AnnotTerm.substAV (instTau mp φ D us hi ds) e nF)) ∧
+          interp V (consList fs ρ) (ITerm.substAV (instTau mp φ D us hi ds) e nF)) ∧
       D.HFits (Level.substFn φ lps us) (keyFrame dsa hi ρ)
         (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ))
         (tupW (D.u c (Level.substFn φ lps us))
           ((D.resIdx (Level.substFn φ lps us) c j).map fun e =>
-            interp V (consList fs ρ) (AnnotTerm.substAV (instTau mp φ D us hi ds) e nF)))
+            interp V (consList fs ρ) (ITerm.substAV (instTau mp φ D us hi ds) e nF)))
         c j fs ∧
       (dsa.map (interp V ρ) ++ fs).foldl app
           (interp V ρ (mp.base2.acval (D.ctorName c j) (Level.substFn φ lps us)))
@@ -428,19 +428,19 @@ theorem instCtor_decode {c j : Nat} (hc : c < D.k)
   have hfC := (hF fs).mp hfit
   -- the index values, read at the carrier's frame
   have hmapEq : (D.resIdx ψ c j).map (fun e =>
-        interp V (consList fs ρ) (AnnotTerm.substAV (instTau mp φ D us hi ds) e nF))
+        interp V (consList fs ρ) (ITerm.substAV (instTau mp φ D us hi ds) e nF))
       = (D.resIdx ψ c j).map (interp V (consList fs
           (D.frame ψ (keyFrame dsa hi ρ) (D.carrier ψ (keyFrame dsa hi ρ))))) :=
     List.map_congr_left fun e he => hI' e he
   have hidx : SpineFit (keyFrame dsa hi ρ) (D.ids c ψ)
       ((D.resIdx ψ c j).map fun e =>
-        interp V (consList fs ρ) (AnnotTerm.substAV (instTau mp φ D us hi ds) e nF)) := by
+        interp V (consList fs ρ) (ITerm.substAV (instTau mp φ D us hi ds) e nF)) := by
     rw [hmapEq, ← hψ]; rw [← hψ] at hs hfC; exact h.resIdxFit _ _ hs c hcN j hj fs hfC
   have hIk := h.idxOk ψ _ hs c hcN
   have hlenI := hidx.length_eq
   have hHF : D.HFits ψ (keyFrame dsa hi ρ) (D.carrier ψ (keyFrame dsa hi ρ))
       (tupW (D.u c ψ) ((D.resIdx ψ c j).map fun e =>
-        interp V (consList fs ρ) (AnnotTerm.substAV (instTau mp φ D us hi ds) e nF))) c j fs := by
+        interp V (consList fs ρ) (ITerm.substAV (instTau mp φ D us hi ds) e nF))) c j fs := by
     refine ⟨hj, hfC, fun l hl => ?_⟩
     have hlr : l < (D.resIdx ψ c j).length := by
       rw [List.length_map] at hlenI; omega

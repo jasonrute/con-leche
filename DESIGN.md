@@ -103110,3 +103110,134 @@ Lines: `ConLeche/` +6672 −10209 (371 files), `tests/` +454 −737,
   its `import all` readers, which no longer exist (the maintainer's
   file).  README line 95's paragraph describes the annotations (its
   rotted link is repointed to the datum's definition).
+
+## TASK #342 — S5C: the last code cleanup before the whitepaper lane (2026-10-13, agent/342-s5c)
+
+Lane S5c, stage S5, on `port-342` (S5b's follow-up, S5a's reported
+items, the ι level comparison).  Sub-lanes `doc`, `nest`, `ret`, `term`,
+`lvl` (with `mem`/`out`), `cco`, `mem2` ran in their own worktrees and
+were merged into the lane branch.  Verdicts unchanged; `MainTheorem`,
+`Denotes`, `Challenge` untouched; no `sorry`, no new axiom, no new
+`unsafe`.
+
+**The ι level comparison follows the parameters' case split.**
+Official (`src/kernel/inductive.h`, `inductive_reduce_rec`, lean4
+470d5ce) compares nothing of the major's constructor: after the K /
+whnf / literal / structure-η preparation it only looks the rule up by
+constructor name, checks the field count and the recursor's level
+arity, and fires —
+
+    optional<recursor_rule> rule = get_rec_rule_for(rec_val, major);
+    if (!rule) return none_expr();
+    ...
+    if (rule->get_nfields() > major_args.size()) return none_expr();
+    if (length(const_levels(rec_fn)) != length(rec_info->get_lparams())) return none_expr();
+    expr rhs = instantiate_lparams(rule->get_rhs(), rec_info->get_lparams(), const_levels(rec_fn));
+
+(the constructor's levels `const_levels(get_app_fn(major))` are never
+read).  Until now `iotaRec` compared the constructor's levels with the
+rule's comparand levels at every fire, in both modes.  Now the licence
+(`iotaCtorLicensed`, `iotaCase3`) is decided at the comparand levels
+`lc` (`recFireComparands … .1`: the recursor's own instantiation for a
+`.plain` rule, the stored container instantiation for a `.nested` one),
+and the level comparison runs, with the parameter comparison, only at a
+case-3 redex: in `--trusted` the ι step compares nothing, as official.
+- Checker: `iotaRec` and `iotaRecI` (the whole case-3 block is one
+  `certAtI`); `Rules.Red.iota`'s level premise and its four case-3
+  premises are conditional on `iotaCase3 … lc`; `iotaRec_inv`,
+  `iotaRec_bridge`, `Deep`'s shift, `DiscC3`'s simulation follow.
+- **The model argument is the parameters' one** (S5b), moved across
+  level frames.  At case 2 the major's domain holds no point ((S), now
+  at `lc`), so the major's reduction is an equation and the fired
+  application `C.{usj} ys` is not the point.  The new clause **(T)** of
+  `RecRuleExtra` reads it at the comparand levels: there is a spine
+  `ys'` (the recursor's parameters — the `.nested` pins' readings at an
+  outside class — then the same fields) fitting `C`'s telescope at
+  `lc`, graded, with the same value; the main law fires there.  Proof:
+  the application is the family's injection at its own valuation
+  (`blockCtorMajor_value`, the generalised `genOutCtorOwn`), nonzero
+  there (`mkZero`); the major is an injection at the recursor's frame
+  (`carrier_case`); the new `LfpClause.injFrame` ("above `Prop`
+  injections read no level": the tagged towers, `Nat`'s numerals,
+  `quotClass` above level 0) identifies the two, and `mkInj` the
+  constructor and the fields (`genMem_T`, `genOut_T`; `quotRuleT_of`
+  with `quotClass_of_mem_quotSet_pos` for `Quot.mk`; `Nat`'s
+  constructors have no level parameters).  At case 3 the level
+  comparison gives the law's level premise as before.  No obstruction.
+
+**The `.nested` fire is computed, not read.**  `auxRuleFire M rP =
+.nested M.lvls (M.ds.map (abstractPrefix rP 0))`: the class the
+installer generated the recursor type from, its parameters closed over
+the rule prefix (`abstractPrefix`, a fold of memoised `abstract1`
+passes, `= abstractRange 0 rP`).  `genStage_nestedRead`
+(`Verify/Inductives/TargetAuxFire.lean`) proves the generated type's
+major domain reads as that datum (EnvWF's `.nested` clause, as
+`NestedRead`).  Deleted: `Expr.nestedRuleSyn`, `lowerBVars`,
+`tgtNestedReads` and `genRecCheck`'s exit-3 check, `auxRuleFireR` and
+its `.plain` arm, the `hreads` fields, and the `resolves` argument of
+`tgtStoredRules`/`consBlockRecsT`/`tgtFireOf` and their kin.
+
+**Guards that returned their input return `Unit`**: `checkConstantVal`
+(`F`, `C`), `installHeader(C)`, `installValueGuards(C)`,
+`classConstOk`; the `jty` parameter of `checkDefnValCI`/
+`checkOpaqueValCI`; the lemmas saying "the returned constant is the
+input" are gone.  `etaSide` loses the projection-function disjunct;
+`capsOk_cons_recFresh` was `capsOk_cons_fresh` and goes.
+
+**Dead proof records.**  `RecTyEntry` and the `tyEntry`, `ctorsAt`,
+`ruleTower`, `idxDoms` fields of `RecStage`/`RecFamFacts` were all
+guarded by a member-major predicate that the one constructor set to
+`False`; they and the predicate (`mem`/`memR`, ~150 binders) are
+deleted.  Four unused `SetModel/Ops` lemmas (`piR_zero_agree`,
+`lamR_zero_agree`, `lamR_mem_zero_agree`, `imax_eq_zero_iff`) went.
+
+**Names and prose.**  `AnnotTerm` is **`ITerm`**, the *interpreted*
+term: the syntax `interp` reads (short, parallel to `Term`, and the
+`I` says what it is for; `MTerm` would suggest "meta").  Two lemma
+names followed (`iTermMkAppN_append`, `iTermLiftN_mkAppN`).  Docstrings
+and comments across every tier that described annotations, `pw`,
+binder data, the annotate pass, honesty checks or the β/io licences as
+current now describe the code (about 700 comment lines, 190 files); 49
+"product"s meaning a Π-type or function space are reworded.
+`CLAUDE.md`: `Kernel/PropWhen` is no longer listed as sealed nor as an
+`import all` example (it is a plain exposed datatype; no `import all`
+of it remains).
+
+**Verdicts** (one run, multi-threaded): e2e and arena fixture for
+fixture as before the lane; arena 90/92.
+
+**instructions:u** (`--verified --jobs=1`, one run each, RSS-guarded):
+
+| | init-full | mathlib-prefix |
+|---|---|---|
+| `port-342` before the lane (bb5703839) | 409.192G | 558.461G |
+| S5c | 408.353G (−0.21 %) | 557.450G (−0.18 %) |
+
+57 977 / 131 902 declarations accepted, exit 0, as before; peak RSS
+0.32 / 0.48 GiB.
+
+**Gates.**  `lake build`, `lake test` warning-free; `tests/arena.sh`
+green but `whitepaper/links-gate.sh` (W2's); `overview-links`
+repointed (cited text re-read: the rename, the `inferTypeIO` docstring,
+`tgtStoredRules`'s signature); `shake`: 6 imports removed under the
+#223 criterion, 2 compensated removals allowlisted, 3 public re-exports
+the plan's census cannot attribute (`NestedRead`, `ClassOutParams` in
+public statements) recorded as measured fallbacks; layering, trust
+surface, pindump, quote gate, challenge, the trusted and `--jobs`
+sweeps green.  Lines (`ConLeche/`, against
+`port-342`): 368 files, +7884 −7421, of which the rename commit is
+260 files ±4125; without it 236 files, +3783 −3320.  Checker
+(`Kernel/`, `Cached/`): 36 files, +380 −734.
+
+**Reported, not done.**
+- `RecStage`/`RecStageG` keep a `ctorsAs` parameter no field reads.
+- `genOutPinVal` still derives the pins' relation through
+  `nestedRead_open` and `genRun_binders`' `ErasedEq` route;
+  `tgtFireOf_nested_eq` now gives it directly.  `EnvWF`'s `.nested`
+  clause could be stated as `NestedRead`.
+- `ExprOps`'s `instantiate1Lift` section comment counts `lowerBVars`
+  among "three rebuilds".
+- The `…AV`/`acval` names (once "annotated") are everywhere and stay.
+- `MainTheorem.lean:40` says "annotated and pushed" (the text never
+  changes); README's checkDecls_consts bullet says "up to annotations,
+  zeta-reduction" (the maintainer's file).

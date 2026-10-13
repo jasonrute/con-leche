@@ -40,7 +40,7 @@ own reading at the substituted valuation (`denoteMeta_substFvars`):
 namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level NestCtx NestHole NestKey PosTree TargetMajor)
 
 universe w
@@ -117,7 +117,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
 
 /-- **The read-back's images, read** at the depth `d`. -/
 @[expose] noncomputable def nodeImgX (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx)
-    (occ : List NestHole) (d : Nat) : Nat → AnnotTerm :=
+    (occ : List NestHole) (d : Nat) : Nat → ITerm :=
   fun i => (denoteMeta m.acval env φ d (nodeImg ctx occ i)).getD .prf
 
 /-- **The images are scoped** at the block's parameters (a parameter
@@ -153,7 +153,7 @@ theorem interp_readback (m : EnvModel V env) {ctx : NestCtx} {occ : List NestHol
     (hs : ∀ i, i < ctx.hiAt occ.length → Expr.WScoped rP (nodeImg ctx occ i) ∧
       (nodeImg ctx occ i).looseBVarsBounded 0 = true ∧
       denoteMeta m.acval env φ rP (nodeImg ctx occ i) = some (nodeImgX m φ ctx occ rP i))
-    {e : Expr} (he : Expr.WScoped (ctx.hiAt occ.length) e) {ea : AnnotTerm}
+    {e : Expr} (he : Expr.WScoped (ctx.hiAt occ.length) e) {ea : ITerm}
     (hea : denoteMeta m.acval env φ (ctx.hiAt occ.length) e = some ea) (σ : Nat → V) :
     ∃ eb, denoteMeta m.acval env φ rP (nodeRb ctx occ e) = some eb ∧
       interp V σ eb = interp V (substE V (substTau (ctx.hiAt occ.length) rP
@@ -171,7 +171,7 @@ theorem keyFrame_readback (m : EnvModel V env) {ctx : NestCtx} {occ : List NestH
     (hs : ∀ i, i < ctx.hiAt occ.length → Expr.WScoped rP (nodeImg ctx occ i) ∧
       (nodeImg ctx occ i).looseBVarsBounded 0 = true ∧
       denoteMeta m.acval env φ rP (nodeImg ctx occ i) = some (nodeImgX m φ ctx occ rP i)) :
-    ∀ {ds : List Expr} {dsa : List AnnotTerm} {dsM : List Expr},
+    ∀ {ds : List Expr} {dsa : List ITerm} {dsM : List Expr},
       (∀ x ∈ ds, Expr.WScoped (ctx.hiAt occ.length) x) →
       DenoteMetaSpine m.acval env φ (ctx.hiAt occ.length) ds dsa →
       Expr.ErasedEqL dsM (ds.map (nodeRb ctx occ)) → ∀ σ : Nat → V,

@@ -133,7 +133,7 @@ FALLBACK = {
     # lane LIBMERGE (the block library merged into fewer modules): four
     # re-exports the model calls demotable, each MEASURED by demoting it
     # alone.  `BlockRecTower`'s public statements name `dnegSpace`,
-    # `choiceV`, `piR`, `AnnotTerm`, `interp` through `TowerKit`
+    # `choiceV`, `piR`, `ITerm`, `interp` through `TowerKit`
     # (`Unknown identifier dnegSpace`, `BlockRecTower.lean:64`);
     # `StructEntryKit`'s namespace block opens `SetTheory` and its public
     # statements name `fvsD`/`tfvD`/`projArgsD`, reached through
@@ -186,7 +186,7 @@ FALLBACK = {
     # six re-exports the model calls demotable, each MEASURED by demoting it
     # alone.  `TargetCallEntry` loses `Expr.ErasedEqL` (`:40`, via
     # `TargetNodeRb`) and `TargetCallRun` (`:55`, `RecCheckRun`);
-    # `TargetCallRead` loses `AnnotTerm.substAV` (`:46`, `BitSubstFvars`),
+    # `TargetCallRead` loses `ITerm.substAV` (`:46`, `BitSubstFvars`),
     # `holeP` (`:202`, `NestPosMono`), `LocList` (`:77`, `TargetNodeRead`);
     # `NestCallRun` loses `FEnv` (`:42`, `RecCheckRun`).
     ('ConLeche.Model.Inductives.TargetCallEntry', 'ConLeche.Model.Inductives.TargetNodeRb'),
@@ -561,7 +561,7 @@ FALLBACK = {
     # `unknown identifier NRes`.
     ('ConLeche.Verify.Frontend.Local','ConLeche.Frontend.Scan.Naive'),
     # task #305 closing: `FixRecRead`'s public signatures resolve
-    # `SetTheory`, `AnnotTerm`, `denoteMeta`, `EnvModel` and `openFvars`
+    # `SetTheory`, `ITerm`, `denoteMeta`, `EnvModel` and `openFvars`
     # only through `FixRecReadDefs`'s re-export; the model calls the edge
     # demotable once the file's two new plain imports (`Reading/Inst`,
     # `Reading/ErasedEq`, needed after `Model/Steps/*`'s re-exports went)
@@ -577,7 +577,7 @@ FALLBACK = {
     # `unknown identifier SetTheory` (#223 §6's first blind class).
     ('ConLeche.Model.Inductives.FixKit','ConLeche.Model.Inductives.FixChains'),
     # task #315 M3: `BlockStageFormer`'s public statements resolve
-    # `SetTheory` (its namespace block's bare `open`), `AnnotTerm`,
+    # `SetTheory` (its namespace block's bare `open`), `ITerm`,
     # `WellDenoted` and `Sat` only through `BlockLeafOk`'s re-export; the
     # model calls the edge demotable once the file's two plain imports
     # (`FixStageFormer`, `Verify/Inductives/BlockWF`, both PROOF-only)
@@ -585,7 +585,7 @@ FALLBACK = {
     # statement.  Demoting it makes the build say `unknown identifier
     # SetTheory` at the `open`, and adding the `public import
     # ConLeche.SetTheory.Core` lean's own note suggests only moves the
-    # failure on to `AnnotTerm`/`WellDenoted`/`Sat` — both blind classes
+    # failure on to `ITerm`/`WellDenoted`/`Sat` — both blind classes
     # (#223 §6's first and the #290 one) in one line.
     ('ConLeche.Model.Inductives.BlockStageFormer','ConLeche.Model.Inductives.BlockLeafOk'),
     # task #315 (lane RECLIB session 6, the import gate after the old
@@ -613,7 +613,7 @@ FALLBACK = {
     # name the re-export: `NoBVar` (`HoleSubst.lean:403`), `Expr.nestOcc`
     # (`NestPosOut.lean:45`), `Expr.ErasedEq` (`:45`), `EnvWF` (`:254`),
     # `paramBvarsAt`/`BlockCtorDataI` (`StoredShapes.lean:784`), `holeP`
-    # (`:348`), `HoleIn` (`:419`), the `AnnotTerm`/`denoteMeta` of
+    # (`:348`), `HoleIn` (`:419`), the `ITerm`/`denoteMeta` of
     # `BlockHoleRead.lean:350`; downstream reaches through the other two
     # (`mkAppN_wellDenoted_of_pt`, `BlockRecData.lean:3549`; a `rw` over
     # `nestHoles` stops matching at `BlockHoleGrade.lean:322`).
@@ -755,6 +755,14 @@ FALLBACK = {
     # (`:78`, `:81`); each MEASURED by demoting it alone.
     ('ConLeche.Model.Inductives.GenClassNodes', 'ConLeche.Model.Inductives.GenRecAssembly'),
     ('ConLeche.Model.Inductives.GenClassNodes', 'ConLeche.Model.Inductives.TargetNodePres'),
+    # task #342 (s5c): `NestedRead` (a `def … : Prop`) and `ClassOutParams`
+    # are named in these files' own public statements (`TargetAuxFire.lean:237`,
+    # `TargetRecC.lean:433`, `GenRecC.lean:190`), which the census does not
+    # attribute to the importing module; each MEASURED by demoting it alone
+    # (unknown identifier).
+    ('ConLeche.Verify.Inductives.TargetAuxFire', 'ConLeche.Verify.Inductives.NestedRead'),
+    ('ConLeche.Verify.Cached.TargetRecC', 'ConLeche.Verify.Inductives.NestedRead'),
+    ('ConLeche.Verify.Cached.GenRecC', 'ConLeche.Verify.Inductives.TargetAuxFire'),
 }
 
 # `whitepaper/` (task #324) is its own lake library — the paper's Lean

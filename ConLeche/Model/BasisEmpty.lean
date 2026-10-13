@@ -19,8 +19,7 @@ The recipe for a basis constant's type, in three moves:
    `denoteMeta_fvar` and `Expr.instantiate1_eq_self` at every closed
    binder body, with the constant leaves supplied by
    `acval_basis_pinned` (`Model/BasisCons.lean`);
-3. the reading is `BConst.typeAV` on the nose (no binder datum is read,
-   task #342 L14a), so `WellDenotedTy_bconst_type` grades it and
+3. the reading is `BConst.typeAV` on the nose, so `WellDenotedTy_bconst_type` grades it and
    `bval_mem_type` inhabits it.
 -/
 
@@ -29,7 +28,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   emptyA emptyRecA emptyName uN)
 
@@ -41,10 +40,9 @@ variable {μ : CheckMode} {env : Env}
 /-! ## `Empty` -/
 
 /-- The `Empty` former's type reading: `Sort 1`, which is
-`BConst.typeAV .empty [1]` on the nose (no `BitAgree` needed — the
-former has no binder, so there is no numeral to disagree about). -/
+`BConst.typeAV .empty [1]` on the nose. -/
 theorem denoteMeta_emptyA_type
-    {acval : Name → (Name → Nat) → AnnotTerm} (ψ : Name → Nat) :
+    {acval : Name → (Name → Nat) → ITerm} (ψ : Name → Nat) :
     denoteMeta acval ⟨emptyA :: env.consts⟩ ψ 0 emptyA.toConstantVal.type
       = some (BConst.typeAV .empty [1]) := by
   rw [show emptyA.toConstantVal.type = Expr.sort (.succ .zero) from rfl,
@@ -73,7 +71,7 @@ theorem extendEmpty (mp : EnvModelM V μ env)
     (hown := lfpOwn_former0 (c₀ := emptyA) rfl rfl rfl rfl rfl (by decide) fun _ => rfl)
     (hex := filter_not_mem_self _)
     (coverA_pend hfresh <| declStep_preserves_of_basis_cons mp
-    (A := fun _ => AnnotTerm.const .empty [1]) hfresh
+    (A := fun _ => ITerm.const .empty [1]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (fun _ _ _ _ h => nomatch h)
@@ -107,7 +105,7 @@ theorem extendEmpty (mp : EnvModelM V μ env)
 /-- **`Empty.rec`'s type reading.**  The four moves of the module
 docstring; the leaves are `acval_basis_pinned` at `Empty`. -/
 theorem denoteMeta_emptyRecA_type {m : EnvModel V env}
-    {A : (Name → Nat) → AnnotTerm} (ψ : Name → Nat)
+    {A : (Name → Nat) → ITerm} (ψ : Name → Nat)
     (hE : env.find? emptyName = some emptyA) :
     denoteMeta (acvalWith m.acval emptyRecA.name A)
         ⟨emptyRecA :: env.consts⟩ ψ 0 emptyRecA.toConstantVal.type
@@ -118,13 +116,13 @@ theorem denoteMeta_emptyRecA_type {m : EnvModel V env}
       = some (Term.const .empty [1]) := by
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hleaf : acvalWith m.acval emptyRecA.name A emptyName ψ
-      = AnnotTerm.const .empty [1] := by
+      = ITerm.const .empty [1] := by
     rw [acvalWith_ne (by decide)]
     exact acval_basis_pinned hE (by decide) hpd
   have hEc : ∀ d : Nat,
       denoteMeta (acvalWith m.acval emptyRecA.name A)
           ⟨emptyRecA :: env.consts⟩ ψ d (.const emptyName [])
-        = some (AnnotTerm.const .empty [1]) := by
+        = some (ITerm.const .empty [1]) := by
     intro d
     have hf : (⟨emptyRecA :: env.consts⟩ : Env).find? emptyName
         = some emptyA := by
@@ -141,7 +139,7 @@ theorem denoteMeta_emptyRecA_type {m : EnvModel V env}
 
 /-- **The reading is `BConst.typeAV`.** -/
 theorem emptyRecA_reading_eq (ψ : Name → Nat) :
-    (AnnotTerm.pi (.pi (.const .empty [1]) (.sort (ψ uN)))
+    (ITerm.pi (.pi (.const .empty [1]) (.sort (ψ uN)))
         (.pi (.const .empty [1])
           (.app (.bvar 1) (.bvar 0))))
       = BConst.typeAV .emptyRec [1, ψ uN] := rfl
@@ -154,9 +152,9 @@ theorem extendEmptyRec (mp : EnvModelM V μ env)
     CoverTo mp ex ⟨emptyRecA :: env.consts⟩ ex := by
   have hty := fun ψ =>
     denoteMeta_emptyRecA_type (m := mp.base2)
-      (A := fun ψ => AnnotTerm.const .emptyRec [1, ψ uN]) ψ hE
+      (A := fun ψ => ITerm.const .emptyRec [1, ψ uN]) ψ hE
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_basis_cons mp
-    (A := fun ψ => AnnotTerm.const .emptyRec [1, ψ uN]) hfresh
+    (A := fun ψ => ITerm.const .emptyRec [1, ψ uN]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (fun _ _ _ _ h => by injection h with _ _ _ h4; exact h4 ▸ rfl)

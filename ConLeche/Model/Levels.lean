@@ -38,7 +38,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal)
 
 universe w
@@ -51,7 +51,7 @@ variable {env : Env}
 /-- A leaf reads only its own level parameters — `EnvModel.acval_params`
 as a standalone predicate, so the crossing does not need a carrier. -/
 def AcvalParamsAt (env : Env)
-    (acval : Name → (Name → Nat) → AnnotTerm) : Prop :=
+    (acval : Name → (Name → Nat) → ITerm) : Prop :=
   ∀ (n : Name) (ci : ConstantInfo), env.find? n = some ci →
     ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
@@ -61,7 +61,7 @@ def AcvalParamsAt (env : Env)
 theorem acvalParamsAt_of_core (m : EnvModel V env) :
     AcvalParamsAt env m.acval := m.acval_params
 
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → ITerm}
 
 /-- A stored slot with no level parameters is valued independently of
 the assignment (`acval_isEmpty`, off the bare hypothesis). -/

@@ -39,7 +39,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantVal IndCaps)
 
 universe w
@@ -48,7 +48,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
 
 /-- A fitting spine, from the satisfaction of the reversed list at its
 own frame. -/
-theorem spineFit_of_sat_consList {Ds : List AnnotTerm} {as : List V} {ρ : Nat → V}
+theorem spineFit_of_sat_consList {Ds : List ITerm} {as : List V} {ρ : Nat → V}
     (hlen : as.length = Ds.length) (h : Sat V Ds.reverse (consList as ρ)) :
     SpineFit ρ Ds as := by
   have := spineFit_frameIdx_of_sat h
@@ -60,13 +60,13 @@ application is graded. -/
 theorem keyFit_of_wd {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
     (hD : D ∈ mp.lfpBlocks) {mm : Nat} (hmm : mm < D.k) {cv : ConstantVal} {caps : IndCaps}
     (hf : env.find? (D.member mm) = some (.indInfo cv caps)) {us : List Level} {dep : Nat}
-    {args : List Expr} {wa : AnnotTerm}
+    {args : List Expr} {wa : ITerm}
     (hwa : denoteMeta mp.base2.acval env φ dep (Expr.mkAppN (.const (D.member mm) us) args)
       = some wa)
     (hlen : args.length = (D.pars mm (Level.substFn φ cv.levelParams us)).length
       + (D.ids mm (Level.substFn φ cv.levelParams us)).length) :
     us.length = cv.levelParams.length ∧ ∃ vs, DenoteMetaSpine mp.base2.acval env φ dep args vs ∧
-      wa = AnnotTerm.mkAppN (mp.base2.acval (D.member mm) (Level.substFn φ cv.levelParams us)) vs ∧
+      wa = ITerm.mkAppN (mp.base2.acval (D.member mm) (Level.substFn φ cv.levelParams us)) vs ∧
       ∀ ρ : Nat → V, WellDenotedTy V ρ wa → ∀ σ : Nat → V,
         SpineFit σ (D.pars mm (Level.substFn φ cv.levelParams us)
           ++ D.ids mm (Level.substFn φ cv.levelParams us)) (vs.map (interp V ρ)) := by
@@ -107,12 +107,12 @@ read there as `dsa`. -/
 theorem keyLeafW {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
     (hD : D ∈ mp.lfpBlocks) {mm : Nat} (hmm : mm < D.k) {cv : ConstantVal} {caps : IndCaps}
     (hf : env.find? (D.member mm) = some (.indInfo cv caps)) {us : List Level} {dep b : Nat}
-    (hbd : b ≤ dep) {ds is : List Expr} {wa : AnnotTerm}
+    (hbd : b ≤ dep) {ds is : List Expr} {wa : ITerm}
     (hwa : denoteMeta mp.base2.acval env φ dep
       (Expr.mkAppN (.const (D.member mm) us) (ds ++ is)) = some wa)
     (hlenP : ds.length = (D.params (Level.substFn φ cv.levelParams us)).length)
     (hlenI : is.length = (D.ids mm (Level.substFn φ cv.levelParams us)).length)
-    (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List AnnotTerm}
+    (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List ITerm}
     (hdsa : DenoteMetaSpine mp.base2.acval env φ b ds dsa) :
     us.length = cv.levelParams.length ∧ ∃ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa ∧
       ∀ ρ : Nat → V, WellDenotedTy V ρ wa →
@@ -133,7 +133,7 @@ theorem keyLeafW {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDat
   generalize hψ : Level.substFn φ cv.levelParams us = ψ at hpl hlenP hlenI hfit hwd ⊢
   have hlift := DenoteMetaSpine.lift (m := mp.base2) (φ := φ) hbd hdsw hdsa
   obtain rfl := DenoteMetaSpine.unique hsp₁ hlift
-  have has : (dsa.map (AnnotTerm.liftN (dep - b) · 0)).map (interp V ρ)
+  have has : (dsa.map (ITerm.liftN (dep - b) · 0)).map (interp V ρ)
       = dsa.map (interp V (dropV (dep - b) ρ)) := by
     rw [List.map_map]
     exact List.map_congr_left fun a _ => interp_liftN_drop _ ρ a
@@ -164,12 +164,12 @@ theorem keyLeafW {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDat
 theorem keyLeaf {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
     (hD : D ∈ mp.lfpBlocks) {mm : Nat} (hmm : mm < D.k) {cv : ConstantVal} {caps : IndCaps}
     (hf : env.find? (D.member mm) = some (.indInfo cv caps)) {us : List Level} {dep b : Nat}
-    (hbd : b ≤ dep) {ds is : List Expr} {wa : AnnotTerm}
+    (hbd : b ≤ dep) {ds is : List Expr} {wa : ITerm}
     (hwa : denoteMeta mp.base2.acval env φ dep
       (Expr.mkAppN (.const (D.member mm) us) (ds ++ is)) = some wa)
     (hlenP : ds.length = (D.params (Level.substFn φ cv.levelParams us)).length)
     (hlenI : is.length = (D.ids mm (Level.substFn φ cv.levelParams us)).length)
-    (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List AnnotTerm}
+    (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List ITerm}
     (hdsa : DenoteMetaSpine mp.base2.acval env φ b ds dsa) :
     us.length = cv.levelParams.length ∧ ∃ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa ∧
       ∀ ρ : Nat → V, WellDenotedTy V ρ wa →
@@ -189,14 +189,14 @@ carrier grows at the two key frames. -/
 theorem monoOn_of_famLe {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
     (hD : D ∈ mp.lfpBlocks) {mm : Nat} (hmm : mm < D.k) {cv : ConstantVal} {caps : IndCaps}
     (hf : env.find? (D.member mm) = some (.indInfo cv caps)) {us : List Level} {dep b : Nat}
-    (hbd : b ≤ dep) {ds is : List Expr} {wa : AnnotTerm}
+    (hbd : b ≤ dep) {ds is : List Expr} {wa : ITerm}
     (hwa : denoteMeta mp.base2.acval env φ dep
       (Expr.mkAppN (.const (D.member mm) us) (ds ++ is)) = some wa)
     (hlenP : ds.length = (D.params (Level.substFn φ cv.levelParams us)).length)
     (hlenI : is.length = (D.ids mm (Level.substFn φ cv.levelParams us)).length)
-    (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List AnnotTerm}
+    (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List ITerm}
     (hdsa : DenoteMetaSpine mp.base2.acval env φ b ds dsa)
-    {Δa : List AnnotTerm} {R : FrameRel V} (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ')
+    {Δa : List ITerm} {R : FrameRel V} (hdom : ∀ ρ ρ', R ρ ρ' → Sat V Δa ρ ∧ Sat V Δa ρ')
     (hgr : Rules.GradedTy V Δa wa)
     (his : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
     (hle : ∀ ρ ρ', R ρ ρ' →
@@ -326,8 +326,8 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       = .ok ty)
     (hpi : ConLeche.instPisWith ds (cv.type.instantiateLevelParams cv.levelParams us) = some r)
     (hlenP : ds.length = (D.params (Level.substFn φ cv.levelParams us)).length)
-    {Δa : List AnnotTerm} (hΔ : Δa.length = d)
-    (hfr : ∀ x ∈ ds, Rules.Frame d x ∧ CtxOkS mp.base2 φ d Δa x) {dsa : List AnnotTerm}
+    {Δa : List ITerm} (hΔ : Δa.length = d)
+    (hfr : ∀ x ∈ ds, Rules.Frame d x ∧ CtxOkS mp.base2 φ d Δa x) {dsa : List ITerm}
     (hdsa : DenoteMetaSpine mp.base2.acval env φ d ds dsa) :
     ∀ ρ : Nat → V, Sat V Δa ρ → (∀ x ∈ ds, LeavesGr mp.base2 φ d x ρ) →
       Sat V (D.params (Level.substFn φ cv.levelParams us)).reverse (keyFrame dsa d ρ) := by

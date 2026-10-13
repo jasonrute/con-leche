@@ -56,9 +56,8 @@ readings of openings at different depths meet:
 * the CONCLUSION is read at `mp + nF + nIh`, again the lift of its
   reading at `mp + nF` (it names no `ih` variable either).
 
-The binders' bits are never inspected: the generated type's reading is
-bit-VALID (`AnnotValid`, the inference claim's currency), and validity
-descends the prefix to the minor's domain, whose Π-tower then applies
+The generated type's reading is graded (`WellDenoted`, the inference
+claim's currency), and the grading descends the prefix to the minor's domain, whose Π-tower then applies
 (`foldl_app_mem_mkPisAV`).  What the components are asked to be for the
 chain independence rows (`genHchI_of_readings`, `ihDatumBelow_of_readings`)
 is only their `bvarsBelow` bound; the lifted readings have it (they are
@@ -71,7 +70,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ClassGen ClassGenScoped ClassCtor ScB closeTelescope
   classGenRecTy classBinder)
 

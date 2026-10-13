@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Verify.BridgeDecl
-import ConLeche.Verify.Inductives.NestedRuleSyn
+import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Extend.Inversions
 
 public section
@@ -18,10 +18,10 @@ well-formed environment is the pure `fueledOps` run at the same fuel.
 At each operation call site the argument's well-scopedness comes from
 
 * the checker's own input validation (`looseBVarsBounded`/`hasFvar`
-  guards precede every `annotate` of raw input — at depth 0
+  guards precede every inference of raw input — at depth 0
   fvar-freedom *is* well-scopedness),
 * the scoping-preservation lemmas for the operations' outputs
-  (`annotateCore_WScoped`, `inferTypeCore_WScoped`), and
+  (`inferTypeCore_WScoped`), and
 * scoping of the iota-theorem check's opened telescopes
   (`openPisAtFvars_WScoped`, `instPisAt_WScoped`, `instLamsAt_WScoped`
   — the defeq comparisons run at the opened depth, over variables of
@@ -222,13 +222,13 @@ macro "throwM_elim" h:ident : tactic =>
 /-- The type-slot `ConstWF` facts of a successfully checked constant:
 level parameters, constant resolution, closedness and fvar-freedom are
 all checked outright (the stored type is the declared one). -/
-theorem checkConstantVal_typeWF {env : Env} {cv cvA : ConstantVal}
-    {F : Nat} (h : checkConstantVal (fueledOps mode F) env cv = .ok cvA) :
-    cvA.type.hasFvar = false ∧
-    cvA.type.allLevelParamsDefined cvA.levelParams = true ∧
-    cvA.type.constsResolve env = true ∧
-    cvA.type.looseBVarsBounded 0 = true := by
-  obtain ⟨-, -, -, -, hlb, hif, -, -, htp, htr, -, -, rfl⟩ := checkConstantVal_inv h
+theorem checkConstantVal_typeWF {env : Env} {cv : ConstantVal}
+    {F : Nat} (h : checkConstantVal (fueledOps mode F) env cv = .ok ()) :
+    cv.type.hasFvar = false ∧
+    cv.type.allLevelParamsDefined cv.levelParams = true ∧
+    cv.type.constsResolve env = true ∧
+    cv.type.looseBVarsBounded 0 = true := by
+  obtain ⟨-, -, -, -, hlb, hif, -, -, htp, htr, -, -⟩ := checkConstantVal_inv h
   exact ⟨hif, htp, htr, hlb⟩
 
 end ConLeche

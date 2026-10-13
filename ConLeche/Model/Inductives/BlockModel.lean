@@ -19,7 +19,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps)
 
 universe w'
@@ -73,7 +73,7 @@ theorem blockModelAt_of_stages {env : Env} (mo : EnvModel V env) {names : List N
     -- every parameter frame and agreeing with `d.Φ` on the tuple space (the
     -- hole chains, whose operator IS `d.Φ`) — and the members'
     -- parameter agreement
-    (Chs : (Name → Nat) → Nat → List (List AnnotTerm))
+    (Chs : (Name → Nat) → Nat → List (List ITerm))
     (hleaf : ∀ mm, mm < d.k → ∀ ψ : Name → Nat, mo.acval (d.memberName mm) ψ
       = blockTyG d.N (d.w ψ) (fun c => d.uM c ψ) (fun c => d.IdsM c ψ) (Chs ψ) (d.ppsM mm ψ) mm)
     (hChs : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →

@@ -137,7 +137,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars closeTelescope
   ClassGen ClassGenScoped SameDoms classGenRecTy classBinder GenRecRun ClassRecTyRun
   FEnv mkFEnv NestState TargetMajor RecShape BlockShape BlockParts instPisWith)
@@ -213,12 +213,11 @@ theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche
           ∀ l, l < p.nP → ∃ D b, instPisWith (xs.take l) cvT.type = some (.forallE D b) ∧
             ConLeche.isDefEqCore μ envC F' p.nP ((xs.map Expr.fvarTypeD).getD l default) D
               = .ok true := by
-  obtain ⟨-, -, -, -, -, hfv0, -, -, stype, u0, hinf, -, hcvEq⟩ :=
+  obtain ⟨-, -, -, -, -, hfv0, -, -, stype, u0, hinf, -⟩ :=
     ConLeche.classConstOk_inv T.hcv
+  rw [T.hcvG] at hfv0 hinf
   generalize htyG : T.gty = type at hfv0 hinf
-  have htype : cvG.type = type := by
-    have := congrArg ConstantVal.type hcvEq
-    simpa [htyG] using this
+  have htype : cvG.type = type := by rw [T.hcvG]; exact htyG
   dsimp only at hfv0 hinf
   obtain ⟨ifs, maj, hmaj, hifl, hgty, hcl, hbb⟩ := ConLeche.classGenRecTy_spec hg T.hgty
   rw [htyG] at hgty
@@ -535,7 +534,7 @@ variable {envT : Env} (hμ : μ.verifiedChecks = true)
   {tyA : Expr} {fvsA : List Expr} {oA : Expr}
   (hopA : openPisAtFvars rP tyA 0 = some (fvsA, oA))
   (hwA : Expr.WScoped 0 tyA) (hbA : tyA.looseBVarsBounded 0 = true)
-  {domsA domsB : List AnnotTerm}
+  {domsA domsB : List ITerm}
   (hlenA : domsA.length = rP) (hlenB : domsB.length = rP)
   (hdA : ∀ (i : Nat) (x : Expr), fvsA[i]? = some x →
     denoteMeta mp.base2.acval envT ψ i (Expr.fvarTypeD x) = some (domsA.getD i default))
@@ -691,7 +690,7 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
     (R : GenRecRun μ F (mkFEnv envI) envI (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
     (hg : ClassGenScoped R.g)
-    (h : RecStageG μ F envC pp cvTas ctorsAs (ConLeche.tgtRs out) (fun _ => False))
+    (h : RecStageG μ F envC pp cvTas ctorsAs (ConLeche.tgtRs out))
     {dR : BlockData V}
     (hmr : BlockMembersRun mpC.base2 dR pp.toBlockShape cvTas) :
     ∀ c, c < (ConLeche.tgtRs out).length → ∀ (ψ : Name → Nat) (ρ : Nat → V) (xs : List V),

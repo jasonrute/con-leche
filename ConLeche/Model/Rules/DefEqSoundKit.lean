@@ -31,7 +31,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -117,16 +117,16 @@ theorem Frame.of_not_hasFvar {d : Nat} {e : Expr} (hf : e.hasFvar = false)
 
 /-! ## The grading splitters, at `Graded` -/
 
-theorem Graded.fst {Δa : List AnnotTerm} {e : AnnotTerm}
+theorem Graded.fst {Δa : List ITerm} {e : ITerm}
     (h : Graded V Δa (.fst e)) : Graded V Δa e := fun ρ hρ =>
   (cast (WellDenoted_fst V ρ e) (h ρ hρ)).1
 
-theorem Graded.snd {Δa : List AnnotTerm} {e : AnnotTerm}
+theorem Graded.snd {Δa : List ITerm} {e : ITerm}
     (h : Graded V Δa (.snd e)) : Graded V Δa e := fun ρ hρ =>
   (cast (WellDenoted_snd V ρ e) (h ρ hρ)).1
 
 /-- `WellDenoted.hoist_pi` at `Graded`. -/
-theorem Graded.pi {Δa : List AnnotTerm} {A B : AnnotTerm}
+theorem Graded.pi {Δa : List ITerm} {A B : ITerm}
     (h : Graded V Δa (.pi A B)) :
     GradedTy V Δa A ∧ Graded V (A :: Δa) B := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => h ρ hρ)
@@ -134,7 +134,7 @@ theorem Graded.pi {Δa : List AnnotTerm} {A B : AnnotTerm}
     fun ρ hρ => h2 ρ hρ⟩
 
 /-- `WellDenoted.hoist_lam` at `Graded`. -/
-theorem Graded.lam {Δa : List AnnotTerm} {A b : AnnotTerm}
+theorem Graded.lam {Δa : List ITerm} {A b : ITerm}
     (h : Graded V Δa (.lam A b)) :
     GradedTy V Δa A ∧ Graded V (A :: Δa) b := by
   obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => h ρ hρ)
@@ -142,13 +142,13 @@ theorem Graded.lam {Δa : List AnnotTerm} {A b : AnnotTerm}
     fun ρ hρ => h2 ρ hρ⟩
 
 /-- The head transport of a hoisted grading, at `Graded`. -/
-theorem Graded.head_congr {Δa : List AnnotTerm} {A B e : AnnotTerm}
+theorem Graded.head_congr {Δa : List ITerm} {A B e : ITerm}
     (heq : ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ A = interp V ρ B)
     (h : Graded V (B :: Δa) e) : Graded V (A :: Δa) e :=
   fun ρ hρ => h ρ (Sat.head_congr heq hρ)
 
-theorem denoteMeta_open_rename {acval : Name → (Name → Nat) → AnnotTerm}
-    {d : Nat} {bd ty ty' : Expr} {ba : AnnotTerm}
+theorem denoteMeta_open_rename {acval : Name → (Name → Nat) → ITerm}
+    {d : Nat} {bd ty ty' : Expr} {ba : ITerm}
     (h : denoteMeta acval env φ (d + 1) (bd.instantiate1 (.fvar d ty))
       = some ba) :
     denoteMeta acval env φ (d + 1) (bd.instantiate1 (.fvar d ty'))
@@ -160,9 +160,9 @@ theorem denoteMeta_open_rename {acval : Name → (Name → Nat) → AnnotTerm}
 /-! ## The constant congruence -/
 
 /-- The same constant at level-equivalent instantiations has one
-validated reading. -/
+reading. -/
 theorem acval_const_congr' {m : EnvModel V env} (hap : AcvalParams m)
-    {d : Nat} {n : Name} {us us' : List Level} {aa ba : AnnotTerm}
+    {d : Nat} {n : Name} {us us' : List Level} {aa ba : ITerm}
     (hlev : Level.isEquivList us us' = some true)
     (hda : denoteMeta m.acval env φ d (.const n us) = some aa)
     (hdb : denoteMeta m.acval env φ d (.const n us') = some ba) :
@@ -185,7 +185,7 @@ theorem acval_const_congr' {m : EnvModel V env} (hap : AcvalParams m)
 
 /-- The subject of a graded projection spine is graded (`ProjAV.hoistV`
 of `RedSoundKit`, at `Graded`). -/
-theorem Graded.projAV {Δa : List AnnotTerm} {i : Nat} {e : AnnotTerm}
+theorem Graded.projAV {Δa : List ITerm} {i : Nat} {e : ITerm}
     (h : Graded V Δa (ConLeche.Semantics.projAV i e)) : Graded V Δa e :=
   fun ρ hρ => ProjAV.hoistV (h ρ hρ)
 
@@ -194,15 +194,15 @@ theorem Graded.projAV {Δa : List AnnotTerm} {i : Nat} {e : AnnotTerm}
 The licence itself (`prf_of_isProofFast`) is `ProofFastSound.lean`. -/
 
 /-- Every application of `pt` is `pt` (`app_pt`, folded along a spine). -/
-theorem foldl_app_pt' {ρ : Nat → V} : ∀ (as : List AnnotTerm),
+theorem foldl_app_pt' {ρ : Nat → V} : ∀ (as : List ITerm),
     as.foldl (fun r a => app r (interp V ρ a)) (pt : V) = pt
   | [] => rfl
   | a :: as => by rw [List.foldl_cons, app_pt]; exact foldl_app_pt' as
 
 /-- A spine on a `pt`-valued head interprets to `pt`. -/
-theorem interp_mkAppN_pt {ρ : Nat → V} {f : AnnotTerm}
-    (hf : interp V ρ f = pt) (as : List AnnotTerm) :
-    interp V ρ (AnnotTerm.mkAppN f as) = pt := by
+theorem interp_mkAppN_pt {ρ : Nat → V} {f : ITerm}
+    (hf : interp V ρ f = pt) (as : List ITerm) :
+    interp V ρ (ITerm.mkAppN f as) = pt := by
   rw [interp_mkAppN, hf]
   exact foldl_app_pt' as
 
@@ -270,7 +270,7 @@ type are types). -/
 theorem propPt_of_mem {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
     (hsem : InferSemIO m φ d T tt) (hrs : RedSem m φ d tt (.sort w))
     (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
-    (hfT : Frame d T) {Δa : List AnnotTerm} {ta : AnnotTerm}
+    (hfT : Frame d T) {Δa : List ITerm} {ta : ITerm}
     (hCT : CtxOkS m φ d Δa T) (hT : denoteMeta m.acval env φ d T = some ta)
     (ρ : Nat → V) (v : V) (hρ : Sat V Δa ρ) (hLT : LeavesGr m φ d T ρ)
     (hm : IOMem m φ d T ρ v) : v = pt := by
@@ -282,7 +282,7 @@ theorem propPt_of_mem {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
   · obtain ⟨hwtt, hTm⟩ := h.of_reading htta
     obtain ⟨-, -, sa, hsa, hs⟩ := hrs hftt (hCT.of_subset hsub) htta
     rw [denoteMeta_sort] at hsa
-    obtain rfl : sa = AnnotTerm.sort (w.eval φ) := (Option.some.inj hsa).symm
+    obtain rfl : sa = ITerm.sort (w.eval φ) := (Option.some.inj hsa).symm
     -- "not pt" source (1): the type's type is a type
     obtain ⟨-, heq⟩ := hs ρ hρ (hLT.of_subset hsub) hwtt.1 hwtt.ne_pt
     rw [heq, interp_sort, hw0] at hTm

@@ -6,9 +6,9 @@ public import ConLeche.Verify.Denote
 @[expose] public section
 
 /-!
-# The annotated literal spines
+# The literal spines over `ITerm`
 
-The annotated `Nat`-literal and character-list spines (`natLitAV`,
+The `ITerm` `Nat`-literal and character-list spines (`natLitAV`,
 `charListAV`) and their erasure laws: each erases pointwise onto its
 `Term` spine (`natLitT`, `charListT`), as `projAV` does onto `projNV`.
 -/
@@ -17,19 +17,18 @@ namespace ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level inferTypeCore whnf
   natLitSupported strLitSupported)
 
-/-- The annotated `Nat`-literal spine (the `natLitT` mirror over the
-annotated valuation). -/
-def natLitAV (za sa : AnnotTerm) : Nat → AnnotTerm
+/-- The `ITerm` `Nat`-literal spine (the `natLitT` mirror). -/
+def natLitAV (za sa : ITerm) : Nat → ITerm
   | 0 => za
   | n + 1 => .app sa (natLitAV za sa n)
 
-/-- The annotated character-list spine (the `charListT` mirror). -/
-def charListAV (nilA consA ofNatA za sa : AnnotTerm) :
-    List Char → AnnotTerm
+/-- The `ITerm` character-list spine (the `charListT` mirror). -/
+def charListAV (nilA consA ofNatA za sa : ITerm) :
+    List Char → ITerm
   | [] => nilA
   | c :: cs =>
     .app (.app consA (.app ofNatA (natLitAV za sa c.toNat)))
@@ -37,7 +36,7 @@ def charListAV (nilA consA ofNatA za sa : AnnotTerm) :
 
 /-- The uniform projection spellings erase onto each other:
 `projAV`'s image is `projNV` (task #175 wiring W3). -/
-theorem erase_projAV : ∀ (i : Nat) (ea : AnnotTerm),
+theorem erase_projAV : ∀ (i : Nat) (ea : ITerm),
     (projAV i ea).erase = ConLeche.Verify.projNV i ea.erase
   | 0, _ => rfl
   | i + 1, ea => erase_projAV i (.snd ea)
@@ -45,7 +44,7 @@ theorem erase_projAV : ∀ (i : Nat) (ea : AnnotTerm),
 /-! ## The erasure laws -/
 
 /-- The literal spines erase pointwise. -/
-theorem natLitAV_erase {za sa : AnnotTerm} {zv sv : Term}
+theorem natLitAV_erase {za sa : ITerm} {zv sv : Term}
     (hz : za.erase = zv) (hs : sa.erase = sv) :
     ∀ n : Nat, (natLitAV za sa n).erase = natLitT zv sv n := by
   intro n
@@ -53,7 +52,7 @@ theorem natLitAV_erase {za sa : AnnotTerm} {zv sv : Term}
   | zero => exact hz
   | succ m ih => simp [natLitAV, natLitT, hs, ih]
 
-theorem charListAV_erase {nilA consA ofNatA za sa : AnnotTerm}
+theorem charListAV_erase {nilA consA ofNatA za sa : ITerm}
     {nilV consV ofNatV zv sv : Term}
     (h1 : nilA.erase = nilV) (h2 : consA.erase = consV)
     (h3 : ofNatA.erase = ofNatV) (hz : za.erase = zv)

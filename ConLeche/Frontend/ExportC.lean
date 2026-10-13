@@ -134,10 +134,9 @@ structure Lk (ε : Type) where
 children's values (the derived fields are the compiler's, task #172
 B3a).
 
-Binder names are display data the official kernel's equality and hash
-ignore; ours are `.anonymous` on every parsed binder (task #203,
-beside the `.default` annotation of task #142), so `==` is
-α-equivalence downstream.  The `name` field is still required to be
+Binder names and infos are display data the official kernel's
+equality and hash ignore; the parser drops both (tasks #142, #203),
+and `Expr` has no slot for them, so `==` is α-equivalence downstream.  The `name` field is still required to be
 present and well-formed (the recogniser reads it), it is just not
 resolved. -/
 @[inline] def exprOfF (nm : Nat → Except ε Name) (lv : Nat → Except ε Level) (ex : Nat → Except ε Expr) (r : ExprRec) : Except ε Expr :=

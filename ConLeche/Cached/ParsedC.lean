@@ -53,7 +53,7 @@ def opSIxC (fe : FEnv) (d : Nat) (i : Expr) : CheckCM Level :=
 `checkConstantValF` with the syntactic passes memoized on the `Expr`
 DAG and the cached operations on its nodes. -/
 def checkConstantValC (fe : FEnv) (cv : ConstantVal) :
-    CheckCM (ConstantVal × Expr) := do
+    CheckCM Unit := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -66,14 +66,12 @@ def checkConstantValC (fe : FEnv) (cv : ConstantVal) :
     throw (.invalid s!"loose bound variable in type of {cv.name}")
   if Expr.hasFvar cv.type then
     throw (.invalid s!"unexpected free variable in type of {cv.name}")
-  let jty := cv.type
-  unless Expr.allLevelParamsDefinedC cv.levelParams jty do
+  unless Expr.allLevelParamsDefinedC cv.levelParams cv.type do
     throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-  unless constsResolveFC fe jty do
-    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" jty)
-  let jsty ← (coreKnotI mode fe checkFuel).infer 0 jty
+  unless constsResolveFC fe cv.type do
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"type of {cv.name}" cv.type)
+  let jsty ← (coreKnotI mode fe checkFuel).infer 0 cv.type
   let _u ← opSIxC mode fe 0 jsty
-  pure (cv, jty)
 
 /-- `checkShapeless` (`ConLeche/Kernel/CheckDecl.lean`) through the index:
 a block the recogniser does not read has its type formers checked as
@@ -85,10 +83,10 @@ def checkShapelessS (fe : FEnv) (block : List ConstantInfo) : CheckCM FEnv := do
   throw (.notImplemented s!"inductive block \
     {(block.head?.map (·.name)).getD .anonymous}: shape not recognised")
 
-/-- Check a definition's value against its annotated type `jty`,
-returning the record to install, unpushed: the pinned `Nat`-operation
-arm of `checkDeclC` certifies against an overlay before it pushes. -/
-def checkDefnValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
+/-- Check a definition's value against its declared type, returning the
+record to install, unpushed: the pinned `Nat`-operation arm of
+`checkDeclC` certifies against an overlay before it pushes. -/
+def checkDefnValCI (fe : FEnv) (cvA : ConstantVal)
     (value : Expr) (hint : ReducibilityHint) : CheckCM ConstantInfo := do
   unless Expr.looseBVarsBounded 0 value do
     throw (.invalid s!"loose bound variable in value of {cvA.name}")
@@ -100,13 +98,13 @@ def checkDefnValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
   unless constsResolveFC fe jv do
     throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" jv)
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
-  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt jty do
+  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt cvA.type do
     throw (.invalid s!"type mismatch in definition {cvA.name}")
   pure (.defnInfo cvA jv hint)
 
-/-- Check an opaque's value against `jty`, returning the axiom record
-to install, unpushed (as `checkDefnValCI`). -/
-def checkOpaqueValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
+/-- Check an opaque's value against its declared type, returning the
+axiom record to install, unpushed (as `checkDefnValCI`). -/
+def checkOpaqueValCI (fe : FEnv) (cvA : ConstantVal)
     (value : Expr) : CheckCM ConstantInfo := do
   unless Expr.looseBVarsBounded 0 value do
     throw (.invalid s!"loose bound variable in value of {cvA.name}")
@@ -118,7 +116,7 @@ def checkOpaqueValCI (fe : FEnv) (cvA : ConstantVal) (jty : Expr)
   unless constsResolveFC fe jv do
     throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" jv)
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 jv
-  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt jty do
+  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt cvA.type do
     throw (.invalid s!"type mismatch in opaque {cvA.name}")
   pure (.axiomInfo cvA)
 
@@ -152,9 +150,10 @@ def checkDeclC (pins : List NatOpPinSet) (fe : FEnv) (pd : Declaration) :
     CheckCM FEnv :=
   match pd with
   | .defnDecl cv value hint => do
-    let (cvA, jty) ← checkConstantValC mode fe cv
+    checkConstantValC mode fe cv
+    let cvA := cv
     if natOpNames.contains cvA.name || natDivModNames.contains cvA.name then
-      let ci ← checkDefnValCI mode fe cvA jty value hint
+      let ci ← checkDefnValCI mode fe cvA value hint
       let fe2 := fe.overlay [ci]
       if natOpNames.contains cvA.name then
         unless natOpGuardF fe2 cvA.name &&
@@ -180,11 +179,12 @@ def checkDeclC (pins : List NatOpPinSet) (fe : FEnv) (pd : Declaration) :
   | .thmDecl cv _ =>
     throw (.internal s!"theorem {cv.name} reached the ordinary step")
   | .opaqueDecl cv value => do
-    let (cvA, jty) ← checkConstantValC mode fe cv
+    checkConstantValC mode fe cv
+    let cvA := cv
     -- only a `reduce*` opaque reaches this step: phase A installs the
     -- others (`installStepC`)
     if reduceOpNames.contains cvA.name then do
-      let ci ← checkOpaqueValCI mode fe cvA jty value
+      let ci ← checkOpaqueValCI mode fe cvA value
       checkReducePinF (sharedOpsC mode fe) fe (fe.overlay [ci]) cvA.name value
       pure (fe.push ci)
     else
@@ -199,7 +199,8 @@ def checkDeclC (pins : List NatOpPinSet) (fe : FEnv) (pd : Declaration) :
       else
         throw (.notImplemented "quotient soundness axiom mismatch"))
     else do
-      let (cvA, _) ← checkConstantValC mode fe cv
+      checkConstantValC mode fe cv
+      let cvA := cv
       if stdAxiomOkF fe cvA then
         pure (fe.push (.axiomInfo cvA))
       else if cvA.name = trustCompilerName then

@@ -3,6 +3,7 @@ module
 import ConLeche.Verify.Cached.PushChain
 import Std.Data.String.ToNat
 public import ConLeche.Model.Inductives.BlockDeclRun
+public import ConLeche.Verify.Inductives.NestedRead
 
 public section
 
@@ -85,8 +86,8 @@ positionally the records' (`recStageG_recNames`), which the pins make
 distinct (`RecPinsF.nodup`). -/
 theorem recStageG_nodup {mode : CheckMode} {F : Nat} {env : Env} {p : BlockParts}
     {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
-    {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {mem : Nat → Prop}
-    (h : RecStageG mode F env p cvTas ctorsAs rs mem)
+    {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
+    (h : RecStageG mode F env p cvTas ctorsAs rs)
     (hndM : p.toBlockShape.memberNames.Nodup) : (rs.map (·.1.name)).Nodup := by
   obtain ⟨hpins, hlenR, hall⟩ := recStageG_recNames h
   have hmap : rs.map (·.1.name) = p.recs.map (·.cvR.name) := by
@@ -103,8 +104,8 @@ theorem recStageG_nodup {mode : CheckMode} {F : Nat} {env : Env} {p : BlockParts
 /-! ## A `.nested` firing's pins mention no empty slot
 
 The pins are the major domain's parameter arguments (lowered), read off
-the STORED recursor type, which is annotated and so mentions no empty
-projection slot (`recStage_cvFacts`). -/
+the STORED recursor type, which its check inferred and so mentions no
+empty projection slot (`recStage_cvFacts`). -/
 
 namespace Expr
 
@@ -181,7 +182,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo BlockParts TargetMajor)
 
 universe w
@@ -201,8 +202,8 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {nested : Bool}
   {block : List ConstantInfo} {out : List (ConstantVal × TargetMajor × List Expr)}
   {mpC : EnvModelM V μ envC} {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List AnnotTerm} {isRec : Bool}
-  {A : Nat → (Name → Nat) → AnnotTerm}
+  {ppsOf : Nat → (Name → Nat) → List ITerm} {isRec : Bool}
+  {A : Nat → (Name → Nat) → ITerm}
 
 /-- **`ctor` from the constructors' storage**: carried constructors
 stored at the major's parameter count have their types bound (the
@@ -241,21 +242,22 @@ section Pins
 
 variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))}
-  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {mem : Nat → Prop}
+  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
 
 omit [SetTheory V] in
 /-- **A `.nested` firing's pins mention no empty
-projection slot** — they are subterms of the stored (annotated) recursor
-type, lowered. -/
-theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs mem)
-    {resolves : Expr → Bool} {Ms : Nat → TargetMajor} :
+projection slot** — they are the stored (checked) recursor type's
+major-domain arguments (`NestedRead`), lowered. -/
+theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs) :
     ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
-      rs[j]? = some r → ∀ lvls pins,
-        ConLeche.tgtFireOf resolves pp.toBlockShape Ms j r = .nested lvls pins →
+      rs[j]? = some r → ∀ {resolves : Expr → Bool} {cnP : Nat} {lvls : List Level}
+        {pins : List Expr},
+        ConLeche.NestedRead resolves r.1.levelParams r.1.type (pp.toBlockShape.majorIdxAt j)
+          (pp.toBlockShape.rulePrefixAt j) cnP lvls pins →
         ∀ pin ∈ pins, ∀ (T : Name) (i : Nat), envC.findProj? T i = none →
           Expr.NoProjAt T i pin := by
-  intro j r hr lvls pins hf pin hpin T i hT
-  obtain ⟨-, -, -, pre, dom, body, D, hs, -, hargs⟩ := ConLeche.tgtFireOf_nested hf
+  intro j r hr resolves cnP lvls pins hread pin hpin T i hT
+  obtain ⟨-, -, -, pre, dom, body, D, hs, -, hargs, -⟩ := hread
   have hty := (ConLeche.recStage_cvFacts h r (List.mem_of_getElem? hr)).2.2.2 T i hT
   have hb := Expr.NoProjAt.stripPis _ hs hty
   have hdom := (Expr.noProjAt_forallE.mp hb).1

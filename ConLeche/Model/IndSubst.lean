@@ -8,18 +8,18 @@ public section
 /-!
 # The reading's substitution algebra (task #161)
 
-The absorption laws at `AnnotTerm`, and the `AnnotTerm.instSeq`
+The absorption laws at `ITerm`, and the `ITerm.instSeq`
 corollaries (`instSeqAV_*`).
 
-**Why these are not free, and why they are cheap.**  `AnnotTerm.liftN`
-and `AnnotTerm.inst` are `Term`'s clause for clause with the numeral
-slots carried inert (`Semantics/Syntax.lean`), so `erase` is a
+**Why these are not free, and why they are cheap.**  `ITerm.liftN`
+and `ITerm.inst` are `Term`'s clause for clause
+(`Semantics/Syntax.lean`), so `erase` is a
 homomorphism for both — but an equation between *readings* is strictly
 stronger than an equation between their erasures, so no erasure
 argument transports.  So each law is re-proved by the
 same structural induction, and each clause is one `simp only` plus the
-inductive hypothesis: the numerals ride along untouched, which is
-exactly what makes the transposition mechanical.
+inductive hypothesis, which is exactly what makes the transposition
+mechanical.
 -/
 
 namespace ConLeche.Model
@@ -27,19 +27,19 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 universe w
 
 namespace AVExprSubst
 
-open ConLeche.Semantics.AnnotTerm ConLeche.SetModel
+open ConLeche.Semantics.ITerm ConLeche.SetModel
 
 /-! ## Absorption -/
 
 /-- Two nested lifts with overlapping cuts collapse
 (`Term.liftN_liftN_absorb`). -/
-theorem liftN_liftN_absorb : ∀ (e : AnnotTerm) {j k m : Nat}, k ≤ j →
+theorem liftN_liftN_absorb : ∀ (e : ITerm) {j k m : Nat}, k ≤ j →
     j ≤ k + m → ∀ n : Nat, liftN n (liftN m e k) j = liftN (m + n) e k := by
   intro e
   induction e with
@@ -81,8 +81,8 @@ theorem liftN_liftN_absorb : ∀ (e : AnnotTerm) {j k m : Nat}, k ≤ j →
 
 /-- Instantiating inside the range a lift just created absorbs one
 unit of it (`Term.inst_liftN_absorb`). -/
-theorem inst_liftN_absorb : ∀ (e : AnnotTerm) {j k m : Nat}, j ≤ k →
-    k ≤ j + m → ∀ a : AnnotTerm, inst (liftN (m + 1) e j) a k = liftN m e j := by
+theorem inst_liftN_absorb : ∀ (e : ITerm) {j k m : Nat}, j ≤ k →
+    k ≤ j + m → ∀ a : ITerm, inst (liftN (m + 1) e j) a k = liftN m e j := by
   intro e
   induction e with
   | bvar i =>
@@ -125,8 +125,8 @@ theorem inst_liftN_absorb : ∀ (e : AnnotTerm) {j k m : Nat}, j ≤ k →
 
 /-- Instantiating strictly above a lift moves under it, with the cut
 shrunk by the lift amount (`Term.inst_liftN_comm`). -/
-theorem inst_liftN_comm : ∀ (e : AnnotTerm) {j k m : Nat}, j + m ≤ k →
-    ∀ a : AnnotTerm, inst (liftN m e j) a k = liftN m (inst e a (k - m)) j := by
+theorem inst_liftN_comm : ∀ (e : ITerm) {j k m : Nat}, j + m ≤ k →
+    ∀ a : ITerm, inst (liftN m e j) a k = liftN m (inst e a (k - m)) j := by
   intro e
   induction e with
   | bvar i =>
@@ -183,8 +183,8 @@ theorem inst_liftN_comm : ∀ (e : AnnotTerm) {j k m : Nat}, j + m ≤ k →
 
 /-- Two instantiations commute, with the cuts adjusted
 (`Term.inst_inst_comm`). -/
-theorem inst_inst_comm : ∀ (e : AnnotTerm) {j k : Nat}, j ≤ k →
-    ∀ a b : AnnotTerm,
+theorem inst_inst_comm : ∀ (e : ITerm) {j k : Nat}, j ≤ k →
+    ∀ a b : ITerm,
     inst (inst e b j) a k = inst (inst e a (k + 1)) (inst b a (k - j)) j := by
   intro e
   induction e with
@@ -240,27 +240,27 @@ theorem inst_inst_comm : ∀ (e : AnnotTerm) {j k : Nat}, j ≤ k →
     simp only [inst_snd, ihe hjk]
 
 /-- A reading closed in the lifting sense is fixed by any
-instantiation.  The `AnnotTerm` closedness currency is the lifting
+instantiation.  The `ITerm` closedness currency is the lifting
 equation the carrier stores (`EnvModel.acval_closed`,
 `denoteMeta_closed`), not a `bvarsBelow` predicate — so this is
 `inst_liftN_absorb` at `m = 0` rather than a `bvarsBelow` induction. -/
-theorem inst_eq_self_of_closed {X : AnnotTerm} (h : ∀ k, liftN 1 X k = X)
-    (a : AnnotTerm) (k : Nat) : inst X a k = X := by
+theorem inst_eq_self_of_closed {X : ITerm} (h : ∀ k, liftN 1 X k = X)
+    (a : ITerm) (k : Nat) : inst X a k = X := by
   have h1 : inst (liftN 1 X k) a k = liftN 0 X k :=
     inst_liftN_absorb X (m := 0) (Nat.le_refl k) (Nat.le_refl k) a
-  rw [h k, ConLeche.Semantics.AnnotTerm.liftN_zero] at h1
+  rw [h k, ConLeche.Semantics.ITerm.liftN_zero] at h1
   exact h1
 
 end AVExprSubst
 
 /-! ## `instSeq` corollaries -/
 
-open ConLeche.Semantics.AnnotTerm in
+open ConLeche.Semantics.ITerm in
 /-- Instantiating the variables a lift just introduced, one per
 argument. -/
-theorem instSeqAV_liftN : ∀ (as : List AnnotTerm) (t : Nat) (a : AnnotTerm),
+theorem instSeqAV_liftN : ∀ (as : List ITerm) (t : Nat) (a : ITerm),
     as.length ≤ t + 1 →
-    ConLeche.Model.AnnotTerm.instSeq as t (liftN (t + 1) a 0)
+    ConLeche.Model.ITerm.instSeq as t (liftN (t + 1) a 0)
       = liftN (t + 1 - as.length) a 0 := by
   intro as
   induction as with
@@ -268,7 +268,7 @@ theorem instSeqAV_liftN : ∀ (as : List AnnotTerm) (t : Nat) (a : AnnotTerm),
   | cons x xs ih =>
     intro t a hlen
     simp only [List.length_cons] at hlen
-    rw [AnnotTerm.instSeq_cons,
+    rw [ITerm.instSeq_cons,
       AVExprSubst.inst_liftN_absorb a (Nat.zero_le t) (by omega) x]
     cases xs with
     | nil => simp
@@ -282,14 +282,14 @@ theorem instSeqAV_liftN : ∀ (as : List AnnotTerm) (t : Nat) (a : AnnotTerm),
       congr 1
       omega
 
-open ConLeche.Semantics.AnnotTerm in
+open ConLeche.Semantics.ITerm in
 /-- **Resolving a variable in the substituted range**:
 with `k` arguments at cuts `c + k - 1 … c`,
 the variable `c + i` becomes the `i`-th argument counted from the
 innermost, lifted past the `c` binders the residual sits under. -/
-theorem instSeqAV_bvar_hit : ∀ (as : List AnnotTerm) (c i : Nat) (x : AnnotTerm),
+theorem instSeqAV_bvar_hit : ∀ (as : List ITerm) (c i : Nat) (x : ITerm),
     as[as.length - 1 - i]? = some x → i < as.length →
-    ConLeche.Model.AnnotTerm.instSeq as (c + as.length - 1) (.bvar (c + i))
+    ConLeche.Model.ITerm.instSeq as (c + as.length - 1) (.bvar (c + i))
       = liftN c x 0 := by
   intro as
   induction as with
@@ -303,7 +303,7 @@ theorem instSeqAV_bvar_hit : ∀ (as : List AnnotTerm) (c i : Nat) (x : AnnotTer
       simp only [List.length_cons, Nat.add_sub_cancel, Nat.sub_self,
         List.getElem?_cons_zero, Option.some.injEq] at hx
       subst hx
-      rw [List.length_cons, hlen, AnnotTerm.instSeq_cons, inst_bvar,
+      rw [List.length_cons, hlen, ITerm.instSeq_cons, inst_bvar,
         ite_eq_right (by omega), ite_eq_left rfl]
       rcases Nat.eq_zero_or_pos (c + as.length) with h0 | h0
       · have hc : c = 0 := by omega
@@ -317,7 +317,7 @@ theorem instSeqAV_bvar_hit : ∀ (as : List AnnotTerm) (c i : Nat) (x : AnnotTer
         congr 1
         omega
     · have hilt : i < as.length := by omega
-      rw [List.length_cons, hlen, AnnotTerm.instSeq_cons, inst_bvar,
+      rw [List.length_cons, hlen, ITerm.instSeq_cons, inst_bvar,
         ite_eq_left (by omega)]
       refine ih c i x ?_ hilt
       simp only [List.length_cons] at hx
@@ -327,46 +327,46 @@ theorem instSeqAV_bvar_hit : ∀ (as : List AnnotTerm) (c i : Nat) (x : AnnotTer
 
 /-! ## What the stages read -/
 
-open ConLeche.Semantics.AnnotTerm in
+open ConLeche.Semantics.ITerm in
 /-- `instSeq` past an innermost instantiation. -/
-theorem instSeqAV_inst0 : ∀ (as : List AnnotTerm) (t : Nat) (X b : AnnotTerm),
+theorem instSeqAV_inst0 : ∀ (as : List ITerm) (t : Nat) (X b : ITerm),
     as.length ≤ t + 1 →
-    ConLeche.Model.AnnotTerm.instSeq as t (X.inst b 0)
-      = (ConLeche.Model.AnnotTerm.instSeq as (t + 1) X).inst
-          (ConLeche.Model.AnnotTerm.instSeq as t b) 0 := by
+    ConLeche.Model.ITerm.instSeq as t (X.inst b 0)
+      = (ConLeche.Model.ITerm.instSeq as (t + 1) X).inst
+          (ConLeche.Model.ITerm.instSeq as t b) 0 := by
   intro as
   induction as with
   | nil => intro t X b _; rfl
   | cons w as ih =>
     intro t X b hlen
     simp only [List.length_cons] at hlen
-    rw [AnnotTerm.instSeq_cons (e := X.inst b 0),
+    rw [ITerm.instSeq_cons (e := X.inst b 0),
       AVExprSubst.inst_inst_comm X (Nat.zero_le t) w b, Nat.sub_zero]
     cases as with
     | nil =>
-      simp only [AnnotTerm.instSeq_nil]
-      rw [AnnotTerm.instSeq_cons, AnnotTerm.instSeq_cons, Nat.add_sub_cancel]
+      simp only [ITerm.instSeq_nil]
+      rw [ITerm.instSeq_cons, ITerm.instSeq_cons, Nat.add_sub_cancel]
       simp
     | cons y ys =>
       have h := ih (t - 1) (X.inst w (t + 1)) (b.inst w t)
         (by simp only [List.length_cons] at hlen ⊢; omega)
-      rw [h, AnnotTerm.instSeq_cons (t := t + 1) (e := X),
-        AnnotTerm.instSeq_cons (t := t) (e := b), Nat.add_sub_cancel,
+      rw [h, ITerm.instSeq_cons (t := t + 1) (e := X),
+        ITerm.instSeq_cons (t := t) (e := b), Nat.add_sub_cancel,
         show t - 1 + 1 = t from by
           simp only [List.length_cons] at hlen; omega]
 
-open ConLeche.Semantics.AnnotTerm in
+open ConLeche.Semantics.ITerm in
 /-- `instSeq` past a lift at the top. -/
-theorem instSeqAV_liftN0 : ∀ (vs : List AnnotTerm) (t m : Nat) (Y : AnnotTerm),
+theorem instSeqAV_liftN0 : ∀ (vs : List ITerm) (t m : Nat) (Y : ITerm),
     vs.length ≤ t + 1 →
-    ConLeche.Model.AnnotTerm.instSeq vs (t + m) (liftN m Y 0)
-      = liftN m (ConLeche.Model.AnnotTerm.instSeq vs t Y) 0 := by
+    ConLeche.Model.ITerm.instSeq vs (t + m) (liftN m Y 0)
+      = liftN m (ConLeche.Model.ITerm.instSeq vs t Y) 0 := by
   intro vs
   induction vs with
   | nil => intro t m Y _; rfl
   | cons a vs ih =>
     intro t m Y h
-    show ConLeche.Model.AnnotTerm.instSeq vs (t + m - 1)
+    show ConLeche.Model.ITerm.instSeq vs (t + m - 1)
         ((liftN m Y 0).inst a (t + m)) = _
     rw [AVExprSubst.inst_liftN_comm Y (by omega) a, Nat.add_sub_cancel]
     cases t with

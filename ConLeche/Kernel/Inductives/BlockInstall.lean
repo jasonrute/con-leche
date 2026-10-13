@@ -113,8 +113,8 @@ loop (task #195) and the result sort — without the environment cons,
 which at k members happens only once every former has been checked. -/
 def checkBlockTele (ops : CheckerOps m) (env : Env) (nP : Nat) (ms : MemberShape) :
     m (ConstantVal × Level) := do
-  let cvTa₀ ← checkConstantVal ops env ms.cvT
-  let (cvTa, s) ← checkSumTele ops env ms.cvT (nP + ms.nIdx) cvTa₀
+  checkConstantVal ops env ms.cvT
+  let (cvTa, s) ← checkSumTele ops env ms.cvT (nP + ms.nIdx) ms.cvT
   let (_, tbody) ← unwrapOr (cvTa.type.stripPis (nP + ms.nIdx))
     (.internal "direct sum: type former telescope")
   unless tbody == Expr.sort s do
@@ -341,8 +341,8 @@ that consume them — the pins, the types, the rules — and the
 reject-only conformance check after them. -/
 
 /-- The `k` RULE-LESS recursors, consed in block order: the
-environment a rule's right-hand side is annotated, resolved and typed
-at (official's `declare_recursors` puts every recursor of the block in
+environment a rule's right-hand side is resolved and typed at
+(official's `declare_recursors` puts every recursor of the block in
 the environment before any rule is looked at). -/
 def consBlockRecsBare (p : BlockShape) : Nat → List (ConstantVal × Nat) → Env → Env
   | _, [], env => env

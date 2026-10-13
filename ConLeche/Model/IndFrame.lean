@@ -7,14 +7,14 @@ public section
 /-!
 # The P-tier frame kit (task #161, IND TIER part 3, step 1)
 
-The environment vocabulary of the validated readings: the chain of a
+The environment vocabulary of the stored-term readings: the chain of a
 spine's **readings** (`consN (ws.map (interp V ρ)) ρ`) and its lookups,
 the `instSeq` pivot between chain-reading and substituted-reading, the
 substituted telescope, the tower producers, and `CtxOk` at an opened
 frame.
 
-`Sat`'s context is a `List AnnotTerm`, so a padding slot is
-`AnnotTerm.sort 0` and its value fact is `empty_mem_univ 0` through
+`Sat`'s context is a `List ITerm`, so a padding slot is
+`ITerm.sort 0` and its value fact is `empty_mem_univ 0` through
 `interp_sort` — `interp` of a sort is `univ` on the nose.
 -/
 
@@ -23,7 +23,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 
 universe w
 
@@ -38,14 +38,14 @@ environment shifted. -/
 
 /-- The value chain of a spine of readings (outermost first). -/
 @[expose] noncomputable def chain (V : Type w) [SetTheory V] (ρ : Nat → V)
-    (ws : List AnnotTerm) : Nat → V :=
+    (ws : List ITerm) : Nat → V :=
   consN (ws.map (interp V ρ)) ρ
 
 @[simp] theorem chain_nil (ρ : Nat → V) : chain V ρ [] = ρ := rfl
 
 /-- Chain lookup at or above the spine: the ambient environment,
 shifted. -/
-theorem chain_ge {ρ : Nat → V} {ws : List AnnotTerm} {i : Nat}
+theorem chain_ge {ρ : Nat → V} {ws : List ITerm} {i : Nat}
     (hi : ws.length ≤ i) : chain V ρ ws i = ρ (i - ws.length) := by
   have hlen : (ws.map (interp V ρ)).length = ws.length := by simp
   have h := consN_shift (ws.map (interp V ρ)) ρ (i - ws.length)
@@ -54,7 +54,7 @@ theorem chain_ge {ρ : Nat → V} {ws : List AnnotTerm} {i : Nat}
 
 /-- Chain lookup below the spine: the reading of the
 `(len - 1 - i)`-th spine element. -/
-theorem chain_lt {ρ : Nat → V} {ws : List AnnotTerm} {i : Nat}
+theorem chain_lt {ρ : Nat → V} {ws : List ITerm} {i : Nat}
     (hi : i < ws.length) :
     chain V ρ ws i = interp V ρ (ws.getD (ws.length - 1 - i) default) := by
   have hlen : (ws.map (interp V ρ)).length = ws.length := by simp
@@ -70,7 +70,7 @@ theorem chain_lt {ρ : Nat → V} {ws : List AnnotTerm} {i : Nat}
 
 /-- The tail of a chain at an entry position is the partial chain of
 the outer readings. -/
-theorem chain_tail {ρ : Nat → V} {ws : List AnnotTerm} {i : Nat}
+theorem chain_tail {ρ : Nat → V} {ws : List ITerm} {i : Nat}
     (hi : i < ws.length) :
     (fun j => chain V ρ ws (j + i + 1))
       = chain V ρ (ws.take (ws.length - 1 - i)) := by
@@ -89,8 +89,8 @@ theorem chain_tail {ρ : Nat → V} {ws : List AnnotTerm} {i : Nat}
 
 /-- Inserting the outermost chain reading is `instE` at the spine's
 length. -/
-theorem chain_cons_eq_instE (ρ : Nat → V) (w : AnnotTerm)
-    (ws : List AnnotTerm) :
+theorem chain_cons_eq_instE (ρ : Nat → V) (w : ITerm)
+    (ws : List ITerm) :
     chain V ρ (w :: ws)
       = instE ws.length (interp V ρ w) (chain V ρ ws) := by
   funext i
@@ -118,29 +118,29 @@ theorem chain_cons_eq_instE (ρ : Nat → V) (w : AnnotTerm)
 /-! ## Evaluation is instantiation
 
 Interpreting a fully spine-instantiated reading is interpreting the
-open reading at the value chain.  `AnnotTerm.instSeq` is
+open reading at the value chain.  `ITerm.instSeq` is
 `Term.instSeq`'s analogue — outermost argument first, at descending
 cuts. -/
 
 /-- Instantiate a spine of readings at descending cuts, outermost
 first. -/
-@[expose] def _root_.ConLeche.Model.AnnotTerm.instSeq :
-    List AnnotTerm → Nat → AnnotTerm → AnnotTerm
+@[expose] def _root_.ConLeche.Model.ITerm.instSeq :
+    List ITerm → Nat → ITerm → ITerm
   | [], _, e => e
-  | a :: as, t, e => ConLeche.Model.AnnotTerm.instSeq as (t - 1) (e.inst a t)
+  | a :: as, t, e => ConLeche.Model.ITerm.instSeq as (t - 1) (e.inst a t)
 
-@[simp] theorem AnnotTerm.instSeq_nil (t : Nat) (e : AnnotTerm) :
-    ConLeche.Model.AnnotTerm.instSeq [] t e = e := rfl
+@[simp] theorem ITerm.instSeq_nil (t : Nat) (e : ITerm) :
+    ConLeche.Model.ITerm.instSeq [] t e = e := rfl
 
-theorem AnnotTerm.instSeq_cons (a : AnnotTerm) (as : List AnnotTerm) (t : Nat)
-    (e : AnnotTerm) :
-    ConLeche.Model.AnnotTerm.instSeq (a :: as) t e
-      = ConLeche.Model.AnnotTerm.instSeq as (t - 1) (e.inst a t) := rfl
+theorem ITerm.instSeq_cons (a : ITerm) (as : List ITerm) (t : Nat)
+    (e : ITerm) :
+    ConLeche.Model.ITerm.instSeq (a :: as) t e
+      = ConLeche.Model.ITerm.instSeq as (t - 1) (e.inst a t) := rfl
 
 /-- **Evaluation is instantiation.** -/
 theorem interp_instSeq :
-    ∀ (ws : List AnnotTerm) (e : AnnotTerm) (ρ : Nat → V),
-      interp V ρ (ConLeche.Model.AnnotTerm.instSeq ws (ws.length - 1) e)
+    ∀ (ws : List ITerm) (e : ITerm) (ρ : Nat → V),
+      interp V ρ (ConLeche.Model.ITerm.instSeq ws (ws.length - 1) e)
         = interp V (chain V ρ ws) e := by
   intro ws
   induction ws with
@@ -148,7 +148,7 @@ theorem interp_instSeq :
   | cons w ws ih =>
     intro e ρ
     rw [show (w :: ws).length - 1 = ws.length from by simp,
-      AnnotTerm.instSeq_cons, ih (e.inst w ws.length) ρ, interp_inst]
+      ITerm.instSeq_cons, ih (e.inst w ws.length) ρ, interp_inst]
     congr 1
     funext i
     show instE ws.length
@@ -163,26 +163,26 @@ theorem interp_instSeq :
 
 /-! ## The telescope, substituted
 
-`ctxInstAt` at the reading.  These are V-free — pure `AnnotTerm`
+`ctxInstAt` at the reading.  These are V-free — pure `ITerm`
 bookkeeping — and they are what lets the fit's induction step speak
 about the tail tower after one argument goes in. -/
 
 /-- A context's entries, instantiated after a variable *below* all of
 them is substituted (`ctxInstAt`). -/
-@[expose] def ctxInstAtAV (v : AnnotTerm) (j : Nat) : List AnnotTerm → List AnnotTerm
+@[expose] def ctxInstAtAV (v : ITerm) (j : Nat) : List ITerm → List ITerm
   | [] => []
   | B :: Γ => B.inst v (j + Γ.length) :: ctxInstAtAV v j Γ
 
-@[simp] theorem ctxInstAtAV_nil (v : AnnotTerm) (j : Nat) :
+@[simp] theorem ctxInstAtAV_nil (v : ITerm) (j : Nat) :
     ctxInstAtAV v j [] = [] := rfl
 
-theorem ctxInstAtAV_cons (v : AnnotTerm) (j : Nat) (B : AnnotTerm)
-    (Γ : List AnnotTerm) :
+theorem ctxInstAtAV_cons (v : ITerm) (j : Nat) (B : ITerm)
+    (Γ : List ITerm) :
     ctxInstAtAV v j (B :: Γ) = B.inst v (j + Γ.length) :: ctxInstAtAV v j Γ := by
   rfl
 
-theorem ctxInstAtAV_append (v : AnnotTerm) (j : Nat) :
-    ∀ (Γ₁ Γ₂ : List AnnotTerm),
+theorem ctxInstAtAV_append (v : ITerm) (j : Nat) :
+    ∀ (Γ₁ Γ₂ : List ITerm),
       ctxInstAtAV v j (Γ₁ ++ Γ₂) =
         ctxInstAtAV v (j + Γ₂.length) Γ₁ ++ ctxInstAtAV v j Γ₂
   | [], _ => rfl
@@ -191,16 +191,16 @@ theorem ctxInstAtAV_append (v : AnnotTerm) (j : Nat) :
       ctxInstAtAV_append v j Γ₁ Γ₂, List.length_append, List.cons.injEq]
     exact ⟨by congr 1; omega, trivial⟩
 
-theorem ctxInstAtAV_snoc (v : AnnotTerm) (j : Nat) (Γ : List AnnotTerm)
-    (A : AnnotTerm) :
+theorem ctxInstAtAV_snoc (v : ITerm) (j : Nat) (Γ : List ITerm)
+    (A : ITerm) :
     ctxInstAtAV v j (Γ ++ [A]) = ctxInstAtAV v (j + 1) Γ ++ [A.inst v j] := by
   rw [ctxInstAtAV_append]
   rfl
 
 /-- `ctxInstAtAV`, per entry: the entry at index `i` is instantiated at
 its own residual depth. -/
-theorem ctxInstAtAV_getD (v : AnnotTerm) (j : Nat) :
-    ∀ (Γ : List AnnotTerm) (i : Nat), i < Γ.length →
+theorem ctxInstAtAV_getD (v : ITerm) (j : Nat) :
+    ∀ (Γ : List ITerm) (i : Nat), i < Γ.length →
       (ctxInstAtAV v j Γ).getD i default =
         (Γ.getD i default).inst v (j + Γ.length - 1 - i)
   | [], _, h => absurd h (by simp)
@@ -215,15 +215,15 @@ theorem ctxInstAtAV_getD (v : AnnotTerm) (j : Nat) :
     omega
 
 /-- A substituted tower is a tower over the substituted context. -/
-theorem PiTeleAV.inst : ∀ {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
-    {R : AnnotTerm}, PiTeleAV k T Γ R → ∀ (v : AnnotTerm) (j : Nat),
+theorem PiTeleAV.inst : ∀ {k : Nat} {T : ITerm} {Γ : List ITerm}
+    {R : ITerm}, PiTeleAV k T Γ R → ∀ (v : ITerm) (j : Nat),
       PiTeleAV k (T.inst v j) (ctxInstAtAV v j Γ) (R.inst v (j + k)) := by
   intro k T Γ R h
   induction h with
   | nil => intro v j; simpa using PiTeleAV.nil
   | @cons k A B R Γ _ ih =>
     intro v j
-    rw [AnnotTerm.inst_pi, ctxInstAtAV_snoc]
+    rw [ITerm.inst_pi, ctxInstAtAV_snoc]
     have h1 := ih v (j + 1)
     rw [show j + 1 + k = j + (k + 1) from by omega] at h1
     exact PiTeleAV.cons h1
@@ -237,8 +237,8 @@ the arguments outside it.  `TeleFitPA` peels by substitution
 
 /-- **`Sat` of a tower's context at the chain**, from per-step chain
 memberships. -/
-theorem sat_of_tower {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
-    {R : AnnotTerm} (h : PiTeleAV k T Γ R) {ws : List AnnotTerm} {ρ : Nat → V}
+theorem sat_of_tower {k : Nat} {T : ITerm} {Γ : List ITerm}
+    {R : ITerm} (h : PiTeleAV k T Γ R) {ws : List ITerm} {ρ : Nat → V}
     (hlen : ws.length = k)
     (hmem : ∀ n, n < k →
       interp V ρ (ws.getD n default)
@@ -268,14 +268,14 @@ theorem sat_of_tower {k : Nat} {T : AnnotTerm} {Γ : List AnnotTerm}
 progressive chains fit the tower, with the fully instantiated body as
 residual. -/
 theorem teleFitPA_of_tower :
-    ∀ (k : Nat) {T : AnnotTerm} {Γ : List AnnotTerm} {R : AnnotTerm},
-      PiTeleAV k T Γ R → ∀ {ws : List AnnotTerm} {ρ : Nat → V},
+    ∀ (k : Nat) {T : ITerm} {Γ : List ITerm} {R : ITerm},
+      PiTeleAV k T Γ R → ∀ {ws : List ITerm} {ρ : Nat → V},
       ws.length = k →
       (∀ n, n < k →
         interp V ρ (ws.getD n default)
           ∈ˢ interp V (chain V ρ (ws.take n))
             (Γ.getD (k - 1 - n) default)) →
-      TeleFitPA V ρ T ws (ConLeche.Model.AnnotTerm.instSeq ws (k - 1) R) := by
+      TeleFitPA V ρ T ws (ConLeche.Model.ITerm.instSeq ws (k - 1) R) := by
   intro k
   induction k with
   | zero =>
@@ -300,9 +300,9 @@ theorem teleFitPA_of_tower :
     -- the tail: the instantiated tower via the recursion at `k`
     have hinst := htail.inst w 0
     have hfit := ihk hinst (ws := ws') (ρ := ρ) hlen' ?_
-    · rw [show ConLeche.Model.AnnotTerm.instSeq (w :: ws') (k + 1 - 1) R
-          = ConLeche.Model.AnnotTerm.instSeq ws' (k - 1) (R.inst w k) from by
-        rw [AnnotTerm.instSeq_cons]
+    · rw [show ConLeche.Model.ITerm.instSeq (w :: ws') (k + 1 - 1) R
+          = ConLeche.Model.ITerm.instSeq ws' (k - 1) (R.inst w k) from by
+        rw [ITerm.instSeq_cons]
         simp only [Nat.add_sub_cancel]]
       rw [show (0 : Nat) + k = k from Nat.zero_add k] at hfit
       exact hfit
@@ -338,7 +338,7 @@ theorem teleFitPA_of_tower :
 `CtxOk`'s per-leaf obligation is a **semantic equation plus a
 grading**.  The equation is free (it is `interp_liftN` against a
 `shiftE` that computes); the grading is not — nothing about an
-opener's index says its annotation reads to a graded annotation — so
+opener's index says its annotation reads to a graded type — so
 the openers' grading is the premise `hokA`.
 
 The equation half needs no
@@ -349,13 +349,13 @@ at `fun j => ρ (j + (k - 1 - i) + 1)` — the same function whenever
 hypothesis is consulted, and `ctxOk_of_openers` never inspects `ρ`. -/
 
 /-- **`CtxOk` at the opened frame**: a context whose entries at the touched indices are the
-frame's own-depth read annotations correlates with a kit expression;
+frame's own-depth annotation readings correlates with a kit expression;
 padding slots are never consulted. -/
 theorem ctxOk_of_openers {env : Env} {m : EnvModel V env}
     {φ : Name → Nat}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (m.acval n ψ).liftN 1 k = m.acval n ψ)
-    {k : Nat} {fvs : List Expr} {Aa : Nat → AnnotTerm} {Δa : List AnnotTerm}
+    {k : Nat} {fvs : List Expr} {Aa : Nat → ITerm} {Δa : List ITerm}
     (hΔlen : Δa.length = k)
     (hshape : ∀ (i : Nat) (x : Expr), fvs[i]? = some x →
       ∃ ty, x = Expr.fvar i ty)

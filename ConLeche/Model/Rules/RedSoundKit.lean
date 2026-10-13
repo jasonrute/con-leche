@@ -41,7 +41,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal)
 open ConLeche.Rules
 
@@ -64,7 +64,7 @@ instantiated at the value's (`denoteMeta_beta`, at the value where β
 has the argument).  The type is not involved. -/
 
 /-- The ζ-reduct's frame, leaves and reading. -/
-theorem zeta_syntax {d : Nat} {ty v body : Expr} {va ba : AnnotTerm}
+theorem zeta_syntax {d : Nat} {ty v body : Expr} {va ba : ITerm}
     (hf : Frame d (.letE ty v body))
     (hva : denoteMeta m.acval env φ d v = some va)
     (hba : denoteMeta m.acval env φ (d + 1)
@@ -100,7 +100,7 @@ theorem letE_val_frame {d : Nat} {ty v body : Expr}
 
 /-! ## The two `Nat` constructor readings and the literal expansions -/
 
-theorem denoteMetaNatZeroConst {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMetaNatZeroConst {acval : Name → (Name → Nat) → ITerm}
     (hg : ConLeche.natLitSupported env = true) {d : Nat} :
     denoteMeta acval env φ d (.const ConLeche.natZeroName [])
       = some (acval ConLeche.natZeroName (Level.substFn φ [] [])) := by
@@ -119,7 +119,7 @@ theorem denoteMetaNatZeroConst {acval : Name → (Name → Nat) → AnnotTerm}
       | _ => simp [ConLeche.natZeroOk] at h2
     rw [denoteMeta_const hf (by simp [hlp]), hlp]
 
-theorem denoteMetaNatSuccConst {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMetaNatSuccConst {acval : Name → (Name → Nat) → ITerm}
     (hg : ConLeche.natLitSupported env = true) {d : Nat} :
     denoteMeta acval env φ d (.const ConLeche.natSuccName [])
       = some (acval ConLeche.natSuccName (Level.substFn φ [] [])) := by
@@ -140,7 +140,7 @@ theorem denoteMetaNatSuccConst {acval : Name → (Name → Nat) → AnnotTerm}
 
 /-- `denoteMeta` is blind to the `Nat`-literal constructor expansion. -/
 theorem denoteMeta_natLitToConstructor
-    {acval : Name → (Name → Nat) → AnnotTerm}
+    {acval : Name → (Name → Nat) → ITerm}
     (hg : ConLeche.natLitSupported env = true) (d n : Nat) :
     denoteMeta acval env φ d (ConLeche.natLitToConstructor n)
       = denoteMeta acval env φ d (.lit (.natVal n)) := by
@@ -155,14 +155,14 @@ theorem denoteMeta_natLitToConstructor
     rfl
 
 theorem denoteMetaConstNolevels
-    {acval : Name → (Name → Nat) → AnnotTerm} {c : Name}
+    {acval : Name → (Name → Nat) → ITerm} {c : Name}
     {ci : ConLeche.ConstantInfo} (hf : env.find? c = some ci)
     (hlp : ci.toConstantVal.levelParams = []) (d : Nat) :
     denoteMeta acval env φ d (.const c [])
       = some (acval c (Level.substFn φ [] [])) := by
   rw [denoteMeta_const hf (by simp [hlp]), hlp]
 
-theorem denoteMetaNilTerm {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMetaNilTerm {acval : Name → (Name → Nat) → ITerm}
     (hg : ConLeche.strLitSupported env = true) (d : Nat) :
     denoteMeta acval env φ d
         (.app (.const ConLeche.listNilName [.zero])
@@ -180,7 +180,7 @@ theorem denoteMetaNilTerm {acval : Name → (Name → Nat) → AnnotTerm}
     denoteMetaConstNolevels hfC hlpC d, hlpa]
   rfl
 
-theorem denoteMetaConsTerm {acval : Name → (Name → Nat) → AnnotTerm}
+theorem denoteMetaConsTerm {acval : Name → (Name → Nat) → ITerm}
     (hg : ConLeche.strLitSupported env = true) (d : Nat) :
     denoteMeta acval env φ d
         (.app (.const ConLeche.listConsName [.zero])
@@ -199,7 +199,7 @@ theorem denoteMetaConsTerm {acval : Name → (Name → Nat) → AnnotTerm}
   rfl
 
 theorem denoteMetaStrLitList
-    {acval : Name → (Name → Nat) → AnnotTerm}
+    {acval : Name → (Name → Nat) → ITerm}
     (hg : ConLeche.strLitSupported env = true) (d : Nat) :
     ∀ cs : List Char,
       denoteMeta acval env φ d (ConLeche.strLitList cs)
@@ -232,7 +232,7 @@ theorem denoteMetaStrLitList
 
 /-- `denoteMeta` is blind to the string-literal constructor expansion. -/
 theorem denoteMeta_strLitToConstructor
-    {acval : Name → (Name → Nat) → AnnotTerm}
+    {acval : Name → (Name → Nat) → ITerm}
     (hg : ConLeche.strLitSupported env = true) (d : Nat) (s : String) :
     denoteMeta acval env φ d (ConLeche.strLitToConstructor s)
       = denoteMeta acval env φ d (.lit (.strVal s)) := by
@@ -253,7 +253,7 @@ theorem frame_atom {d : Nat} {e : Expr} (h : e.fvarLeaves = [])
    fun _ l hl => by rw [h] at hl; exact nomatch hl⟩
 
 /-- The two components of a graded application are graded. -/
-theorem graded_app {Δa : List AnnotTerm} {f x : AnnotTerm}
+theorem graded_app {Δa : List ITerm} {f x : ITerm}
     (h : Graded V Δa (.app f x)) : Graded V Δa f ∧ Graded V Δa x :=
   ⟨fun σ hσ => by have h1 := h σ hσ; rw [WellDenoted_app] at h1; exact h1.1,
    fun σ hσ => by have h1 := h σ hσ; rw [WellDenoted_app] at h1; exact h1.2.1⟩
@@ -262,7 +262,7 @@ theorem graded_app {Δa : List AnnotTerm} {f x : AnnotTerm}
 /-- An application's grading depends on its two components only through
 their VALUES, so it transfers along equal-valued graded replacements
 (stated once, for either slot). -/
-theorem appCongrV {σ : Nat → V} {f a f' a' : AnnotTerm}
+theorem appCongrV {σ : Nat → V} {f a f' a' : ITerm}
     (heqf : interp V σ f = interp V σ f')
     (heqa : interp V σ a = interp V σ a')
     (hgf' : WellDenoted V σ f') (hga' : WellDenoted V σ a')
@@ -279,7 +279,7 @@ namespace ProjAV
 
 /-- The subject of a graded projection spine is graded. -/
 theorem hoist :
-    ∀ {i : Nat} {e : AnnotTerm} {σ : Nat → V},
+    ∀ {i : Nat} {e : ITerm} {σ : Nat → V},
       WellDenoted V σ (projAV i e) → WellDenoted V σ e
   | 0, e, σ, h => (cast (WellDenoted_fst V σ e) h).1
   | i + 1, e, σ, h =>
@@ -288,7 +288,7 @@ theorem hoist :
 /-- **`projAV`'s truthfulness transfers to an equal-valued graded
 subject.** -/
 theorem congr :
-    ∀ {i : Nat} {e e' : AnnotTerm} {σ : Nat → V},
+    ∀ {i : Nat} {e e' : ITerm} {σ : Nat → V},
       interp V σ e = interp V σ e' → WellDenoted V σ e' →
       WellDenoted V σ (projAV i e) → WellDenoted V σ (projAV i e')
   | 0, e, e', σ, heq, hok', hok => by
@@ -308,18 +308,18 @@ theorem congr :
       exact ⟨hok', u, v, A, Bf, heq ▸ hs, hA, hB⟩
 
 /-- `WellDenoted` form of the congruence. -/
-theorem congrV {i : Nat} {e e' : AnnotTerm} {σ : Nat → V}
+theorem congrV {i : Nat} {e e' : ITerm} {σ : Nat → V}
     (heq : interp V σ e = interp V σ e') (hok' : WellDenoted V σ e')
     (hok : WellDenoted V σ (projAV i e)) : WellDenoted V σ (projAV i e') :=
   congr heq hok' hok
 
 /-- `WellDenoted` of the subject, off the spine's. -/
-theorem hoistV {i : Nat} {e : AnnotTerm} {σ : Nat → V}
+theorem hoistV {i : Nat} {e : ITerm} {σ : Nat → V}
     (hok : WellDenoted V σ (projAV i e)) : WellDenoted V σ e :=
   hoist hok
 
 /-- The interpretation of the spine, at equal-valued subjects. -/
-theorem interp_congr {i : Nat} {e e' : AnnotTerm} {σ : Nat → V}
+theorem interp_congr {i : Nat} {e e' : ITerm} {σ : Nat → V}
     (heq : interp V σ e = interp V σ e') :
     interp V σ (projAV i e) = interp V σ (projAV i e') := by
   rw [projAV_interp, projAV_interp, heq]
@@ -329,14 +329,14 @@ end ProjAV
 
 /-! ## The β step at the currency -/
 
-/-- A λ's domain annotation is graded when the λ is. -/
-theorem lamDomV {A b : AnnotTerm} {ρ : Nat → V}
+/-- A λ's domain is graded when the λ is. -/
+theorem lamDomV {A b : ITerm} {ρ : Nat → V}
     (h : WellDenoted V ρ (.lam A b)) : WellDenoted V ρ A := by
   rw [WellDenoted_lam] at h; exact h.1
 
 /-- **The graded β step** at a redex that is not the point
 (`WellDenoted_beta`). -/
-theorem betaV {A b a : AnnotTerm} {ρ : Nat → V}
+theorem betaV {A b a : ITerm} {ρ : Nat → V}
     (h : WellDenoted V ρ (.app (.lam A b) a))
     (hne : interp V ρ (.app (.lam A b) a) ≠ pt) :
     interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) ∧
@@ -348,13 +348,13 @@ theorem betaV {A b a : AnnotTerm} {ρ : Nat → V}
 /-- **A `TeleFitPA` fit plus the type's grading grades the applied
 spine**, and places it in the residual's reading. -/
 theorem mkAppN_of_fitA {ρ : Nat → V} :
-    ∀ (vs : List AnnotTerm) {Ta f rest : AnnotTerm},
+    ∀ (vs : List ITerm) {Ta f rest : ITerm},
       WellDenoted V ρ Ta → WellDenoted V ρ f →
       (∀ x ∈ vs, WellDenoted V ρ x) →
       interp V ρ f ∈ˢ interp V ρ Ta →
       TeleFitPA V ρ Ta vs rest →
-      WellDenoted V ρ (AnnotTerm.mkAppN f vs) ∧
-        interp V ρ (AnnotTerm.mkAppN f vs) ∈ˢ interp V ρ rest := by
+      WellDenoted V ρ (ITerm.mkAppN f vs) ∧
+        interp V ρ (ITerm.mkAppN f vs) ∈ˢ interp V ρ rest := by
   intro vs
   induction vs with
   | nil =>
@@ -380,8 +380,8 @@ theorem mkAppN_of_fitA {ρ : Nat → V} :
 
 /-- The head of a graded spine is graded. -/
 theorem mkAppN_head {ρ : Nat → V} :
-    ∀ (as : List AnnotTerm) {f : AnnotTerm},
-      WellDenoted V ρ (AnnotTerm.mkAppN f as) → WellDenoted V ρ f
+    ∀ (as : List ITerm) {f : ITerm},
+      WellDenoted V ρ (ITerm.mkAppN f as) → WellDenoted V ρ f
   | [], _, h => h
   | a :: as, f, h => by
     have h' : WellDenoted V ρ (.app f a) := mkAppN_head as h
@@ -410,9 +410,9 @@ What is still stated here is what mentions the rules tier's own
 
 /-- Every argument of a graded application spine is graded, and so is
 its head (`hoist_spine`). -/
-theorem hoist_spine {Δa : List AnnotTerm} :
-    ∀ (asa : List AnnotTerm) {fa : AnnotTerm},
-      Graded V Δa (AnnotTerm.mkAppN fa asa) →
+theorem hoist_spine {Δa : List ITerm} :
+    ∀ (asa : List ITerm) {fa : ITerm},
+      Graded V Δa (ITerm.mkAppN fa asa) →
       Graded V Δa fa ∧ ∀ x ∈ asa, Graded V Δa x := by
   intro asa
   induction asa with
@@ -430,56 +430,56 @@ theorem hoist_spine {Δa : List AnnotTerm} :
 /-! ## The per-valuation splitters (task #342, L9) -/
 
 
-theorem _root_.ConLeche.Semantics.WellDenoted.app_fn {ρ : Nat → V} {f x : AnnotTerm}
+theorem _root_.ConLeche.Semantics.WellDenoted.app_fn {ρ : Nat → V} {f x : ITerm}
     (h : WellDenoted V ρ (.app f x)) : WellDenoted V ρ f :=
   (cast (WellDenoted_app V ρ f x) h).1
 
-theorem _root_.ConLeche.Semantics.WellDenoted.app_arg {ρ : Nat → V} {f x : AnnotTerm}
+theorem _root_.ConLeche.Semantics.WellDenoted.app_arg {ρ : Nat → V} {f x : ITerm}
     (h : WellDenoted V ρ (.app f x)) : WellDenoted V ρ x :=
   (cast (WellDenoted_app V ρ f x) h).2.1
 
-theorem _root_.ConLeche.Semantics.WellDenoted.pi_dom {ρ : Nat → V} {A B : AnnotTerm}
+theorem _root_.ConLeche.Semantics.WellDenoted.pi_dom {ρ : Nat → V} {A B : ITerm}
     (h : WellDenoted V ρ (.pi A B)) : WellDenotedTy V ρ A :=
   ⟨(cast (WellDenoted_pi V ρ A B) h).1, (cast (WellDenoted_pi V ρ A B) h).2.1⟩
 
-theorem _root_.ConLeche.Semantics.WellDenoted.pi_body {ρ : Nat → V} {A B : AnnotTerm}
+theorem _root_.ConLeche.Semantics.WellDenoted.pi_body {ρ : Nat → V} {A B : ITerm}
     (h : WellDenoted V ρ (.pi A B)) :
     ∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) B := fun x hx =>
   (cast (WellDenoted_pi V ρ A B) h).2.2.1 x hx
 
 /-- A graded Π-type's fibres are types. -/
 theorem _root_.ConLeche.Semantics.WellDenoted.pi_fib {ρ : Nat → V}
-    {A B : AnnotTerm} (h : WellDenoted V ρ (.pi A B)) :
+    {A B : ITerm} (h : WellDenoted V ρ (.pi A B)) :
     ∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B) := fun x hx =>
   (cast (WellDenoted_pi V ρ A B) h).2.2.2 x hx
 
-theorem _root_.ConLeche.Semantics.WellDenoted.lam_dom {ρ : Nat → V} {A b : AnnotTerm}
+theorem _root_.ConLeche.Semantics.WellDenoted.lam_dom {ρ : Nat → V} {A b : ITerm}
     (h : WellDenoted V ρ (.lam A b)) : WellDenotedTy V ρ A :=
   ⟨(cast (WellDenoted_lam V ρ A b) h).1, (cast (WellDenoted_lam V ρ A b) h).2.1⟩
 
-theorem _root_.ConLeche.Semantics.WellDenoted.lam_body {ρ : Nat → V} {A b : AnnotTerm}
+theorem _root_.ConLeche.Semantics.WellDenoted.lam_body {ρ : Nat → V} {A b : ITerm}
     (h : WellDenoted V ρ (.lam A b)) :
     ∀ x, x ∈ˢ interp V ρ A → WellDenoted V (cons x ρ) b := fun x hx =>
   (cast (WellDenoted_lam V ρ A b) h).2.2.1 x hx
 
-theorem _root_.ConLeche.Semantics.WellDenoted.fst_arg {ρ : Nat → V} {e : AnnotTerm}
+theorem _root_.ConLeche.Semantics.WellDenoted.fst_arg {ρ : Nat → V} {e : ITerm}
     (h : WellDenoted V ρ (.fst e)) : WellDenoted V ρ e :=
   (cast (WellDenoted_fst V ρ e) h).1
 
-theorem _root_.ConLeche.Semantics.WellDenoted.snd_arg {ρ : Nat → V} {e : AnnotTerm}
+theorem _root_.ConLeche.Semantics.WellDenoted.snd_arg {ρ : Nat → V} {e : ITerm}
     (h : WellDenoted V ρ (.snd e)) : WellDenoted V ρ e :=
   (cast (WellDenoted_snd V ρ e) h).1
 
 
 /-- "Not pt" source (1): a graded type is not the point. -/
-theorem _root_.ConLeche.Model.WellDenotedTy.ne_pt {ρ : Nat → V} {e : AnnotTerm}
+theorem _root_.ConLeche.Model.WellDenotedTy.ne_pt {ρ : Nat → V} {e : ITerm}
     (h : WellDenotedTy V ρ e) : interp V ρ e ≠ pt := h.2.ne_pt
 
 /-- Every argument of a graded application spine is graded, and so is
 its head, at one valuation. -/
 theorem hoist_spineV {ρ : Nat → V} :
-    ∀ (asa : List AnnotTerm) {fa : AnnotTerm},
-      WellDenoted V ρ (AnnotTerm.mkAppN fa asa) →
+    ∀ (asa : List ITerm) {fa : ITerm},
+      WellDenoted V ρ (ITerm.mkAppN fa asa) →
       WellDenoted V ρ fa ∧ ∀ x ∈ asa, WellDenoted V ρ x := by
   intro asa
   induction asa with
@@ -501,7 +501,7 @@ theorem leavesGr_spine {d : Nat} {a : Expr} {ρ : Nat → V}
   hL.of_subset (fun l hl => ConLeche.fvarLeaves_getAppArgs hx l hl)
 
 /-- The frame conditions of every argument of a spine (`frame_spine`). -/
-theorem frame_spine {d : Nat} {Δa : List AnnotTerm} {a : Expr}
+theorem frame_spine {d : Nat} {Δa : List ITerm} {a : Expr}
     (hf : Frame d a) (hC : CtxOkS m φ d Δa a) :
     ∀ x ∈ a.getAppArgs, Frame d x ∧ CtxOkS m φ d Δa x := fun x hx =>
   ⟨⟨hf.1.getAppArgs x hx, ConLeche.looseBVarsBounded_getAppArgs hf.2.1 x hx,
@@ -528,7 +528,7 @@ theorem towerEntry_tele_closed (hwf : ConLeche.EnvWF env) {T : Name} {i : Nat}
 /-- **The body telescope's reading is depth-free.** -/
 theorem towerEntry_tele_at_depth {m : EnvModel V env} {T : Name} {i : Nat}
     {entry : ProjEntry} (hfe : env.findProj? T i = some entry)
-    {us : List Level} {Ta : AnnotTerm}
+    {us : List Level} {Ta : ITerm}
     (hTa : denoteMeta m.acval env φ 0
       (ConLeche.projTele (entry.numParams + 1)
         (entry.body.instantiateLevelParams entry.levelParams us)) = some Ta) :
@@ -544,21 +544,21 @@ theorem towerEntry_tele_at_depth {m : EnvModel V env} {T : Name} {i : Nat}
 /-! ## The ∀-chain guard and the fit's un-instantiation -/
 
 /-- The reading's first `n` heads are `.pi` nodes (`PiChain`). -/
-@[expose] def PiChain : Nat → AnnotTerm → Prop
+@[expose] def PiChain : Nat → ITerm → Prop
   | 0, _ => True
   | n + 1, e =>
     match e with
     | .pi _ B => PiChain n B
     | _ => False
 
-theorem piChain_succ_inv {n : Nat} {e : AnnotTerm} (h : PiChain (n + 1) e) :
+theorem piChain_succ_inv {n : Nat} {e : ITerm} (h : PiChain (n + 1) e) :
     ∃ A B, e = .pi A B ∧ PiChain n B := by
   match e with
   | .pi A B => exact ⟨A, B, rfl, h⟩
   | .bvar _ | .sort _ | .const _ _ | .app _ _ | .lam _ _ | .letE _ _
   | .eqE _ _ | .fst _ | .snd _ | .prf => exact nomatch h
 
-theorem PiChain.inst : ∀ {n : Nat} {e : AnnotTerm} (a : AnnotTerm) (k : Nat),
+theorem PiChain.inst : ∀ {n : Nat} {e : ITerm} (a : ITerm) (k : Nat),
     PiChain n e → PiChain n (e.inst a k) := by
   intro n
   induction n with
@@ -570,8 +570,8 @@ theorem PiChain.inst : ∀ {n : Nat} {e : AnnotTerm} (a : AnnotTerm) (k : Nat),
 
 /-- **A syntactic ∀-telescope reads to a ∀-chain**
 (`piChain_of_stripPis`). -/
-theorem piChain_of_stripPis {acval : Name → (Name → Nat) → AnnotTerm} :
-    ∀ (n : Nat) {d : Nat} {e : Expr} {ea : AnnotTerm},
+theorem piChain_of_stripPis {acval : Name → (Name → Nat) → ITerm} :
+    ∀ (n : Nat) {d : Nat} {e : Expr} {ea : ITerm},
       (e.stripPis n).isSome = true →
       denoteMeta acval env φ d e = some ea → PiChain n ea := by
   intro n
@@ -597,9 +597,9 @@ theorem piChain_of_stripPis {acval : Name → (Name → Nat) → AnnotTerm} :
 /-- A ∀-chain of a list's length peels along it
 (`peelPis_of_piChain`).  Shared: the defeq and ι rules both peel a
 stored telescope against a spine. -/
-theorem peelPis_of_piChain : ∀ (as : List AnnotTerm) {T : AnnotTerm},
+theorem peelPis_of_piChain : ∀ (as : List ITerm) {T : ITerm},
     PiChain as.length T →
-      ∃ rest, ConLeche.Model.AnnotTerm.peelPis T as = some rest
+      ∃ rest, ConLeche.Model.ITerm.peelPis T as = some rest
   | [], T, _ => ⟨T, rfl⟩
   | a :: as, T, h => by
     obtain ⟨A, B, rfl, hB⟩ := piChain_succ_inv h
@@ -607,8 +607,8 @@ theorem peelPis_of_piChain : ∀ (as : List AnnotTerm) {T : AnnotTerm},
 
 /-- **The fit un-instantiates, under the ∀-chain guard**
 (`teleFit_of_inst`). -/
-theorem teleFit_of_inst {aa : AnnotTerm} :
-    ∀ {L : List V} {E : AnnotTerm} {k : Nat} {ρ : Nat → V} {rest : V},
+theorem teleFit_of_inst {aa : ITerm} :
+    ∀ {L : List V} {E : ITerm} {k : Nat} {ρ : Nat → V} {rest : V},
       PiChain L.length E →
       TeleFit V ρ (E.inst aa k) L rest →
       TeleFit V (instE k (interp V (shiftE k 0 ρ) aa) ρ) E L rest := by
@@ -622,7 +622,7 @@ theorem teleFit_of_inst {aa : AnnotTerm} :
   | cons y ys ih =>
     intro E k ρ rest hpc h
     obtain ⟨A, B, rfl, hB⟩ := piChain_succ_inv hpc
-    rw [AnnotTerm.inst_pi] at h
+    rw [ITerm.inst_pi] at h
     cases h with
     | cons hmem hfit =>
       refine .cons (by rwa [interp_inst] at hmem) ?_
@@ -631,7 +631,7 @@ theorem teleFit_of_inst {aa : AnnotTerm} :
       rw [cons_instE]
       exact hrec
 
-theorem teleFit_of_inst0 {aa : AnnotTerm} {L : List V} {E : AnnotTerm}
+theorem teleFit_of_inst0 {aa : ITerm} {L : List V} {E : ITerm}
     {ρ : Nat → V} {rest : V} (hpc : PiChain L.length E)
     (h : TeleFit V ρ (E.inst aa) L rest) :
     TeleFit V (cons (interp V ρ aa) ρ) E L rest := by
@@ -640,8 +640,8 @@ theorem teleFit_of_inst0 {aa : AnnotTerm} {L : List V} {E : AnnotTerm}
 
 /-- **The fit re-instantiates, under the ∀-chain guard** (the converse
 of `teleFit_of_inst`). -/
-theorem teleFit_inst_of {aa : AnnotTerm} :
-    ∀ {L : List V} {E : AnnotTerm} {k : Nat} {ρ : Nat → V} {rest : V},
+theorem teleFit_inst_of {aa : ITerm} :
+    ∀ {L : List V} {E : ITerm} {k : Nat} {ρ : Nat → V} {rest : V},
       PiChain L.length E →
       TeleFit V (instE k (interp V (shiftE k 0 ρ) aa) ρ) E L rest →
       TeleFit V ρ (E.inst aa k) L rest := by
@@ -654,7 +654,7 @@ theorem teleFit_inst_of {aa : AnnotTerm} :
   | cons y ys ih =>
     intro E k ρ rest hpc h
     obtain ⟨A, B, rfl, hB⟩ := piChain_succ_inv hpc
-    rw [AnnotTerm.inst_pi]
+    rw [ITerm.inst_pi]
     cases h with
     | cons hmem hfit =>
       refine .cons (by rw [interp_inst]; exact hmem) ?_
@@ -662,17 +662,17 @@ theorem teleFit_inst_of {aa : AnnotTerm} :
       exact ih (E := B) (k := k + 1) (ρ := cons y ρ) hB hfit
 
 /-- `teleFit_inst_of` at the head binder. -/
-theorem teleFit_inst0_of {aa : AnnotTerm} {L : List V} {E : AnnotTerm}
+theorem teleFit_inst0_of {aa : ITerm} {L : List V} {E : ITerm}
     {ρ : Nat → V} {rest : V} (hpc : PiChain L.length E)
     (h : TeleFit V (cons (interp V ρ aa) ρ) E L rest) :
     TeleFit V ρ (E.inst aa) L rest := by
   refine teleFit_inst_of (k := 0) hpc ?_
   rwa [shiftE_zero_zero, instE_zero]
 
-/-- **An annotation-level fit is a value-level fit**
+/-- **A reading-level fit is a value-level fit**
 (`teleFit_of_teleFitPA`). -/
 theorem teleFit_of_teleFitPA {ρ : Nat → V} :
-    ∀ {T : AnnotTerm} {as : List AnnotTerm} {resta : AnnotTerm},
+    ∀ {T : ITerm} {as : List ITerm} {resta : ITerm},
       PiChain as.length T → TeleFitPA V ρ T as resta →
       TeleFit V ρ T (as.map (interp V ρ)) (interp V ρ resta) := by
   intro T as resta hpc h
@@ -687,16 +687,16 @@ theorem teleFit_of_teleFitPA {ρ : Nat → V} :
 
 
 /-- A value-level fit's length is a ∀-chain of the telescope. -/
-theorem piChain_of_teleFit {ρ : Nat → V} {T : AnnotTerm} {L : List V} {rest : V}
+theorem piChain_of_teleFit {ρ : Nat → V} {T : ITerm} {L : List V} {rest : V}
     (h : TeleFit V ρ T L rest) : PiChain L.length T := by
   induction h with
   | nil => trivial
   | cons _ _ ih => exact ih
 
-/-- **A value-level fit at a spine's readings is an annotation-level
+/-- **A value-level fit at a spine's readings is a reading-level
 fit** (`teleFit_of_teleFitPA`'s converse), under the ∀-chain guard. -/
 theorem teleFitPA_of_teleFit {ρ : Nat → V} :
-    ∀ (vs : List AnnotTerm) {T : AnnotTerm} {rest : V},
+    ∀ (vs : List ITerm) {T : ITerm} {rest : V},
       PiChain vs.length T → TeleFit V ρ T (vs.map (interp V ρ)) rest →
       ∃ resta, TeleFitPA V ρ T vs resta
   | [], T, _, _, _ => ⟨T, .nil⟩
@@ -713,7 +713,7 @@ point, are equal** (`spineFit_eq_of_cond` at a `TeleFit`): each domain
 is a type (`WellDenoted`'s Π clause), so `IsTy.eq_of_ne_pt` decides the
 point case position by position. -/
 theorem teleFit_eq_of_cond :
-    ∀ {as bs : List V} {T : AnnotTerm} {ρ : Nat → V} {r₁ r₂ : V},
+    ∀ {as bs : List V} {T : ITerm} {ρ : Nat → V} {r₁ r₂ : V},
       WellDenoted V ρ T → TeleFit V ρ T as r₁ → TeleFit V ρ T bs r₂ →
       as.length = bs.length →
       (∀ p ∈ as.zip bs, p.1 ≠ pt → p.2 ≠ pt → p.1 = p.2) → as = bs
@@ -750,7 +750,7 @@ arguments, reads as the subject. -/
 private theorem deltaCore (m : EnvModel V env)
     {d : Nat} {e : Expr} {n : Name} {us : List Level}
     {ci : ConstantInfo} {cv : ConstantVal} {value : Expr}
-    {ea : AnnotTerm}
+    {ea : ITerm}
     (hfn : e.getAppFn = .const n us)
     (hfind : env.find? n = some ci)
     (hcvt : ci.toConstantVal = cv)
@@ -782,9 +782,9 @@ private theorem deltaCore (m : EnvModel V env)
     (fun k => m.acval_closed _ _ k) hval d
 
 /-- **The δ step is invisible to the reading**: the unfolding has the
-subject's own annotation. -/
+subject's own reading. -/
 theorem denoteMeta_unfoldDefinition {m : EnvModel V env} (hdi : AcvalDefnInst m)
-    {d : Nat} {e e' : Expr} {ea : AnnotTerm}
+    {d : Nat} {e e' : Expr} {ea : ITerm}
     (hud : ConLeche.unfoldDefinition env e = some e')
     (hea : denoteMeta m.acval env φ d e = some ea) :
     denoteMeta m.acval env φ d e' = some ea := by
@@ -811,11 +811,11 @@ theorem denoteMeta_unfoldDefinition {m : EnvModel V env} (hdi : AcvalDefnInst m)
 /-! ## The graph-regime fit of a graded spine (task #342 L10) -/
 
 /-- A spine headed by the point is the point. -/
-theorem interp_mkAppN_of_pt {ρ : Nat → V} {f : AnnotTerm} (hf : interp V ρ f = pt) :
-    ∀ (as : List AnnotTerm), interp V ρ (AnnotTerm.mkAppN f as) = pt
+theorem interp_mkAppN_of_pt {ρ : Nat → V} {f : ITerm} (hf : interp V ρ f = pt) :
+    ∀ (as : List ITerm), interp V ρ (ITerm.mkAppN f as) = pt
   | [] => hf
   | a :: as => by
-    show interp V ρ (AnnotTerm.mkAppN (.app f a) as) = pt
+    show interp V ρ (ITerm.mkAppN (.app f a) as) = pt
     exact interp_mkAppN_of_pt (by rw [interp_app, hf, app_pt]) as
 
 /-- **A graded application that is not the point fits its head's
@@ -824,16 +824,16 @@ the point (`app_pt`), so a prefix's type is in the graph regime
 (`eq_pt_of_mem_piR_zero`), and the argument's own application slot
 puts it in the telescope's domain (`slotTransfer`). -/
 theorem teleFitPA_of_graded_ne_pt {ρ : Nat → V} :
-    ∀ (vs : List AnnotTerm) {T f : AnnotTerm},
+    ∀ (vs : List ITerm) {T f : ITerm},
       PiChain vs.length T → WellDenoted V ρ T → interp V ρ f ∈ˢ interp V ρ T →
-      WellDenoted V ρ (AnnotTerm.mkAppN f vs) →
-      interp V ρ (AnnotTerm.mkAppN f vs) ≠ pt →
+      WellDenoted V ρ (ITerm.mkAppN f vs) →
+      interp V ρ (ITerm.mkAppN f vs) ≠ pt →
       ∃ rest, TeleFitPA V ρ T vs rest
   | [], T, _, _, _, _, _, _ => ⟨T, .nil⟩
   | x :: xs, T, f, hpc, hT, hmem, hg, hne => by
     obtain ⟨A, B, rfl, hpcB⟩ := piChain_succ_inv hpc
-    have hg' : WellDenoted V ρ (AnnotTerm.mkAppN (.app f x) xs) := hg
-    have hne' : interp V ρ (AnnotTerm.mkAppN (.app f x) xs) ≠ pt := hne
+    have hg' : WellDenoted V ρ (ITerm.mkAppN (.app f x) xs) := hg
+    have hne' : interp V ρ (ITerm.mkAppN (.app f x) xs) ≠ pt := hne
     have happ : WellDenoted V ρ (.app f x) := mkAppN_head xs hg'
     obtain ⟨v', A', B', hslot, hx, -⟩ := (cast (WellDenoted_app V ρ f x) happ).2.2
     have hmem' := hmem
@@ -856,7 +856,7 @@ theorem teleFitPA_of_graded_ne_pt {ρ : Nat → V} :
 
 /-- A fit's residual is graded where the telescope and the spine are. -/
 theorem teleFitPA_rest_graded {ρ : Nat → V} :
-    ∀ {T : AnnotTerm} {vs : List AnnotTerm} {rest : AnnotTerm},
+    ∀ {T : ITerm} {vs : List ITerm} {rest : ITerm},
       TeleFitPA V ρ T vs rest → WellDenoted V ρ T →
       (∀ x ∈ vs, WellDenoted V ρ x) → WellDenoted V ρ rest := by
   intro T vs rest h
@@ -872,7 +872,7 @@ theorem teleFitPA_rest_graded {ρ : Nat → V} :
 step's fibre is a type (the Π's grading), and the residual is the last
 fibre ("not pt" source (1) for a constructor's codomain). -/
 theorem teleFitPA_rest_isTy {ρ : Nat → V} :
-    ∀ {T : AnnotTerm} {vs : List AnnotTerm} {rest : AnnotTerm},
+    ∀ {T : ITerm} {vs : List ITerm} {rest : ITerm},
       TeleFitPA V ρ T vs rest → WellDenotedTy V ρ T →
       (∀ x ∈ vs, WellDenoted V ρ x) → IsTy (interp V ρ rest) := by
   intro T vs rest h

@@ -117,8 +117,8 @@ info: 'ConLeche.no_False_declaration' depends on axioms: [propext, Classical.cho
 
 The other direction of the same relation between input and output:
 every record of the stream that declares a constant leaves that
-constant, under its own name and with the annotation of its own
-declared type, in the environment the fold returns. -/
+constant, under its own name, with its own level parameters and its
+own declared type, in the environment the fold returns. -/
 
 /--
 info: 'ConLeche.Cached.checkDecls_consts' depends on axioms: [propext, Classical.choice, Quot.sound]

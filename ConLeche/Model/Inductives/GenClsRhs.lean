@@ -42,9 +42,9 @@ public section
 
 `hrhs` of the family premise (`genRecPre_run`): at a typed tuple of
 recursor values and a spine fitting the rule frame, every generated `ih`
-term `λ a⃗, rec_t x⃗ e⃗ (f a⃗)` is graded — a constant-bit λ-tower
+term `λ a⃗, rec_t x⃗ e⃗ (f a⃗)` is graded — a λ-tower
 (`mkLamsAV_wellDenoted`) whose body is the callee's value applied along
-its binder data (`genCallTy`), inhabiting the `ih`'s motive application
+its domains (`genCallTy`), inhabiting the `ih`'s motive application
 (the callee's conclusion, `genRun_conclMot`) — and the residue, the minor
 premise applied to the fields and the `ih` values, is graded: the minor
 premise's type is the rule frame's Π-tower (`genMinorFit`), the `ih`
@@ -55,7 +55,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun ClassGenScoped RecShape NestState
   closeTelescope)
@@ -73,20 +73,20 @@ variable {F : Nat} {env₁ envC : Env} {pp : BlockParts} {nestedBit : Bool} {pos
 
 set_option maxHeartbeats 16000000 in
 /-- **The minor premise of `(c, j)` at a prefix spine**: its value lies in
-a graded Π-tower at the spine's frame, whose binder data the declared
+a graded Π-tower at the spine's frame, whose domains the declared
 fields and the `ih` values fit (the rule frame's field domains, then the
 `ih` data's domains). -/
 theorem genMinorFit (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
     (ψ : Name → Nat) (ρ : Nat → V) {c j : Nat} (hc : c < (tgtRs out).length)
     (hj : j < blockRecNCt (tgtRs out) c) {xs : List V}
     (hxs : SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ c) xs) :
-    ∃ (bs : List AnnotTerm) (b : AnnotTerm),
+    ∃ (bs : List ITerm) (b : ITerm),
       xs.getD (R.g.nP + genMinorSlot R.g R.rd c j) pt ∈ˢ interp V (consList xs ρ) (mkPisAV bs b) ∧
       WellDenoted V (consList xs ρ) (mkPisAV bs b) ∧
       ∀ fs, SpineFit (consList xs ρ) (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) fs →
@@ -205,7 +205,7 @@ theorem genMinorFit (hμ : μ.verifiedChecks = true)
     rw [hPdget] at hgr
     rw [← hBE, WellDenoted_liftN, hsh]
     exact hgr.1
-  -- the rule frame's field domains are the fields' binder data
+  -- the rule frame's field domains are the fields' domains
   have hRP : tgtRP pp.toBlockShape c = R.g.pre.length := hrP
   have hfdL : (tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = x.nF := by
     rw [tgtFdomsAV, readOpenedDoms_length_eq, hfl]
@@ -282,8 +282,8 @@ section Ih
 /-- `UnderTowerOk` from its spine form: the domains graded along their
 fitting spines, and at every full spine the body graded, in the result,
 the result a type. -/
-theorem underTowerOk_of_spines {b T : AnnotTerm} :
-    ∀ {ds : List AnnotTerm} {σ : Nat → V},
+theorem underTowerOk_of_spines {b T : ITerm} :
+    ∀ {ds : List ITerm} {σ : Nat → V},
       (∀ k, k < ds.length → ∀ zs : List V, SpineFit σ (ds.take k) zs →
         WellDenoted V (consList zs σ) (ds.getD k default) ∧
           IsTy (interp V (consList zs σ) (ds.getD k default))) →
@@ -310,7 +310,7 @@ theorem genIhDomAV_below {D mt : Nat} {q : IhDatum} (hq : IhDatumBelow D q) (hmt
     Term.bvarsBelow D (genIhDomAV D mt q).erase := by
   unfold genIhDomAV
   refine mkPisAV_below_of (hq.1) ?_
-  rw [AnnotTerm.erase_mkAppN]
+  rw [ITerm.erase_mkAppN]
   refine VExprAux.bvarsBelow_mkAppN (by show _ < _; omega) fun a ha => ?_
   obtain ⟨e, he, rfl⟩ := List.mem_map.mp ha
   exact hq.2 e he
@@ -331,8 +331,8 @@ applied to the prefix, the index arguments and the applied field — is
 graded and inhabits the `ih`'s motive application, which is a type. -/
 theorem genIhUnder (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
@@ -344,11 +344,11 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
       ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j) ys)
     {q : IhDatum} (hq : q ∈ genIhdAV mpC.base2.acval envC R.g R.rd ψ c j) :
     UnderTowerOk (consList ys (consList rs ρ))
-      (AnnotTerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
+      (ITerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
           + ((tgtRs out).length - 1 - q.1)))
         (prefVarsAV R.g.pre.length ((genCtorAt R.g R.rd c j).nF + q.2.1.length)
           ++ (q.2.2.1 ++ [q.2.2.2])))
-      (AnnotTerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
+      (ITerm.mkAppN (.bvar (R.g.pre.length + (genCtorAt R.g R.rd c j).nF + q.2.1.length
           - 1 - classMotPos R.g (genClsOf R.rd q.1)))
         (q.2.2.1 ++ [q.2.2.2]))
       q.2.1 := by
@@ -394,7 +394,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
           ++ tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ c j).length = k by
         simp [hlc, ← hnF]] at this
     exact ⟨this.1, this.2⟩
-  · -- the body: the callee applied along its binder data
+  · -- the body: the callee applied along its domains
     have hagD : ∀ i, i < D → consList (xs ++ fs) (consList rs ρ) i = consList (xs ++ fs) ρ i := by
       intro i hi
       exact consList_congr_below (xs ++ fs) (D := 0) (fun k hk => absurd hk (Nat.not_lt_zero _)) i
@@ -460,7 +460,7 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
       (interp V (consList zs (consList (xs ++ fs) ρ)) q.2.2.2) (by rw [hxl, hRPT])
       (by rw [List.length_map, hcnt, hMT, ← hgcT, hcls])
     have hT0 : interp V (consList zs (consList (xs ++ fs) (consList rs ρ)))
-        (AnnotTerm.mkAppN (.bvar (D + q.2.1.length - 1 - classMotPos R.g (genClsOf R.rd q.1)))
+        (ITerm.mkAppN (.bvar (D + q.2.1.length - 1 - classMotPos R.g (genClsOf R.rd q.1)))
           (q.2.2.1 ++ [q.2.2.2]))
         = interp V (consList (xs ++ (q.2.2.1.map (interp V (consList zs (consList (xs ++ fs) ρ)))
             ++ [interp V (consList zs (consList (xs ++ fs) ρ)) q.2.2.2])) ρ)
@@ -478,20 +478,20 @@ theorem genIhUnder (hμ : μ.verifiedChecks = true)
 /-- `genIhAV` IS a λ-tower over the `ih` datum's telescope. -/
 theorem genIhAV_eq_mkLamsAV {K rP D : Nat} {q : IhDatum} :
     genIhAV K rP D q = mkLamsAV q.2.1
-      (AnnotTerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
+      (ITerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
         (prefVarsAV rP (D - rP + q.2.1.length) ++ (q.2.2.1 ++ [q.2.2.2]))) :=
   rfl
 
 set_option maxHeartbeats 16000000 in
 /-- **`hrhs` of the family premise**: at a typed tuple of recursor values
 and a spine fitting the rule frame, the generated `ih` terms are graded
-(a constant-bit λ-tower over `genIhUnder`), and so is the residue at
+(a λ-tower over `genIhUnder`), and so is the residue at
 their values — the minor premise applied to the fields and the `ih`
 values along its graded Π-tower (`genMinorFit`). -/
 theorem genRhs (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
-      block ctorsAs out) (hg : ClassGenScoped R.g) {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR) (mpC : EnvModelM V μ envC)
+      block ctorsAs out) (hg : ClassGenScoped R.g)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))

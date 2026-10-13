@@ -369,11 +369,10 @@ theorem classesCtors_run {env : Env} {p : BlockShape} {formerTys : List Expr} {r
 
 /-! ## The generated types -/
 
-/-- **`classConstOk`, inverted** (at `mkFEnv env`) — `checkConstantVal_inv`
-without the annotation step: the guards, and the inference of the type
-AS STORED (the returned constant is the input). -/
-theorem classConstOk_inv {env : Env} {cv cv' : ConstantVal} {F : Nat}
-    (h : classConstOk (fueledOps mode F) (mkFEnv env) cv = .ok cv') :
+/-- **`classConstOk`, inverted** (at `mkFEnv env`) — `checkConstantVal_inv`'s
+facts: the guards, and the inference of the type AS STORED. -/
+theorem classConstOk_inv {env : Env} {cv : ConstantVal} {F : Nat}
+    (h : classConstOk (fueledOps mode F) (mkFEnv env) cv = .ok ()) :
     env.find? cv.name = none ∧
     reservedBasisNames.contains cv.name = false ∧
     cv.name.isProjFnShape = false ∧
@@ -384,8 +383,7 @@ theorem classConstOk_inv {env : Env} {cv cv' : ConstantVal} {F : Nat}
     cv.type.constsResolve env = true ∧
     ∃ stype u,
       inferTypeCore mode env F 0 cv.type = .ok stype ∧
-      ensureSortCore mode env F 0 stype = .ok u ∧
-      cv' = cv := by
+      ensureSortCore mode env F 0 stype = .ok u := by
   unfold classConstOk at h
   simp only [mkFEnv_find?, constsResolveF_eq, mkFEnv_env] at h
   by_cases hfind : (env.find? cv.name).isSome = true
@@ -413,32 +411,31 @@ theorem classConstOk_inv {env : Env} {cv cv' : ConstantVal} {F : Nat}
   case neg => rw [ite_eq_right (by simpa using hcr)] at h; close_throw h
   rw [ite_eq_left (by simpa using hcr)] at h
   obtain ⟨stype, hst, h⟩ := exceptBind_ok h
-  obtain ⟨u, hu, h⟩ := exceptBind_ok h
-  simp only [pure, Except.pure, Except.ok.injEq] at h
+  obtain ⟨u, hu, -⟩ := exceptBind_ok h
   refine ⟨?_, by simpa using hres, by simpa using hpsh, hnd, hlb, by simpa using hfv, hlp, hcr,
-    stype, u, hst, hu, h.symm⟩
+    stype, u, hst, hu⟩
   revert hfind; cases env.find? cv.name <;> simp
 
-/-- The stored constant of a `classConstOk` run is well formed
+/-- The checked constant of a `classConstOk` run is well formed
 (`checkConstantVal_typeWF`'s twin). -/
-theorem classConstOk_typeWF {env : Env} {cv cvA : ConstantVal} {F : Nat}
-    (h : classConstOk (fueledOps mode F) (mkFEnv env) cv = .ok cvA) :
-    cvA.type.hasFvar = false ∧
-    cvA.type.allLevelParamsDefined cvA.levelParams = true ∧
-    cvA.type.constsResolve env = true ∧
-    cvA.type.looseBVarsBounded 0 = true := by
-  obtain ⟨-, -, -, -, hlb, hfv, hlp, hcr, -, -, -, -, rfl⟩ := classConstOk_inv h
+theorem classConstOk_typeWF {env : Env} {cv : ConstantVal} {F : Nat}
+    (h : classConstOk (fueledOps mode F) (mkFEnv env) cv = .ok ()) :
+    cv.type.hasFvar = false ∧
+    cv.type.allLevelParamsDefined cv.levelParams = true ∧
+    cv.type.constsResolve env = true ∧
+    cv.type.looseBVarsBounded 0 = true := by
+  obtain ⟨-, -, -, -, hlb, hfv, hlp, hcr, -, -, -, -⟩ := classConstOk_inv h
   exact ⟨hfv, hlp, hcr, hlb⟩
 
 /-- **A `classConstOk` run's facts** (`ConstChecked`): the guards and the
 inference are the run's; the stored type is the checked one, and its
 empty-slot freshness is the full inference's (`inferTypeCore_noProjAt`:
 a successful inference of a closed subject names only occupied slots —
-the generated type is stored without an annotation pass). -/
-theorem classConstOk_checked {env : Env} {cv0 cv : ConstantVal} {F : Nat}
-    (h : classConstOk (fueledOps mode F) (mkFEnv env) cv0 = .ok cv) :
-    ConstChecked mode F env cv0 cv := by
-  obtain ⟨hfr, hres, hps, hnd, hlb, hfv, hlp, hcr, stype, u, hinf, hsort, rfl⟩ :=
+the stored type is the one inferred). -/
+theorem classConstOk_checked {env : Env} {cv : ConstantVal} {F : Nat}
+    (h : classConstOk (fueledOps mode F) (mkFEnv env) cv = .ok ()) :
+    ConstChecked mode F env cv cv := by
+  obtain ⟨hfr, hres, hps, hnd, hlb, hfv, hlp, hcr, stype, u, hinf, hsort⟩ :=
     classConstOk_inv h
   exact {
     name := rfl, lps := rfl, fresh := hfr, unreserved := hres, notProjShape := hps,
@@ -447,11 +444,11 @@ theorem classConstOk_checked {env : Env} {cv0 cv : ConstantVal} {F : Nat}
     noProj := fun _ _ hslot => inferTypeCore_noProjAt hinf hfv hslot }
 
 /-- **One recursor's generated type, as `classRecTyOk` ran**: the record's
-member, rule prefix and major index are the generated ones; the
-generated type `gty` checked as a constant under the record's name and
-level parameters (`classConstOk`: no annotation — the stored type IS the
-generated one, `classConstOk_inv`) is the STORED constant `cvG`.  (The comparison with the
-stream's type is reject-only: nothing is read from it.) -/
+member, rule prefix and major index are the generated ones; the STORED
+constant `cvG` is the record's name and level parameters over the
+generated type `gty`, checked (`classConstOk`, succeeding at `cvG`).
+(The comparison with the stream's type is reject-only: nothing is read
+from it.) -/
 structure ClassRecTyRun (mode : CheckMode) (F : Nat) (fe : FEnv) (g : ClassGen) (k : Nat)
     (rc : RecShape) (c : Nat) (cvG : ConstantVal) : Type where
   gty : Expr
@@ -459,7 +456,14 @@ structure ClassRecTyRun (mode : CheckMode) (F : Nat) (fe : FEnv) (g : ClassGen) 
   hrP : rc.rP = g.nP + g.slots.length
   hmI : rc.mI = rc.rP + (g.cls.getD c default).nIdx
   hgty : classGenRecTy g c = some gty
-  hcv : classConstOk (fueledOps mode F) fe { rc.cvR with type := gty } = .ok cvG
+  hcvG : cvG = { rc.cvR with type := gty }
+  hcv : classConstOk (fueledOps mode F) fe cvG = .ok ()
+
+/-- The stored constant's type is the generated one. -/
+theorem ClassRecTyRun.type_eq {fe : FEnv} {g : ClassGen} {k : Nat} {rc : RecShape} {c : Nat}
+    {cvG : ConstantVal} (T : ClassRecTyRun mode F fe g k rc c cvG) : cvG.type = T.gty := by
+  have := congrArg ConstantVal.type T.hcvG
+  simpa using this
 
 /-- **`classRecTyOk`, inverted.** -/
 theorem classRecTyOk_run {fe : FEnv} {g : ClassGen} {k : Nat} {rc : RecShape}
@@ -476,17 +480,17 @@ theorem classRecTyOk_run {fe : FEnv} {g : ClassGen} {k : Nat} {rc : RecShape}
   case neg => rw [ite_eq_right h2] at h; close_throw h
   rw [ite_eq_left h2] at h
   obtain ⟨gty, hgty, h⟩ := exceptBind_ok h
-  obtain ⟨cv, hcv, h⟩ := exceptBind_ok h
+  obtain ⟨u, hcvOk, h⟩ := exceptBind_ok h
   obtain ⟨b, -, h⟩ := exceptBind_ok h
   by_cases hb : b = true
   case neg => rw [ite_eq_right hb] at h; close_throw h
   rw [ite_eq_left hb] at h
   simp only [pure, Except.pure, Except.ok.injEq] at h
-  subst h
+  rw [h] at hcvOk
   simp only [beq_iff_eq, Bool.and_eq_true] at h1 h2
   exact ⟨{
     gty := gty, htgt := h1, hrP := h2.1, hmI := h2.2, hgty := unwrapOr_ok hgty,
-    hcv := hcv }⟩
+    hcvG := h.symm, hcv := hcvOk }⟩
 
 /-- **`classRecTysOk`, inverted**: one generated type per recursor, at the
 recursor's class. -/
@@ -684,8 +688,6 @@ structure GenStageRun (mode : CheckMode) (F : Nat) (fe : FEnv) (p : BlockShape)
   hrules : classRecsRulesOk (fueledOps mode F) .plain fe (classFeR p Ms cvGs rd.recCls fe)
     (genRecGen p params Ms formerTysC rd ctors pre) (classRecOf rd.recCls cvGs)
     cvGs rd.recCls = .ok out
-  /-- every auxiliary recursor's major domain reads -/
-  hreads : tgtNestedReads (·.constsResolveF fe) p 0 out = true
 
 /-- The generator of a stage run. -/
 @[expose] def GenStageRun.g {F : Nat} {fe : FEnv} {p : BlockShape} {nestedBit : Bool}
@@ -726,9 +728,6 @@ theorem genRecCheck_run {fe : FEnv} {p : BlockShape} {nestedBit : Bool} {params 
   obtain ⟨u7, -, h⟩ := exceptBind_ok h
   obtain ⟨out', hout, h⟩ := exceptBind_ok h
   obtain ⟨u8, -, h⟩ := exceptBind_ok h
-  by_cases hreads : tgtNestedReads (·.constsResolveF fe) p 0 out' = true
-  case neg => rw [ite_eq_right hreads] at h; close_throw h
-  rw [ite_eq_left hreads] at h
   simp only [pure, Except.pure, Except.ok.injEq] at h
   subst h
   simp only [Bool.not_eq_true] at helim
@@ -737,7 +736,7 @@ theorem genRecCheck_run {fe : FEnv} {p : BlockShape} {nestedBit : Bool} {params 
     cvGs := cvGs, pins := by cases u0; exact hpins, hcvRis := hcvRis,
     hk := hk, helim := helim, hMs := hMs, hctors := hctors,
     hminors := by simpa using hminors, hformer := hformer,
-    hpre := unwrapOr_ok hpre, hcvGs := hcvGs, hrules := hout, hreads := hreads }⟩
+    hpre := unwrapOr_ok hpre, hcvGs := hcvGs, hrules := hout }⟩
 
 /-- **The generated recursor stage with the pass's classes and walk** —
 the record every proof about the family reads: the pass's context
@@ -770,7 +769,7 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   hrd : classRead p.nP (classNPcOf p fe₁) p.recs = some rd
   /-- the block's canonical parameters and holes (the positivity check's context) -/
   hctx : blockNestCtx (m := CheckM) p cvTas fe₁.find? = .ok (ctx, holes)
-  /-- the class keys, moved to the canonical parameters and annotated -/
+  /-- the class keys, moved to the canonical parameters -/
   hkeys : rd.classes.mapM (classKeyOf (m := CheckM) p.nP ctx.params) = .ok keys
   /-- the classes, each a checked major over the canonical parameters -/
   hMs₀ : classMajors (fueledOps mode F) fe₁ p ctorsAs ctx.params keys = .ok Ms₀
@@ -801,8 +800,6 @@ structure GenRecRun (mode : CheckMode) (F : Nat) (fe₁ : FEnv) (env₁ : Env) (
   hrules : classRecsRulesOk (fueledOps mode F) .plain fe (classFeR p Ms cvGs rd.recCls fe)
     (genRecGen p ctx.params Ms formerTysC rd ctors pre) (classRecOf rd.recCls cvGs)
     cvGs rd.recCls = .ok out
-  /-- every auxiliary recursor's major domain reads -/
-  hreads : tgtNestedReads (·.constsResolveF fe) p 0 out = true
 
 /-- The generator of a run. -/
 @[expose] def GenRecRun.g {F : Nat} {fe₁ : FEnv} {env₁ : Env} {fe : FEnv} {p : BlockShape}
@@ -841,7 +838,7 @@ theorem genRecRun_of {fe₁ : FEnv} {env₁ : Env} {fe : FEnv} {p : BlockShape}
       exact ⟨M, hM, R.transport hag⟩,
     hone := C.hone, hk := S.hk, helim := S.helim, hst := hst, hMs := S.hMs,
     hctors := S.hctors, hminors := S.hminors, hformer := S.hformer, hpre := S.hpre,
-    hcvGs := S.hcvGs, hrules := S.hrules, hreads := S.hreads }⟩
+    hcvGs := S.hcvGs, hrules := S.hrules }⟩
 
 /-- **Every class checked as a major at the constructors' environment**:
 `classMajors_run`'s shape, over the run's keys. -/
@@ -885,10 +882,8 @@ theorem genRecCheck_out_fresh {env : Env} {p : BlockShape} {nestedBit : Bool}
   obtain ⟨rhss, hoi', -⟩ := hallO i cvG c hG hc
   rw [hoi] at hoi'
   obtain rfl := Option.some.inj hoi'
-  obtain ⟨hfr, -, -, -, -, -, -, -, -, -, -, -, hcv⟩ := classConstOk_inv T.hcv
-  have hn : cvG.name = p.recs[i].cvR.name := by rw [hcv]
+  obtain ⟨hfr, -, -, -, -, -, -, -, -, -, -, -⟩ := classConstOk_inv T.hcv
   show env.find? cvG.name = none
-  rw [hn]
   exact hfr
 
 end ConLeche

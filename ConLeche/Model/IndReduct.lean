@@ -24,22 +24,22 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (AnnotTerm)
+open ConLeche.Semantics (ITerm)
 open ConLeche (CheckMode Env Expr Name Level isDefEqCore)
 
 universe w
 
 variable {V : Type w} [SetTheory V]
 variable {μ : CheckMode} {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → AnnotTerm}
+variable {acval : Name → (Name → Nat) → ITerm}
 
 /-- The forward direction of `denoteMeta_mkAppN_inv`. -/
 theorem denoteMeta_mkAppN_of {d : Nat} :
-    ∀ (as : List Expr) {e : Expr} {ea : AnnotTerm} {vs : List AnnotTerm},
+    ∀ (as : List Expr) {e : Expr} {ea : ITerm} {vs : List ITerm},
       denoteMeta acval env φ d e = some ea →
       DenoteMetaSpine acval env φ d as vs →
       denoteMeta acval env φ d (Expr.mkAppN e as)
-        = some (AnnotTerm.mkAppN ea vs) := by
+        = some (ITerm.mkAppN ea vs) := by
   intro as
   induction as with
   | nil =>
