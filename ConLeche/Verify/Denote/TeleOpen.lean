@@ -60,14 +60,6 @@ theorem instSeq_eq_self_of_closed {e : Term} (h : Closed e) :
   | nil => intro t; rfl
   | cons a as ih => intro t; rw [instSeq_cons, inst_eq_self_of_closed h, ih]
 
-@[simp] theorem instSeq_sort (as : List Term) (t u : Nat) :
-    instSeq as t (.sort u) = .sort u :=
-  instSeq_eq_self_of_closed (e := .sort u) trivial as t
-
-@[simp] theorem instSeq_const (as : List Term) (t : Nat) (c : BConst)
-    (us : List Nat) : instSeq as t (.const c us) = .const c us :=
-  instSeq_eq_self_of_closed (e := .const c us) trivial as t
-
 end Term
 end ConLeche.Term
 

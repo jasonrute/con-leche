@@ -61,7 +61,6 @@ theorem DomsBelow.getD_below {K : Nat} :
     have := DomsBelow.getD_below (K := K + 1) (ds := ds) h.2 k (by simpa using hk)
     rwa [show K + 1 + k = K + (k + 1) from by omega] at this
 
-
 /-! ## The `Term`-side helpers -/
 
 namespace VExprAux
@@ -248,7 +247,6 @@ theorem liftN_eq_self_of_closed {e : Term}
     Term.liftN n e k = e :=
   Term.liftN_eq_self (Term.bvarsBelow.mono (Nat.zero_le k) h) n
 
-
 /-!
 ## The numeral case split, spelled
 
@@ -270,7 +268,6 @@ them back.
   level), so the reading is stated at the retracted environment
   `shiftE d 0 σ` — no capture-avoiding substitution anywhere.
 -/
-
 
 open SetTheory
 open ConLeche.SetTheory.Tower
@@ -549,7 +546,6 @@ theorem caseAVAt_facts {w : Nat} :
           rw [hin b hb]
           exact lamR_mem fun a _ => (hinner a b hb).1
 
-
 /-!
 ## The tagged sum carrier, spelled
 
@@ -570,7 +566,6 @@ domains with this body; its laws consume one hereditary premise,
 `ParamsOkS` — the parameter domains graded, with the per-constructor
 chain grading `SumFieldsOkB` at the base.
 -/
-
 
 /-! ## The semantic fibres -/
 
@@ -879,7 +874,6 @@ theorem sumTyAV_fold_strictU {w : Nat} {Fss : List (List Term)} :
     rw [List.foldl_cons, happ]
     exact sumTyAV_fold_strictU (h.2.2 a ha) hsp.2
 
-
 /-!
 ## The index equation, spelled
 
@@ -903,7 +897,6 @@ construction consumes: a fitting spine of the restricted chain is a
 fitting spine of the fields followed by the point, with the equations
 holding at the fields.
 -/
-
 
 /-! ## The spelling -/
 
@@ -1087,7 +1080,6 @@ theorem spineFit_append_idxEq {Fs : List Term} {eqs : List (Term × Term)}
   · rintro ⟨bs, rfl, hsp, hall⟩
     exact hsp.append ⟨pt_mem_idxEqAV.mpr hall, trivial⟩
 
-
 /-- The restricted tower's intro: a fitting field spine at which the
 equations hold puts the point-terminated tuple in the tower (graph
 regime) and the point in the squash. -/
@@ -1140,7 +1132,6 @@ def liftFields (n : Nat) : Nat → List Term → List Term
   | _, [] => []
   | k, F :: Fs => F.liftN n k :: liftFields n (k + 1) Fs
 
-@[simp] theorem liftFields_nil (n k : Nat) : liftFields n k [] = [] := rfl
 @[simp] theorem liftFields_cons (n k : Nat) (F : Term) (Fs : List Term) :
     liftFields n k (F :: Fs) = F.liftN n k :: liftFields n (k + 1) Fs := rfl
 
@@ -1210,14 +1201,12 @@ def rChains (d nIdx : Nat) (Fss : List (List Term)) (Ess : List (List Term)) :
     List (List Term) :=
   List.zipWith (rChain d nIdx) Fss Ess
 
-
 theorem rChains_getElem? (d nIdx : Nat) (Fss Ess : List (List Term)) (j : Nat) :
     (rChains d nIdx Fss Ess)[j]? = match Fss[j]?, Ess[j]? with
       | some Fs, some Es => some (rChain d nIdx Fs Es)
       | _, _ => none := by
   simp only [rChains, List.getElem?_zipWith]
   cases Fss[j]? <;> cases Ess[j]? <;> rfl
-
 
 /-- The frame's index tuple: the last `nIdx` binders' values, the first
 index first. -/
@@ -1249,7 +1238,6 @@ theorem getD_mem_of_lt {l : Nat} {Es : List Term} (hl : l < Es.length) :
     Es.getD l default ∈ Es := by
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl, Option.getD_some]
   exact List.getElem_mem hl
-
 
 /-- **The index equation at a fitting spine**: every `e_l = ı_l` holds
 exactly when the constructor's index tuple at the fields is the
@@ -1302,7 +1290,6 @@ theorem EqAll_idxEqsAt {d nIdx nF : Nat} {Es : List Term} (hEs : Es.length = nId
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
     exact this
 
-
 /-!
 ## The sum constructor leaf
 
@@ -1322,7 +1309,6 @@ body is only required to read to SOME tagged union whose `j`-th fibre
 holds the tuple (at an indexed family that fibre is the restricted
 tower at the constructor's own index tuple).
 -/
-
 
 /-! ## The injection, spelled at a frame -/
 
@@ -1927,7 +1913,6 @@ theorem sumMkAV_zero {j : Nat} {ds : List Term} {Fs : List Term}
 
 /-! ## Application chains -/
 
-
 /-- The application chain `M i₀ … i_{k-1}` is graded: each prefix is a
 member of a function space the next index inhabits. -/
 def AppChainOk (M : V) (is : List V) : Prop :=
@@ -1966,7 +1951,6 @@ namespace RecHypCore
 variable {ℓ w : Nat} {ρ₀ : Nat → V} {Fss Ess : List (List Term)} {Ids : List Term}
   {famAt : List V → V}
 
-
 end RecHypCore
 
 /-! ## The sources -/
@@ -1977,7 +1961,6 @@ noncomputable def srcVals (is : List V) (src : List (Option Nat)) : List V :=
     | some l => is.getD l pt
     | none => pt
 
-
 /-!
 ## The sum leaves' syntactic battery
 
@@ -1986,7 +1969,6 @@ erasures, one structural walk per spelled former.  The tower bodies
 are scoped at the frame `K` and lifted by the depth `d` where they are
 used, so every lifted use is bounded at `K + d` (`bvarsBelow_liftN`).
 -/
-
 
 /-! ## The case split -/
 

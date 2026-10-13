@@ -74,9 +74,6 @@ theorem PiTeleAV.succ_inv {k : Nat} {T : Term} {Γ : List Term}
   | t :: ts, ρ => consN ts (cons t ρ)
 
 omit [SetTheory V] in
-@[simp] theorem consN_nil (ρ : Nat → V) : consN [] ρ = ρ := rfl
-
-omit [SetTheory V] in
 @[simp] theorem consN_cons (t : V) (ts : List V) (ρ : Nat → V) :
     consN (t :: ts) ρ = consN ts (cons t ρ) := rfl
 

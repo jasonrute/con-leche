@@ -75,27 +75,12 @@ theorem Env.findProj?_off_eq {env : Env} {T : Name} {i j : Nat} {e e' : ProjEntr
   obtain rfl : tbl = tbl' := ConstantInfo.projInfo.inj (Option.some.inj (hf.symm.trans hf'))
   rfl
 
-/-- A stored table's view fixes the entry's data. -/
-@[simp] theorem ProjTable.entry_structName (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).structName = tbl.structName := rfl
-@[simp] theorem ProjTable.entry_idx (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).idx = i := rfl
 @[simp] theorem ProjTable.entry_levelParams (tbl : ProjTable) (i : Nat) :
     (tbl.entry i).levelParams = tbl.levelParams := rfl
 @[simp] theorem ProjTable.entry_numParams (tbl : ProjTable) (i : Nat) :
     (tbl.entry i).numParams = tbl.numParams := rfl
-@[simp] theorem ProjTable.entry_ctor (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).ctor = tbl.ctor := rfl
-@[simp] theorem ProjTable.entry_numFields (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).numFields = tbl.numFields := rfl
 @[simp] theorem ProjTable.entry_body (tbl : ProjTable) (i : Nat) :
     (tbl.entry i).body = tbl.bodies.getD i default := rfl
-@[simp] theorem ProjTable.entry_fieldSort (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).fieldSort = tbl.guards.getD i .zero := rfl
-@[simp] theorem ProjTable.entry_structSort (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).structSort = tbl.structSort := rfl
-@[simp] theorem ProjTable.entry_off (tbl : ProjTable) (i : Nat) :
-    (tbl.entry i).off = tbl.off := rfl
 /-- **The capability arities**: an inductive stored with the unit-like
 or the η capability has the `∀`-telescope its capability record's
 parameter count names.  A property of the stored declaration alone —

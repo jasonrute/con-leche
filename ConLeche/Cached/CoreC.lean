@@ -270,20 +270,10 @@ families; otherwise it is `true` without running. -/
 @[inline] def certAtI (mode : CheckMode) (c : CheckCM Bool) : CheckCM Bool :=
   if mode.verifiedChecks then c else pure true
 
-/-- At a mode running the certificate families the wrapper is the
-certificate — the simulation tower's blindness to the switch, under
-its `hμ`. -/
-@[simp] theorem certAtI_of_verifiedChecks {mode : CheckMode}
-    (hμ : mode.verifiedChecks = true) (c : CheckCM Bool) :
-    certAtI mode c = c := by
-  simp [certAtI, hμ]
 /-- … and at the two modes the wrapper is the certificate or the
 constant `true`, by `rfl`. -/
 @[simp] theorem certAtI_verified (c : CheckCM Bool) :
     certAtI .verified c = c := rfl
-@[simp] theorem certAtI_trusted (c : CheckCM Bool) :
-    certAtI .trusted c = pure true := rfl
-
 /-- Twin of `propIrrel` (task #168): the hoisted `Prop`-branch test
 with both head-symbol arms.  Ungated since 2026-09-06 — the readers
 run in both modes, so this body takes no `CheckMode` at all. -/

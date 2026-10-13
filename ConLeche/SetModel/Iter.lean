@@ -28,9 +28,6 @@ noncomputable def iterF (Φ : V → V) : Nat → V
   | 0 => empty
   | n + 1 => Φ (iterF Φ n)
 
-@[simp] theorem iterF_zero (Φ : V → V) : iterF Φ 0 = empty := rfl
-@[simp] theorem iterF_succ (Φ : V → V) (n : Nat) : iterF Φ (n + 1) = Φ (iterF Φ n) := rfl
-
 /-- The union of a countable family `f 0 ∪ f 1 ∪ …` (the ω-indexed union
 through the tag fibre). -/
 noncomputable def natUnion (f : Nat → V) : V :=

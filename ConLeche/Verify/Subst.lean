@@ -1092,23 +1092,8 @@ the step without ever producing one. -/
 @[simp] theorem instantiate1_bvar (i : Nat) (v : Expr) (d : Nat) :
     (Expr.bvar i).instantiate1 v d =
       if i = d then v else if i > d then .bvar (i - 1) else .bvar i := rfl
-@[simp] theorem instantiate1_const (n : Name) (us : List Level)
-    (v : Expr) (d : Nat) : (Expr.const n us).instantiate1 v d = .const n us :=
-  rfl
 @[simp] theorem instantiate1_sort (u : Level) (v : Expr) (d : Nat) :
     (Expr.sort u).instantiate1 v d = .sort u := rfl
 @[simp] theorem instantiate1_fvar (i : Nat) (ty v : Expr)
     (d : Nat) : (Expr.fvar i ty).instantiate1 v d = .fvar i ty := rfl
-@[simp] theorem instantiate1_app (f a v : Expr) (d : Nat) :
-    (Expr.app f a).instantiate1 v d
-      = .app (f.instantiate1 v d) (a.instantiate1 v d) := rfl
-@[simp] theorem instantiate1_forallE (ty body v : Expr)
-    (d : Nat) :
-    (Expr.forallE ty body).instantiate1 v d
-      = .forallE (ty.instantiate1 v d) (body.instantiate1 v (d + 1)) := rfl
-@[simp] theorem instantiate1_lam (ty body v : Expr)
-    (d : Nat) :
-    (Expr.lam ty body).instantiate1 v d
-      = .lam (ty.instantiate1 v d) (body.instantiate1 v (d + 1)) := rfl
-
 end ConLeche.Expr
