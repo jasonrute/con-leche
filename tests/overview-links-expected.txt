@@ -314,27 +314,27 @@
   1718        infer := fun _ _ => throw (.internal "fuel exhausted: infer")
   1719        defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
 
-== ConLeche/Model/Fold.lean#L276-L283
-   276  theorem no_proof_of_False_pure (V : Type w) [SetTheory V]
-   277      {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
-   278      {ds : List Declaration} {env' : Env}
-   279      (h : checkDeclsPure μ (fueledOps μ F) pins ds = .ok env') :
-   280      ∀ c ∈ env'.consts,
-   281        c.toConstantVal.type = .const falseName [] → False := by
-   282    obtain ⟨mp⟩ := checkDeclsPure_sound_of (V := V) hμ h
-   283    exact fun c hc hty => no_constant_of_False mp c hc hty
+== ConLeche/Model/Fold.lean#L268-L275
+   268  theorem no_proof_of_False_pure (V : Type w) [SetTheory V]
+   269      {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
+   270      {ds : List Declaration} {env' : Env}
+   271      (h : checkDeclsPure μ (fueledOps μ F) pins ds = .ok env') :
+   272      ∀ c ∈ env'.consts,
+   273        c.toConstantVal.type = .const falseName [] → False := by
+   274    obtain ⟨mp⟩ := checkDeclsPure_sound_of (V := V) hμ h
+   275    exact fun c hc hty => no_constant_of_False mp c hc hty
 
 == ConLeche/Model/Fold.lean#L141
    141  theorem declStep_preserves (hμ : μ.verifiedChecks = true)
 
-== ConLeche/Model/Capstone.lean#L138-L144
-   138  theorem no_constant_of_False (mp : EnvModelM V μ env)
-   139      (c : ConstantInfo) (hc : c ∈ env.consts)
-   140      (hty : c.toConstantVal.type = .const falseName []) : False :=
-   141    no_constant_of_emptyPin mp (u := 0) (by decide)
-   142      (fun ψ => by simp +decide [ConLeche.Verify.pinnedStructT, ConLeche.Term.emptyT])
-   143      c hc hty
-   144  
+== ConLeche/Model/Capstone.lean#L137-L143
+   137  theorem no_constant_of_False (mp : EnvModelM V μ env)
+   138      (c : ConstantInfo) (hc : c ∈ env.consts)
+   139      (hty : c.toConstantVal.type = .const falseName []) : False :=
+   140    no_constant_of_emptyPin mp (u := 0) (by decide)
+   141      (fun ψ => by simp +decide [ConLeche.Verify.pinnedStructT, ConLeche.Term.emptyT])
+   142      c hc hty
+   143  
 
 == ConLeche/Model/Denotes.lean#L342-L343
    342  `EnvModelM V μ env`. -/
@@ -357,10 +357,10 @@
 == ConLeche/Kernel/Core.lean#L1328
   1328  def defeqLams (r : CoreFns m) :
 
-== ConLeche/Verify/Cached/AgreeFloor.lean#L1103-L1105
-  1103  theorem checkDecls_skels {mode : CheckMode} {ds : Array Declaration}
-  1104      {env : Env} (h : checkDecls mode pins ds = .ok env) :
-  1105      envSkels env = streamSkels ds.toList := by
+== ConLeche/Verify/Cached/AgreeFloor.lean#L1102-L1104
+  1102  theorem checkDecls_skels {mode : CheckMode} {ds : Array Declaration}
+  1103      {env : Env} (h : checkDecls mode pins ds = .ok env) :
+  1104      envSkels env = streamSkels ds.toList := by
 
 == ConLeche/Kernel/Exclusive.lean#L6-L42
      6  # `withExclusive`: the reference-count read behind the walk memo
@@ -449,228 +449,217 @@
    144    | ρ, .snd e => ssnd (interp ρ e)
    145    | _, .prf => pt
 
-== ConLeche/Semantics/WellDenoted.lean#L51-L81
-    51  def WellDenoted : (Nat → V) → Term → Prop
-    52    | ρ, .pi A B =>
-    53      WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
-    54      (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) B) ∧
-    55      (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B))
-    56    | ρ, .lam A b =>
-    57      WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
-    58      (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) b) ∧
-    59      ∃ B : V → V,
-    60        (∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) b ∈ˢ B x) ∧
-    61        (∀ x, x ∈ˢ interp V ρ A → IsTy (B x))
-    62    | ρ, .app f a =>
-    63      WellDenoted ρ f ∧ WellDenoted ρ a ∧
-    64      ∃ (v : Nat) (A : V) (B : V → V),
-    65        interp V ρ f ∈ˢ piR v A B ∧ interp V ρ a ∈ˢ A ∧
-    66        (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧
-    67        (v ≠ 0 → IsTy A)
-    68    | ρ, .fst e =>
-    69      WellDenoted ρ e ∧
-    70      ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
-    71        A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v
-    72    | ρ, .snd e =>
-    73      WellDenoted ρ e ∧
-    74      ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
-    75        A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v
-    76    | ρ, .eqE a b => WellDenoted ρ a ∧ WellDenoted ρ b
-    77    | ρ, .letE v b => WellDenoted ρ v ∧ WellDenoted (cons (interp V ρ v) ρ) b
-    78    | _, .bvar _ => True
-    79    | _, .sort _ => True
-    80    | _, .const _ _ => True
-    81    | _, .prf => True
+== ConLeche/Semantics/WellDenoted.lean#L50-L80
+    50  def WellDenoted : (Nat → V) → Term → Prop
+    51    | ρ, .pi A B =>
+    52      WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
+    53      (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) B) ∧
+    54      (∀ x, x ∈ˢ interp V ρ A → IsTy (interp V (cons x ρ) B))
+    55    | ρ, .lam A b =>
+    56      WellDenoted ρ A ∧ IsTy (interp V ρ A) ∧
+    57      (∀ x, x ∈ˢ interp V ρ A → WellDenoted (cons x ρ) b) ∧
+    58      ∃ B : V → V,
+    59        (∀ x, x ∈ˢ interp V ρ A → interp V (cons x ρ) b ∈ˢ B x) ∧
+    60        (∀ x, x ∈ˢ interp V ρ A → IsTy (B x))
+    61    | ρ, .app f a =>
+    62      WellDenoted ρ f ∧ WellDenoted ρ a ∧
+    63      ∃ (v : Nat) (A : V) (B : V → V),
+    64        interp V ρ f ∈ˢ piR v A B ∧ interp V ρ a ∈ˢ A ∧
+    65        (v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) ∧
+    66        (v ≠ 0 → IsTy A)
+    67    | ρ, .fst e =>
+    68      WellDenoted ρ e ∧
+    69      ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
+    70        A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v
+    71    | ρ, .snd e =>
+    72      WellDenoted ρ e ∧
+    73      ∃ u v A Bf, interp V ρ e ∈ˢ sigmaSet (Nat.max u v) A Bf ∧
+    74        A ∈ˢ univ u ∧ ∀ x, x ∈ˢ A → Bf x ∈ˢ univ v
+    75    | ρ, .eqE a b => WellDenoted ρ a ∧ WellDenoted ρ b
+    76    | ρ, .letE v b => WellDenoted ρ v ∧ WellDenoted (cons (interp V ρ v) ρ) b
+    77    | _, .bvar _ => True
+    78    | _, .sort _ => True
+    79    | _, .const _ _ => True
+    80    | _, .prf => True
 
-== ConLeche/Semantics/WellDenoted.lean#L138-L325
-   138  /-! ### The substitution metatheory -/
-   139  
-   140  /-- Truthfulness through lifting. -/
-   141  theorem WellDenoted_liftN (n : Nat) :
-   142      ∀ (e : Term) (k : Nat) (ρ : Nat → V),
-   143        WellDenoted V ρ (e.liftN n k) ↔ WellDenoted V (shiftE n k ρ) e := by
-   144    intro e
-   145    induction e with
-   146    | bvar i =>
-   147      intro k ρ
-   148      simp only [Term.liftN_bvar]
-   149      split <;> simp
-   150    | sort u => intro k ρ; simp
-   151    | const c us => intro k ρ; simp
-   152    | app f a ihf iha =>
-   153      intro k ρ
-   154      rw [Term.liftN_app, WellDenoted_app, WellDenoted_app, ihf, iha,
-   155        interp_liftN, interp_liftN]
-   156    | lam A b ihA ihb =>
-   157      intro k ρ
-   158      rw [Term.liftN_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_liftN]
-   159      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
-   160        (forall_congr' fun x => imp_congr Iff.rfl ?_)
-   161        (exists_congr fun B => and_congr
-   162          (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
-   163      · rw [ihb, cons_shiftE]
-   164      · rw [interp_liftN, cons_shiftE]
-   165    | pi A B ihA ihB =>
-   166      intro k ρ
-   167      rw [Term.liftN_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_liftN]
-   168      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
-   169        (forall_congr' fun x => imp_congr Iff.rfl ?_)
-   170        (forall_congr' fun x => imp_congr Iff.rfl ?_)))
-   171      · rw [ihB, cons_shiftE]
-   172      · rw [interp_liftN, cons_shiftE]
-   173    | letE v b ihv ihb =>
-   174      intro k ρ
-   175      rw [Term.liftN_letE, WellDenoted_letE, WellDenoted_letE, ihv,
-   176        interp_liftN, ihb, cons_shiftE]
-   177    | eqE a b iha ihb =>
-   178      intro k ρ
-   179      rw [Term.liftN_eqE, WellDenoted_eqE, WellDenoted_eqE, iha, ihb]
-   180    | fst e ihe =>
-   181      intro k ρ
-   182      rw [Term.liftN_fst, WellDenoted_fst, WellDenoted_fst, ihe,
-   183        interp_liftN]
-   184    | snd e ihe =>
-   185      intro k ρ
-   186      rw [Term.liftN_snd, WellDenoted_snd, WellDenoted_snd, ihe,
-   187        interp_liftN]
-   188    | prf => intro k ρ; simp
-   189  
-   190  /-- Truthfulness through instantiation. -/
-   191  theorem WellDenoted_inst :
-   192      ∀ (e a : Term) (k : Nat) (ρ : Nat → V),
-   193        WellDenoted V (shiftE k 0 ρ) a →
-   194        (WellDenoted V ρ (e.inst a k) ↔
-   195          WellDenoted V (instE k (interp V (shiftE k 0 ρ) a) ρ) e) := by
-   196    intro e
-   197    induction e with
-   198    | bvar i =>
-   199      intro a k ρ ha
-   200      show WellDenoted V ρ
-   201          (if i < k then .bvar i
-   202           else if i = k then Term.liftN k a else .bvar (i - 1)) ↔ _
-   203      by_cases h : i < k
-   204      · simp [ite_eq_left h]
-   205      · by_cases h2 : i = k
-   206        · simp only [ite_eq_right h, ite_eq_left h2, WellDenoted_bvar, iff_true]
-   207          exact (WellDenoted_liftN V k a 0 ρ).mpr ha
-   208        · simp [ite_eq_right h, ite_eq_right h2]
-   209    | sort u => intro a k ρ _; simp [Term.inst]
-   210    | const c us => intro a k ρ _; simp [Term.inst]
-   211    | app f b ihf ihb =>
-   212      intro a k ρ ha
-   213      rw [Term.inst_app, WellDenoted_app, WellDenoted_app, ihf a k ρ ha,
-   214        ihb a k ρ ha, interp_inst, interp_inst]
-   215    | lam A b ihA ihb =>
-   216      intro a k ρ ha
-   217      rw [Term.inst_lam, WellDenoted_lam, WellDenoted_lam, ihA a k ρ ha,
-   218        interp_inst]
-   219      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
-   220        (forall_congr' fun x => imp_congr Iff.rfl ?_)
-   221        (exists_congr fun B => and_congr
-   222          (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
-   223      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
-   224          rw [shiftE_succ_cons]; exact ha
-   225        rw [ihb a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
-   226      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
-   227          rw [shiftE_succ_cons]; exact ha
-   228        rw [interp_inst, shiftE_succ_cons, cons_instE]
-   229    | pi A B ihA ihB =>
-   230      intro a k ρ ha
-   231      rw [Term.inst_pi, WellDenoted_pi, WellDenoted_pi, ihA a k ρ ha,
-   232        interp_inst]
-   233      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
-   234        (forall_congr' fun x => imp_congr Iff.rfl ?_)
-   235        (forall_congr' fun x => imp_congr Iff.rfl ?_)))
-   236      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
-   237          rw [shiftE_succ_cons]; exact ha
-   238        rw [ihB a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
-   239      · rw [interp_inst, shiftE_succ_cons, cons_instE]
-   240    | letE v b ihv ihb =>
-   241      intro a k ρ ha
-   242      rw [Term.inst_letE, WellDenoted_letE, WellDenoted_letE, ihv a k ρ ha,
-   243        interp_inst]
-   244      refine and_congr Iff.rfl ?_
-   245      have ha' : WellDenoted V (shiftE (k + 1) 0
-   246          (cons (interp V (instE k (interp V (shiftE k 0 ρ) a) ρ) v) ρ)) a := by
-   247        rw [shiftE_succ_cons]; exact ha
-   248      rw [ihb a (k + 1) _ ha', shiftE_succ_cons, cons_instE]
-   249    | eqE x y ihx ihy =>
-   250      intro a k ρ ha
-   251      rw [Term.inst_eqE, WellDenoted_eqE, WellDenoted_eqE, ihx a k ρ ha,
-   252        ihy a k ρ ha]
-   253    | fst e ihe =>
-   254      intro a k ρ ha
-   255      rw [Term.inst_fst, WellDenoted_fst, WellDenoted_fst, ihe a k ρ ha,
-   256        interp_inst]
-   257    | snd e ihe =>
-   258      intro a k ρ ha
-   259      rw [Term.inst_snd, WellDenoted_snd, WellDenoted_snd, ihe a k ρ ha,
-   260        interp_inst]
-   261    | prf => intro a k ρ _; simp [Term.inst]
-   262  
-   263  /-- Substitution at the outermost binder — the β/ζ transport form. -/
-   264  theorem WellDenoted_inst0 {e a : Term} {ρ : Nat → V}
-   265      (ha : WellDenoted V ρ a) :
-   266      WellDenoted V ρ (e.inst a) ↔
-   267        WellDenoted V (cons (interp V ρ a) ρ) e := by
-   268    have h := WellDenoted_inst V e a 0 ρ (by rwa [shiftE_zero_zero])
-   269    rwa [shiftE_zero_zero, instE_zero] at h
-   270  
-   271  /-- **ζ, graded**: a `let` interprets as its reduct, and with its value
-   272  graded it is graded exactly when its reduct is.  Unconditional: no
-   273  binder, so no regime. -/
-   274  theorem interp_zeta (v b : Term) (ρ : Nat → V) :
-   275      interp V ρ (.letE v b) = interp V ρ (b.inst v) := by
-   276    rw [interp_letE, interp_inst0]
-   277  
-   278  theorem WellDenoted_zeta {v b : Term} {ρ : Nat → V}
-   279      (hv : WellDenoted V ρ v) :
-   280      WellDenoted V ρ (.letE v b) ↔ WellDenoted V ρ (b.inst v) := by
-   281    rw [WellDenoted_letE, WellDenoted_inst0 V hv]
-   282    exact and_iff_right hv
-   283  
-   284  /-! ### The graded β step
-   285  
-   286  At a redex that is not the point, from the subject's `WellDenoted`
-   287  alone: the λ is not the point (`app_pt`), so it is a graph and the
-   288  slot's function space is in the graph regime; the graph fixes its
-   289  domain (`piR_dom_unique`), so the argument lies in the λ's domain, and
-   290  β is `app_lamV`.  At the point there is nothing to show: the claims
-   291  that read this are conditional on "not the point". -/
-   292  
-   293  /-- The λ's own membership, read off its clause: an abstraction whose
-   294  body is bounded by a family of types is a member of that family's
-   295  function space. -/
-   296  theorem WellDenoted_lam_mem {A b : Term} {ρ : Nat → V}
-   297      (h : WellDenoted V ρ (.lam A b)) :
-   298      ∃ B : V → V, interp V ρ (.lam A b) ∈ˢ piV (interp V ρ A) B ∧
-   299        (∀ x, x ∈ˢ interp V ρ A → IsTy (B x)) := by
-   300    rw [WellDenoted_lam] at h
-   301    obtain ⟨-, -, -, B, hfib, hty⟩ := h
-   302    exact ⟨B, by rw [interp_lam]; exact lamV_mem hfib hty, hty⟩
-   303  
-   304  /-- **The graded β step** at a redex that is not the point. -/
-   305  theorem WellDenoted_beta {A b a : Term} {ρ : Nat → V}
-   306      (h : WellDenoted V ρ (.app (.lam A b) a))
-   307      (hne : interp V ρ (.app (.lam A b) a) ≠ pt) :
-   308      interp V ρ a ∈ˢ interp V ρ A ∧
-   309      interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) ∧
-   310      WellDenoted V ρ (b.inst a) := by
-   311    rw [WellDenoted_app] at h
-   312    obtain ⟨hlam, ha, v', A', B', hslot, hmem, -, -⟩ := h
-   313    have hlne : interp V ρ (.lam A b) ≠ pt := by
-   314      intro h0; apply hne; rw [interp_app, h0, app_pt]
-   315    have hv' : v' ≠ 0 := by
-   316      intro h0; subst h0; exact hlne (eq_pt_of_mem_piR_zero hslot)
-   317    obtain ⟨-, -, hbody, B, hfib, -⟩ := (WellDenoted_lam V ρ A b).mp hlam
-   318    have hgraph : interp V ρ (.lam A b) = graph (fun x => interp V (cons x ρ) b) (interp V ρ A) := by
-   319      rw [interp_lam] at hlne ⊢; exact lamV_eq_graph hlne
-   320    have hown : interp V ρ (.lam A b) ∈ˢ piR 1 (interp V ρ A) B := by
-   321      rw [hgraph, piR_pos (by decide)]; exact graph_mem_piSet hfib
-   322    have hAA : interp V ρ A = A' := piR_dom_unique (by decide) hv' hown hslot
-   323    have haA : interp V ρ a ∈ˢ interp V ρ A := hAA ▸ hmem
-   324    refine ⟨haA, ?_, (WellDenoted_inst0 V ha).mpr (hbody _ haA)⟩
-   325    rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
+== ConLeche/Semantics/WellDenoted.lean#L137-L313
+   137  /-! ### The substitution metatheory -/
+   138  
+   139  /-- Truthfulness through lifting. -/
+   140  theorem WellDenoted_liftN (n : Nat) :
+   141      ∀ (e : Term) (k : Nat) (ρ : Nat → V),
+   142        WellDenoted V ρ (e.liftN n k) ↔ WellDenoted V (shiftE n k ρ) e := by
+   143    intro e
+   144    induction e with
+   145    | bvar i =>
+   146      intro k ρ
+   147      simp only [Term.liftN_bvar]
+   148      split <;> simp
+   149    | sort u => intro k ρ; simp
+   150    | const c us => intro k ρ; simp
+   151    | app f a ihf iha =>
+   152      intro k ρ
+   153      rw [Term.liftN_app, WellDenoted_app, WellDenoted_app, ihf, iha,
+   154        interp_liftN, interp_liftN]
+   155    | lam A b ihA ihb =>
+   156      intro k ρ
+   157      rw [Term.liftN_lam, WellDenoted_lam, WellDenoted_lam, ihA, interp_liftN]
+   158      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+   159        (forall_congr' fun x => imp_congr Iff.rfl ?_)
+   160        (exists_congr fun B => and_congr
+   161          (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
+   162      · rw [ihb, cons_shiftE]
+   163      · rw [interp_liftN, cons_shiftE]
+   164    | pi A B ihA ihB =>
+   165      intro k ρ
+   166      rw [Term.liftN_pi, WellDenoted_pi, WellDenoted_pi, ihA, interp_liftN]
+   167      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+   168        (forall_congr' fun x => imp_congr Iff.rfl ?_)
+   169        (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+   170      · rw [ihB, cons_shiftE]
+   171      · rw [interp_liftN, cons_shiftE]
+   172    | letE v b ihv ihb =>
+   173      intro k ρ
+   174      rw [Term.liftN_letE, WellDenoted_letE, WellDenoted_letE, ihv,
+   175        interp_liftN, ihb, cons_shiftE]
+   176    | eqE a b iha ihb =>
+   177      intro k ρ
+   178      rw [Term.liftN_eqE, WellDenoted_eqE, WellDenoted_eqE, iha, ihb]
+   179    | fst e ihe =>
+   180      intro k ρ
+   181      rw [Term.liftN_fst, WellDenoted_fst, WellDenoted_fst, ihe,
+   182        interp_liftN]
+   183    | snd e ihe =>
+   184      intro k ρ
+   185      rw [Term.liftN_snd, WellDenoted_snd, WellDenoted_snd, ihe,
+   186        interp_liftN]
+   187    | prf => intro k ρ; simp
+   188  
+   189  /-- Truthfulness through instantiation. -/
+   190  theorem WellDenoted_inst :
+   191      ∀ (e a : Term) (k : Nat) (ρ : Nat → V),
+   192        WellDenoted V (shiftE k 0 ρ) a →
+   193        (WellDenoted V ρ (e.inst a k) ↔
+   194          WellDenoted V (instE k (interp V (shiftE k 0 ρ) a) ρ) e) := by
+   195    intro e
+   196    induction e with
+   197    | bvar i =>
+   198      intro a k ρ ha
+   199      show WellDenoted V ρ
+   200          (if i < k then .bvar i
+   201           else if i = k then Term.liftN k a else .bvar (i - 1)) ↔ _
+   202      by_cases h : i < k
+   203      · simp [ite_eq_left h]
+   204      · by_cases h2 : i = k
+   205        · simp only [ite_eq_right h, ite_eq_left h2, WellDenoted_bvar, iff_true]
+   206          exact (WellDenoted_liftN V k a 0 ρ).mpr ha
+   207        · simp [ite_eq_right h, ite_eq_right h2]
+   208    | sort u => intro a k ρ _; simp [Term.inst]
+   209    | const c us => intro a k ρ _; simp [Term.inst]
+   210    | app f b ihf ihb =>
+   211      intro a k ρ ha
+   212      rw [Term.inst_app, WellDenoted_app, WellDenoted_app, ihf a k ρ ha,
+   213        ihb a k ρ ha, interp_inst, interp_inst]
+   214    | lam A b ihA ihb =>
+   215      intro a k ρ ha
+   216      rw [Term.inst_lam, WellDenoted_lam, WellDenoted_lam, ihA a k ρ ha,
+   217        interp_inst]
+   218      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+   219        (forall_congr' fun x => imp_congr Iff.rfl ?_)
+   220        (exists_congr fun B => and_congr
+   221          (forall_congr' fun x => imp_congr Iff.rfl ?_) Iff.rfl)))
+   222      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
+   223          rw [shiftE_succ_cons]; exact ha
+   224        rw [ihb a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
+   225      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
+   226          rw [shiftE_succ_cons]; exact ha
+   227        rw [interp_inst, shiftE_succ_cons, cons_instE]
+   228    | pi A B ihA ihB =>
+   229      intro a k ρ ha
+   230      rw [Term.inst_pi, WellDenoted_pi, WellDenoted_pi, ihA a k ρ ha,
+   231        interp_inst]
+   232      refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr
+   233        (forall_congr' fun x => imp_congr Iff.rfl ?_)
+   234        (forall_congr' fun x => imp_congr Iff.rfl ?_)))
+   235      · have ha' : WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) a := by
+   236          rw [shiftE_succ_cons]; exact ha
+   237        rw [ihB a (k + 1) (cons x ρ) ha', shiftE_succ_cons, cons_instE]
+   238      · rw [interp_inst, shiftE_succ_cons, cons_instE]
+   239    | letE v b ihv ihb =>
+   240      intro a k ρ ha
+   241      rw [Term.inst_letE, WellDenoted_letE, WellDenoted_letE, ihv a k ρ ha,
+   242        interp_inst]
+   243      refine and_congr Iff.rfl ?_
+   244      have ha' : WellDenoted V (shiftE (k + 1) 0
+   245          (cons (interp V (instE k (interp V (shiftE k 0 ρ) a) ρ) v) ρ)) a := by
+   246        rw [shiftE_succ_cons]; exact ha
+   247      rw [ihb a (k + 1) _ ha', shiftE_succ_cons, cons_instE]
+   248    | eqE x y ihx ihy =>
+   249      intro a k ρ ha
+   250      rw [Term.inst_eqE, WellDenoted_eqE, WellDenoted_eqE, ihx a k ρ ha,
+   251        ihy a k ρ ha]
+   252    | fst e ihe =>
+   253      intro a k ρ ha
+   254      rw [Term.inst_fst, WellDenoted_fst, WellDenoted_fst, ihe a k ρ ha,
+   255        interp_inst]
+   256    | snd e ihe =>
+   257      intro a k ρ ha
+   258      rw [Term.inst_snd, WellDenoted_snd, WellDenoted_snd, ihe a k ρ ha,
+   259        interp_inst]
+   260    | prf => intro a k ρ _; simp [Term.inst]
+   261  
+   262  /-- Substitution at the outermost binder — the β/ζ transport form. -/
+   263  theorem WellDenoted_inst0 {e a : Term} {ρ : Nat → V}
+   264      (ha : WellDenoted V ρ a) :
+   265      WellDenoted V ρ (e.inst a) ↔
+   266        WellDenoted V (cons (interp V ρ a) ρ) e := by
+   267    have h := WellDenoted_inst V e a 0 ρ (by rwa [shiftE_zero_zero])
+   268    rwa [shiftE_zero_zero, instE_zero] at h
+   269  
+   270  /-- **ζ, graded**: a `let` interprets as its reduct, and with its value
+   271  graded it is graded exactly when its reduct is.  Unconditional: no
+   272  binder, so no regime. -/
+   273  theorem interp_zeta (v b : Term) (ρ : Nat → V) :
+   274      interp V ρ (.letE v b) = interp V ρ (b.inst v) := by
+   275    rw [interp_letE, interp_inst0]
+   276  
+   277  theorem WellDenoted_zeta {v b : Term} {ρ : Nat → V}
+   278      (hv : WellDenoted V ρ v) :
+   279      WellDenoted V ρ (.letE v b) ↔ WellDenoted V ρ (b.inst v) := by
+   280    rw [WellDenoted_letE, WellDenoted_inst0 V hv]
+   281    exact and_iff_right hv
+   282  
+   283  /-! ### The graded β step
+   284  
+   285  At a redex that is not the point, from the subject's `WellDenoted`
+   286  alone: the λ is not the point (`app_pt`), so it is a graph and the
+   287  slot's function space is in the graph regime; the graph fixes its
+   288  domain (`piR_dom_unique`), so the argument lies in the λ's domain, and
+   289  β is `app_lamV`.  At the point there is nothing to show: the claims
+   290  that read this are conditional on "not the point". -/
+   291  
+   292  /-- **The graded β step** at a redex that is not the point. -/
+   293  theorem WellDenoted_beta {A b a : Term} {ρ : Nat → V}
+   294      (h : WellDenoted V ρ (.app (.lam A b) a))
+   295      (hne : interp V ρ (.app (.lam A b) a) ≠ pt) :
+   296      interp V ρ a ∈ˢ interp V ρ A ∧
+   297      interp V ρ (.app (.lam A b) a) = interp V ρ (b.inst a) ∧
+   298      WellDenoted V ρ (b.inst a) := by
+   299    rw [WellDenoted_app] at h
+   300    obtain ⟨hlam, ha, v', A', B', hslot, hmem, -, -⟩ := h
+   301    have hlne : interp V ρ (.lam A b) ≠ pt := by
+   302      intro h0; apply hne; rw [interp_app, h0, app_pt]
+   303    have hv' : v' ≠ 0 := by
+   304      intro h0; subst h0; exact hlne (eq_pt_of_mem_piR_zero hslot)
+   305    obtain ⟨-, -, hbody, B, hfib, -⟩ := (WellDenoted_lam V ρ A b).mp hlam
+   306    have hgraph : interp V ρ (.lam A b) = graph (fun x => interp V (cons x ρ) b) (interp V ρ A) := by
+   307      rw [interp_lam] at hlne ⊢; exact lamV_eq_graph hlne
+   308    have hown : interp V ρ (.lam A b) ∈ˢ piR 1 (interp V ρ A) B := by
+   309      rw [hgraph, piR_pos (by decide)]; exact graph_mem_piSet hfib
+   310    have hAA : interp V ρ A = A' := piR_dom_unique (by decide) hv' hown hslot
+   311    have haA : interp V ρ a ∈ˢ interp V ρ A := hAA ▸ hmem
+   312    refine ⟨haA, ?_, (WellDenoted_inst0 V ha).mpr (hbody _ haA)⟩
+   313    rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
 
 == ConLeche/Model/Env/EnvModel.lean#L36-L64
     36  structure EnvModel (env : Env) where
@@ -690,18 +679,18 @@
     50    /-- every stored recursor rule's constructor is stored (V-free,
     51    shared) -/
     52    rec_ctors : RecCtorsStored env
-    53    /-- every leaf is closed, as a lifting equation -/
-    54    acval_closed : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
-    55      (acval n ψ).liftN 1 k = acval n ψ
-    56    /-- a leaf reads only its own level parameters -/
-    57    acval_params : ∀ (n : Name) (ci : ConstantInfo),
-    58      env.find? n = some ci →
-    59      ∀ ψ₁ ψ₂ : Name → Nat,
-    60        (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
-    61        acval n ψ₁ = acval n ψ₂
-    62    /-- every leaf is truthful -/
-    63    acval_wellDenoted : ∀ (n : Name) (ψ : Name → Nat) (ρ : Nat → V),
-    64      WellDenoted V ρ (acval n ψ)
+    53    /-- a leaf reads only its own level parameters -/
+    54    acval_params : ∀ (n : Name) (ci : ConstantInfo),
+    55      env.find? n = some ci →
+    56      ∀ ψ₁ ψ₂ : Name → Nat,
+    57        (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
+    58        acval n ψ₁ = acval n ψ₂
+    59    /-- every leaf is truthful -/
+    60    acval_wellDenoted : ∀ (n : Name) (ψ : Name → Nat) (ρ : Nat → V),
+    61      WellDenoted V ρ (acval n ψ)
+    62  
+    63  variable {V}
+    64  
 
 == ConLeche/Model/Denotes.lean#L192-L198
    192  theorem Denotes_of_denote {acval : Name → (Name → Nat) → Term}
@@ -905,9 +894,9 @@
    607  def tgtStoredRules (find? : Name → Option ConstantInfo)
    608      (cv : ConstantVal) (rP : Nat) (M : TargetMajor) (rhss : List Expr) : List RecRule :=
 
-== ConLeche/SetModel/Value.lean#L393-L394
-   393  /-- `I → Sort w`, the family space, as the value reading has it. -/
-   394  noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piV I fun _ => univ w
+== ConLeche/SetModel/Value.lean#L387-L388
+   387  /-- `I → Sort w`, the family space, as the value reading has it. -/
+   388  noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piV I fun _ => univ w
 
 == ConLeche/SetModel/Access.lean#L243
    243  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
@@ -1016,8 +1005,8 @@
    113  
    114  /-- The pinned defining expression of a pin-certified WF-recursive op
 
-== ConLeche/Model/NatEqs.lean#L1112
-  1112  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
+== ConLeche/Model/NatEqs.lean#L1101
+  1101  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
 
 == ConLeche/Kernel/CoreDefs.lean#L439-L454
    439  /-- The WF-recursive operations with a *pinned-declaration* certified

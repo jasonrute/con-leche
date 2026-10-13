@@ -443,14 +443,14 @@ Read from the outside in:
    on exhaustion every operation throws
    ([the fuel recursion's base case in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1714-L1719)).
    Its declaration fold is what the model tier proves things about
-   ([theorem `no_proof_of_False_pure` in `ConLeche/Model/Fold.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Fold.lean#L276-L283)).
+   ([theorem `no_proof_of_False_pure` in `ConLeche/Model/Fold.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Fold.lean#L268-L275)).
 5. **The model tier** (`ConLeche/Model/*`, the set model of the checker)
    shows that each declaration step preserves an invariant on the
    environment
    ([theorem `declStep_preserves` in `ConLeche/Model/Fold.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Fold.lean#L141)),
    and that the invariant forbids a constant of type `False`, whose
    pinned denotation is the empty set
-   ([theorem `no_constant_of_False` in `ConLeche/Model/Capstone.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Capstone.lean#L138-L144)).
+   ([theorem `no_constant_of_False` in `ConLeche/Model/Capstone.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Capstone.lean#L137-L143)).
    The main theorem's model is the invariant's own, read through the
    statement's relation
    ([definition `Model.ofEnvModelM` in `ConLeche/Model/Denotes.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Denotes.lean#L342-L343)).
@@ -547,7 +547,7 @@ presentation and matter for the proof:
 * **Fuel and memos.** The pure checker is fueled; the cached checker is
   not, but its memos are proved to agree with the pure functions at
   every fuel large enough to succeed
-  ([theorem `checkDecls_skels` in `ConLeche/Verify/Cached/AgreeFloor.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/AgreeFloor.lean#L1103-L1105)).
+  ([theorem `checkDecls_skels` in `ConLeche/Verify/Cached/AgreeFloor.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/AgreeFloor.lean#L1102-L1104)).
   Nesting (a head, a scrutinee, a subterm's type) is bounded by the
   shared fuel, an error when exhausted; reduction *chains* are not: the
   `whnf` loop's δ steps, the `whnfCore` loop's β, ι and projection steps
@@ -598,12 +598,12 @@ propositionally proven equation is a set equality.
 
 **The invariant.** In place of a typing judgement there is a semantic
 predicate
-([predicate `WellDenoted` in `ConLeche/Semantics/WellDenoted.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/WellDenoted.lean#L51-L81)):
+([predicate `WellDenoted` in `ConLeche/Semantics/WellDenoted.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/WellDenoted.lean#L50-L80)):
 hereditarily, every application applies a function to an argument of
 its domain, every binder's domain is a type, every λ has a bounded
 codomain, every projection hits a pair, and so on. Unlike syntactic typing it is preserved by β and
 the other reduction steps
-([the preservation lemmas in `ConLeche/Semantics/WellDenoted.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/WellDenoted.lean#L138-L325)).
+([the preservation lemmas in `ConLeche/Semantics/WellDenoted.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Semantics/WellDenoted.lean#L137-L313)).
 An environment carries the invariant for every stored constant, plus
 closedness and the pins of the basis constants
 ([structure `EnvModel` in `ConLeche/Model/Env/EnvModel.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Env/EnvModel.lean#L36-L64)).
@@ -866,7 +866,7 @@ and no fields), exactly under the official kernel's conditions.
 
 **In the model** the block's carrier is the least fixed point of its
 family functor over the index fibres
-([the fixed-point family space in `ConLeche/SetModel/Value.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/SetModel/Value.lean#L393-L394)),
+([the fixed-point family space in `ConLeche/SetModel/Value.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/SetModel/Value.lean#L387-L388)),
 for several members a least fixed tuple of families, and a container
 field reads the container's own least fixed point at the holes'
 values. That the fixed point is a member of the universe follows from
@@ -1099,7 +1099,7 @@ instead of trusting the operation's name.
   The model side reads the operation's membership off its pinned type
   shape and proves the literal semantics from the certified
   recurrences
-  ([theorem `natOps_install` in `ConLeche/Model/NatEqs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/NatEqs.lean#L1112)).
+  ([theorem `natOps_install` in `ConLeche/Model/NatEqs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/NatEqs.lean#L1101)).
 * **Well-founded operations** (`Nat.div`, `mod`, `gcd`, `land`, `lor`,
   `xor`, `shiftLeft`, `shiftRight`;
   [the list `natDivModNames` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L439-L454))

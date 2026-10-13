@@ -533,17 +533,17 @@ which holds in both regimes, is used there only for monotonicity.
 #real[
   The operator is read off the stored constructor types with the
   positivity check's variable — a _hole_ — standing for the family
-  (#src("ConLeche/Model/Env/LfpHoleOp.lean", 115, 117)[the hole operator]),
+  (#src("ConLeche/Model/Env/LfpHoleOp.lean", 104, 106)[the hole operator]),
   and monotonicity and accessibility are read off the positivity
   check's run, case by case: a reading that mentions no hole is
   #src("ConLeche/Semantics/Inductives/HoleMono.lean", 71, 73)[constant]
   (the ordinary field); a function space over a hole-free domain,
   its fibres types, is
-  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 140, 149)[positive when its body is]
-  and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 237, 247)[accessible with its body's bound glued over the domain]
+  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 130, 139)[positive when its body is]
+  and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 233, 243)[accessible with its body's bound glued over the domain]
   (the reflexive field); a hole applied to hole-free arguments is
-  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 168, 172)[positive]
-  and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 325, 328)[accessible with the bound ${pt}$]
+  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 158, 162)[positive]
+  and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 321, 324)[accessible with the bound ${pt}$]
   (the recursive field). Assembled along the fields, that is
   #src("ConLeche/Model/Inductives/BlockAccRunCont.lean", 310, 315)[the fit's accessibility, in both regimes, with a bound in the universe in the type-valued one]
   (#src("ConLeche/SetModel/Access.lean", 56, 63)[the notion above]), and
@@ -643,7 +643,7 @@ every constructor denotes the point.
 
 #real[
   The least fixed point is
-  #src("ConLeche/SetTheory/Derive/LfpTuple.lean", 81, 90)[the same construction]
+  #src("ConLeche/SetTheory/Derive/LfpTuple.lean", 78, 87)[the same construction]
   over a tuple of families, one per type former of the block, each a
   graph over an index set. What the model records of an installed
   block is one clause: the operator maps the universe to itself and
@@ -785,7 +785,7 @@ which holds the argument.
   kernel, and the law there is proved without the comparisons: off
   the point the major is a tagged tuple, which ties the constructor
   application to the recursor's levels and parameters
-  (#src("ConLeche/Model/Env/Laws.lean", 521, 556)[what the law
+  (#src("ConLeche/Model/Env/Laws.lean", 521, 555)[what the law
   provides instead]). The fragment keeps the comparisons in every case
   and uses them.
 ]
@@ -1043,7 +1043,7 @@ assumed of the environment they extend.
   environment. Then #src("whitepaper/Fragment/Consistency.lean", 89, 98)[no closed term $e$ has] $tack e => I$; in
   particular no stored constant has type $I$
   (#src("whitepaper/Fragment/Consistency.lean", 134, 138)[at the block `inductive False : Prop`]\;
-  #src("ConLeche/Model/Fold.lean", 276, 283)[as in con-leche]).
+  #src("ConLeche/Model/Fold.lean", 268, 275)[as in con-leche]).
 ] <cor:consistency>
 
 #proof[
