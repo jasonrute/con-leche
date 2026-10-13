@@ -329,7 +329,7 @@ arm's obligation is *agreement* with the slow path, recorded by the
 landing census (DESIGN.md, task #168: 0 disagreements in 7.5 M calls).
 The **"yes" arm** (`isProofFast` on both sides → `true`) is
 justified by the squash regime, stage 3 of the same design
-(`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`), which the
+(`prf_of_isProofFast`, `ConLeche/Model/Rules/ProofFastSound.lean`), which the
 verified mode's `DefEq.proofFast` rule consumes; the trusted mode is unverified and
 inherits the arm without a row, as it inherits every other body. -/
 def propIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
@@ -339,7 +339,7 @@ def propIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
   else if isProofFast env.find? a && isProofFast env.find? b then
     -- the yes arm (task #168 stage 3): both heads' data say
     -- "a proposition at every valuation" — justified by the squash
-    -- regime (`prf_of_isProofFast`, `ConLeche/Model/Rules/DefEqSoundKit.lean`)
+    -- regime (`prf_of_isProofFast`, `ConLeche/Model/Rules/ProofFastSound.lean`)
     pure true
   else
   -- task #172 B4: every inference here is at the io grade
@@ -495,15 +495,17 @@ def stuckIrrel (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
 in the official kernel): a recursor's major premise that does not whnf
 to a constructor application may still be *replaced* by one.  For a
 K-flagged inductive proposition the parameters-only application of the
-single constructor is fabricated from the major's type and certified by
-proof irrelevance (in the model both are the proof point); for an
-eta-capable structure the constructor of the major's projections is
-fabricated and certified by the structure-eta certificate (in the model
-both are the tuple of the major's components); for `And` —
-a proposition, which official never η-rescues — the constructor of the
-major's projections is fabricated and certified by proof irrelevance
-(the `And` branch below).  An uncertified major stays put — sound, the
-reduction simply stays stuck. -/
+single constructor is fabricated from the major's type; its io type is
+compared with the major's (official's check) and proof irrelevance
+compares it with the major (in the model both are the proof point).
+For an eta-capable structure the constructor applied to the major's
+projections is fabricated with no check: the major is that application
+by the family's η law (in the model both are the tuple of the major's
+components).  For `And` — a proposition, which official never
+η-rescues — the constructor applied to the major's projections is
+fabricated and checked as in the K branch (the `And` branch below).  A
+major that fails a check stays put — sound, the reduction simply stays
+stuck. -/
 def majorToCtor (r : CoreFns m) (env : Env) (depth : Nat)
     (_recName : Name) (rules : List RecRule) (major : Expr) : m Expr := do
   -- cheap syntactic gates before any inference: a rescue needs a

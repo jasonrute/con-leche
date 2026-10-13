@@ -2907,12 +2907,12 @@
 # 2^14 calls), whose variable meets the lazy-delta Nat-literal fold.
 # The official kernel checks the body with the let-fvar, so its fold
 # guard (no free variables) does not fire and the value is never
-# evaluated; con-leche's annotate pass ζ-substitutes the `let`, the
-# comparison is closed, and the fold evaluates it.  The harness pins
-# verdicts only; the cost is the point (instructions:u at n = 14,
-# con-leche / official: letfold_let 7.2e9 / 3.5e8, letfold_pair_let
-# 7.2e9 / 3.5e8, letfold_inline 7.2e9 / 3.4e9; the scaling is in
-# DESIGN.md "TASK #348").  All accept today, at 0.2 GB.  TARGET: the
+# evaluated; con-leche's inference substitutes the `let` value (it has
+# no let-variables), the comparison is closed, and the fold evaluates
+# it.  The harness pins verdicts only; the cost is the point
+# (instructions:u at n = 14, con-leche / official: letfold_let 6.8e9 /
+# 3.5e8, letfold_pair_let 6.8e9 / 3.5e8, letfold_inline 6.8e9 / 3.4e9;
+# the scaling is in DESIGN.md "TASK #348").  All accept today, at 0.2 GB.  TARGET: the
 # same verdicts on official's path: no fold under a let-variable
 # (letfold_let and letfold_pair_let then cost what official does).
 0 letfold_let.ndjson

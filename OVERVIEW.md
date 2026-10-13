@@ -340,7 +340,7 @@ Read from the outside in:
    semantic layer the main corollary's line lemmas are about. The install loop
    ([function `installLoop` in `ConLeche/Driver/ParInstall.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Driver/ParInstall.lean#L155))
    takes every record, each from a fresh memo state, through the install step
-   ([function `annotStepC` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L140-L143)):
+   ([function `installStepC` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L140-L143)):
    a definition or opaque is guarded and pushed with its check
    *recorded* — the header and value and the number of
    constants installed before it — a theorem is installed by its
@@ -529,9 +529,10 @@ presentation and matter for the proof:
   against a term whose head is no λ and no `let` (a weak-head normal
   form), a unit-like comparison refuses a Π-type, and a recursor's
   stored type is checked to have the spine's number of binders. The
-  synthetic constructor spines of the K and `And` rescues are certified
-  at the full grade. Binders carry no data the checker
-  reads, and declarations are stored as declared, `let`s included:
+  synthetic constructor applications of the K and `And` rescues are
+  typed at the io grade only: their io type is compared with the
+  major's, then proof irrelevance compares them with the major. Binders
+  carry no data the checker reads, and declarations are stored as declared, `let`s included:
   `whnfCore` ζ-reduces and inference runs the official `infer_let`.
 * **Fuel and memos.** The pure checker is fueled; the cached checker is
   not, but its memos are proved to agree with the pure functions at

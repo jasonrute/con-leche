@@ -507,8 +507,8 @@ inductive DefEq (env : Env) : Nat → Expr → Expr → Prop where
 /-- **λ-telescope congruence, typed at the innermost level only**
 (task #349; the fragment's `DefEqLams`).  Two λ-telescopes are compared
 level by level: the domains at every level, the opened bodies' FULL-grade
-types only where the comparison stops descending through two λs — the
-checker's `!(b₁.isLam && b₂.isLam)` (`quickDefEq`, `Kernel/Core.lean`).
+types only where the comparison stops descending through two λs — where
+the checker's `Expr.lamPair?` fails (`defeqLams`, `Kernel/Core.lean`).
 
 *Why the outer levels need no type comparison.*  The type comparison is
 what makes λ-congruence's claim **unconditional** — `DefEq`'s claim says
