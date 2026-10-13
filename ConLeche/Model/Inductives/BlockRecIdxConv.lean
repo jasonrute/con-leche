@@ -47,7 +47,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars)
 
 universe w
@@ -61,7 +61,7 @@ section Helpers
 omit [SetTheory V] in
 /-- A `liftDomsK` entry is the entry lifted at its own cutoff. -/
 theorem liftDomsK_getD (K : Nat) :
-    ∀ (k : Nat) (Ds : List ITerm) (l : Nat), l < Ds.length →
+    ∀ (k : Nat) (Ds : List Term) (l : Nat), l < Ds.length →
       (liftDomsK K k Ds).getD l default = (Ds.getD l default).liftN K (k + l)
   | _, [], _, h => absurd h (Nat.not_lt_zero _)
   | k, D :: Ds, 0, _ => by simp [liftDomsK]

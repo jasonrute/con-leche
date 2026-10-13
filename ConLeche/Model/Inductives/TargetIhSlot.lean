@@ -35,10 +35,12 @@ No field classification and no syntactic computation of the λ's type.
 -/
 
 namespace ConLeche.Model
+open ConLeche.Verify (denote)
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal CheckMode)
 
 universe uv
@@ -61,19 +63,19 @@ opens a slot at depth `B + n` whose domain is that reading lifted past the
 `n` earlier slots, and a value of the frame-level reading fills it. -/
 theorem walkCtx_consLifted {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
-    {B n : Nat} {Li L : List Expr} (hL : FvarList B L) {Δi Δ : List ITerm} {vs : List V}
+    {B n : Nat} {Li L : List Expr} (hL : FvarList B L) {Δi Δ : List Term} {vs : List V}
     {ρ : Nat → V}
     (hW : WalkCtx V mT φ (B + n) (consList vs ρ) (Δi ++ Δ) (Li ++ L))
     (hn : Δi.length = n) (hvs : vs.length = n)
     {ty : Expr} (hlT : ∀ l ∈ ty.fvarLeaves, Expr.fvar l.1 l.2 ∈ L)
     (hbT : ty.looseBVarsBounded 0 = true) (hcbT : ConstsBound envT ty)
-    {T : ITerm} (hT : denoteMeta mT.acval envT φ B ty = some T)
+    {T : Term} (hT : denote mT.acval envT φ B ty = some T)
     (hGT : ∀ σ : Nat → V, Sat V Δ σ → WellDenotedTy V σ T)
     {v : V} (hv : v ∈ˢ interp V ρ T) :
     WalkCtx V mT φ (B + n + 1) (cons v (consList vs ρ)) (T.liftN n 0 :: (Δi ++ Δ))
       (Expr.fvar (B + n) ty :: (Li ++ L)) := by
-  have hta : denoteMeta mT.acval envT φ (B + n) ty = some (T.liftN n 0) := by
-    have hd := denoteMeta_open_deepen (acval := mT.acval) (env := envT) (φ := φ) hacl n B
+  have hta : denote mT.acval envT φ (B + n) ty = some (T.liftN n 0) := by
+    have hd := denote_open_deepen (acval := mT.acval) (env := envT) (φ := φ) hacl n B
       ty 0 [] [] (leaf_lt_of_mem hL hlT) (LocList.nil B) (LocList.nil (B + n))
     simp only [ConLeche.Expr.instantiateList_nil, Nat.add_zero] at hd
     rw [hd, hT]; rfl
@@ -89,7 +91,7 @@ theorem walkCtx_consLifted {envT : Env} {mT : EnvModel V envT} {φ : Name → Na
 
 /-- The `ih` slots' domains: entry `r`'s frame-level reading, lifted past
 the `r` slots before it. -/
-@[expose] def ihDomsLifted (Ts : List ITerm) : List ITerm :=
+@[expose] def ihDomsLifted (Ts : List Term) : List Term :=
   (List.range Ts.length).map fun r => (Ts.getD r default).liftN r 0
 
 /-- The `ih` variables: entry `r` at `B + r`. -/
@@ -101,15 +103,15 @@ with every `ih` slot on top — each `ih` type read at the frame, graded
 there, and filled by its value. -/
 theorem walkCtx_ihs {envT : Env} {mT : EnvModel V envT} {φ : Name → Nat}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
-    {B : Nat} {L : List Expr} (hL : FvarList B L) {Δ : List ITerm} {ρ : Nat → V}
+    {B : Nat} {L : List Expr} (hL : FvarList B L) {Δ : List Term} {ρ : Nat → V}
     (hW : WalkCtx V mT φ B ρ Δ L)
-    (tys : List Expr) (Ts : List ITerm) (vals : List V)
+    (tys : List Expr) (Ts : List Term) (vals : List V)
     (hlen1 : tys.length = Ts.length) (hlen2 : vals.length = Ts.length)
     (hslot : ∀ r, r < Ts.length →
       (∀ l ∈ (tys.getD r default).fvarLeaves, Expr.fvar l.1 l.2 ∈ L) ∧
       (tys.getD r default).looseBVarsBounded 0 = true ∧
       ConstsBound envT (tys.getD r default) ∧
-      denoteMeta mT.acval envT φ B (tys.getD r default) = some (Ts.getD r default) ∧
+      denote mT.acval envT φ B (tys.getD r default) = some (Ts.getD r default) ∧
       (∀ σ : Nat → V, Sat V Δ σ → WellDenotedTy V σ (Ts.getD r default)) ∧
       vals.getD r pt ∈ˢ interp V ρ (Ts.getD r default)) :
     WalkCtx V mT φ (B + Ts.length) (consList vals ρ) ((ihDomsLifted Ts).reverse ++ Δ)

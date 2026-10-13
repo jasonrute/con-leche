@@ -624,7 +624,10 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.StoredShapes','ConLeche.Model.Inductives.BlockData'),
     ('ConLeche.Model.Inductives.StoredShapes','ConLeche.Model.Inductives.NestPosMono'),
     ('ConLeche.Model.Inductives.StoredShapes','ConLeche.Model.Inductives.NestPosOut'),
-    ('ConLeche.Model.Inductives.BlockHoleRead','ConLeche.Model.Reading.DenoteMeta'),
+    # task #342 R3: `Reading/DenoteMeta` is gone (`denoteMeta` folded into
+    # `denote`); the re-export moved to `TowerKit`.  MEASURED by demoting it
+    # alone: unknown identifier `Term`, `BlockHoleRead.lean:396`.
+    ('ConLeche.Model.Inductives.BlockHoleRead','ConLeche.Semantics.Tower.TowerKit'),
     # lane ALPHA1: after the positivity files' imports narrowed, the model
     # calls six more edges demotable; each MEASURED by demoting it alone,
     # all coverage failures one tier down: `IndFieldGrade` without

@@ -57,7 +57,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal)
 
 universe w
@@ -79,8 +79,8 @@ so the producer is restated over the kit's step fact itself (`hstep`);
 section CoreR
 
 variable {ℓ K : Nat} {ρ : Nat → V} {nCt rP : Nat → Nat}
-  {concl : Nat → ITerm} {pdoms : Nat → List ITerm} {fdoms : Nat → Nat → List ITerm}
-  {Rb0 : Nat → Nat → ITerm} {ihv : List V → Nat → Nat → List V → V → List V}
+  {concl : Nat → Term} {pdoms : Nat → List Term} {fdoms : Nat → Nat → List Term}
+  {Rb0 : Nat → Nat → Term} {ihv : List V → Nat → Nat → List V → V → List V}
   {call : List V → Nat → Nat → List V → V → Prop}
 
 /-- **The graph kit over a step premise** (`graphKitG` with the step's
@@ -133,8 +133,8 @@ noncomputable def graphKitR
 set_option maxHeartbeats 1000000 in
 /-- **`graphRecPre_core` over a step premise.**  The same candidate and
 the same rows; the step's typing is `hstep`. -/
-theorem graphRecPre_coreR {es ihs : Nat → Nat → List ITerm} {mk : Nat → Nat → ITerm}
-    {rds : Nat → List ITerm} {RecTy : Nat → ITerm}
+theorem graphRecPre_coreR {es ihs : Nat → Nat → List Term} {mk : Nat → Nat → Term}
+    {rds : Nat → List Term} {RecTy : Nat → Term}
     (Is Cr : List V → Nat → V) (injX : Nat → Nat → List V → V) (uX nIdxX : Nat → Nat)
     (tupX : Nat → List V → V)
     (fit : List V → Nat → V → Nat → List V → Prop)
@@ -231,11 +231,11 @@ end CoreR
 section Defs
 
 variable (K : Nat) (ρ : Nat → V) (rP : Nat → Nat)
-  (pre idxB : Nat → List ITerm) (majB : Nat → Nat × Nat × ITerm)
+  (pre idxB : Nat → List Term) (majB : Nat → Nat × Nat × Term)
   (uX : Nat → Nat)
 
 /-- The prefix domains. -/
-@[expose] def genPdoms (c : Nat) : List ITerm := (pre c)
+@[expose] def genPdoms (c : Nat) : List Term := (pre c)
 
 end Defs
 
@@ -244,12 +244,12 @@ end Defs
 section Rows
 
 variable {K : Nat} {ρ : Nat → V} {rP : Nat → Nat}
-  {pre idxB : Nat → List ITerm} {majB : Nat → Nat × Nat × ITerm}
+  {pre idxB : Nat → List Term} {majB : Nat → Nat × Nat × Term}
   {uX : Nat → Nat}
 
 /-- A fit of an appended chain whose first part has the first chain's
 length splits there. -/
-theorem spineFit_append_at {Ds₁ Ds₂ : List ITerm} {σ : Nat → V} {xs fs : List V}
+theorem spineFit_append_at {Ds₁ Ds₂ : List Term} {σ : Nat → V} {xs fs : List V}
     (hl : xs.length = Ds₁.length) (h : SpineFit σ (Ds₁ ++ Ds₂) (xs ++ fs)) :
     SpineFit σ Ds₁ xs ∧ SpineFit (consList xs σ) Ds₂ fs := by
   obtain ⟨as₁, as₂, heq, h1, h2⟩ := spineFit_append_split h
@@ -274,7 +274,7 @@ section Ihs
 
 /-- A fit is a fit at any frame agreeing below the chain's bound. -/
 theorem spineFit_congr_domsBelow :
-    ∀ {Ds : List ITerm} {k : Nat} {σ σ' : Nat → V} {bs : List V},
+    ∀ {Ds : List Term} {k : Nat} {σ σ' : Nat → V} {bs : List V},
       DomsBelow k Ds → (∀ i, i < k → σ i = σ' i) → SpineFit σ Ds bs → SpineFit σ' Ds bs
   | [], _, _, _, [], _, _, _ => trivial
   | [], _, _, _, _ :: _, _, _, h => h.elim
@@ -290,16 +290,16 @@ theorem spineFit_congr_domsBelow :
 at two frames agreeing below its depth `D`, as soon as the head
 variable's two values agree along every spine the body applies them
 to. -/
-theorem interp_ihShape_congr {m : Nat} (args : List ITerm) :
-    ∀ (tele : List ITerm) {D : Nat} {σ σ' : Nat → V},
+theorem interp_ihShape_congr {m : Nat} (args : List Term) :
+    ∀ (tele : List Term) {D : Nat} {σ σ' : Nat → V},
       DomsBelow D (tele) →
-      (∀ e ∈ args, Term.bvarsBelow (D + tele.length) e.erase) →
+      (∀ e ∈ args, Term.bvarsBelow (D + tele.length) e) →
       (∀ i, i < D → σ i = σ' i) →
       (∀ bs, SpineFit σ (tele) bs →
         (args.map (interp V (consList bs σ))).foldl SetTheory.app (σ (D + m))
           = (args.map (interp V (consList bs σ))).foldl SetTheory.app (σ' (D + m))) →
-      interp V σ (mkLamsAV tele (ITerm.mkAppN (.bvar (D + tele.length + m)) args))
-        = interp V σ' (mkLamsAV tele (ITerm.mkAppN (.bvar (D + tele.length + m)) args))
+      interp V σ (mkLamsAV tele (Term.mkAppN (.bvar (D + tele.length + m)) args))
+        = interp V σ' (mkLamsAV tele (Term.mkAppN (.bvar (D + tele.length + m)) args))
   | [], D, σ, σ', _, hargs, hag, h => by
     simp only [mkLamsAV, List.length_nil, Nat.add_zero, interp_mkAppN, interp_bvar]
     have h0 := h [] trivial
@@ -331,13 +331,13 @@ theorem interp_ihShape_congr {m : Nat} (args : List ITerm) :
 
 /-- One generated `ih`: its callee, its telescope, its index arguments
 and its major argument. -/
-abbrev IhDatum := Nat × List ITerm × List ITerm × ITerm
+abbrev IhDatum := Nat × List Term × List Term × Term
 
 /-- **A generated `ih` term** at the rule's depth `D` (prefix `rP`):
 `λ a⃗, rec_t x⃗ e⃗ m`, the callee the chain variable `K-1-t` below the
 frame. -/
-@[expose] def genIhAV (K rP D : Nat) (q : IhDatum) : ITerm :=
-  mkLamsAV q.2.1 (ITerm.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
+@[expose] def genIhAV (K rP D : Nat) (q : IhDatum) : Term :=
+  mkLamsAV q.2.1 (Term.mkAppN (.bvar (D + q.2.1.length + (K - 1 - q.1)))
     (prefVarsAV rP (D - rP + q.2.1.length) ++ (q.2.2.1 ++ [q.2.2.2])))
 
 /-- **The generated calls**: an `ih` of callee `t` at a fitting
@@ -354,11 +354,11 @@ readings. -/
 and arguments are bounded below the chain. -/
 @[expose] def IhDatumBelow (D : Nat) (q : IhDatum) : Prop :=
   DomsBelow D (q.2.1) ∧
-  (∀ e ∈ q.2.2.1 ++ [q.2.2.2], Term.bvarsBelow (D + q.2.1.length) e.erase)
+  (∀ e ∈ q.2.2.1 ++ [q.2.2.2], Term.bvarsBelow (D + q.2.1.length) e)
 
 /-- **`hihRead`, by construction** at the generated `ih`s. -/
 theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
-    {pre : Nat → List ITerm} {fdoms : Nat → Nat → List ITerm}
+    {pre : Nat → List Term} {fdoms : Nat → Nat → List Term}
     {ihd : Nat → Nat → List IhDatum}
     (hcal : ∀ c, c < K → ∀ j, j < nCt c → ∀ q ∈ ihd c j, q.1 < K)
     (hbelow : ∀ c, c < K → ∀ j, j < nCt c → ∀ q ∈ ihd c j,
@@ -391,8 +391,8 @@ theorem genIhs_hihRead {K : Nat} {ρ : Nat → V} {nCt : Nat → Nat}
   · rcases List.mem_append.mp he with he | he
     · -- a prefix variable: below the rule's frame
       obtain ⟨l, hl, rfl⟩ := List.mem_map.mp he
-      show Term.bvarsBelow _ (ITerm.bvar _).erase
-      simp only [ITerm.erase, Term.bvarsBelow, List.mem_range] at hl ⊢
+      show Term.bvarsBelow _ (Term.bvar _)
+      simp only [Term.bvarsBelow, List.mem_range] at hl ⊢
       omega
     · exact hbA e he
   · -- the two frames share the spine

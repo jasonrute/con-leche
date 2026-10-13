@@ -1,7 +1,6 @@
 module
 
-public import ConLeche.Semantics.Syntax
-public import ConLeche.Term.Const
+public import ConLeche.Verify.Denote
 
 @[expose] public section
 
@@ -9,10 +8,8 @@ public import ConLeche.Term.Const
 # `BConst.typeAV` — the spelled basis-constant types (#151)
 
 The first of the two suppliers the skeleton's `const` row waits on
-(`Semantics/Skeleton.lean`): the `ITerm` mirror of
-`ConLeche/Term/Const.lean`'s `BConst.type`, so that a built-in constant's
-type can be *written* as an `ITerm` at all (`BConst.type` yields a
-`Term`, not an `ITerm`).
+(`Semantics/Skeleton.lean`): each built-in constant's type, *written*
+as a `Term`.
 
 The spelling carries no regime: `interp` reads each binder's regime off
 the values (`piV`/`lamV`).  A codomain `Sort k` makes a function space
@@ -38,46 +35,46 @@ into a universe a *type*, never a proposition: `A → Prop` reads as
 -/
 
 namespace ConLeche.Semantics
+open ConLeche.Verify (projNV)
 
-open ConLeche.Semantics (ITerm)
-open ConLeche.Term (BConst lv tupleIdxSort tupleFamSort)
 
-/-! ## `ITerm` smart constructors
+open ConLeche.Term (Term BConst lv tupleIdxSort tupleFamSort emptyT)
 
-Mirrors of `ConLeche/Term/Const.lean`'s, one per former the basis types
-mention.  Each carries the level numerals its own shape fixes. -/
+/-! ## `Term` smart constructors
+
+One per former the basis types mention, beside
+`ConLeche/Term/Const.lean`'s `emptyT`.  Each carries the level numerals
+its own shape fixes. -/
 
 /-- `Nat` -/
-def natTyAV : ITerm := .const .nat []
+def natTyAV : Term := .const .nat []
 /-- `Nat.zero` -/
-def natZeroAV : ITerm := .const .natZero []
+def natZeroAV : Term := .const .natZero []
 /-- `Nat.succ e` -/
-def natSuccAV (e : ITerm) : ITerm := .app (.const .natSucc []) e
+def natSuccAV (e : Term) : Term := .app (.const .natSucc []) e
 /-- `PUnit.{u}` -/
-def punitAV (u : Nat) : ITerm := .const .punit [u]
-/-- `Empty.{u}` -/
-def emptyAV (u : Nat) : ITerm := .const .empty [u]
+def punitAV (u : Nat) : Term := .const .punit [u]
 /-- `@BConst.psigma.{u,v} A B`, the dependent pair -/
-def psigmaAV (u v : Nat) (A B : ITerm) : ITerm :=
-  ITerm.mkAppN (.const .psigma [u, v]) [A, B]
+def psigmaAV (u v : Nat) (A B : Term) : Term :=
+  Term.mkAppN (.const .psigma [u, v]) [A, B]
 /-- `@Quot.{u} A r` -/
-def quotAV (u : Nat) (A r : ITerm) : ITerm :=
-  ITerm.mkAppN (.const .quot [u]) [A, r]
+def quotAV (u : Nat) (A r : Term) : Term :=
+  Term.mkAppN (.const .quot [u]) [A, r]
 /-- `@Quot.mk.{u} A r a` -/
-def quotMkAV (u : Nat) (A r a : ITerm) : ITerm :=
-  ITerm.mkAppN (.const .quotMk [u]) [A, r, a]
+def quotMkAV (u : Nat) (A r a : Term) : Term :=
+  Term.mkAppN (.const .quotMk [u]) [A, r, a]
 
 /-- `A → B`. -/
-def arrowA (A B : ITerm) : ITerm := .pi A B.lift
+def arrowA (A B : Term) : Term := .pi A B.lift
 
 /-- `A → A → Prop`, the relation type at `A : Sort u`.  Its own sort is
 `max u 1` — a *type*, because `Prop` lives in `Sort 1`.  Matches
 `relSpace`. -/
-def relAV (A : ITerm) : ITerm :=
+def relAV (A : Term) : Term :=
   .pi A (.pi A.lift (.sort 0))
 
 /-- `¬ A`, i.e. `A → False`. -/
-def negTyAV (A : ITerm) : ITerm := arrowA A (emptyAV 0)
+def negTyAV (A : Term) : Term := arrowA A (emptyT 0)
 
 /-! ## The block carrier's tuple spelling (#315)
 
@@ -89,7 +86,7 @@ never an earlier component, so the former takes its components
 **already lifted to their own depth** (component `m` sits under `m` of
 the tower's fibre binders).
 
-`projAV` lives here rather than with the tower kit
+`projNV` lives here rather than with the tower kit
 (`Semantics/Tower/TowerKit.lean`, which imports this module) because a
 basis constant's type needs it: it is ONE definition for every
 structure and every index.  `ndTowerAV r` is `towerBodyAVPos r`'s
@@ -97,38 +94,31 @@ non-dependent twin — the same `.psigma [r, r]` tower, differing only in
 the terminator's level, which no value reads (`bval .punit` is the
 same `{∅}` at every positive level, task #342 B). -/
 
-/-- The uniform projection spelling: `.fst ∘ .snd^i` — the `ITerm`
-form of the tier's `projS i = sfst ∘ ssnd^i`.  Depends only on the
-index. -/
-def projAV : Nat → ITerm → ITerm
-  | 0, e => .fst e
-  | i + 1, e => projAV i (.snd e)
-
 /-- The non-dependent pair tower at level `r`, `PUnit`-terminated:
 `⟨G s, …, G (s + n - 1)⟩`.  The components are given at the BASE frame
 and lifted to their own depth `d` by the former (component `s + i` sits
 under `i` of the tower's fibre binders). -/
-def ndTowerAV (r : Nat) (G : Nat → ITerm) : Nat → Nat → Nat → ITerm
+def ndTowerAV (r : Nat) (G : Nat → Term) : Nat → Nat → Nat → Term
   | _, _, 0 => .const .punit [r]
   | s, d, n + 1 =>
     .app (.app (.const .psigma [r, r]) ((G s).liftN d 0))
       (.lam ((G s).liftN d 0) (ndTowerAV r G (s + 1) (d + 1) n))
 
 /-- `⟨Sort u_0, …, Sort u_{k-1}⟩`, the index-set tuple's type. -/
-def tupleSortsAV (k : Nat) (us : List Nat) : ITerm :=
+def tupleSortsAV (k : Nat) (us : List Nat) : Term :=
   ndTowerAV (tupleIdxSort us) (fun m => .sort (lv us m)) 0 0 k
 
 /-- `⟨proj_0 Is → Sort w, …, proj_{k-1} Is → Sort w⟩`, the family
 tuple's type, with `Is` at de Bruijn index `j` of the base frame. -/
-def tupleFamsAV (k : Nat) (us : List Nat) (j : Nat) : ITerm :=
+def tupleFamsAV (k : Nat) (us : List Nat) (j : Nat) : Term :=
   ndTowerAV (tupleFamSort k us)
-    (fun m => .pi (projAV m (.bvar j)) (.sort (lv us k))) 0 0 k
+    (fun m => .pi (projNV m (.bvar j)) (.sort (lv us k))) 0 0 k
 
 /-! ## The spelled type assignment -/
 
 /-- The spelled type of each built-in constant — `BConst.type` as an
-`ITerm` (see the module docstring). -/
-def BConst.typeAV : BConst → List Nat → ITerm
+`Term` (see the module docstring). -/
+def BConst.typeAV : BConst → List Nat → Term
   | .nat, _ => .sort 1
   | .natZero, _ => natTyAV
   | .natSucc, _ => arrowA natTyAV natTyAV
@@ -158,8 +148,8 @@ def BConst.typeAV : BConst → List Nat → ITerm
   | .empty, us => .sort (lv us 0)
   | .emptyRec, us =>
     let u := lv us 0; let v := lv us 1
-    .pi (arrowA (emptyAV u) (.sort v)) <|
-    .pi (emptyAV u) <|
+    .pi (arrowA (emptyT u) (.sort v)) <|
+    .pi (emptyT u) <|
     .app (.bvar 1) (.bvar 0)
   | .quot, us =>
     let u := lv us 0
@@ -180,7 +170,7 @@ def BConst.typeAV : BConst → List Nat → ITerm
     .pi (.sort v) <|
     .pi (.pi (.bvar 2) (.bvar 1)) <|
     .pi (.pi (.bvar 3) (.pi (.bvar 4)
-          (.pi (ITerm.mkAppN (.bvar 4) [.bvar 1, .bvar 0])
+          (.pi (Term.mkAppN (.bvar 4) [.bvar 1, .bvar 0])
             (.eqE (.app (.bvar 3) (.bvar 2))
               (.app (.bvar 3) (.bvar 1)))))) <|
     .pi (quotAV u (.bvar 4) (.bvar 3)) <|
@@ -200,7 +190,7 @@ def BConst.typeAV : BConst → List Nat → ITerm
     .pi (relAV (.bvar 0)) <|
     .pi (.bvar 1) <|
     .pi (.bvar 2) <|
-    .pi (ITerm.mkAppN (.bvar 2) [.bvar 1, .bvar 0]) <|
+    .pi (Term.mkAppN (.bvar 2) [.bvar 1, .bvar 0]) <|
     .eqE (quotMkAV u (.bvar 4) (.bvar 3) (.bvar 2))
       (quotMkAV u (.bvar 4) (.bvar 3) (.bvar 1))
   | .propext, _ =>

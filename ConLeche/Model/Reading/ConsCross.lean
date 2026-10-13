@@ -25,7 +25,7 @@ consume:
   property at its own slot (vacuous at every other head:
   `ConsCrossEnv.ofNtc`);
 * `ConsCrossAt c₀ e` — the per-subject condition the crossing itself
-  (`denoteMeta_cons_mono`, `Model/Install.lean`) consumes, with the helpers
+  (`denote_cons_mono`, `Model/Install.lean`) consumes, with the helpers
   that discharge it from `ConsCrossEnv` for the stored pieces and
   their level instantiations and openings.
 -/
@@ -35,7 +35,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecRule)
 
 /-- No stored piece of the environment mentions the slot `(T, i)`. -/

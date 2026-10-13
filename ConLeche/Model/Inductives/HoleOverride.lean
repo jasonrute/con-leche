@@ -13,7 +13,7 @@ The walk's crest abstracts every whole member application `T_m.{lps} p⃗`
 to the member's hole `nP + m`; the concrete crest is the walk's with
 one parallel substitution putting the applications back
 (`Expr.substFvars_replaceApps_erasedEq`).  Read, that substitution
-(`ITerm.substAV` at `substTau`, the parameter variables to
+(`Term.substAV` at `substTau`, the parameter variables to
 themselves, each hole to its application's reading) is, at the
 parameter frame, the hole frame whose hole slots hold the members'
 values APPLIED TO THE PARAMETERS (`substE_holeBack`); on a term that
@@ -25,7 +25,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 
 universe w
 
@@ -33,9 +33,9 @@ universe w
 itself**: the substitution keeps the variables below the cut, sends the
 parameter slots (above the `k` hole slots) to the parameter variables
 `k` places lower, and never meets a hole slot. -/
-theorem substAV_holeBack_liftN {nP k : Nat} {x : Nat → ITerm}
+theorem substAV_holeBack_liftN {nP k : Nat} {x : Nat → Term}
     (hx : ∀ i, i < nP → x i = .bvar (nP - 1 - i)) :
-    ∀ (e : ITerm) (c : Nat), NoBVar (fun i => c ≤ i ∧ i < c + k) e →
+    ∀ (e : Term) (c : Nat), NoBVar (fun i => c ≤ i ∧ i < c + k) e →
       (e.substAV (substTau (nP + k) nP x) c).liftN k c = e := by
   intro e
   induction e with
@@ -43,40 +43,40 @@ theorem substAV_holeBack_liftN {nP k : Nat} {x : Nat → ITerm}
     intro c h
     have h' : ¬ (c ≤ i ∧ i < c + k) := h
     by_cases hic : i < c
-    · rw [ITerm.substAV_bvar_lt _ hic, ITerm.liftN_bvar, ite_eq_left hic]
-    · rw [ITerm.substAV_bvar_ge _ (by omega)]
+    · rw [Term.substAV_bvar_lt _ hic, Term.liftN_bvar, ite_eq_left hic]
+    · rw [Term.substAV_bvar_ge _ (by omega)]
       have hik : c + k ≤ i := by omega
       unfold substTau
       by_cases hb : i - c < nP + k
       · rw [ite_eq_left hb, show nP + k - 1 - (i - c) = nP - 1 - (i - c - k) by omega,
           hx _ (by omega)]
-        simp only [ITerm.liftN_bvar]
+        simp only [Term.liftN_bvar]
         split <;> split <;> first | omega | (congr 1; omega)
       · rw [ite_eq_right hb]
-        simp only [ITerm.liftN_bvar]
+        simp only [Term.liftN_bvar]
         split <;> split <;> first | omega | (congr 1; omega)
   | sort u => intro c _; rfl
   | const k' us => intro c _; rfl
   | prf => intro c _; rfl
   | app f a ihf iha =>
     intro c h
-    rw [ITerm.substAV_app, ITerm.liftN_app, ihf c h.1, iha c h.2]
+    rw [Term.substAV_app, Term.liftN_app, ihf c h.1, iha c h.2]
   | eqE a b iha ihb =>
     intro c h
-    show ITerm.liftN k (.eqE (a.substAV _ c) (b.substAV _ c)) c = _
-    simp only [ITerm.liftN, iha c h.1, ihb c h.2]
-  | fst e ih => intro c h; rw [ITerm.substAV_fst, ITerm.liftN_fst, ih c h]
-  | snd e ih => intro c h; rw [ITerm.substAV_snd, ITerm.liftN_snd, ih c h]
+    show Term.liftN k (.eqE (a.substAV _ c) (b.substAV _ c)) c = _
+    simp only [Term.liftN, iha c h.1, ihb c h.2]
+  | fst e ih => intro c h; rw [Term.substAV_fst, Term.liftN_fst, ih c h]
+  | snd e ih => intro c h; rw [Term.substAV_snd, Term.liftN_snd, ih c h]
   | lam A b ihA ihb =>
     intro c h
-    rw [ITerm.substAV_lam, ITerm.liftN_lam, ihA c h.1, ihb (c + 1) (NoBVar.mono ?_ h.2)]
+    rw [Term.substAV_lam, Term.liftN_lam, ihA c h.1, ihb (c + 1) (NoBVar.mono ?_ h.2)]
     intro i hi
     cases i with
     | zero => omega
     | succ i => show c ≤ i ∧ i < c + k; omega
   | pi A B ihA ihB =>
     intro c h
-    rw [ITerm.substAV_pi, ITerm.liftN_pi, ihA c h.1, ihB (c + 1) (NoBVar.mono ?_ h.2)]
+    rw [Term.substAV_pi, Term.liftN_pi, ihA c h.1, ihB (c + 1) (NoBVar.mono ?_ h.2)]
     intro i hi
     cases i with
     | zero => omega
@@ -84,7 +84,7 @@ theorem substAV_holeBack_liftN {nP k : Nat} {x : Nat → ITerm}
 
   | letE v b ihv ihb =>
     intro c h
-    rw [ITerm.substAV_letE, ITerm.liftN_letE, ihv c h.1, ihb (c + 1) (NoBVar.mono ?_ h.2)]
+    rw [Term.substAV_letE, Term.liftN_letE, ihv c h.1, ihb (c + 1) (NoBVar.mono ?_ h.2)]
     intro i hi
     cases i with
     | zero => omega
@@ -97,7 +97,7 @@ variable {V : Type w} [SetTheory V]
 /-- **The filled-back reading's frame** at the parameter frame `ρ`: the
 parameter slots are `ρ`'s own, the hole slots hold the holes' images'
 values. -/
-theorem substE_holeBack {nP k : Nat} {x : Nat → ITerm}
+theorem substE_holeBack {nP k : Nat} {x : Nat → Term}
     (hx : ∀ i, i < nP → x i = .bvar (nP - 1 - i)) (ρ : Nat → V) :
     substE V (substTau (nP + k) nP x) 0 ρ
       = consList ((List.range k).map fun mm => interp V ρ (x (nP + mm))) ρ := by

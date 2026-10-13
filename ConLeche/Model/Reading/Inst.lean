@@ -1,20 +1,21 @@
 module
 
 public import ConLeche.Model.Reading.Shift
-import ConLeche.Semantics.DenoteClosed
+import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote.Shift
 public import ConLeche.Verify.Subst
-import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Verify.Denote
 
 public section
 
 /-!
-# `denoteMeta` commutes with instantiation (task #161, P3 batch 2)
+# `denote` commutes with instantiation (task #161, P3 batch 2)
 
 The substitution crossing the β/ζ clauses of the P-tier step proof run
 through.
 
-**It does not cost `EnvWF`.**  Same reason as `denoteMeta_shiftFrom`
-(`Reading/Shift.lean`): `denoteMeta`'s binder clauses read only the
+**It does not cost `EnvWF`.**  Same reason as `denote_shiftFrom`
+(`Reading/Shift.lean`): `denote`'s binder clauses read only the
 binder's domain and body, which `Expr.substFvarAt` substitutes
 structurally, so each closes by the recursion alone.
 
@@ -23,37 +24,34 @@ structurally, so each closes by the recursion alone.
 * `hainst : ∀ n ψ y k, (acval n ψ).inst y k = acval n ψ` is what the
   `.const` and `.lit` clauses read.
 * `hacl : ∀ n ψ k, (acval n ψ).liftN 1 k = acval n ψ` is what the
-  **`fvar`-at-`p` clause** reads, through `denoteMeta_lift` below.
-  On `ITerm` neither invariance implies the other (`inst`-invariance
+  **`fvar`-at-`p` clause** reads, through `denote_lift` below.
+  On `Term` neither invariance implies the other (`inst`-invariance
   at every cut is the stronger of the two, but extracting the lift from
   it is a fresh induction, not a rewrite).
 
 Both are discharged from one closedness fact at every real supplier:
-`ITerm.liftN_eq_self` and `ITerm.inst_eq_self`
-(`Semantics/DenoteClosed.lean`) take the same
-`Term.bvarsBelow k (acval n ψ).erase` hypothesis, and `hacl` is
+`Term.liftN_eq_self` and `Term.inst_eq_self`
+(`Verify/Denote/VClosed.lean`) take the same
+`Term.bvarsBelow k (acval n ψ)` hypothesis, and `hacl` is
 already an `EnvModel` field (`acval_closed`).
 
 ## Where the arithmetic lands
 
 At depth `D + 1` the variable
 `fvar p` denotes `.bvar (D - p)`, so the substitution happens at cut
-`k = D - p`, and `ITerm.inst e a k` already substitutes `liftN k a`
+`k = D - p`, and `Term.inst e a k` already substitutes `liftN k a`
 — which makes `inst`'s built-in lift *be* the depth shift.
 -/
 
--- The lift identities extend `ConLeche.Semantics.ITerm` itself (dot
--- notation and the unqualified `liftN_*` names resolve there), so this
--- block stays in the semantic tier's namespace.
-namespace ConLeche.Semantics.ITerm
+namespace ConLeche.Term.Term
 open ConLeche.SetModel
 
 /-! ### Two lift identities the depth-lift needs
 
-Nothing before this file iterated a lift on `ITerm`. -/
+Nothing before this file iterated a lift on `Term`. -/
 
 /-- A zero lift is the identity. -/
-theorem liftN_zero : ∀ (e : ITerm) (k : Nat), liftN 0 e k = e := by
+theorem liftN_zero : ∀ (e : Term) (k : Nat), liftN 0 e k = e := by
   intro e
   induction e with
   | bvar i => intro k; simp only [liftN_bvar]; split <;> rfl
@@ -69,7 +67,7 @@ theorem liftN_zero : ∀ (e : ITerm) (k : Nat), liftN 0 e k = e := by
   | snd e ihe => intro k; rw [liftN_snd, ihe]
 
 /-- Two lifts at the same cut compose. -/
-theorem liftN_liftN : ∀ (e : ITerm) (n m k : Nat),
+theorem liftN_liftN : ∀ (e : Term) (n m k : Nat),
     liftN n (liftN m e k) k = liftN (n + m) e k := by
   intro e
   induction e with
@@ -99,7 +97,7 @@ theorem liftN_liftN : ∀ (e : ITerm) (n m k : Nat),
   | snd e ihe =>
     intro n m k; rw [liftN_snd, liftN_snd, ihe]; rfl
 
-end ConLeche.Semantics.ITerm
+end ConLeche.Term.Term
 
 namespace ConLeche.Model
 open ConLeche.Semantics
@@ -107,53 +105,53 @@ open ConLeche.SetModel
 
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level PropWhen)
 
 variable {env : Env} {φ : Name → Nat}
-variable {acval : Name → (Name → Nat) → ITerm}
+variable {acval : Name → (Name → Nat) → Term}
 
 /-- The `Nat`-literal spine is `inst`-invariant when its two heads
-are.  `Reading/Shift.lean`'s `natLitAV_liftN` one operation over. -/
-private theorem natLitAV_inst {za sa y : ITerm} {k : Nat}
+are.  `Reading/Shift.lean`'s `natLitT_liftN` one operation over. -/
+private theorem natLitT_inst {za sa y : Term} {k : Nat}
     (hz : za.inst y k = za) (hs : sa.inst y k = sa) :
-    ∀ n : Nat, (natLitAV za sa n).inst y k = natLitAV za sa n := by
+    ∀ n : Nat, (natLitT za sa n).inst y k = natLitT za sa n := by
   intro n
   induction n with
   | zero => exact hz
   | succ n ih =>
-    show (ITerm.app sa (natLitAV za sa n)).inst y k = _
-    rw [ITerm.inst_app, hs, ih]
+    show (Term.app sa (natLitT za sa n)).inst y k = _
+    rw [Term.inst_app, hs, ih]
     rfl
 
 /-- Ditto the character-list spine. -/
-private theorem charListAV_inst {nilA consA ofNatA za sa y : ITerm}
+private theorem charListT_inst {nilA consA ofNatA za sa y : Term}
     {k : Nat} (hn : nilA.inst y k = nilA)
     (hc : consA.inst y k = consA) (ho : ofNatA.inst y k = ofNatA)
     (hz : za.inst y k = za) (hs : sa.inst y k = sa) :
     ∀ cs : List Char,
-      (charListAV nilA consA ofNatA za sa cs).inst y k
-        = charListAV nilA consA ofNatA za sa cs := by
+      (charListT nilA consA ofNatA za sa cs).inst y k
+        = charListT nilA consA ofNatA za sa cs := by
   intro cs
   induction cs with
   | nil => exact hn
   | cons c cs ih =>
-    show (ITerm.app (.app consA (.app ofNatA _)) _).inst y k = _
-    rw [ITerm.inst_app, ITerm.inst_app, ITerm.inst_app, hc, ho,
-      natLitAV_inst hz hs, ih]
+    show (Term.app (.app consA (.app ofNatA _)) _).inst y k = _
+    rw [Term.inst_app, Term.inst_app, Term.inst_app, hc, ho,
+      natLitT_inst hz hs, ih]
     rfl
 
-/-- **Depth lifting for `denoteMeta`**, iterated out of
-`denoteMeta_weaken_top`.  The scoping premise is `WScoped` because that
-is what `denoteMeta_shiftFrom` takes (the annotations have to be scoped
+/-- **Depth lifting for `denote`**, iterated out of
+`denote_weaken_top`.  The scoping premise is `WScoped` because that
+is what `denote_shiftFrom` takes (the annotations have to be scoped
 too, hereditarily). -/
-theorem denoteMeta_lift
+theorem denote_lift
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
     {p : Nat} {e : Expr} (hw : Expr.WScoped p e) :
     ∀ D : Nat, p ≤ D →
-      denoteMeta acval env φ D e
-        = (denoteMeta acval env φ p e).map (ITerm.liftN (D - p) · 0) := by
+      denote acval env φ D e
+        = (denote acval env φ p e).map (Term.liftN (D - p) · 0) := by
   intro D
   induction D with
   | zero =>
@@ -161,23 +159,23 @@ theorem denoteMeta_lift
     have hp : p = 0 := by omega
     subst hp
     simp only [Nat.sub_self]
-    cases denoteMeta acval env φ 0 e with
+    cases denote acval env φ 0 e with
     | none => rfl
-    | some v => simp only [Option.map_some, ITerm.liftN_zero]
+    | some v => simp only [Option.map_some, Term.liftN_zero]
   | succ D ih =>
     intro hpD
     by_cases hpD' : p = D + 1
     · subst hpD'
       simp only [Nat.sub_self]
-      cases denoteMeta acval env φ (D + 1) e with
+      cases denote acval env φ (D + 1) e with
       | none => rfl
-      | some v => simp only [Option.map_some, ITerm.liftN_zero]
+      | some v => simp only [Option.map_some, Term.liftN_zero]
     · have hpD2 : p ≤ D := by omega
-      rw [denoteMeta_weaken_top hacl (hw.mono hpD2), ih hpD2]
-      cases denoteMeta acval env φ p e with
+      rw [denote_weaken_top hacl (hw.mono hpD2), ih hpD2]
+      cases denote acval env φ p e with
       | none => rfl
       | some v =>
-        simp only [Option.map_some, ITerm.liftN_liftN]
+        simp only [Option.map_some, Term.liftN_liftN]
         congr 2
         omega
 
@@ -185,28 +183,28 @@ theorem denoteMeta_lift
 Substituting the expression `a` for `fvar p` corresponds to
 instantiating the reading at de Bruijn cut `D - p`.  See the module
 docstring for the two leaf premises and for why `EnvWF` is absent. -/
-theorem denoteMeta_substFvarAt
+theorem denote_substFvarAt
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
-    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : ITerm) (k : Nat),
+    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : Term) (k : Nat),
       (acval n ψ).inst y k = acval n ψ)
-    {p : Nat} {a : Expr} {x : ITerm}
+    {p : Nat} {a : Expr} {x : Term}
     (hwa : Expr.WScoped p a) (hba : a.looseBVarsBounded 0 = true)
-    (ha : denoteMeta acval env φ p a = some x) :
+    (ha : denote acval env φ p a = some x) :
     ∀ (e : Expr) (D : Nat), p ≤ D → Expr.fvarsBelow (D + 1) e →
-      denoteMeta acval env φ D (Expr.substFvarAt p a e) =
-        (denoteMeta acval env φ (D + 1) e).map (ITerm.inst · x (D - p))
+      denote acval env φ D (Expr.substFvarAt p a e) =
+        (denote acval env φ (D + 1) e).map (Term.inst · x (D - p))
   | .bvar i, D, hpD, hfb => by
-    have h1 : denoteMeta acval env φ D (.bvar i) = none := by
-      rw [denoteMeta.eq_def]
-    have h2 : denoteMeta acval env φ (D + 1) (.bvar i) = none := by
-      rw [denoteMeta.eq_def]
+    have h1 : denote acval env φ D (.bvar i) = none := by
+      rw [denote.eq_def]
+    have h2 : denote acval env φ (D + 1) (.bvar i) = none := by
+      rw [denote.eq_def]
     simp [ConLeche.Expr.substFvarAt, h1, h2]
   | .sort u, D, hpD, hfb => by
-    simp only [ConLeche.Expr.substFvarAt, denoteMeta, Option.map_some]
+    simp only [ConLeche.Expr.substFvarAt, denote, Option.map_some]
     rfl
   | .const n us, D, hpD, hfb => by
-    simp only [ConLeche.Expr.substFvarAt, denoteMeta]
+    simp only [ConLeche.Expr.substFvarAt, denote]
     cases env.find? n with
     | none => rfl
     | some ci =>
@@ -220,108 +218,108 @@ theorem denoteMeta_substFvarAt
     · subst h1
       rw [show ConLeche.Expr.substFvarAt idx a (Expr.fvar idx ty) = a from by
             simp [ConLeche.Expr.substFvarAt],
-        denoteMeta_lift hacl hwa D hpD, ha, denoteMeta]
-      simp only [Option.map_some, ITerm.inst_bvar,
+        denote_lift hacl hwa D hpD, ha, denote]
+      simp only [Option.map_some, Term.inst_bvar,
         show D + 1 - 1 - idx = D - idx from by omega]
       simp
     · by_cases h2 : idx > p
       · rw [show ConLeche.Expr.substFvarAt p a (Expr.fvar idx ty)
               = .fvar (idx - 1) (ConLeche.Expr.substFvarAt p a ty) from by
               simp [ConLeche.Expr.substFvarAt, h1, h2],
-          denoteMeta, denoteMeta]
-        simp only [Option.map_some, ITerm.inst_bvar,
+          denote, denote]
+        simp only [Option.map_some, Term.inst_bvar,
           ite_eq_left (show D + 1 - 1 - idx < D - p from by omega)]
         congr 2
         omega
       · rw [show ConLeche.Expr.substFvarAt p a (Expr.fvar idx ty)
               = .fvar idx ty from by
               simp [ConLeche.Expr.substFvarAt, h1, h2],
-          denoteMeta, denoteMeta]
-        simp only [Option.map_some, ITerm.inst_bvar,
+          denote, denote]
+        simp only [Option.map_some, Term.inst_bvar,
           ite_eq_right (show ¬ D + 1 - 1 - idx < D - p from by omega),
           ite_eq_right (show ¬ D + 1 - 1 - idx = D - p from by omega)]
         congr 2
         omega
   | .app fe b, D, hpD, hfb => by
-    simp only [ConLeche.Expr.substFvarAt, denoteMeta]
-    rw [denoteMeta_substFvarAt hacl hainst hwa hba ha fe D hpD hfb.1,
-      denoteMeta_substFvarAt hacl hainst hwa hba ha b D hpD hfb.2]
-    cases denoteMeta acval env φ (D + 1) fe <;>
-      cases denoteMeta acval env φ (D + 1) b <;> rfl
+    simp only [ConLeche.Expr.substFvarAt, denote]
+    rw [denote_substFvarAt hacl hainst hwa hba ha fe D hpD hfb.1,
+      denote_substFvarAt hacl hainst hwa hba ha b D hpD hfb.2]
+    cases denote acval env φ (D + 1) fe <;>
+      cases denote acval env φ (D + 1) b <;> rfl
   | .forallE ty body, D, hpD, hfb => by
-    simp only [ConLeche.Expr.substFvarAt, denoteMeta]
-    rw [denoteMeta_substFvarAt hacl hainst hwa hba ha ty D hpD hfb.1,
+    simp only [ConLeche.Expr.substFvarAt, denote]
+    rw [denote_substFvarAt hacl hainst hwa hba ha ty D hpD hfb.1,
       ← ConLeche.Expr.substFvarAt_instantiate1 hpD hba body 0,
-      denoteMeta_substFvarAt hacl hainst hwa hba ha
+      denote_substFvarAt hacl hainst hwa hba ha
         (body.instantiate1 (.fvar (D + 1) ty)) (D + 1) (by omega)
         (ConLeche.Expr.fvarsBelow_instantiate1 0 hfb.2),
       show D + 1 - p = D - p + 1 from by omega]
-    cases denoteMeta acval env φ (D + 1) ty with
+    cases denote acval env φ (D + 1) ty with
     | none => rfl
     | some ta =>
-      cases denoteMeta acval env φ (D + 2)
+      cases denote acval env φ (D + 2)
           (body.instantiate1 (.fvar (D + 1) ty)) with
       | none => rfl
       | some ba => rfl
   | .lam ty body, D, hpD, hfb => by
-    simp only [ConLeche.Expr.substFvarAt, denoteMeta]
-    rw [denoteMeta_substFvarAt hacl hainst hwa hba ha ty D hpD hfb.1,
+    simp only [ConLeche.Expr.substFvarAt, denote]
+    rw [denote_substFvarAt hacl hainst hwa hba ha ty D hpD hfb.1,
       ← ConLeche.Expr.substFvarAt_instantiate1 hpD hba body 0,
-      denoteMeta_substFvarAt hacl hainst hwa hba ha
+      denote_substFvarAt hacl hainst hwa hba ha
         (body.instantiate1 (.fvar (D + 1) ty)) (D + 1) (by omega)
         (ConLeche.Expr.fvarsBelow_instantiate1 0 hfb.2),
       show D + 1 - p = D - p + 1 from by omega]
-    cases denoteMeta acval env φ (D + 1) ty with
+    cases denote acval env φ (D + 1) ty with
     | none => rfl
     | some ta =>
-      cases denoteMeta acval env φ (D + 2)
+      cases denote acval env φ (D + 2)
           (body.instantiate1 (.fvar (D + 1) ty)) with
       | none => rfl
       | some ba => rfl
   | .letE ty val body, D, hpD, hfb => by
-    simp only [ConLeche.Expr.substFvarAt, denoteMeta]
-    rw [denoteMeta_substFvarAt hacl hainst hwa hba ha ty D hpD hfb.1,
-      denoteMeta_substFvarAt hacl hainst hwa hba ha val D hpD hfb.2.1,
+    simp only [ConLeche.Expr.substFvarAt, denote]
+    rw [denote_substFvarAt hacl hainst hwa hba ha ty D hpD hfb.1,
+      denote_substFvarAt hacl hainst hwa hba ha val D hpD hfb.2.1,
       ← ConLeche.Expr.substFvarAt_instantiate1 hpD hba body 0,
-      denoteMeta_substFvarAt hacl hainst hwa hba ha
+      denote_substFvarAt hacl hainst hwa hba ha
         (body.instantiate1 (.fvar (D + 1) ty)) (D + 1) (by omega)
         (ConLeche.Expr.fvarsBelow_instantiate1 0 hfb.2.2),
       show D + 1 - p = D - p + 1 from by omega]
-    cases denoteMeta acval env φ (D + 1) ty with
+    cases denote acval env φ (D + 1) ty with
     | none => rfl
     | some ta =>
-    cases denoteMeta acval env φ (D + 1) val with
+    cases denote acval env φ (D + 1) val with
     | none => rfl
     | some va =>
-      cases denoteMeta acval env φ (D + 2)
+      cases denote acval env φ (D + 2)
           (body.instantiate1 (.fvar (D + 1) ty)) with
       | none => rfl
       | some ba => rfl
   | .proj sn i e, D, hpD, hfb => by
-    simp only [ConLeche.Expr.substFvarAt, denoteMeta]
-    rw [denoteMeta_substFvarAt hacl hainst hwa hba ha e D hpD hfb]
-    cases denoteMeta acval env φ (D + 1) e with
+    simp only [ConLeche.Expr.substFvarAt, denote]
+    rw [denote_substFvarAt hacl hainst hwa hba ha e D hpD hfb]
+    cases denote acval env φ (D + 1) e with
     | none => rfl
     | some ea =>
       simp only [Option.map_some]
       split
-      · exact congrArg some (projAV_inst _ ea x (D - p)).symm
+      · exact congrArg some (projNV_inst _ ea x (D - p)).symm
       · rcases i with _ | _ | i <;> rfl
   | .lit (.natVal k), D, hpD, hfb => by
-    simp only [ConLeche.Expr.substFvarAt, denoteMeta]
+    simp only [ConLeche.Expr.substFvarAt, denote]
     split
     · simp only [Option.map_some]
-      rw [natLitAV_inst (hainst _ _ _ _) (hainst _ _ _ _)]
+      rw [natLitT_inst (hainst _ _ _ _) (hainst _ _ _ _)]
     · rfl
   | .lit (.strVal s), D, hpD, hfb => by
-    simp only [ConLeche.Expr.substFvarAt, denoteMeta]
+    simp only [ConLeche.Expr.substFvarAt, denote]
     split
     · simp only [Option.map_some]
       refine congrArg some ?_
       symm
-      rw [ITerm.inst_app, hainst,
-        charListAV_inst (by rw [ITerm.inst_app, hainst, hainst])
-          (by rw [ITerm.inst_app, hainst, hainst]) (hainst _ _ _ _)
+      rw [Term.inst_app, hainst,
+        charListT_inst (by rw [Term.inst_app, hainst, hainst])
+          (by rw [Term.inst_app, hainst, hainst]) (hainst _ _ _ _)
           (hainst _ _ _ _) (hainst _ _ _ _)]
     · rfl
 termination_by e => e.sizeB
@@ -335,19 +333,19 @@ decreasing_by
 /-- **Beta, at the stored-term reading** — the form the reduction
 clauses consume: opening a binder body with the argument directly is
 opening it with a fresh variable and then instantiating. -/
-theorem denoteMeta_beta
+theorem denote_beta
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
-    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : ITerm) (k : Nat),
+    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : Term) (k : Nat),
       (acval n ψ).inst y k = acval n ψ)
-    {d : Nat} {ty body a : Expr} {x : ITerm}
+    {d : Nat} {ty body a : Expr} {x : Term}
     (hfb : Expr.fvarsBelow d body) (hwa : Expr.WScoped d a)
     (hba : a.looseBVarsBounded 0 = true)
-    (ha : denoteMeta acval env φ d a = some x) (k : Nat) :
-    denoteMeta acval env φ d (body.instantiate1 a k) =
-      (denoteMeta acval env φ (d + 1)
-        (body.instantiate1 (.fvar d ty) k)).map (ITerm.inst · x 0) := by
-  have h := denoteMeta_substFvarAt (p := d) hacl hainst hwa hba ha
+    (ha : denote acval env φ d a = some x) (k : Nat) :
+    denote acval env φ d (body.instantiate1 a k) =
+      (denote acval env φ (d + 1)
+        (body.instantiate1 (.fvar d ty) k)).map (Term.inst · x 0) := by
+  have h := denote_substFvarAt (p := d) hacl hainst hwa hba ha
     (body.instantiate1 (.fvar d ty) k) d (Nat.le_refl d)
     (ConLeche.Expr.fvarsBelow_instantiate1 k hfb)
   rw [ConLeche.Expr.substFvarAt_instantiate1_self body k hfb,

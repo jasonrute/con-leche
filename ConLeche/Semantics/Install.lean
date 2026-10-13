@@ -1,6 +1,7 @@
 module
 
-public import ConLeche.Semantics.Canon
+public import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
 import ConLeche.Semantics.WellDenoted
 import ConLeche.Verify.EnvGuards
 public import ConLeche.Verify.Denote.Install
@@ -13,8 +14,8 @@ public import ConLeche.Verify.Denote.Install
 The one theorem that mentions `V` (`acvalWith_wellDenoted`) takes
 `WellDenoted` as a hypothesis and returns it.
 
-The `EnvModel` install keys are **six syntactic fields and two semantic
-ones**: `acval` (data), `acval_erase`, `acval_closed`,
+The `EnvModel` install keys are **five syntactic fields and two semantic
+ones**: `acval` (data), `acval_closed`,
 `acval_params`, `acval_defn` and `acval_thm` mention no
 `V` at all, while only `acval_wellDenoted` and `mem_type2` do.  So the first
 thing the install tier needs is not semantics — it is the *algebra*
@@ -26,7 +27,7 @@ namespace ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name natLitSupported strLitSupported)
 
 universe w
@@ -34,30 +35,30 @@ universe w
 /-! ## The one-name update -/
 
 /-- Extend a canonical constant reading at one name. -/
-def acvalWith (acval : Name → (Name → Nat) → ITerm) (n : Name)
-    (A : (Name → Nat) → ITerm) : Name → (Name → Nat) → ITerm :=
+def acvalWith (acval : Name → (Name → Nat) → Term) (n : Name)
+    (A : (Name → Nat) → Term) : Name → (Name → Nat) → Term :=
   fun c ψ => if c = n then A ψ else acval c ψ
 
-theorem acvalWith_ne {acval : Name → (Name → Nat) → ITerm}
-    {n : Name} {A : (Name → Nat) → ITerm} {c : Name} (h : c ≠ n) :
+theorem acvalWith_ne {acval : Name → (Name → Nat) → Term}
+    {n : Name} {A : (Name → Nat) → Term} {c : Name} (h : c ≠ n) :
     acvalWith acval n A c = acval c := by
   funext ψ; simp [acvalWith, h]
 
-theorem acvalWith_self {acval : Name → (Name → Nat) → ITerm}
-    {n : Name} {A : (Name → Nat) → ITerm} :
+theorem acvalWith_self {acval : Name → (Name → Nat) → Term}
+    {n : Name} {A : (Name → Nat) → Term} :
     acvalWith acval n A n = A := by
   funext ψ; simp [acvalWith]
 
 /-! ## The three syntactic fields, transported
 
-`acval_erase`, `acval_closed` and `acval_params` are conditions on an
+`acval_closed` and `acval_params` are conditions on an
 install-fixed object with no `interp` in them (the
 `EnvModel` docstrings say so of the last two).  Each therefore extends by
 a case split on the updated name and nothing else. -/
 
 /-- `acval_closed` extends. -/
-theorem acvalWith_closed {acval : Name → (Name → Nat) → ITerm}
-    {n : Name} {A : (Name → Nat) → ITerm}
+theorem acvalWith_closed {acval : Name → (Name → Nat) → Term}
+    {n : Name} {A : (Name → Nat) → Term}
     (h : ∀ (m : Name) (ψ : Name → Nat) (k : Nat),
       (acval m ψ).liftN 1 k = acval m ψ)
     (hA : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ) :
@@ -78,9 +79,9 @@ old ones plus the installed one, and the new leaf answers for itself.
 Note the environment moves here, unlike in the two above — the field
 is indexed by `env.find?`.  Freshness is **not** needed: the `cons`
 shadows, so the installed entry answers first either way. -/
-theorem acvalWith_params {acval : Name → (Name → Nat) → ITerm}
+theorem acvalWith_params {acval : Name → (Name → Nat) → Term}
     {env : Env} {c₀ : ConLeche.ConstantInfo}
-    {A : (Name → Nat) → ITerm}
+    {A : (Name → Nat) → Term}
     (h : ∀ (m : Name) (ci : ConLeche.ConstantInfo),
       env.find? m = some ci →
       ∀ ψ₁ ψ₂ : Name → Nat,
@@ -122,8 +123,8 @@ split. -/
 
 /-- `acval_wellDenoted` extends. -/
 theorem acvalWith_wellDenoted {V : Type w} [SetTheory V]
-    {acval : Name → (Name → Nat) → ITerm} {n : Name}
-    {A : (Name → Nat) → ITerm}
+    {acval : Name → (Name → Nat) → Term} {n : Name}
+    {A : (Name → Nat) → Term}
     (h : ∀ (m : Name) (ψ : Name → Nat) (ρ : Nat → V),
       WellDenoted V ρ (acval m ψ))
     (hA : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ)) :

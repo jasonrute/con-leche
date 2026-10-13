@@ -3,12 +3,16 @@ module
 @[expose] public section
 
 /-!
-# Syntax of the erased term language (task #74; relocated at #209)
+# Syntax of the term language (task #74; relocated at #209)
 
 `Term` is the semantics tier's *own* term datatype — deliberately not
 `ConLeche.Expr`.  It is what the denotation function from a real
-`Env`+`Expr` targets (`ConLeche/Verify/Denote.lean`), and it is chosen for
-proof convenience, not for fidelity to the checker's representation.
+`Env`+`Expr` targets (`ConLeche/Verify/Denote.lean`) and what the
+interpretation reads (`interp`, `ConLeche/Semantics/Interp.lean`), and
+it is chosen for proof convenience, not for fidelity to the checker's
+representation.  It lives in a base tier of its own because three
+tiers read it: `Verify/Denote/*` (the denotation and its syntactic
+metatheory), `Semantics/*` (the interpretation) and `Model/*`.
 
 There is no declarative typing judgment over this datatype (task
 #209); the sentences below that motivate a design choice by a typing
@@ -102,7 +106,7 @@ reflected, so `fun A a M m b h => m` types by conversion), the pair's
 recursor (`fun A B M f p => f p.1 p.2`, typed by conversion along
 structure eta), and the pair's projections themselves
 (`fun A B p => p.fst`/`p.snd`, once those are formers).  Dropping them
-removes the most index-heavy dependent types from `BConst.type`, and
+removes the most index-heavy dependent types from `BConst.typeAV`, and
 in the projections' case it is evidence that the former is the right
 primitive rather than an addition on top of one.
 -/
@@ -234,6 +238,43 @@ def projPair? : Nat → Term → Option Term
   | 0, e => some (.fst e)
   | 1, e => some (.snd e)
   | _ + 2, _ => none
+
+/-- The decoder is defined exactly at the two field indices, so a
+decoded projection still witnesses the old side condition. -/
+theorem lt_of_projPair? {i : Nat} {e x : Term} (h : projPair? i e = some x) :
+    i < 2 := by
+  rcases i with _ | _ | i
+  · omega
+  · omega
+  · exact nomatch h
+
+/-- …and conversely: below the bound the decoder always fires, on any
+subject.  Definedness depends on the index alone. -/
+theorem projPair?_exists_of_lt {i : Nat} (h : i < 2) (e : Term) :
+    ∃ x, projPair? i e = some x := by
+  rcases i with _ | _ | i
+  · exact ⟨.fst e, rfl⟩
+  · exact ⟨.snd e, rfl⟩
+  · omega
+
+/-- A decoded projection is one of the two formers on the same
+subject — the case split consumers of the decoder want. -/
+theorem projPair?_cases {i : Nat} {e x : Term} (h : projPair? i e = some x) :
+    x = .fst e ∨ x = .snd e := by
+  rcases i with _ | _ | i
+  · exact Or.inl (Option.some.inj h).symm
+  · exact Or.inr (Option.some.inj h).symm
+  · exact nomatch h
+
+/-- The same split for two decodings **at one index**: a congruence
+site sees the same former on both sides. -/
+theorem projPair?_cases₂ {i : Nat} {e x e' x' : Term}
+    (h : projPair? i e = some x) (h' : projPair? i e' = some x') :
+    (x = .fst e ∧ x' = .fst e') ∨ (x = .snd e ∧ x' = .snd e') := by
+  rcases i with _ | _ | i
+  · exact Or.inl ⟨(Option.some.inj h).symm, (Option.some.inj h').symm⟩
+  · exact Or.inr ⟨(Option.some.inj h).symm, (Option.some.inj h').symm⟩
+  · exact nomatch h
 
 end Term
 

@@ -33,33 +33,35 @@ binders open alike, so their domains are literally one list.
 -/
 
 namespace ConLeche.Model
+open ConLeche.Verify (denote denote_forallE)
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo)
 
 universe uv
 
-variable {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat}
+variable {acval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat}
 
 /-! ## A telescope's domains, read -/
 
 /-- **A telescope's domains, read above depth `D`**, with `os` of its
 binders opened so far — each binder opened by its own opened domain,
-exactly as `denoteMeta`'s binder clauses open it, so the `∀`-tower and
+exactly as `denote`'s binder clauses open it, so the `∀`-tower and
 the λ-tower over one telescope read one list. -/
-@[expose] def teleDoms (acval : Name → (Name → Nat) → ITerm) (env : Env) (φ : Name → Nat)
-    (D : Nat) : List Expr → List Expr → Option (List ITerm)
+@[expose] def teleDoms (acval : Name → (Name → Nat) → Term) (env : Env) (φ : Name → Nat)
+    (D : Nat) : List Expr → List Expr → Option (List Term)
   | _, [] => some []
   | os, ty :: tys => do
-    let a ← denoteMeta acval env φ (D + os.length) (ty.instantiateList os 0)
+    let a ← denote acval env φ (D + os.length) (ty.instantiateList os 0)
     let r ← teleDoms acval env φ D (.fvar (D + os.length) (ty.instantiateList os 0) :: os) tys
     pure (a :: r)
 
 /-- `teleDoms`'s read list is the telescope's own length. -/
 theorem teleDoms_length {D : Nat} :
-    ∀ {os tys : List Expr} {ds : List ITerm},
+    ∀ {os tys : List Expr} {ds : List Term},
       teleDoms acval env φ D os tys = some ds → ds.length = tys.length
   | _, [], _, h => by
     simp only [teleDoms, Option.some.injEq] at h
@@ -75,29 +77,29 @@ theorem teleDoms_length {D : Nat} :
 /-- **The `∀`-tower over a telescope, read**: its domains are the
 telescope's domains (`teleDoms`), and its body is read with the
 binders opened. -/
-theorem denoteMeta_mkPisOf {D : Nat} :
+theorem denote_mkPisOf {D : Nat} :
     ∀ (tele : List Expr) (X : Expr) (q : Nat) (os : List Expr)
-      (P : ITerm),
+      (P : Term),
       LocList D q os →
-      denoteMeta acval env φ (D + q) ((Expr.mkPisOf tele X).instantiateList os 0) = some P →
-      ∃ (ds : List ITerm) (Xr : ITerm) (os' : List Expr),
+      denote acval env φ (D + q) ((Expr.mkPisOf tele X).instantiateList os 0) = some P →
+      ∃ (ds : List Term) (Xr : Term) (os' : List Expr),
         P = mkPisAV ds Xr ∧
         teleDoms acval env φ D os tele = some ds ∧
         LocList D (q + tele.length) os' ∧
-        denoteMeta acval env φ (D + (q + tele.length)) (X.instantiateList os' 0) = some Xr
+        denote acval env φ (D + (q + tele.length)) (X.instantiateList os' 0) = some Xr
   | [], X, q, os, P, hos, hP => by
     refine ⟨[], P, os, rfl, ?_, by simpa using hos, by simpa [Expr.mkPisOf] using hP⟩
     simp [teleDoms]
   | ty :: bs, X, q, os, P, hos, hP => by
     have hq : os.length = q := hos.1
     simp only [Expr.mkPisOf, Expr.instantiateList] at hP
-    rw [denoteMeta_forallE] at hP
+    rw [denote_forallE] at hP
     obtain ⟨ta, hta, hP⟩ := Option.bind_eq_some_iff.mp hP
     obtain ⟨ba, hba, hP⟩ := Option.bind_eq_some_iff.mp hP
     obtain rfl : P = .pi ta ba := (Option.some.inj hP).symm
     rw [← Expr.instantiateList_cons, show D + q + 1 = D + (q + 1) from by omega] at hba
     obtain ⟨ds, Xr, os', rfl, hdoms, hos', hX⟩ :=
-      denoteMeta_mkPisOf bs X (q + 1) _ ba (hos.cons _) hba
+      denote_mkPisOf bs X (q + 1) _ ba (hos.cons _) hba
     refine ⟨ta :: ds, Xr, os', rfl, ?_,
       by simpa [Nat.add_assoc, Nat.add_comm 1] using hos',
       by simpa [Nat.add_assoc, Nat.add_comm 1] using hX⟩

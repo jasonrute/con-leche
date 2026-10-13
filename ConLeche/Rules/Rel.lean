@@ -59,7 +59,7 @@ bodies only, β has no premise, and a telescope walk checks the arity
 alone (`teleArityOk`).
 
 Scoping (`WScoped`, `looseBVarsBounded`, `LeavesBounded`, `CtxOk`) and
-readability (`denoteMeta … = some _`) are NOT part of the inductive;
+readability (`denote … = some _`) are NOT part of the inductive;
 they are premises of the semantic soundness theorems
 (`ConLeche/Model/Rules/*`), whose motives conclude the reduct's and the
 inferred type's frame and reading (`Model/Rules/Motive.lean`).

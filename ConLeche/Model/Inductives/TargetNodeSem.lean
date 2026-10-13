@@ -30,7 +30,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal CheckM NestCtx NestHole BlockParts
   BlockShape instPisWith nestHoles openPisAtFvars fueledOps PosTree PosNodeOk)
 
@@ -68,7 +68,7 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
     ∃ ca, (p.nestCtx fvsP env.find?).hiAt 0 = d.nP + d.k ∧
       Rules.Frame (d.nP + d.k) crest ∧
       CtxOkP m ψ (d.nP + d.k) (d.holeCtx ψ).reverse crest ∧
-      denoteMeta m.acval env ψ (d.nP + d.k) crest = some ca ∧
+      denote m.acval env ψ (d.nP + d.k) crest = some ca ∧
       Rules.GradedTy V (d.holeCtx ψ).reverse ca := by
   have hcN : (p.nestCtx fvsP env.find?).names = d.memberNames := hnames
   have hcP : (p.nestCtx fvsP env.find?).nP = d.nP := hnP
@@ -92,7 +92,7 @@ theorem blockCtorCrest {env : Env} {m : EnvModel V env} {ψ : Name → Nat}
   rw [hcN, hcL, hcP, hA] at hA'
   obtain rfl := Option.some.inj hA'
   have hca := hAr
-  rw [← denoteMeta_erasedEq herased] at hca
+  rw [← denote_erasedEq herased] at hca
   obtain ⟨-, -, -, hhi, -, -, -, -, hfr, hCP, hgr, -, -, -, -⟩ :=
     blockWalkCtx hin hN hcore.1 (fun t ht ρ h => hcore.2.2.2 t ht ψ ρ h) hnames hnP hk hcv0 hop0
       hholes hCf hCb hcrest hinf hsort hd hca
@@ -263,27 +263,27 @@ OCCURRENCE of a node knows its parent occurrence (`PosTree.annF`). -/
 /-! ## Readings across the constructors' conses -/
 
 /-- A spine read at one model is read at another that reads every term alike. -/
-theorem DenoteMetaSpine.transport {acval₁ acval₂ : Name → (Name → Nat) → ITerm}
+theorem DenoteSpine.transport {acval₁ acval₂ : Name → (Name → Nat) → Term}
     {env₁ env₂ : Env} {φ : Name → Nat} {d : Nat}
-    (h : ∀ (e : Expr) {ea : ITerm}, denoteMeta acval₁ env₁ φ d e = some ea →
-      denoteMeta acval₂ env₂ φ d e = some ea) :
-    ∀ {as : List Expr} {vs : List ITerm}, DenoteMetaSpine acval₁ env₁ φ d as vs →
-      DenoteMetaSpine acval₂ env₂ φ d as vs
+    (h : ∀ (e : Expr) {ea : Term}, denote acval₁ env₁ φ d e = some ea →
+      denote acval₂ env₂ φ d e = some ea) :
+    ∀ {as : List Expr} {vs : List Term}, DenoteSpine acval₁ env₁ φ d as vs →
+      DenoteSpine acval₂ env₂ φ d as vs
   | _, _, .nil => .nil
-  | _, _, .cons ha hs => .cons (h _ ha) (DenoteMetaSpine.transport h hs)
+  | _, _, .cons ha hs => .cons (h _ ha) (DenoteSpine.transport h hs)
 
 /-- **A node's key read at its occurrence**: its parameters read where its
 frame is derived (`NodeSemAt`), lifted to its occurrence's depth. -/
 theorem nodeSem_spOcc {env : Env} {m : EnvModel V env} {φ : Name → Nat} {ctx : NestCtx}
-    {Δ0 : List ITerm} {ops : ConLeche.CheckerOps CheckM} {t : PosTree}
+    {Δ0 : List Term} {ops : ConLeche.CheckerOps CheckM} {t : PosTree}
     (hok : PosNodeOk ops env ctx t) (hsem : NodeSemAt m φ ctx Δ0 t) :
-    ∃ dsa, DenoteMetaSpine m.acval env φ (ctx.hiAt t.occ.length) t.key.ds dsa := by
+    ∃ dsa, DenoteSpine m.acval env φ (ctx.hiAt t.occ.length) t.key.ds dsa := by
   obtain ⟨⟨dsa, hdsa⟩, -, -⟩ := hsem
   obtain ⟨-, -, -, -, hws, hanc⟩ := hok
   rcases hanc with ⟨hao, -⟩ | ⟨han, hds⟩
   · rw [← hao]; exact ⟨dsa, hdsa⟩
   · rw [han] at hdsa
-    exact ⟨_, DenoteMetaSpine.lift (m := m) (by simp only [NestCtx.hiAt]; omega)
+    exact ⟨_, DenoteSpine.lift (m := m) (by simp only [NestCtx.hiAt]; omega)
       (fun x hx => (hds x hx).2) hdsa⟩
 
 end ConLeche.Model

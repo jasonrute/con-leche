@@ -24,7 +24,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal)
 
 universe w
@@ -38,8 +38,8 @@ variable {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
   (hlps : ∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
       cv.levelParams = lps)
   (hnd : lps.Nodup) {us : List Level} (hul : us.length = lps.length) {hi : Nat} {ds : List Expr}
-  (hds : ∀ x ∈ ds, Expr.WScoped hi x ∧ x.looseBVarsBounded 0 = true) {dsa : List ITerm}
-  (hdsa : DenoteMetaSpine mp.base2.acval env φ hi ds dsa)
+  (hds : ∀ x ∈ ds, Expr.WScoped hi x ∧ x.looseBVarsBounded 0 = true) {dsa : List Term}
+  (hdsa : DenoteSpine mp.base2.acval env φ hi ds dsa)
   (hlenP : (D.params (Level.substFn φ lps us)).length = ds.length)
 
 include hD hnN hkN hlps hnd hul hds hdsa hlenP
@@ -57,28 +57,28 @@ theorem instCtor_open {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
       = some crest)
     {fvsF : List Expr} {cbody : Expr}
     (hfld : ConLeche.openPisAtFvars nF crest hi = some (fvsF, cbody)) :
-    cv.levelParams = lps ∧ ∃ ab : List ITerm,
-      (∃ Tys : List ITerm, Tys.length = D.k ∧
+    cv.levelParams = lps ∧ ∃ ab : List Term,
+      (∃ Tys : List Term, Tys.length = D.k ∧
         (∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
           ConLeche.instPisWith (canonParams ds.length) cvm.type = some ty ∧
-          denoteMeta mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
+          denote mp.base2.acval env (Level.substFn φ lps us) (ds.length + mm) ty
             = some (Tys.getD mm default)) ∧
         FieldsEqOn V (D.params (Level.substFn φ lps us) ++ Tys).reverse ab
           (D.fields (Level.substFn φ lps us) c j)) ∧ ab.length = nF ∧
       readOpenedDoms mp.base2.acval env φ hi fvsF
-        = ITerm.substTele (instTau mp φ D us hi ds) 0 ab ∧
+        = Term.substTele (instTau mp φ D us hi ds) 0 ab ∧
       (∀ (l : Nat) (x : Expr), fvsF[l]? = some x →
-        denoteMeta mp.base2.acval env φ (hi + l) x.fvarTypeD
-          = some ((ITerm.substTele (instTau mp φ D us hi ds) 0 ab).getD l
+        denote mp.base2.acval env φ (hi + l) x.fvarTypeD
+          = some ((Term.substTele (instTau mp φ D us hi ds) 0 ab).getD l
               default)) ∧
-      denoteMeta mp.base2.acval env φ (hi + nF) cbody
-        = some (ITerm.substAV (instTau mp φ D us hi ds)
-            (ITerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
+      denote mp.base2.acval env φ (hi + nF) cbody
+        = some (Term.substAV (instTau mp φ D us hi ds)
+            (Term.mkAppN (.bvar (nF + (D.k - 1 - c)))
               (D.resIdx (Level.substFn φ lps us) c j)) nF) ∧
-      denoteMeta mp.base2.acval env φ hi crest
-        = some (mkPisAV (ITerm.substTele (instTau mp φ D us hi ds) 0 ab)
-            (ITerm.substAV (instTau mp φ D us hi ds)
-              (ITerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
+      denote mp.base2.acval env φ hi crest
+        = some (mkPisAV (Term.substTele (instTau mp φ D us hi ds) 0 ab)
+            (Term.substAV (instTau mp φ D us hi ds)
+              (Term.mkAppN (.bvar (nF + (D.k - 1 - c)))
                 (D.resIdx (Level.substFn φ lps us) c j)) nF)) := by
   obtain ⟨hlp, crest', ab, hcr', hTy, hlab, hrd⟩ :=
     instCtor_read mp hD hlps hnd hul hds hdsa hlenP hc hj hfc
@@ -87,10 +87,10 @@ theorem instCtor_open {c j : Nat} (hc : c < D.k) (hj : j < D.nctors c) {cv : Con
   refine ⟨hlp, ab, hTy, hlab, ?_⟩
   have hrd' := hrd
   rw [hlab] at hrd'
-  obtain ⟨pps, b, hst, hb, hlen, hbind⟩ := denoteMeta_openPis nF hfld hrd
-  have hstEq := stripPisAV_mkPisAV (ITerm.substTele (instTau mp φ D us hi ds) 0 ab)
-    (ITerm.substAV (instTau mp φ D us hi ds)
-      (ITerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
+  obtain ⟨pps, b, hst, hb, hlen, hbind⟩ := denote_openPis nF hfld hrd
+  have hstEq := stripPisAV_mkPisAV (Term.substTele (instTau mp φ D us hi ds) 0 ab)
+    (Term.substAV (instTau mp φ D us hi ds)
+      (Term.mkAppN (.bvar (nF + (D.k - 1 - c)))
         (D.resIdx (Level.substFn φ lps us) c j)) ab.length)
   rw [substTele_length, hlab] at hstEq
   rw [hlab] at hst

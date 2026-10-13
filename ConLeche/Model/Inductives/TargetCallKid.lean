@@ -30,7 +30,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx NestHole
   BlockParts BlockShape fueledOps PosTree)
 
@@ -175,7 +175,7 @@ theorem admVal_kid (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ : Nat 
             + u.anc.length - i - (ConLeche.grpNews u.key.lvls u.key.ds (ctx.hiAt u.anc.length)
               u.grp).reverse.length = u.anc.length - i by omega, hYs]
       · have hws : ∀ x ∈ hk.key.ds, Expr.WScoped (ctx.hiAt u.anc.length) x := hps i hk hi
-        obtain ⟨dsa, hdsaA, rfl⟩ := DenoteMetaSpine.unlift (m := mk.base2) (by rw [hhi']; omega)
+        obtain ⟨dsa, hdsaA, rfl⟩ := DenoteSpine.unlift (m := mk.base2) (by rw [hhi']; omega)
           hws hdsa'
         have hlen' : ctx.hiAt u'.anc.length - ctx.hiAt u.anc.length = VS.length := by
           rw [hhi', hVSl]; omega
@@ -233,7 +233,7 @@ theorem admVal_kid (H : DynCtx F mk mpC ctx d ns) {ψ : Name → Nat} {ρ : Nat 
           Option.getD_some, hidx]
       rw [hval] at hy
       have hpl := (mk.lfpClause_of_mem hD).parsLen mm' hmm' ψu
-      have hdl := DenoteMetaSpine.length_eq hdsa
+      have hdl := DenoteSpine.length_eq hdsa
       have hlenP' := hlenP ψu
       rw [← hψu] at hlenP'
       rw [hψu] at hlenP'

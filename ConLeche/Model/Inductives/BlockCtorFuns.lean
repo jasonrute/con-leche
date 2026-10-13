@@ -15,7 +15,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps
  )
 
@@ -26,8 +26,8 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env}
 /-- A block constructor's data, bundled for the choice. -/
 structure BlockCtorPick where
   idxArgs : List Expr
-  ds : (Name → Nat) → List ITerm
-  Es : (Name → Nat) → List ITerm
+  ds : (Name → Nat) → List Term
+  Es : (Name → Nat) → List Term
   srcs : List (Option Nat)
   fvsP : List Expr
   xFvs : List Expr
@@ -47,8 +47,8 @@ theorem blockCtorFuns_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
       ∃ (c : ConstantVal × Nat) (sorts : List Level),
         ConLeche.checkSumCtor (ConLeche.fueledOps μ F) env₁ env T lps nP nIdx
           resSort isProp large c.1 cA.2 cvTa = .ok (cA.1, sorts)) :
-    ∃ (idxF : Nat → List Expr) (dsF : Nat → (Name → Nat) → List ITerm)
-      (esF : Nat → (Name → Nat) → List ITerm) (srcsF : Nat → List (Option Nat))
+    ∃ (idxF : Nat → List Expr) (dsF : Nat → (Name → Nat) → List Term)
+      (esF : Nat → (Name → Nat) → List Term) (srcsF : Nat → List (Option Nat))
       (fvsPF xFvsF : Nat → List Expr) (xrestF : Nat → Expr),
       ∀ (j : Nat) (cA : ConstantVal × Nat), ctorsA[j]? = some cA →
         BlockCtorDataI mp.base2 T lps cA.1 nP cA.2 nIdx resSort isProp large

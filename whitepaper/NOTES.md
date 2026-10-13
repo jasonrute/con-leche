@@ -18,7 +18,7 @@ Typst and tooling traps are not here: they are the "Typst notes"
 comment block at the top of `lib.typ`.
 
 1. **One denotation instead of three.** The real proof reads a
-   checker term into an erased `ITerm` (`denoteMeta`, partial),
+   checker term into a `Term` (`denote`, partial),
    interprets that (`interp`), and states the main theorem over a
    third notion, the relation `Denotes` on checker terms, plus the
    theorem identifying the first two with the third
@@ -26,8 +26,8 @@ comment block at the top of `lib.typ`.
    (`Fragment/Interp.lean`) that reads the terms at the level
    valuation directly, and nothing in §2's argument needs the
    numeral layer. If `interp` were defined on `Expr` under `φ` — as
-   `Denotes` is, but as a function — the erased layer and
-   `Denotes_of_denoteMeta` would go, and `WellDenoted` would be stated
+   `Denotes` is, but as a function — the intermediate `Term` layer and
+   `Denotes_of_denote` would go, and `WellDenoted` would be stated
    once, on the checker's terms. Item 11 says what else this unlocks.
    (§1/§5 writer lane; §3 lane.)
 

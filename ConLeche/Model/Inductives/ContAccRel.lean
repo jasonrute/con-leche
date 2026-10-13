@@ -36,7 +36,7 @@ open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.SetTheory.Tower (projS)
 open ConLeche.Model.Rules
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal IndCaps CheckM NestCtx NestHole NestState
   NestFieldKind CheckError instPisWith fueledOps)
 
@@ -94,7 +94,7 @@ theorem holeQ_frame_iff {ctx : NestCtx} {prog news : List NestHole} {i n : Nat} 
 key's depth, extended by the group's hole values at ANY tuple of the
 container's space at each side's key frame. -/
 @[expose] def frameRelA (R₀ : FrameRel V) (D : LfpDatum V) (ψ : Name → Nat)
-    (grp : List (Name × Expr)) (dsa : List ITerm) (hi : Nat) : FrameRel V :=
+    (grp : List (Name × Expr)) (dsa : List Term) (hi : Nat) : FrameRel V :=
   fun σ σ' => ∃ ρ ρ' Y Y', R₀ ρ ρ' ∧
     InTupleSpace (D.w ψ) D.N (D.idx ψ (keyFrame dsa hi ρ)) Y ∧
     InTupleSpace (D.w ψ) D.N (D.idx ψ (keyFrame dsa hi ρ')) Y' ∧
@@ -117,8 +117,8 @@ variable {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {D : LfpDatum V}
   (hlps : ∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
       cv.levelParams = lps)
   (hnd : lps.Nodup) {us : List Level} (hul : us.length = lps.length) {hi : Nat} {ds : List Expr}
-  (hds : ∀ x ∈ ds, Expr.WScoped hi x ∧ x.looseBVarsBounded 0 = true) {dsa : List ITerm}
-  (hdsa : DenoteMetaSpine mp.base2.acval env φ hi ds dsa)
+  (hds : ∀ x ∈ ds, Expr.WScoped hi x ∧ x.looseBVarsBounded 0 = true) {dsa : List Term}
+  (hdsa : DenoteSpine mp.base2.acval env φ hi ds dsa)
   (hlenP : (D.params (Level.substFn φ lps us)).length = ds.length)
   {grp : List (Name × Expr)} (hg : GrpWf ctx D hi us ds grp)
 
@@ -129,7 +129,7 @@ omit hnN hkN hfind hlps hnd hul hds hg in
 theorem parsLen_dsa {mm : Nat} (hmm : mm < D.k) :
     (D.pars mm (Level.substFn φ lps us)).length = dsa.length := by
   obtain ⟨h, -, -, -⟩ := mp.lfp_ok D hD
-  rw [h.parsLen mm hmm, hlenP, DenoteMetaSpine.length_eq hdsa]
+  rw [h.parsLen mm hmm, hlenP, DenoteSpine.length_eq hdsa]
 
 /-- The group's hole values do not move with the frame off the holes, nor
 off the group. -/
@@ -175,7 +175,7 @@ theorem grp_inGrp {p : Name × Expr} (hp : p ∈ grp) : InGrp D grp (D.names.idx
 /-- **The frame relation is an accessibility hole relation** of the
 frame's walk (see the module docstring). -/
 theorem frameRelA_holeRelA {prog : List NestHole} (hhi : ctx.hiAt prog.length = hi)
-    {Δh : List ITerm} {R₀ : FrameRel V} (hR₀ : HoleRelA mp.base2 φ w ctx prog hi Δh R₀)
+    {Δh : List Term} {R₀ : FrameRel V} (hR₀ : HoleRelA mp.base2 φ w ctx prog hi Δh R₀)
     (hwD : D.w (Level.substFn φ lps us) = w)
     (harity : ∀ p ∈ grp, ConLeche.nestArity ctx p.1
       = (D.pars (D.names.idxOf p.1) (Level.substFn φ lps us)).length
@@ -225,7 +225,7 @@ theorem frameRelA_holeRelA {prog : List NestHole} (hhi : ctx.hiAt prog.length = 
     have hpi : grp[j] ∈ grp := List.getElem_mem _
     obtain ⟨mm, hmm, -, hidx, -⟩ := grpMember mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hpi
     refine ⟨mm, hmm, hidx, ?_⟩
-    rw [harity _ hpi, hidx, parsLen_dsa mp hD hdsa hlenP hmm, ← DenoteMetaSpine.length_eq hdsa]
+    rw [harity _ hpi, hidx, parsLen_dsa mp hD hdsa hlenP hmm, ← DenoteSpine.length_eq hdsa]
   -- the admissible positions
   have hQiff := fun (i n : Nat) => holeQ_frame_iff (ctx := ctx) (prog := prog)
     (news := grpNews us ds (ctx.hiAt prog.length) grp) (i := i) (n := n)

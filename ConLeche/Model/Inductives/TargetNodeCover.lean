@@ -29,7 +29,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level NestCtx PosTree TargetMajor ConstantVal
   ConstantInfo BlockShape fueledOps PosNodeOk)
 
@@ -154,7 +154,7 @@ theorem nodeHolesRead_nil {envC : Env} {mpC : EnvModelM V μ envC} {ctx : NestCt
   refine ⟨hparS, trivial, fun ψ dd _ i hi => ?_⟩
   unfold nodeImg
   split
-  · exact ⟨_, denoteMeta_fvar _ _ _ _⟩
+  · exact ⟨_, denote_fvar _ _ _ _⟩
   · rename_i hlt
     have ht : i - ctx.nP < ctx.names.length := by
       simp only [ConLeche.NestCtx.hiAt, List.length_nil] at hi; omega
@@ -164,12 +164,12 @@ theorem nodeHolesRead_nil {envC : Env} {mpC : EnvModelM V μ envC} {ctx : NestCt
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem ht, Option.getD_some]
       exact List.getElem_mem _
     obtain ⟨ci, hf, hl⟩ := hmem _ hn
-    have hc := denoteMeta_const (acval := mpC.base2.acval) (φ := ψ) (d := dd) hf
+    have hc := denote_const (acval := mpC.base2.acval) (φ := ψ) (d := dd) hf
       (show (ctx.lps.map Level.param).length = ci.toConstantVal.levelParams.length by
         rw [List.length_map]; exact hl)
-    have hsp := denoteMetaSpine_fvars (acval := mpC.base2.acval) (env := envC) (φ := ψ)
+    have hsp := denoteSpine_fvars (acval := mpC.base2.acval) (env := envC) (φ := ψ)
       dd ctx.params 0 (fun i x hx => by simpa using hparF.2 i x hx)
-    exact ⟨_, denoteMeta_mkAppN hsp hc⟩
+    exact ⟨_, denote_mkAppN hsp hc⟩
 
 omit [SetTheory V] in
 theorem progScB_append {ctx : NestCtx} {A : List NestHole} (hA : ConLeche.ProgScB ctx A) :
@@ -184,17 +184,17 @@ theorem progScB_append {ctx : NestCtx} {A : List NestHole} (hA : ConLeche.ProgSc
 
 omit [SetTheory V] in
 /-- **A read spine read shallower**: a spine scoped at `p` that reads at a
-depth `D ≥ p` reads at `p` (`denoteMeta_lift`, argument by argument). -/
-theorem denoteMetaSpine_lower {acval : Name → (Name → Nat) → ITerm} {env : Env}
+depth `D ≥ p` reads at `p` (`denote_lift`, argument by argument). -/
+theorem denoteSpine_lower {acval : Name → (Name → Nat) → Term} {env : Env}
     {φ : Name → Nat} (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ) {D p : Nat} :
-    ∀ {as : List Expr} {vs : List ITerm}, DenoteMetaSpine acval env φ D as vs →
-      (∀ x ∈ as, Expr.WScoped p x) → p ≤ D → ∃ ws, DenoteMetaSpine acval env φ p as ws
+    ∀ {as : List Expr} {vs : List Term}, DenoteSpine acval env φ D as vs →
+      (∀ x ∈ as, Expr.WScoped p x) → p ≤ D → ∃ ws, DenoteSpine acval env φ p as ws
   | _, _, .nil, _, _ => ⟨[], .nil⟩
   | a :: _, _, .cons ha hs, hw, hpD => by
-    obtain ⟨ws, hws⟩ := denoteMetaSpine_lower hacl hs
+    obtain ⟨ws, hws⟩ := denoteSpine_lower hacl hs
       (fun x hx => hw x (List.mem_cons_of_mem _ hx)) hpD
-    rw [denoteMeta_lift hacl (hw a List.mem_cons_self) _ hpD] at ha
+    rw [denote_lift hacl (hw a List.mem_cons_self) _ hpD] at ha
     obtain ⟨w, hw', -⟩ := Option.map_eq_some_iff.mp ha
     exact ⟨w :: ws, .cons hw' hws⟩
 
@@ -205,7 +205,7 @@ frames' `anc` is a suffix). -/
 theorem nodeHolesRead_grp' {envI envC : Env} {mpC : EnvModelM V μ envC} {ctx : NestCtx}
     {ops : ConLeche.CheckerOps ConLeche.CheckM} {u : PosTree} (hok : PosNodeOk ops envI ctx u)
     (hrdA : NodeHolesRead mpC.base2.acval envC ctx u.anc)
-    (hsp : ∀ ψ : Name → Nat, ∃ dsa, DenoteMetaSpine mpC.base2.acval envC ψ
+    (hsp : ∀ ψ : Name → Nat, ∃ dsa, DenoteSpine mpC.base2.acval envC ψ
       (ctx.hiAt u.anc.length) u.key.ds dsa)
     (hfind : ∀ p ∈ u.grp, ∃ ci, envC.find? p.1 = some ci ∧
       u.key.lvls.length = ci.toConstantVal.levelParams.length) :
@@ -257,7 +257,7 @@ theorem nodeHolesRead_grp' {envI envC : Env} {mpC : EnvModelM V μ envC} {ctx : 
   obtain ⟨ebs, hebs, -⟩ := readback_spine mpC.base2 (hrdA.hs ψ hd) (fun _ => pt)
     (fun x hx => (hds x hx).1) hdsa
   obtain ⟨ci, hf, hl⟩ := hfind p hp
-  exact ⟨_, denoteMeta_mkAppN hebs (denoteMeta_const hf hl)⟩
+  exact ⟨_, denote_mkAppN hebs (denote_const hf hl)⟩
 
 /-- **A node's stack holes are read** (`NodeListFacts.read`): by induction
 along the parents, each node's stack is its parent's group on top of the
@@ -268,7 +268,7 @@ theorem nodeHolesRead_of {envI envC : Env} {mpC : EnvModelM V μ envC} {ctx : Ne
     (hok : ∀ t ∈ ns, PosNodeOk ops envI ctx t)
     (hpar : ∀ t ∈ ns, t.occ ≠ [] → ∃ p ∈ ns, t ∈ p.kids)
     (hnil : NodeHolesRead mpC.base2.acval envC ctx [])
-    (hsp : ∀ t ∈ ns, ∀ ψ : Name → Nat, ∃ dsa, DenoteMetaSpine mpC.base2.acval envC ψ
+    (hsp : ∀ t ∈ ns, ∀ ψ : Name → Nat, ∃ dsa, DenoteSpine mpC.base2.acval envC ψ
       (ctx.hiAt t.occ.length) t.key.ds dsa)
     (hfind : ∀ t ∈ ns, ∀ p ∈ t.grp, ∃ ci, envC.find? p.1 = some ci ∧
       t.key.lvls.length = ci.toConstantVal.levelParams.length) :
@@ -303,7 +303,7 @@ theorem nodeHolesRead_of {envI envC : Env} {mpC : EnvModelM V μ envC} {ctx : Ne
       rw [hocc]
       refine nodeHolesRead_grp' (hok u hu) hanc (fun ψ => ?_) (hfind u hu)
       obtain ⟨dsa, hdsa⟩ := hsp u hu ψ
-      exact denoteMetaSpine_lower mpC.base2.acval_closed hdsa (fun x hx => (hds x hx).1)
+      exact denoteSpine_lower mpC.base2.acval_closed hdsa (fun x hx => (hds x hx).1)
         (by
           rcases (hok u hu).2.2.2.2.2 with ⟨hao, -⟩ | ⟨han, -⟩
           · rw [hao]; exact Nat.le_refl _
@@ -345,7 +345,7 @@ theorem nodeListFacts_of {F : Nat}
     {envC envI : Env} {pp : ConLeche.BlockParts} {cvTasR : List ConstantVal}
     {ctorsAsR : List (List (ConstantVal × Nat))}
     {mpC : EnvModelM V μ envC}
-    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → ITerm}
+    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → Term}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : ConLeche.NestState}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
@@ -355,7 +355,7 @@ theorem nodeListFacts_of {F : Nat}
     (hparF : fvsP.length = pp.nP ∧ ∀ (i : Nat) (x : Expr), fvsP[i]? = some x →
       ∃ ty, x = .fvar i ty)
     (hparS : ∀ x ∈ fvsP, ConLeche.ScB pp.nP x)
-    (hsp : ∀ t ∈ ns, ∀ ψ : Name → Nat, ∃ dsa, DenoteMetaSpine mpC.base2.acval envC ψ
+    (hsp : ∀ t ∈ ns, ∀ ψ : Name → Nat, ∃ dsa, DenoteSpine mpC.base2.acval envC ψ
         ((pp.nestCtx fvsP envI.find?).hiAt t.occ.length) t.key.ds dsa) :
     NodeListFacts mpC (pp.nestCtx fvsP envI.find?) ns := by
   obtain ⟨-, henvC, -, -, hN, hS, hcore, -, hdR, -, -, ⟨mk, hmkC, hmk, -, -, -, -⟩, -⟩ := hctx

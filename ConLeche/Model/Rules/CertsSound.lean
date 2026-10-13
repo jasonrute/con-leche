@@ -21,7 +21,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -50,18 +50,18 @@ prefix of the spine is not the point (`app_pt`), so it is a graph, and
 the argument's own application slot puts it in the telescope's domain
 (`slotTransfer`). -/
 theorem teleFitPA_of_peel_ne_pt {ρ : Nat → V} :
-    ∀ (vs : List ITerm) {T f r : ITerm},
-      ConLeche.Model.ITerm.peelPis T vs = some r →
+    ∀ (vs : List Term) {T f r : Term},
+      Term.peelPis T vs = some r →
       WellDenoted V ρ T → interp V ρ f ∈ˢ interp V ρ T →
-      WellDenoted V ρ (ITerm.mkAppN f vs) →
-      interp V ρ (ITerm.mkAppN f vs) ≠ pt →
+      WellDenoted V ρ (Term.mkAppN f vs) →
+      interp V ρ (Term.mkAppN f vs) ≠ pt →
       TeleFitPA V ρ T vs r
   | [], T, _, r, hp, _, _, _, _ => by
     obtain rfl : T = r := Option.some.inj hp
     exact .nil
   | x :: xs, .pi A B, f, r, hp, hT, hmem, hg, hne => by
-    have hg' : WellDenoted V ρ (ITerm.mkAppN (.app f x) xs) := hg
-    have hne' : interp V ρ (ITerm.mkAppN (.app f x) xs) ≠ pt := hne
+    have hg' : WellDenoted V ρ (Term.mkAppN (.app f x) xs) := hg
+    have hne' : interp V ρ (Term.mkAppN (.app f x) xs) ≠ pt := hne
     have happ : WellDenoted V ρ (.app f x) := mkAppN_head xs hg'
     obtain ⟨v', A', B', hslot, hx, -⟩ := (cast (WellDenoted_app V ρ f x) happ).2.2
     have hmem' := hmem
@@ -130,13 +130,13 @@ theorem CertsF.cert_sound {d : Nat} {ty body arg ta : Expr}
   have hLbdom : Expr.LeavesBounded ty := fun l hl =>
     hLbty l (by simp [Expr.fvarLeaves, hl])
   have hCdom : CtxOkS m φ d Δa ty := hCT.forallE_ty
-  obtain ⟨doma, bodya, hdoma, hbodya, rfl⟩ := denoteMeta_forallE_inv hTa
+  obtain ⟨doma, bodya, hdoma, hbodya, rfl⟩ := denote_forallE_inv hTa
   cases hsp with | @cons _ aa _ vs' haa hsp' =>
   obtain ⟨hfarg, hCarg⟩ := hargs arg List.mem_cons_self
   obtain ⟨hwa, hba, hLa⟩ := hfarg
-  have hbody' : denoteMeta m.acval env φ d (body.instantiate1 arg)
+  have hbody' : denote m.acval env φ d (body.instantiate1 arg)
       = some (bodya.inst aa) := by
-    rw [denoteMeta_beta m.acval_closed (acval_inst_self m)
+    rw [denote_beta m.acval_closed (acval_inst_self m)
       (ty := ty) hbodyw.fvarsBelow hwa hba haa 0, hbodya]
     rfl
   have hLbbody : Expr.LeavesBounded (body.instantiate1 arg) := by

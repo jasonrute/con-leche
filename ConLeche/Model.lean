@@ -137,7 +137,8 @@ public import ConLeche.Model.Harvest
 public import ConLeche.Model.Fold
 public import ConLeche.Model.InstallRun
 public import ConLeche.Model.StreamConsts
-public import ConLeche.Model.Reading.DenoteMeta
+public import ConLeche.Semantics.Tower.TowerKit
+public import ConLeche.Verify.Denote
 public import ConLeche.Model.Reading.Lemmas
 public import ConLeche.Model.Reading.Shift
 public import ConLeche.Model.Reading.Inst
@@ -158,7 +159,7 @@ public import ConLeche.Model.ReduceOps
 /-!
 # `ConLeche.Model` — the graded model
 
-The graded model: the stored-term reading (`Reading/DenoteMeta*`),
+The graded model: the stored-term reading's metatheory (`Reading/*`),
 `EnvModel`/`EnvModelM`, the per-rule soundness rows, the
 basis/inductive/projection install families, the fold (`Model/Fold.lean`)
 and the capstone.  It stands on `ConLeche/{Verify,Semantics,SetModel,

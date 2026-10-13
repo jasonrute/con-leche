@@ -24,7 +24,7 @@ Two things follow, and they are the whole content of this module.
   nowhere.
 
 * **`stageBlockFormers`** — the loop.  It is **abstract in the leaves**
-  (`AOf : Nat → (Name → Nat) → ITerm`), exactly as `ctorsLoopEta`
+  (`AOf : Nat → (Name → Nat) → Term`), exactly as `ctorsLoopEta`
   is abstract in `leafT`: what a member's cons needs of its leaf is the
   five currency facts, and `blockLeafWalks` + the `blockTyG` capstones
   supply them for the fixpoint leaf.  The one structural novelty at `k`
@@ -38,7 +38,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps BlockShape)
 
 universe w
@@ -50,13 +50,13 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode} {env : Env}
 section Walks
 
 variable {k nP nIdx : Nat} {resSort : Level}
-  {uf : Nat → Nat} {Idss : Nat → List ITerm} {Chs : Nat → List (List ITerm)}
+  {uf : Nat → Nat} {Idss : Nat → List Term} {Chs : Nat → List (List Term)}
 
 /-- **A member's parameter frame and index spine**, at a frame
 satisfying its whole parameter-and-index telescope: the frame below the
 index binders satisfies the parameters, and the index variables fit the
 index telescope there. -/
-theorem blockParamFrame_of_sat {pps : List ITerm} {Ids : List ITerm}
+theorem blockParamFrame_of_sat {pps : List Term} {Ids : List Term}
     (hIds : Ids = (pps.drop nP)) {ρ : Nat → V}
     (hρ : Sat V ((pps).reverse) ρ) :
     Sat V ((pps.take nP)).reverse (shiftE Ids.length 0 ρ) ∧
@@ -83,7 +83,7 @@ theorem blockParamFrame_of_sat {pps : List ITerm} {Ids : List ITerm}
 
 /-- **The block leaf's hereditary premise**, from the former's data and
 the block-wide base facts at the parameter frame. -/
-theorem blockLeafWalks {pps : List ITerm} {w : Nat}
+theorem blockLeafWalks {pps : List Term} {w : Nat}
     (hlen : pps.length = nP + nIdx)
     (hokTy : ∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps (.sort w)))
     {mm : Nat}
@@ -137,7 +137,7 @@ block's parameter count, with the context the former's data read
 opening — a member's type has its own indices after the parameters). -/
 private theorem openedParams (mp : EnvModelM V μ env) {F : Nat}
     {cvT cvTa : ConstantVal} {nP nFull : Nat} {resSort : Level}
-    {pps : (Name → Nat) → List ITerm}
+    {pps : (Name → Nat) → List Term}
     (hccv : cvTa = cvT ∧
       ConLeche.checkConstantVal (ConLeche.fueledOps μ F) env cvT = .ok ())
     (hFD : FormerData mp.base2 cvTa nFull resSort pps) (hle : nP ≤ nFull)
@@ -150,7 +150,7 @@ private theorem openedParams (mp : EnvModelM V μ env) {F : Nat}
   obtain ⟨-, -, -, -, hlbt, hitf, -, -, -, -⟩ := ConLeche.checkConstantVal_inv hccv
   obtain ⟨Γ, R, htele, hO⟩ := opened_of hop hitf hlbt (hFD.read ψ) (hFD.okTy ψ)
   obtain ⟨pps', hst', hΓ⟩ := stripPisAV_of_piTeleAV htele
-  have hst'' := stripPisAV_mkPisAV_take nP (pps ψ) (ITerm.sort (resSort.eval ψ))
+  have hst'' := stripPisAV_mkPisAV_take nP (pps ψ) (Term.sort (resSort.eval ψ))
     (by rw [hFD.len ψ]; exact hle)
   obtain ⟨rfl, -⟩ := Prod.mk.injEq _ _ _ _ ▸ Option.some.inj (hst'.symm.trans hst'')
   exact ⟨R, by rw [hΓ]; exact hO⟩
@@ -170,7 +170,7 @@ theorem blockParamsIff (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env
     (h : ConLeche.checkBlockInds (ConLeche.fueledOps μ F) env p isRec
       = .ok (envI, cvTas, p₁))
     {nPOf : Nat → Nat} {resSort : Level}
-    {ppsOf : Nat → (Name → Nat) → List ITerm}
+    {ppsOf : Nat → (Name → Nat) → List Term}
     (hle : ∀ j, p.nP ≤ nPOf j)
     (hFD : ∀ (j : Nat) (cvTa : ConstantVal), cvTas[j]? = some cvTa →
       FormerData mp.base2 cvTa (nPOf j) resSort (ppsOf j)) :
@@ -228,14 +228,14 @@ at the PRE-block environment, not at this one) and the η closure taken
 over the block's whole member list. -/
 theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
     (hE : ConLeche.EtaFamiliesClosedExceptL env names)
-    {cvTa : ConstantVal} {caps : IndCaps} {A : (Name → Nat) → ITerm}
-    {nP : Nat} {resSort : Level} {pps : (Name → Nat) → List ITerm}
+    {cvTa : ConstantVal} {caps : IndCaps} {A : (Name → Nat) → Term}
+    {nP : Nat} {resSort : Level} {pps : (Name → Nat) → List Term}
     (hfresh : env.find? cvTa.name = none)
     (hnres : ConLeche.reservedBasisNames.contains cvTa.name = false)
     (hcb : ConstsBound env cvTa.type)
     (hwfI : ConLeche.EnvWF ⟨.indInfo cvTa caps :: env.consts⟩)
     (hFD : FormerData mp.base2 cvTa nP resSort pps)
-    (hAbelow : ∀ ψ, Term.bvarsBelow 0 (A ψ).erase)
+    (hAbelow : ∀ ψ, Term.bvarsBelow 0 (A ψ))
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ cvTa.levelParams, ψ₁ q = ψ₂ q) → A ψ₁ = A ψ₂)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
     (hAmem : ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -249,10 +249,10 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
     ∃ mp' : EnvModelM V μ ⟨.indInfo cvTa caps :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval cvTa.name A := by
   have hreadI : ∀ ψ : Name → Nat,
-      denoteMeta (acvalWith mp.base2.acval cvTa.name A)
+      denote (acvalWith mp.base2.acval cvTa.name A)
         ⟨.indInfo cvTa caps :: env.consts⟩ ψ 0 cvTa.type
         = some (mkPisAV (pps ψ) (.sort (resSort.eval ψ))) := fun ψ =>
-    denoteMeta_cons_mono (c₀ := .indInfo cvTa caps) hfresh
+    denote_cons_mono (c₀ := .indInfo cvTa caps) hfresh
       (ConsCrossAt.ofNtc fun _ h => nomatch h) ψ 0 hcb (hFD.read ψ)
   have hnresI : ConLeche.reservedBasisNames.contains
       (ConstantInfo.indInfo cvTa caps).name = false := hnres
@@ -261,7 +261,7 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
     (ConsHead.ofFresh hwfI hAbelow hnresI
       (fun _ h => nomatch h)
       (fun _ _ _ _ h => nomatch h))
-    (fun ψ kk => ITerm.liftN_eq_self _
+    (fun ψ kk => Term.liftN_eq_self
       (Term.bvarsBelow.mono (Nat.zero_le kk) (hAbelow ψ)) 1)
     hAparams hAok (fun ψ => ⟨_, hreadI ψ⟩) ?_ ?_ ?_
     (hind := indStrictHead_cons hreadI fun ψ hn ρ vs hsp =>
@@ -301,9 +301,9 @@ the member's capability laws (`hTlawsOf`) are the per-member inputs, and
 fixpoint leaf.  The η invariant is threaded over the block's whole
 member list, because all `k` formers are stored before any constructor. -/
 theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
-    {cvTasAll : List ConstantVal} {A : Nat → (Name → Nat) → ITerm}
+    {cvTasAll : List ConstantVal} {A : Nat → (Name → Nat) → Term}
     {nPOf : Nat → Nat} {resSort : Level}
-    {ppsOf : Nat → (Name → Nat) → List ITerm}
+    {ppsOf : Nat → (Name → Nat) → List Term}
     (hnames : ∀ (j : Nat) (cvTa : ConstantVal), cvTasAll[j]? = some cvTa →
       cvTa.name ∈ names)
     (hndN : ∀ (j j' : Nat) (c c' : ConstantVal), cvTasAll[j]? = some c →
@@ -316,7 +316,7 @@ theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
       cvTa.type.looseBVarsBounded 0 = true ∧
       (cvTa.type.stripPis p₁.nP).isSome = true)
     (hAbelowOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTasAll[j]? = some cvTa →
-      ∀ ψ : Name → Nat, Term.bvarsBelow 0 (A j ψ).erase)
+      ∀ ψ : Name → Nat, Term.bvarsBelow 0 (A j ψ))
     (hAparamsOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTasAll[j]? = some cvTa →
       ∀ ψ₁ ψ₂ : Name → Nat, (∀ q ∈ cvTa.levelParams, ψ₁ q = ψ₂ q) → A j ψ₁ = A j ψ₂)
     (hAokOf : ∀ (j : Nat) (cvTa : ConstantVal), cvTasAll[j]? = some cvTa →

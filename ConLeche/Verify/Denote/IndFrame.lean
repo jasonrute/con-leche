@@ -35,18 +35,6 @@ theorem map_range_getD {α β : Type} [Inhabited α] (xs : List α)
   · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none h]
     rfl
 
-/-- A context's entries, instantiated after a variable *below* all of
-them is substituted: the entry `i` places above the substituted slot is
-instantiated at cut `j + i` (`j` counts binders below the substituted
-slot that remain).  The entry adjacent to the slot — the list's last —
-gets cut `j`. -/
-@[expose] def ctxInstAt (v : Term) (j : Nat) : List Term → List Term
-  | [] => []
-  | B :: Γ => B.inst v (j + Γ.length) :: ctxInstAt v j Γ
-
-@[simp] theorem ctxInstAt_nil (v : Term) (j : Nat) :
-    ctxInstAt v j [] = [] := rfl
-
 /-- Every free-variable leaf reachable from an opened telescope — from
 the opened body or from any opener's own annotation — is either a leaf
 of the unopened expression or exactly one of the openers.  With the

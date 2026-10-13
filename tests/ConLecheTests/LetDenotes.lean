@@ -15,6 +15,7 @@ reduct at every valuation.
 -/
 
 namespace ConLeche.LetDenotesTest
+open ConLeche.Term (Term)
 
 open ConLeche.Semantics
 
@@ -42,7 +43,7 @@ example {X : V}
   Denotes_functional h (.letE .sort .bvar)
 
 /-- ζ in the reading, at every valuation. -/
-example (v b : ITerm) (σ : Nat → V) :
+example (v b : Term) (σ : Nat → V) :
     interp V σ (.letE v b) = interp V σ (b.inst v) :=
   interp_zeta V v b σ
 

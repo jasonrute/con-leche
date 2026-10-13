@@ -36,7 +36,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx NestHole
   BlockParts BlockShape fueledOps PosTree PosNodeOk PosD)
 
@@ -58,7 +58,7 @@ theorem posD_frame_kty {ops : ConLeche.CheckerOps CheckM} {env : Env} {ctx : Nes
 
 /-- A constant applied to arguments in a context is in it. -/
 theorem CtxOkP.mkAppN_const {env : Env} {m : EnvModel V env} {φ : Name → Nat} {d : Nat}
-    {Δ : List ITerm} (hΔ : Δ.length = d) {n : Name} {us : List Level} {as : List Expr}
+    {Δ : List Term} (hΔ : Δ.length = d) {n : Name} {us : List Level} {as : List Expr}
     (h : ∀ x ∈ as, CtxOkP m φ d Δ x) : CtxOkP m φ d Δ (Expr.mkAppN (.const n us) as) := by
   refine ⟨hΔ, fun l hl => ?_⟩
   rcases ConLeche.fvarLeaves_mkAppN hl with h0 | ⟨x, hx, hlx⟩
@@ -97,15 +97,15 @@ parameter telescope — the key instance is typed at the node's depth
 reads its parameters in the telescope (`keyParamsFit`, from the key's
 inference). -/
 theorem nodeKeyFit {env : Env} (mk : EnvModelM V μ env) {φ : Name → Nat} {ctx : NestCtx} {F : Nat}
-    {Δ0 : List ITerm} (hΔ0 : Δ0.length = ctx.hiAt 0) {t : PosTree}
+    {Δ0 : List Term} (hΔ0 : Δ0.length = ctx.hiAt 0) {t : PosTree}
     (hok : PosNodeOk (fueledOps .verified F) env ctx t) (hsem : NodeSemAt mk.base2 φ ctx Δ0 t)
     (hfind : ∀ n, ctx.find? n = env.find? n)
     {D : LfpDatum V} (hD : D ∈ mk.lfpBlocks) {mm : Nat} (hmm : mm < D.k)
     (hhead : D.member mm = (t.grp.headD default).1)
     {cv : ConstantVal} {caps : IndCaps} (hf : env.find? (D.member mm) = some (.indInfo cv caps))
     (hlenP : t.key.ds.length = (D.params (Level.substFn φ cv.levelParams t.key.lvls)).length)
-    {dsa : List ITerm}
-    (hdsa : DenoteMetaSpine mk.base2.acval env φ (ctx.hiAt t.anc.length) t.key.ds dsa) :
+    {dsa : List Term}
+    (hdsa : DenoteSpine mk.base2.acval env φ (ctx.hiAt t.anc.length) t.key.ds dsa) :
     ∀ σ : Nat → V, Sat V (stackCtx mk.base2 φ ctx t.anc Δ0) σ →
       Sat V (D.params (Level.substFn φ cv.levelParams t.key.lvls)).reverse
         (keyFrame dsa (ctx.hiAt t.anc.length) σ) := by
@@ -126,8 +126,8 @@ theorem nodeKeyFit {env : Env} (mk : EnvModelM V μ env) {φ : Name → Nat} {ct
     · simp [Expr.fvarLeaves] at h0
     · exact hL x hx l hlx
   obtain ⟨wa, hwa⟩ := acceptedReads_of mk.base2 φ hty' hwsE hbE hLE
-  obtain ⟨fa, vs, hfa, -, -⟩ := denoteMeta_mkAppN_inv hwa
-  obtain ⟨hul, -⟩ := Rules.denoteMeta_const_arityK hf hfa
+  obtain ⟨fa, vs, hfa, -, -⟩ := denote_mkAppN_inv hwa
+  obtain ⟨hul, -⟩ := Rules.denote_const_arityK hf hfa
   -- the former's telescope peels along the key (`nestInstType` at the head)
   obtain ⟨r, hr⟩ := posNode_instPis hfind hok (hhead ▸ hf)
   have hΔ := stackCtx_length_hi (m := mk.base2) (φ := φ) hΔ0 t.anc
@@ -199,7 +199,7 @@ structure AdmVal (own : Nat → Nat) (G : Nat → Nat → V → V → Prop) (pro
       -- the frames below the hole end in the owner's
       (∃ Y, prog.drop (prog.length - i) = Y ++ (ns.getD (own i - 1) default).anc) ∧
       -- the owner's true frame is the hole's key read at the true valuation
-      (∀ dsa, DenoteMetaSpine mk.base2.acval envI ψ (ctx.hiAt prog.length) hk.key.ds dsa →
+      (∀ dsa, DenoteSpine mk.base2.acval envI ψ (ctx.hiAt prog.length) hk.key.ds dsa →
         keyFrame dsa (ctx.hiAt prog.length) (trueVal mpC ctx ψ ρ xs prog)
           = nlFr mpC ctx d ns ψ ρ xs (own i)) ∧
       ∀ is : List V, is.length + hk.key.ds.length = ConLeche.nestArity ctx hk.key.cname →
@@ -218,8 +218,8 @@ structure AdmVal (own : Nat → Nat) (G : Nat → Nat → V → V → Prop) (pro
 
 /-- A node's key parameters, read at the formers' model where its frame is
 derived. -/
-@[expose] noncomputable def nodeDsaI (t : PosTree) : List ITerm :=
-  t.key.ds.map fun x => (denoteMeta mk.base2.acval envI ψ (ctx.hiAt t.anc.length) x).getD default
+@[expose] noncomputable def nodeDsaI (t : PosTree) : List Term :=
+  t.key.ds.map fun x => (denote mk.base2.acval envI ψ (ctx.hiAt t.anc.length) x).getD default
 
 /-- **The admissible frames of node `b`**: node `0` at its true frame
 only; a derived node at its key's parameters read at an admissible

@@ -2,7 +2,8 @@ module
 
 public import ConLeche.Verify.Inductives.RecStage
 import ConLeche.Verify.Level
-import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
 import ConLeche.Verify.Shift
 import ConLeche.Model.BasisEmpty
 import ConLeche.Model.Env.Laws
@@ -30,7 +31,9 @@ checked one.
 -/
 
 namespace ConLeche.Model
-open ConLeche.Semantics (ITerm)
+open ConLeche.Verify (denote)
+open ConLeche.Term (Term)
+
 open ConLeche.Semantics SetTheory
 open ConLeche (Env Expr Name Level ConstantVal ConstantInfo)
 
@@ -40,15 +43,15 @@ open ConLeche (Env Expr Name Level ConstantVal ConstantInfo)
 A rule's generated forms are
 built with `Expr.instPisAtLift`, and the ih telescope is opened with
 `Expr.instantiateList`; both are written for arguments that may mention
-the ambient binders, while `denoteMeta_beta` wants a bvar-CLOSED
-replacement.  At the frame `denoteMeta` actually reads — the rule body
+the ambient binders, while `denote_beta` wants a bvar-CLOSED
+replacement.  At the frame `denote` actually reads — the rule body
 OPENED at fvars — the arguments ARE bvar-closed, and there both
 operations collapse onto ones the model owns
 (`instPisAtLift_eq_instPisAt`, `instantiateList_eq_instSeq`,
 `Verify/Inductives/BlockRecInv.lean`), so the readings are corollaries,
 not new inductions. -/
 
-variable {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat}
+variable {acval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat}
 
 /-! ## The stored types READ, and their readings are GRADED
 
@@ -89,8 +92,8 @@ levels. -/
 theorem constChecked_reads {env : Env} (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env) {F : Nat} {cv cvA : ConstantVal}
     (h : ConLeche.ConstChecked μ F env cv cvA) :
-    ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : ITerm,
-      denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta ∧
+    ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : Term,
+      denote mp.base2.acval env ψ 0 cvA.type = some ta ∧
       (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
       ∀ ρ : Nat → V, interp V ρ ta ∈ˢ (univ (u.eval ψ) : V) := by
   obtain ⟨stype, u, hrun, hsort⟩ := h.sorted
@@ -119,8 +122,8 @@ theorem recStage_tyReads {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
     (h : ConLeche.RecStageG μ F envC p cvTas rs) :
-    ∀ r ∈ rs, ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : ITerm,
-      denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
+    ∀ r ∈ rs, ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : Term,
+      denote mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
       (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
       ∀ ρ : Nat → V, interp V ρ ta ∈ˢ (univ (u.eval ψ) : V) := by
   obtain ⟨R⟩ := id h
@@ -136,13 +139,13 @@ which the recursor model delivers as `hmem` in this shape. -/
 theorem hrd_of_mem {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {acv : Name → (Name → Nat) → ITerm}
+    {acv : Name → (Name → Nat) → Term}
     (h : ConLeche.RecStageG μ F envC p cvTas rs)
-    (hmem : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ta : ITerm),
-      denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta →
+    (hmem : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ta : Term),
+      denote mpC.base2.acval envC ψ 0 r.1.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta) :
-    ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : ITerm,
-      denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
+    ∀ r ∈ rs, ∀ ψ : Name → Nat, ∃ ta : Term,
+      denote mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
       (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
       (∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta) := by
   intro r hr ψ

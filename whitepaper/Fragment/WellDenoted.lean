@@ -41,7 +41,7 @@ A **context** `Γ` is satisfied by an environment `ρ` (`Sat`) when each
 member of it — the semantic reading of `Γ ⊢`.
 
 Con-leche's `ConLeche/Semantics/WellDenoted.lean` is the same recursive
-definition on its erased terms `ITerm`, with the same type clauses and
+definition on its terms `Term`, with the same type clauses and
 further ones for their projections, equalities and proof term.
 -/
 

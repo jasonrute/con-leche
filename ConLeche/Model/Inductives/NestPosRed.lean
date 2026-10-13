@@ -53,7 +53,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level NestCtx NestHole closeTelescope fueledOps PosD PosJ
   NestFieldKind PosTree MemberCtorD)
 
@@ -62,7 +62,7 @@ universe w
 variable {V : Type w} [SetTheory V]
 
 /-- A grading under a binder moves to a binder reading alike. -/
-theorem gradedTy_cons_congr {Δ : List ITerm} {A B e : ITerm}
+theorem gradedTy_cons_congr {Δ : List Term} {A B e : Term}
     (h : ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ A = interp V ρ B)
     (hg : GradedTy V (A :: Δ) e) : GradedTy V (B :: Δ) e :=
   fun ρ hρ => hg ρ (sat_cons_congr (fun σ hσ => (h σ hσ).symm) hρ)
@@ -71,26 +71,26 @@ theorem gradedTy_cons_congr {Δ : List ITerm} {A B e : ITerm}
 
 omit [SetTheory V] in
 /-- **A term that reads names only stored constants**, once its free
-variables' annotations do (`denoteMeta` looks every constant up). -/
-theorem constsBound_of_read {acval : Name → (Name → Nat) → ITerm} {env : Env}
+variables' annotations do (`denote` looks every constant up). -/
+theorem constsBound_of_read {acval : Name → (Name → Nat) → Term} {env : Env}
     {φ : Name → Nat} :
-    ∀ (d : Nat) (e : Expr) {ea : ITerm}, denoteMeta acval env φ d e = some ea →
+    ∀ (d : Nat) (e : Expr) {ea : Term}, denote acval env φ d e = some ea →
       (∀ l ∈ e.fvarLeaves, ConstsBound env l.2) → ConstsBound env e := by
   intro d e
-  induction d, e using denoteMeta.induct (env := env) with
+  induction d, e using denote.induct (env := env) with
   | case1 d u => intro _ _ _; simp
   | case2 d idx ty => intro _ _ hl; simpa using hl (idx, ty) (by simp [Expr.fvarLeaves])
   | case3 d n us ci hf hlen => intro _ _ _; simp [hf]
   | case4 d n us ci hf hlen =>
     intro _ h _
-    rw [denoteMeta, hf] at h
+    rw [denote, hf] at h
     dsimp only at h
     rw [ite_eq_right hlen] at h
     exact nomatch h
-  | case5 d n us hf => intro _ h _; rw [denoteMeta, hf] at h; exact nomatch h
+  | case5 d n us hf => intro _ h _; rw [denote, hf] at h; exact nomatch h
   | case6 d ty body ihty ihbody =>
     intro _ h hl
-    obtain ⟨ta, ba, hta, hba, -⟩ := denoteMeta_forallE_inv h
+    obtain ⟨ta, ba, hta, hba, -⟩ := denote_forallE_inv h
     have hty := ihty hta fun l h' => hl l (by simp [Expr.fvarLeaves, h'])
     refine constsBound_forallE.mpr ⟨hty, constsBound_of_instantiate1 _ 0 (ihbody hba fun l h' => ?_)⟩
     rcases Expr.fvarLeaves_instantiate1 body 0 h' with h3 | h3
@@ -101,7 +101,7 @@ theorem constsBound_of_read {acval : Name → (Name → Nat) → ITerm} {env : E
       · exact hl l (by simp [Expr.fvarLeaves, h3])
   | case7 d ty body ihty ihbody =>
     intro _ h hl
-    obtain ⟨ta, ba, hta, hba, -⟩ := denoteMeta_lam_inv h
+    obtain ⟨ta, ba, hta, hba, -⟩ := denote_lam_inv h
     have hty := ihty hta fun l h' => hl l (by simp [Expr.fvarLeaves, h'])
     refine constsBound_lam.mpr ⟨hty, constsBound_of_instantiate1 _ 0 (ihbody hba fun l h' => ?_)⟩
     rcases Expr.fvarLeaves_instantiate1 body 0 h' with h3 | h3
@@ -112,12 +112,12 @@ theorem constsBound_of_read {acval : Name → (Name → Nat) → ITerm} {env : E
       · exact hl l (by simp [Expr.fvarLeaves, h3])
   | case8 d f a ihf iha =>
     intro _ h hl
-    obtain ⟨fa, aa, hfa, haa, -⟩ := denoteMeta_app_inv h
+    obtain ⟨fa, aa, hfa, haa, -⟩ := denote_app_inv h
     exact constsBound_app.mpr ⟨ihf hfa fun l h' => hl l (by simp [Expr.fvarLeaves, h']),
       iha haa fun l h' => hl l (by simp [Expr.fvarLeaves, h'])⟩
   | case9 d ty val body ihty ihv ihbody =>
     intro _ h hl
-    obtain ⟨ta, va, ba, hta, hva, hba, -⟩ := denoteMeta_letE_inv h
+    obtain ⟨ta, va, ba, hta, hva, hba, -⟩ := denote_letE_inv h
     have hty := ihty hta fun l h' => hl l (by simp [Expr.fvarLeaves, h'])
     refine constsBound_letE.mpr ⟨hty, ihv hva fun l h' => hl l (by simp [Expr.fvarLeaves, h']),
       constsBound_of_instantiate1 _ 0 (ihbody hba fun l h' => ?_)⟩
@@ -129,7 +129,7 @@ theorem constsBound_of_read {acval : Name → (Name → Nat) → ITerm} {env : E
       · exact hl l (by simp [Expr.fvarLeaves, h3])
   | case10 d sn j e ihe =>
     intro _ h hl
-    obtain ⟨ea', hea', -⟩ := denoteMeta_proj_inv h
+    obtain ⟨ea', hea', -⟩ := denote_proj_inv h
     exact constsBound_proj.mpr (ihe hea' fun l h' => hl l (by simpa [Expr.fvarLeaves] using h'))
   | case15 d e h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 =>
     intro _ _ _
@@ -162,17 +162,17 @@ walked things are the constructor FIELDS' types, never the point,
 like the input's field by field. -/
 @[expose] def RedJ : PosJ → Prop
   | .field _ dep _ e _ nd =>
-    Frame dep e → ∀ {Δa : List ITerm} {ea : ITerm},
-      CtxOkP m φ dep Δa e → denoteMeta m.acval env φ dep e = some ea → GradedTy V Δa ea →
-      Frame dep nd ∧ LeavesSub nd e ∧ ∃ nda, denoteMeta m.acval env φ dep nd = some nda ∧
+    Frame dep e → ∀ {Δa : List Term} {ea : Term},
+      CtxOkP m φ dep Δa e → denote m.acval env φ dep e = some ea → GradedTy V Δa ea →
+      Frame dep nd ∧ LeavesSub nd e ∧ ∃ nda, denote m.acval env φ dep nd = some nda ∧
         GradedTy V Δa nda ∧ ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ nda
   | .tele _ base n j cur _ nds res =>
-    Frame (base + j) cur → ∀ {Δa : List ITerm} {ca : ITerm},
-      CtxOkP m φ (base + j) Δa cur → denoteMeta m.acval env φ (base + j) cur = some ca →
+    Frame (base + j) cur → ∀ {Δa : List Term} {ca : Term},
+      CtxOkP m φ (base + j) Δa cur → denote m.acval env φ (base + j) cur = some ca →
       GradedTy V Δa ca →
-      ∃ (abD abN : List ITerm) (B : ITerm),
+      ∃ (abD abN : List Term) (B : Term),
         ca = mkPisAV abD B ∧
-        denoteMeta m.acval env φ (base + j) (closeTelescope nds (base + j) res)
+        denote m.acval env φ (base + j) (closeTelescope nds (base + j) res)
           = some (mkPisAV abN B) ∧
         abD.length = n ∧ abN.length = n ∧
         FieldsEqOn V Δa abD abN ∧
@@ -188,9 +188,9 @@ walked here is always a TYPE (a constructor field), never the point
 ("not pt" source (1)). -/
 theorem red_whnf (hin : RulesInputs V m φ) {F dep : Nat} {e w : Expr}
     (hw : (fueledOps .verified F).whnf env dep e = .ok w) (hfr : Frame dep e)
-    {Δa : List ITerm} {ea : ITerm} (hC : CtxOkP m φ dep Δa e)
-    (hea : denoteMeta m.acval env φ dep e = some ea) (hgr : GradedTy V Δa ea) :
-    Frame dep w ∧ LeavesSub w e ∧ ∃ nda, denoteMeta m.acval env φ dep w = some nda ∧
+    {Δa : List Term} {ea : Term} (hC : CtxOkP m φ dep Δa e)
+    (hea : denote m.acval env φ dep e = some ea) (hgr : GradedTy V Δa ea) :
+    Frame dep w ∧ LeavesSub w e ∧ ∃ nda, denote m.acval env φ dep w = some nda ∧
       GradedTy V Δa nda ∧ ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ nda := by
   obtain ⟨hfrw, hsub, wa, hwa, hgw, heq⟩ := red_sound_ty hin
     (ConLeche.Rules.whnf_bridge (show ConLeche.whnf .verified env F dep e = .ok w from hw)) hfr
@@ -211,7 +211,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
   | @pi prog dep kb e a b k nb ts hw hocc ha hb ihb =>
     intro hfr Δa ea hC hea hgr
     obtain ⟨hfrw, hsub, wa, hwa, hgw, heq⟩ := red_whnf hin hw hfr hC hea hgr
-    obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hwa
+    obtain ⟨ta, ba, hta, hba, rfl⟩ := denote_forallE_inv hwa
     obtain ⟨hws, hb, hLb⟩ := hfrw
     simp only [Expr.WScoped] at hws
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
@@ -246,9 +246,9 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
           rcases h3 with rfl | h3
           · exact absurd hl₂ (by simp)
           · exact hsub l (by simp [Expr.fvarLeaves, h3])
-    · rw [denoteMeta_forallE, hta]
+    · rw [denote_forallE, hta]
       simp only [bind, Option.bind]
-      rw [denoteMeta_erasedEq (erasedEq_abstract1_instantiate1 nb 0 hbnd), hnba]
+      rw [denote_erasedEq (erasedEq_abstract1_instantiate1 nb 0 hbnd), hnba]
     · refine gradedTy_pi_intro (GradedTy.graded hgAT) hgn.graded (fun ρ hρ => (hgAT ρ hρ).2)
         (fun ρ hρ => by rw [← heqn ρ hρ]; exact (hgB ρ hρ).2)
     · intro ρ hρ
@@ -266,7 +266,7 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
       fun l hl => by simpa [closeTelescope] using hl⟩
   | @teleCons prog base n j a b k nd ks nds res ts ts' _ _ iha ihb =>
     intro hfr Δa ca hC hca hgr
-    obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hca
+    obtain ⟨ta, ba, hta, hba, rfl⟩ := denote_forallE_inv hca
     obtain ⟨hws, hb, hLb⟩ := hfr
     simp only [Expr.WScoped] at hws
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hb
@@ -290,9 +290,9 @@ theorem posD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat} :
       by simp [hlD], by simp [hlN], ⟨heqn, hEq⟩, ?_, ⟨?_, ?_, ?_⟩, ?_⟩
     · -- the reading
       simp only [closeTelescope]
-      rw [denoteMeta_forallE, hnda]
+      rw [denote_forallE, hnda]
       simp only [bind, Option.bind]
-      rw [denoteMeta_erasedEq (erasedEq_abstract1_instantiate1 _ 0 hbnd), hrd]
+      rw [denote_erasedEq (erasedEq_abstract1_instantiate1 _ 0 hbnd), hrd]
       rfl
     · -- the grading
       refine gradedTy_pi_intro hgn.graded (gradedTy_cons_congr heqn hgN).graded
@@ -338,11 +338,11 @@ closing of the outputs). -/
 theorem memberCtorD_red (hin : RulesInputs V m φ) {ctx : NestCtx} {F : Nat}
     {nF : Nat} {crest : Expr} {ks : List NestFieldKind} {tyN : Expr} {ts : List PosTree}
     (hd : MemberCtorD (fueledOps .verified F) env ctx nF crest ks tyN ts)
-    (hfr : Frame (ctx.hiAt 0) crest) {Δa : List ITerm} {ca : ITerm}
+    (hfr : Frame (ctx.hiAt 0) crest) {Δa : List Term} {ca : Term}
     (hC : CtxOkP m φ (ctx.hiAt 0) Δa crest)
-    (hca : denoteMeta m.acval env φ (ctx.hiAt 0) crest = some ca) (hgr : GradedTy V Δa ca) :
-    ∃ (abD abN : List ITerm) (B : ITerm),
-      ca = mkPisAV abD B ∧ denoteMeta m.acval env φ (ctx.hiAt 0) tyN = some (mkPisAV abN B) ∧
+    (hca : denote m.acval env φ (ctx.hiAt 0) crest = some ca) (hgr : GradedTy V Δa ca) :
+    ∃ (abD abN : List Term) (B : Term),
+      ca = mkPisAV abD B ∧ denote m.acval env φ (ctx.hiAt 0) tyN = some (mkPisAV abN B) ∧
       abD.length = nF ∧ abN.length = nF ∧
       FieldsEqOn V Δa abD abN ∧
       GradedTy V Δa (mkPisAV abN B) ∧ Frame (ctx.hiAt 0) tyN ∧ LeavesSub tyN crest := by

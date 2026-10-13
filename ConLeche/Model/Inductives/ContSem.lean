@@ -29,7 +29,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal IndCaps CheckM NestCtx NestKey NestHole NestState
   NestFieldKind CheckError instPisWith fueledOps)
 
@@ -75,8 +75,8 @@ structure ContCover {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) (ctx : N
 /-! ## Pieces -/
 
 /-- The key frame seen through empty frames on top. -/
-theorem keyFrame_lift (dsa : List ITerm) (h : Nat) (vs : List V) (ρ : Nat → V) :
-    keyFrame (dsa.map (ITerm.liftN vs.length · 0)) (h + vs.length) (consList vs ρ)
+theorem keyFrame_lift (dsa : List Term) (h : Nat) (vs : List V) (ρ : Nat → V) :
+    keyFrame (dsa.map (Term.liftN vs.length · 0)) (h + vs.length) (consList vs ρ)
       = keyFrame dsa h ρ := by
   unfold keyFrame
   rw [List.map_map]

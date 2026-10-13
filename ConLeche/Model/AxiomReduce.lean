@@ -26,7 +26,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   inferTypeCore)
 
@@ -103,10 +103,10 @@ theorem ofReduce_mem (mp : EnvModelM V μ env)
     {cvA : ConstantVal} (hok : ConLeche.ofReduceAxOk env cvA = true)
     (hor : cvA.name = ConLeche.ofReduceNatName ∨
       cvA.name = ConLeche.ofReduceBoolName)
-    (ψ : Name → Nat) (ta : ITerm)
-    (hta : denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta)
+    (ψ : Name → Nat) (ta : Term)
+    (hta : denote mp.base2.acval env ψ 0 cvA.type = some ta)
     (ρ : Nat → V) :
-    interp V ρ (ITerm.prf) ∈ˢ interp V ρ ta := by
+    interp V ρ (Term.prf) ∈ˢ interp V ρ ta := by
   obtain ⟨hEq, helem, ⟨cvR, hfR, hmpR⟩, hApinT⟩ := ofReduce_gatesS hok
   obtain ⟨ciE, hfE, hlpE, htyE⟩ := ConLeche.Verify.reduceElem_sort helem
   obtain ⟨-, hlpR⟩ := ConLeche.Verify.matchesPin_invT hmpR
@@ -120,24 +120,24 @@ theorem ofReduce_mem (mp : EnvModelM V μ env)
   -- the `Eq` former's one level parameter is pinned to `1`
   have heqψ : Level.substFn ψ eqA.toConstantVal.levelParams
       [Level.zero.succ] uN = 1 := rfl
-  have hEd : ∀ e, denoteMeta mp.base2.acval env ψ e
+  have hEd : ∀ e, denote mp.base2.acval env ψ e
       (.const (ConLeche.reduceElemName (ConLeche.ofReduceOp cvA.name)) [])
       = some (mp.base2.acval
           (ConLeche.reduceElemName (ConLeche.ofReduceOp cvA.name)) ψ) :=
-    fun e => denoteMeta_levelless_const hfE hlpE
-  have hOd : ∀ e, denoteMeta mp.base2.acval env ψ e
+    fun e => denote_levelless_const hfE hlpE
+  have hOd : ∀ e, denote mp.base2.acval env ψ e
       (.const (ConLeche.ofReduceOp cvA.name) [])
       = some (mp.base2.acval (ConLeche.ofReduceOp cvA.name) ψ) :=
-    fun e => denoteMeta_levelless_const hfR
+    fun e => denote_levelless_const hfR
       (show (ConstantInfo.axiomInfo cvR).toConstantVal.levelParams = []
         from hlpR)
-  have hQd : ∀ e, denoteMeta mp.base2.acval env ψ e
+  have hQd : ∀ e, denote mp.base2.acval env ψ e
       (.const eqName [Level.zero.succ])
       = some (mp.base2.acval eqName (Level.substFn ψ
           eqA.toConstantVal.levelParams [Level.zero.succ])) :=
-    fun e => denoteMeta_const hEq rfl
+    fun e => denote_const hEq rfl
   -- the stored type's reading
-  have hden : denoteMeta mp.base2.acval env ψ 0
+  have hden : denote mp.base2.acval env ψ 0
       (.forallE
         (.const (ConLeche.reduceElemName (ConLeche.ofReduceOp cvA.name)) [])
         (.forallE
@@ -170,7 +170,7 @@ theorem ofReduce_mem (mp : EnvModelM V μ env)
                   (mp.base2.acval (ConLeche.reduceElemName
                     (ConLeche.ofReduceOp cvA.name)) ψ))
                 (.bvar 2)) (.bvar 1))))) := by
-    simp [denoteMeta_forallE, denoteMeta_app, denoteMeta_fvar,
+    simp [denote_forallE, denote_app, denote_fvar,
       Expr.instantiate1, hEd, hOd, hQd]
   obtain rfl : ta = _ := Option.some.inj (hta.symm.trans hden)
   -- the three leaves' interpretations do not read the environment
@@ -197,7 +197,7 @@ theorem ofReduce_mem (mp : EnvModelM V μ env)
       (ConLeche.reduceElemName (ConLeche.ofReduceOp cvA.name)) ψ)
       ∈ˢ (univ 1 : V) := by
     have h := mp.mem_type ciE (ConLeche.Semantics.Env.find?_mem hfE) ψ
-      (.sort 1) (by rw [htyE, denoteMeta_sort]; rfl) ρ
+      (.sort 1) (by rw [htyE, denote_sort]; rfl) ρ
     rwa [ConLeche.Semantics.Env.find?_name hfE, interp_sort] at h
   -- the `Eq` spine at two elements is their equality's truth value
   have hQ : ∀ x y, x ∈ˢ interp V ρ (mp.base2.acval
@@ -272,7 +272,7 @@ theorem axiomOfReduce (hμ : μ.verifiedChecks = true)
     · intro tbl heq; exact nomatch heq
     · intro cv2 caps heq; exact nomatch heq
   refine harvestAxiom (V := V) hμ mp hcv
-    (A := fun _ => ITerm.prf) (fun _ => trivial)
+    (A := fun _ => Term.prf) (fun _ => trivial)
     (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ => by simp) ?_
     (by rcases hor with h | h <;> rw [h] <;> decide)
   intro ψ ta hta ρ

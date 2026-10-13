@@ -25,7 +25,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead openPisAtFvars)
 
@@ -64,8 +64,8 @@ private theorem gc_openPis_gen {D : Nat} :
         e.stripPis n = some (tele, leaf) ∧ xsO.length = n ∧
         (∀ l, l < n → ∃ ty, xsO[l]? = some (.fvar (D + os.length + l) ty)) ∧
         Expr.ErasedEq leafO (leaf.instantiateList (locOpen D (os.length + n)) 0) ∧
-        ∀ (acval : Name → (Name → Nat) → ITerm) (env : Env) (ψ : Name → Nat)
-          (doms : List ITerm),
+        ∀ (acval : Name → (Name → Nat) → Term) (env : Env) (ψ : Name → Nat)
+          (doms : List Term),
           teleDoms acval env ψ D os tele = some doms →
           readOpenedDoms acval env ψ (D + os.length) xsO = doms
   | 0, e, os, xsO, leafO, hos, h => by
@@ -123,7 +123,7 @@ private theorem gc_openPis_gen {D : Nat} :
           subst hd
           have := hrd acval env ψ r hr
           simp only [List.length_cons] at this
-          show (denoteMeta acval env ψ (D + os.length) (ty.instantiateList os 0)).getD default
+          show (denote acval env ψ (D + os.length) (ty.instantiateList os 0)).getD default
             :: readOpenedDoms acval env ψ (D + os.length + 1) xs' = _
           rw [ha, Option.getD_some, show D + os.length + 1 = D + (os.length + 1) by omega, this]
       · exact nomatch h
@@ -148,8 +148,8 @@ theorem openPis_stripPis_locOpen {n D : Nat} {w : Expr} {xsO : List Expr} {leafO
       w.stripPis n = some (tele, leaf) ∧ xsO.length = n ∧
       (∀ l, l < n → ∃ ty, xsO[l]? = some (.fvar (D + l) ty)) ∧
       Expr.ErasedEq leafO (leaf.instantiateList (locOpen D n) 0) ∧
-      ∀ (acval : Name → (Name → Nat) → ITerm) (env : Env) (ψ : Name → Nat)
-        (doms : List ITerm),
+      ∀ (acval : Name → (Name → Nat) → Term) (env : Env) (ψ : Name → Nat)
+        (doms : List Term),
         teleDoms acval env ψ D [] tele = some doms →
         readOpenedDoms acval env ψ D xsO = doms := by
   rw [← Expr.instantiateList_nil w 0, show D = D + ([] : List Expr).length from rfl] at h
@@ -160,19 +160,19 @@ theorem openPis_stripPis_locOpen {n D : Nat} {w : Expr} {xsO : List Expr} {leafO
 /-- **A call's applied field, read**: the field `fvar (rP + i)` applied
 to the telescope's openers `fvar (rP + nF + l)`, read at the call's
 valuation, is the field's value applied to the telescope's values. -/
-theorem genFap_read {acval : Name → (Name → Nat) → ITerm} {env : Env} {ψ : Name → Nat}
+theorem genFap_read {acval : Name → (Name → Nat) → Term} {env : Env} {ψ : Name → Nat}
     {rP nF m i : Nat} {f : Expr} {xsO : List Expr} (hi : i < nF)
     (hf : ∃ ty, f = .fvar (rP + i) ty)
     (hxsO : ∀ l, l < m → ∃ ty, xsO[l]? = some (.fvar (rP + nF + l) ty)) (hm : xsO.length = m)
     {xs fs bs : List V} (hxl : xs.length = rP) (hfl : fs.length = nF) (hbl : bs.length = m)
     (ρ : Nat → V) :
     interp V (consList bs (consList (xs ++ fs) ρ))
-        ((denoteMeta acval env ψ (rP + nF + m) (Expr.mkAppN f xsO)).getD default)
+        ((denote acval env ψ (rP + nF + m) (Expr.mkAppN f xsO)).getD default)
       = bs.foldl app (fs.getD i pt) := by
   obtain ⟨ty, rfl⟩ := hf
   have hvl : (xs ++ fs ++ bs).length = rP + nF + m := by simp [hxl, hfl, hbl]; omega
-  obtain ⟨ra, hra, hint⟩ := interp_denoteMeta_fvarSpine (ρ := ρ) hvl xsO _ _
-    (denoteMeta_fvar acval (env := env) (φ := ψ) (rP + nF + m) (rP + i) ty) (by
+  obtain ⟨ra, hra, hint⟩ := interp_denote_fvarSpine (ρ := ρ) hvl xsO _ _
+    (denote_fvar acval (env := env) (φ := ψ) (rP + nF + m) (rP + i) ty) (by
       intro a ha
       obtain ⟨l, hl, rfl⟩ := List.getElem_of_mem ha
       obtain ⟨ty', h'⟩ := hxsO l (by omega)

@@ -20,7 +20,7 @@ interpretation reads the regime of a binder off the VALUES
 
 Mirrors `ConLeche.Expr` (`ConLeche/Kernel/Expr.lean`) restricted to
 the fragment; the lifting and instantiation are those of con-leche's
-erased terms (`ITerm` of `ConLeche/Semantics/Syntax.lean`), which this
+terms (`Term` of `ConLeche/Term/Subst.lean`), which this
 file copies.
 -/
 

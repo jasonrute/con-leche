@@ -57,12 +57,13 @@ member's leaf as a function of the assignment.
 -/
 
 namespace ConLeche.Model
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetTheory
 open ConLeche.SetModel (lamV app_lamV lamV_eq_pt lamV_ne_pt_of lamV_eq_graph)
 open ConLeche.SetTheory.Tower (projS)
 
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Name Level)
 
 universe w
@@ -75,7 +76,7 @@ variable {V : Type w} [SetTheory V]
 of `g` at the bound values — value-read (`lamV`), the reading of the
 spelled hole term (the hole values): a level all of whose continuations
 are empty is the point. -/
-@[expose] noncomputable def holeFam (ρ : Nat → V) : List ITerm → (List V → V) → V
+@[expose] noncomputable def holeFam (ρ : Nat → V) : List Term → (List V → V) → V
   | [], g => g []
   | F :: Fs, g => lamV (interp V ρ F) fun a => holeFam (cons a ρ) Fs fun as => g (a :: as)
 
@@ -99,7 +100,7 @@ theorem frameIdx_concat (n : Nat) (ρ : Nat → V) :
 
 /-- `spineFit_frameIdx_of_sat`, by induction on the length. -/
 theorem spineFit_frameIdx_of_sat_len :
-    ∀ (n : Nat) {Ds : List ITerm} {ρ : Nat → V}, Ds.length = n → Sat V Ds.reverse ρ →
+    ∀ (n : Nat) {Ds : List Term} {ρ : Nat → V}, Ds.length = n → Sat V Ds.reverse ρ →
       SpineFit (shiftE Ds.length 0 ρ) Ds (frameIdx Ds.length ρ)
   | 0, Ds, _, hn, _ => by
     obtain rfl := List.eq_nil_of_length_eq_zero hn; trivial
@@ -120,7 +121,7 @@ theorem spineFit_frameIdx_of_sat_len :
 
 /-- **A satisfied reversed context is a fitting spine of its own frame
 index over its shift.** -/
-theorem spineFit_frameIdx_of_sat {Ds : List ITerm} {σ : Nat → V}
+theorem spineFit_frameIdx_of_sat {Ds : List Term} {σ : Nat → V}
     (h : Sat V Ds.reverse σ) :
     SpineFit (shiftE Ds.length 0 σ) Ds (frameIdx Ds.length σ) :=
   spineFit_frameIdx_of_sat_len _ rfl h
@@ -139,13 +140,13 @@ structure LfpDatum (V : Type w) where
   /-- the result sort's value, per level assignment -/
   w : (Name → Nat) → Nat
   /-- the parameter telescope -/
-  params : (Name → Nat) → List ITerm
+  params : (Name → Nat) → List Term
   /-- member `m`'s OWN parameter telescope (its former's binders): a
   hole's λ-tower is over it, as the member's former value is.  At a
   checked block it is `Sat`-equivalent to `params`. -/
-  pars : Nat → (Name → Nat) → List ITerm
+  pars : Nat → (Name → Nat) → List Term
   /-- per component: its own index telescope -/
-  ids : Nat → (Name → Nat) → List ITerm
+  ids : Nat → (Name → Nat) → List Term
   /-- per component: its index-tuple sort -/
   u : Nat → (Name → Nat) → Nat
   /-- **the tuple operator**, at a level assignment and a parameter frame -/
@@ -161,10 +162,10 @@ structure LfpDatum (V : Type w) where
   member-abstracted constructor domains, read at the parameters, then
   one hole per member (member `m` at the variable `nP + m`), then the
   earlier fields -/
-  fields : (Name → Nat) → Nat → Nat → List ITerm
+  fields : (Name → Nat) → Nat → Nat → List Term
   /-- component `c`'s constructor `j`'s result index readings, below the
   fields -/
-  resIdx : (Name → Nat) → Nat → Nat → List ITerm
+  resIdx : (Name → Nat) → Nat → Nat → List Term
 
 namespace LfpDatum
 
@@ -285,7 +286,7 @@ variable {V : Type w} [SetTheory V]
 
 /-- A λ-tower applied to a spine fitting its telescope computes. -/
 theorem holeFam_app :
-    ∀ {ρ : Nat → V} {Fs : List ITerm} {as : List V} (g : List V → V),
+    ∀ {ρ : Nat → V} {Fs : List Term} {as : List V} (g : List V → V),
       SpineFit ρ Fs as → as.foldl app (holeFam ρ Fs g) = g as
   | _, [], [], _, _ => rfl
   | _, [], _ :: _, _, h => h.elim
@@ -299,7 +300,7 @@ theorem holeFam_app :
 point at a fitting spine, a level is the point exactly when no spine
 fits its telescope — the same for any two such leaf families. -/
 theorem holeFam_eq_pt_iff :
-    ∀ {ρ : Nat → V} {Fs : List ITerm} {g g' : List V → V},
+    ∀ {ρ : Nat → V} {Fs : List Term} {g g' : List V → V},
       (∀ vs, SpineFit ρ Fs vs → g vs ≠ pt) → (∀ vs, SpineFit ρ Fs vs → g' vs ≠ pt) →
       (holeFam ρ Fs g = pt ↔ holeFam ρ Fs g' = pt)
   | _, [], _, _, hg, hg' => ⟨fun h => absurd h (hg [] trivial), fun h => absurd h (hg' [] trivial)⟩
@@ -322,7 +323,7 @@ theorem holeFam_eq_pt_iff :
 leaves** (as long as they are never the point at a fitting spine): it is
 the point where a level is, `∅` where a graph is applied off its domain. -/
 theorem holeFam_foldl_nofit :
-    ∀ {ρ : Nat → V} {Fs : List ITerm} {vs : List V} {g g' : List V → V},
+    ∀ {ρ : Nat → V} {Fs : List Term} {vs : List V} {g g' : List V → V},
       (∀ vs, SpineFit ρ Fs vs → g vs ≠ pt) → (∀ vs, SpineFit ρ Fs vs → g' vs ≠ pt) →
       vs.length = Fs.length → ¬ SpineFit ρ Fs vs →
       vs.foldl app (holeFam ρ Fs g) = vs.foldl app (holeFam ρ Fs g')
@@ -376,7 +377,7 @@ set: `instCtor_decode`); recorded as `LfpClause.resIdxFit`. -/
 
 /-- **The lfp clause** of the block `D`, over the leaf valuation
 `acval` (see the module docstring). -/
-structure LfpClause (acval : Name → (Name → Nat) → ITerm) (D : LfpDatum V) : Prop where
+structure LfpClause (acval : Name → (Name → Nat) → Term) (D : LfpDatum V) : Prop where
   /-- the members come first among the components -/
   kN : D.k ≤ D.N
   /-- **every component's index telescope is graded** at every
@@ -456,11 +457,11 @@ structure LfpClause (acval : Name → (Name → Nat) → ITerm) (D : LfpDatum V)
 
 namespace LfpClause
 
-variable {acval : Name → (Name → Nat) → ITerm} {D : LfpDatum V}
+variable {acval : Name → (Name → Nat) → Term} {D : LfpDatum V}
 
 /-- **Transport**: the clause reads the leaf valuation only at the
 members' and the constructors' names. -/
-theorem congr (h : LfpClause acval D) {acval' : Name → (Name → Nat) → ITerm}
+theorem congr (h : LfpClause acval D) {acval' : Name → (Name → Nat) → Term}
     (hag : ∀ mm, mm < D.k → acval' (D.member mm) = acval (D.member mm))
     (hagC : ∀ c, c < D.N → ∀ j, j < D.nctors c → acval' (D.ctorName c j) = acval (D.ctorName c j)) :
     LfpClause acval' D where

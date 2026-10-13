@@ -826,7 +826,7 @@ def renameConsts (f : Name → Name) : Expr → Expr
   | .lit l => .lit l
   -- Task #175 wiring W5: a `.proj` node's struct name is NOT renamed.
   -- Fixing the name keeps the entry-kind readings
-  -- (`denote`/`denoteMeta`, which consult the table at the struct name)
+  -- (`denote`, which consults the table at the struct name)
   -- rename-invariant by construction (DESIGN, "W5 opening seam").
   | .proj s i e => .proj s i (renameConsts f e)
 

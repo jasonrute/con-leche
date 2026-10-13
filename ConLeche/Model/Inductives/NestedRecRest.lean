@@ -181,7 +181,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo BlockParts TargetMajor)
 
 universe w
@@ -201,8 +201,8 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))} {nested : Bool}
   {block : List ConstantInfo} {out : List (ConstantVal × TargetMajor × List Expr)}
   {mpC : EnvModelM V μ envC} {pk : Nat → BlockMemberPick} {uOfD : Nat → (Name → Nat) → Nat}
-  {ppsOf : Nat → (Name → Nat) → List ITerm} {isRec : Bool}
-  {A : Nat → (Name → Nat) → ITerm}
+  {ppsOf : Nat → (Name → Nat) → List Term} {isRec : Bool}
+  {A : Nat → (Name → Nat) → Term}
 
 /-- **`ctor` from the constructors' storage**: carried constructors
 stored at the major's parameter count have their types bound (the
@@ -219,7 +219,7 @@ theorem tgtRecCtor_seam_of_find {envC : Env} {mpC : EnvModelM V μ envC}
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2) ∧
         ConstsBound envC cA.1.type ∧
         ∀ ψ : Name → Nat,
-          denoteMeta mpC.base2.acval envC ψ 0 cA.1.type
+          denote mpC.base2.acval envC ψ 0 cA.1.type
             = some (blockRecCtorTy mpC.base2.acval envC (tgtRs out) j i ψ) := by
   intro j r hr i cA hcA
   have hfind := hfind0 j r hr i cA hcA
@@ -230,7 +230,7 @@ theorem tgtRecCtor_seam_of_find {envC : Env} {mpC : EnvModelM V μ envC}
     rw [hrd, List.getD_eq_getElem?_getD, hcA]; rfl
   refine ⟨hfind, constsBound_of_constsResolve _ hwfC.2.2.1, fun ψ => ?_⟩
   obtain ⟨ta, hta⟩ := mpC.type_reads _ hmem ψ
-  change denoteMeta mpC.base2.acval envC ψ 0 cA.1.type = some ta at hta
+  change denote mpC.base2.acval envC ψ 0 cA.1.type = some ta at hta
   rw [blockRecCtorTy, hsel, hta]
   rfl
 
@@ -273,7 +273,7 @@ end Pins
 /-! ## `eqP`: the target rule data read alike at valuations agreeing on the recursor's parameters
 
 At ANY major, by the reading's level footprint (`lpDefF`,
-`denoteMeta_params_extF`): the major's levels and parameters are read
+`denote_params_extF`): the major's levels and parameters are read
 off the recursor type's major domain (the checked type names only the
 recursor's level parameters), the fired constructor's type names only
 its own (a member's are the block's, a container's are instantiated at
@@ -320,7 +320,7 @@ theorem readOpenedDoms_params {env : Env} (m : EnvModel V env) {ps : List Name}
   | _, [], _ => rfl
   | d, x :: xs, h => by
     simp only [readOpenedDoms]
-    rw [denoteMeta_params_extF m hq _ _ (h x List.mem_cons_self),
+    rw [denote_params_extF m hq _ _ (h x List.mem_cons_self),
       readOpenedDoms_params m hq (d + 1) xs (fun y hy => h y (List.mem_cons_of_mem _ hy))]
 
 variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}

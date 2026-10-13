@@ -28,7 +28,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun)
 
@@ -64,7 +64,7 @@ first recursor at that class (the kernel's `classRecOf`, as a position). -/
 the callee RECURSOR (`genRecIdx rd t`, the graph's class index), the
 walked field's telescope (read), its index arguments and the applied
 field. -/
-@[expose] noncomputable def genIhdAV (acval : Name → (Name → Nat) → ITerm) (env : Env)
+@[expose] noncomputable def genIhdAV (acval : Name → (Name → Nat) → Term) (env : Env)
     (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) :
     List IhDatum :=
   let x := genCtorAt g rd c j
@@ -76,21 +76,21 @@ field. -/
     let (xs, idx) := (g.ihParts q.2.1 q.2.2 (ws.getD q.1 default) D).getD ([], [])
     (genRecIdx rd q.2.1,
      readOpenedDoms acval env ψ D xs,
-     idx.map fun e => (denoteMeta acval env ψ (D + xs.length) e).getD default,
-     (denoteMeta acval env ψ (D + xs.length)
+     idx.map fun e => (denote acval env ψ (D + xs.length) e).getD default,
+     (denote acval env ψ (D + xs.length)
         (Expr.mkAppN (fvs.getD q.1 default) xs)).getD default)
 
 /-- **The `ih` terms** of the generated rule, in chain form (`genIhAV`:
 the callee its chain variable below the frame). -/
-@[expose] noncomputable def genIhsAV (acval : Name → (Name → Nat) → ITerm) (env : Env)
+@[expose] noncomputable def genIhsAV (acval : Name → (Name → Nat) → Term) (env : Env)
     (K : Nat) (g : ClassGen) (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) :
-    List ITerm :=
+    List Term :=
   (genIhdAV acval env g rd ψ c j).map
     (genIhAV K g.pre.length (g.pre.length + (genCtorAt g rd c j).nF))
 
 /-- **The residue** of the generated rule: its minor premise applied to
 the fields and the `ih` values (`genRb0`). -/
-@[expose] def genRbAV (g : ClassGen) (rd : ClassRead) (c j : Nat) : ITerm :=
+@[expose] def genRbAV (g : ClassGen) (rd : ClassRead) (c j : Nat) : Term :=
   genRb0 g.pre.length (g.nP + genMinorSlot g rd c j) (genCtorAt g rd c j).nF
     (genCtorAt g rd c j).recs.length
 
@@ -118,7 +118,7 @@ check's. -/
     (cvTasR : List ConstantVal) (ctorsAsR : List (List (ConstantVal × Nat)))
     (out : List (ConstantVal × ConLeche.TargetMajor × List Expr))
     (mpC : EnvModelM V μ envC) (dR : BlockData V) (isRecR : Bool)
-    (A : Nat → (Name → Nat) → ITerm)
+    (A : Nat → (Name → Nat) → Term)
     (kindsR : List (List (List ConLeche.NestFieldKind))) (nfsR : List (List Expr))
     (posR : ConLeche.NestState) : Prop :=
   ConLeche.checkBlockPositivity (m := ConLeche.CheckM) (ConLeche.fueledOps μ F) envI
@@ -132,7 +132,7 @@ check's. -/
   BlockCtorsCore mpC.base2 dR pp.lps cvTasR pp.toBlockShape isRecR A dR.k ∧
   (∀ c, c < ctorsAsR.length → ctorsAsR[c]? = some (dR.ctorsM c)) ∧
   (∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-      (ppsOf : Nat → (Name → Nat) → List ITerm),
+      (ppsOf : Nat → (Name → Nat) → List Term),
     dR = blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf) ∧
   dR.toLfp ∈ mpC.lfpBlocks ∧
   LfpCover mpC [] ∧
@@ -151,7 +151,7 @@ check's. -/
 /-- **The induction over the classes' majors, at the GENERATED calls**
 (`TgtClassInd` with `genCallT` in place of the target check's calls):
 the interface between the family premise and the node route. -/
-@[expose] def GenClassInd (acval : Name → (Name → Nat) → ITerm) (envC : Env)
+@[expose] def GenClassInd (acval : Name → (Name → Nat) → Term) (envC : Env)
     (p : BlockShape) (out : List (ConstantVal × TargetMajor × List Expr)) (d : BlockData V)
     (Dc : Nat → LfpDatum V) (mc : Nat → Nat) (cvc : Nat → ConstantVal)
     (ihd : Nat → Nat → List IhDatum) (ψ : Name → Nat) (ρ : Nat → V) : Prop :=

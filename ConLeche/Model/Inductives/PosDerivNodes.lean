@@ -43,7 +43,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal IndCaps CheckM NestCtx NestKey NestHole NestState
   NestFieldKind CheckError instPisWith fueledOps PosD PosJ ProgScoped grpNews grpHoles
   groupCtors PosTree)
@@ -67,13 +67,13 @@ instantiated at the key's parameters (`nestInstType`'s second component). -/
 block's hole context `Δ0`: each frame hole's type, read at the hole's own
 depth. -/
 @[expose] noncomputable def stackCtx (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx)
-    (prog : List NestHole) (Δ0 : List ITerm) : List ITerm :=
+    (prog : List NestHole) (Δ0 : List Term) : List Term :=
   (prog.reverse.mapIdx fun j h =>
-    (denoteMeta m.acval env φ (ctx.hiAt 0 + j) (nestHoleTy ctx h)).getD .prf).reverse ++ Δ0
+    (denote m.acval env φ (ctx.hiAt 0 + j) (nestHoleTy ctx h)).getD .prf).reverse ++ Δ0
 
 section Stack
 
-variable {m : EnvModel V env} {φ : Name → Nat} {ctx : NestCtx} {Δ0 : List ITerm}
+variable {m : EnvModel V env} {φ : Name → Nat} {ctx : NestCtx} {Δ0 : List Term}
 
 theorem stackCtx_length (prog : List NestHole) :
     (stackCtx m φ ctx prog Δ0).length = prog.length + Δ0.length := by
@@ -123,19 +123,19 @@ end Stack
 depth of the frames it is derived under, in their stack context over
 `Δ0`, with bounded leaves. -/
 @[expose] def NodeSemAt (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx)
-    (Δ0 : List ITerm) (t : PosTree) : Prop :=
-  (∃ dsa, DenoteMetaSpine m.acval env φ (ctx.hiAt t.anc.length) t.key.ds dsa) ∧
+    (Δ0 : List Term) (t : PosTree) : Prop :=
+  (∃ dsa, DenoteSpine m.acval env φ (ctx.hiAt t.anc.length) t.key.ds dsa) ∧
   (∀ x ∈ t.key.ds, CtxOkP m φ (ctx.hiAt t.anc.length) (stackCtx m φ ctx t.anc Δ0) x) ∧
   (∀ x ∈ t.key.ds, Expr.LeavesBounded x)
 
 /-- Every node of a forest read in its stack context. -/
 @[expose] def NodesSem (m : EnvModel V env) (φ : Name → Nat) (ctx : NestCtx)
-    (Δ0 : List ITerm) (ts : List PosTree) : Prop :=
+    (Δ0 : List Term) (ts : List PosTree) : Prop :=
   ∀ t ∈ PosTree.forest ts, NodeSemAt m φ ctx Δ0 t
 
 namespace NodesSem
 
-variable {m : EnvModel V env} {φ : Name → Nat} {ctx : NestCtx} {Δ0 : List ITerm}
+variable {m : EnvModel V env} {φ : Name → Nat} {ctx : NestCtx} {Δ0 : List Term}
 
 theorem nil : NodesSem m φ ctx Δ0 [] := fun _ ht => nomatch ht
 
@@ -162,7 +162,7 @@ end NodesSem
 section Motive
 
 variable {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) (φ : Name → Nat) (ctx : NestCtx)
-  (F : Nat) (Δ0 : List ITerm)
+  (F : Nat) (Δ0 : List Term)
 
 /-- **A frame's nodes**, read from the key's reading (`FrameMono`'s
 premises without the hole relation). -/
@@ -175,7 +175,7 @@ premises without the hole relation). -/
       cv.levelParams = lps) →
     us.length = lps.length →
     (∀ x ∈ ds, Expr.WScoped (ctx.hiAt prog.length) x ∧ x.looseBVarsBounded 0 = true) →
-    ∀ {dsa : List ITerm}, DenoteMetaSpine mp.base2.acval env φ (ctx.hiAt prog.length) ds dsa →
+    ∀ {dsa : List Term}, DenoteSpine mp.base2.acval env φ (ctx.hiAt prog.length) ds dsa →
     (D.params (Level.substFn φ lps us)).length = ds.length →
     ((∃ nP' L, ConLeche.nestContainer ctx (D.member mm) = some (nP', L) ∧ L ≠ []) ∨ lps.Nodup) →
     (∀ x ∈ ds, CtxOkP mp.base2 φ (ctx.hiAt prog.length) (stackCtx mp.base2 φ ctx prog Δ0) x) →
@@ -188,15 +188,15 @@ The walked subjects are the constructors' field TYPES, never the point
 @[expose] def NodeJ : PosJ → List PosTree → Prop
   | .field prog dep _ e _ _, ts =>
     ctx.hiAt prog.length ≤ dep → Frame dep e →
-    ∀ {Δa : List ITerm} {ea : ITerm},
-      CtxOkP mp.base2 φ dep Δa e → denoteMeta mp.base2.acval env φ dep e = some ea →
+    ∀ {Δa : List Term} {ea : Term},
+      CtxOkP mp.base2 φ dep Δa e → denote mp.base2.acval env φ dep e = some ea →
       GradedTy V Δa ea → Δa.drop (dep - ctx.hiAt prog.length) = stackCtx mp.base2 φ ctx prog Δ0 →
       NodesSem mp.base2 φ ctx Δ0 ts
   | .tele prog base _ j cur _ _ _, ts =>
     ctx.hiAt prog.length ≤ base + j → Frame (base + j) cur →
-    ∀ {Δa : List ITerm} {ca : ITerm},
+    ∀ {Δa : List Term} {ca : Term},
       CtxOkP mp.base2 φ (base + j) Δa cur →
-      denoteMeta mp.base2.acval env φ (base + j) cur = some ca → GradedTy V Δa ca →
+      denote mp.base2.acval env φ (base + j) cur = some ca → GradedTy V Δa ca →
       Δa.drop (base + j - ctx.hiAt prog.length) = stackCtx mp.base2 φ ctx prog Δ0 →
       NodesSem mp.base2 φ ctx Δ0 ts
   | .ctors prog hi us ds names holes cs, ts =>
@@ -208,7 +208,7 @@ The walked subjects are the constructors' field TYPES, never the point
       (∃ ty u, ConLeche.inferTypeCore .verified env F hi crest = .ok ty ∧
         ConLeche.ensureSortCore .verified env F hi ty = .ok u) →
       ∃ ca, Frame hi crest ∧ CtxOkP mp.base2 φ hi (stackCtx mp.base2 φ ctx prog Δ0) crest ∧
-        denoteMeta mp.base2.acval env φ hi crest = some ca ∧
+        denote mp.base2.acval env φ hi crest = some ca ∧
         GradedTy V (stackCtx mp.base2 φ ctx prog Δ0) ca) →
     (∀ x ∈ cs, Q x) → NodesSem mp.base2 φ ctx Δ0 ts
   | .frame prog us ds grp, ts => FrameNodes mp φ ctx Δ0 prog us ds grp ts
@@ -228,19 +228,19 @@ context, read and graded.  The subject walked here is always a TYPE
 theorem whnf_facts {μ : ConLeche.CheckMode} {mp : EnvModelM V μ env}
     (hin : RulesInputs V mp.base2 φ) {F dep : Nat} {e w : Expr}
     (hw : (fueledOps .verified F).whnf env dep e = .ok w) (hfr : Frame dep e)
-    {Δa : List ITerm} {ea : ITerm}
-    (hC : CtxOkP mp.base2 φ dep Δa e) (hea : denoteMeta mp.base2.acval env φ dep e = some ea)
+    {Δa : List Term} {ea : Term}
+    (hC : CtxOkP mp.base2 φ dep Δa e) (hea : denote mp.base2.acval env φ dep e = some ea)
     (hgr : GradedTy V Δa ea) :
     Frame dep w ∧ CtxOkP mp.base2 φ dep Δa w ∧
-      ∃ wa, denoteMeta mp.base2.acval env φ dep w = some wa ∧ GradedTy V Δa wa := by
+      ∃ wa, denote mp.base2.acval env φ dep w = some wa ∧ GradedTy V Δa wa := by
   have hw' : ConLeche.whnf .verified env F dep e = .ok w := hw
   obtain ⟨hfrw, hsub, wa, hwa, hgw, -⟩ :=
     red_sound_ty hin (ConLeche.Rules.whnf_bridge hw') hfr hC.toCtxOk hea hgr
   exact ⟨hfrw, hC.of_subset hsub, wa, hwa, hgw⟩
 
 /-- The context seen at a shallower frame stack. -/
-theorem drop_stack {m : EnvModel V env} {ctx : NestCtx} {Δ0 : List ITerm}
-    {prog : List NestHole} {dep : Nat} {Δa : List ITerm}
+theorem drop_stack {m : EnvModel V env} {ctx : NestCtx} {Δ0 : List Term}
+    {prog : List NestHole} {dep : Nat} {Δa : List Term}
     (hle : ctx.hiAt prog.length ≤ dep)
     (hΔ : Δa.drop (dep - ctx.hiAt prog.length) = stackCtx m φ ctx prog Δ0) :
     Δa.drop (dep - ctx.hiAt 0) = Δ0 := by
@@ -277,7 +277,7 @@ level parameters distinct, every walked constructor read in the stack
 context grown by the frame's holes. -/
 theorem frame_nodes {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     (hin : RulesInputs V mp.base2 φ) {ctx : NestCtx} (hcov : ContCover mp ctx) {F : Nat}
-    {Δ0 : List ITerm} (hΔ0 : Δ0.length = ctx.hiAt 0) {prog : List NestHole}
+    {Δ0 : List Term} (hΔ0 : Δ0.length = ctx.hiAt 0) {prog : List NestHole}
     {us : List Level} {ds : List Expr} {grp : List (Name × Expr)}
     {ctors : List (ConstantVal × Nat)} (hne : grp ≠ []) (hnd : (grp.map (·.1)).Nodup)
     (hinst : ∀ p ∈ grp, ∃ nI, ConLeche.nestInstType (m := CheckM) ctx (ctx.hiAt prog.length)
@@ -354,13 +354,13 @@ theorem frame_nodes {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
 head is a covered container (its recorded block, levels and parameter
 count read off the derivation's own checks). -/
 theorem frameNodes_of {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx : NestCtx}
-    (hcov : ContCover mp ctx) {F : Nat} {Δ0 : List ITerm} {prog : List NestHole}
+    (hcov : ContCover mp ctx) {F : Nat} {Δ0 : List Term} {prog : List NestHole}
     {us : List Level} {ds : List Expr} {grp : List (Name × Expr)} {ts : List PosTree}
     (hfrD : PosD (fueledOps .verified F) env ctx (.frame prog us ds grp) ts)
     (ihf : FrameNodes mp φ ctx Δ0 prog us ds grp ts)
     (hds : ∀ x ∈ ds, Expr.WScoped (ctx.hiAt prog.length) x ∧ x.looseBVarsBounded 0 = true)
-    {dsa : List ITerm}
-    (hdsa : DenoteMetaSpine mp.base2.acval env φ (ctx.hiAt prog.length) ds dsa)
+    {dsa : List Term}
+    (hdsa : DenoteSpine mp.base2.acval env φ (ctx.hiAt prog.length) ds dsa)
     (hCds : ∀ x ∈ ds, CtxOkP mp.base2 φ (ctx.hiAt prog.length) (stackCtx mp.base2 φ ctx prog Δ0) x)
     (hLds : ∀ x ∈ ds, Expr.LeavesBounded x) : NodesSem mp.base2 φ ctx Δ0 ts := by
   obtain ⟨hne, ⟨hnm, hquot⟩, ⟨L, hq⟩, hinst, -⟩ := posD_frame_inv hfrD
@@ -382,7 +382,7 @@ theorem frameNodes_of {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {ctx :
 node-semantics induction; see the module docstring). -/
 theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     (hin : RulesInputs V mp.base2 φ) {ctx : NestCtx} (hcov : ContCover mp ctx) {F : Nat}
-    {Δ0 : List ITerm} (hΔ0 : Δ0.length = ctx.hiAt 0) :
+    {Δ0 : List Term} (hΔ0 : Δ0.length = ctx.hiAt 0) :
     ∀ {j : PosJ} {ts : List PosTree}, PosD (fueledOps .verified F) env ctx j ts →
       NodeJ mp φ ctx F Δ0 j ts := by
   intro j ts h
@@ -391,7 +391,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   | @pi prog dep kb e a b k nb ts hw hocc ha hb ihb =>
     intro hhi hfr Δa ea hC hea hgr hΔ
     obtain ⟨hfrw, hCw, wa, hwa, hgw⟩ := whnf_facts hin hw hfr hC hea hgr
-    obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hwa
+    obtain ⟨ta, ba, hta, hba, rfl⟩ := denote_forallE_inv hwa
     obtain ⟨hws, hbb, hLb⟩ := hfrw
     simp only [Expr.WScoped] at hws
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
@@ -421,9 +421,9 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
         (ConLeche.Expr.fvarB_le (hds x hx).2), ConLeche.Expr.bvarB_le (Nat.le_of_eq (hds x hx).1)⟩
     have hLds : ∀ x ∈ args.take nPc, Expr.LeavesBounded x := fun x hx l hl =>
       hfrw.2.2 l (leaves_mkAppN_arg (List.mem_of_mem_take hx) hl)
-    obtain ⟨fa, vs, -, hsp, -⟩ := denoteMeta_mkAppN_inv hwa
-    obtain ⟨vs₁, vs₂, -, hsp₁, -⟩ := DenoteMetaSpine.split _ hsp
-    obtain ⟨dsa, hdsa, -⟩ := DenoteMetaSpine.unlift (m := mp.base2) (φ := φ) hhid
+    obtain ⟨fa, vs, -, hsp, -⟩ := denote_mkAppN_inv hwa
+    obtain ⟨vs₁, vs₂, -, hsp₁, -⟩ := DenoteSpine.split _ hsp
+    obtain ⟨dsa, hdsa, -⟩ := DenoteSpine.unlift (m := mp.base2) (φ := φ) hhid
       (fun x hx => (hdsw x hx).1) hsp₁
     have hCds : ∀ x ∈ args.take nPc, CtxOkP mp.base2 φ (ctx.hiAt prog.length)
         (stackCtx mp.base2 φ ctx prog Δ0) x := fun x hx => by
@@ -448,9 +448,9 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       ⟨hdsw0 x hx, ConLeche.Expr.bvarB_le (Nat.le_of_eq (hds x hx).1)⟩
     have hLds : ∀ x ∈ args.take nPc, Expr.LeavesBounded x := fun x hx l hl =>
       hfrw.2.2 l (leaves_mkAppN_arg (List.mem_of_mem_take hx) hl)
-    obtain ⟨fa, vs, -, hsp, -⟩ := denoteMeta_mkAppN_inv hwa
-    obtain ⟨vs₁, vs₂, -, hsp₁, -⟩ := DenoteMetaSpine.split _ hsp
-    obtain ⟨dsa, hdsa, -⟩ := DenoteMetaSpine.unlift (m := mp.base2) (φ := φ)
+    obtain ⟨fa, vs, -, hsp, -⟩ := denote_mkAppN_inv hwa
+    obtain ⟨vs₁, vs₂, -, hsp₁, -⟩ := DenoteSpine.split _ hsp
+    obtain ⟨dsa, hdsa, -⟩ := DenoteSpine.unlift (m := mp.base2) (φ := φ)
       (show ctx.hiAt ([] : List NestHole).length ≤ dep by simp only [List.length_nil]; omega)
       (fun x hx => (hdsw x hx).1) hsp₁
     have hΔ0' := drop_stack hhid hΔ
@@ -476,7 +476,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
   | teleNil => intro _ _ _ _ _ _ _ _; exact NodesSem.nil
   | @teleCons prog base nF j a b k nd ks nds res ts ts' ha hb iha ihb =>
     intro hhi hfr Δa ca hC hca hgr hΔ
-    obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hca
+    obtain ⟨ta, ba, hta, hba, rfl⟩ := denote_forallE_inv hca
     obtain ⟨hws, hbb, hLb⟩ := hfr
     simp only [Expr.WScoped] at hws
     simp only [Expr.looseBVarsBounded, Bool.and_eq_true] at hbb
@@ -513,7 +513,7 @@ theorem posD_nodeSem {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
         rcases ConLeche.fvarLeaves_mkAppN hl with hl | ⟨x, hx, hl⟩
         · simp [Expr.fvarLeaves] at hl
         · exact hLds x hx l hl)
-    obtain ⟨-, dsa, -, hdsa, -⟩ := denoteMeta_mkAppN_inv hea
+    obtain ⟨-, dsa, -, hdsa, -⟩ := denote_mkAppN_inv hea
     exact NodesSem.cons_node ⟨⟨dsa, hdsa⟩, hCds, hLds⟩
       (frameNodes_of mp hcov hfr ihf hdsw' hdsa hCds hLds) NodesSem.nil
 

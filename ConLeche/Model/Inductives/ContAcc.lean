@@ -38,7 +38,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
 open ConLeche.Model.Rules
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal IndCaps CheckM NestCtx NestKey NestHole NestState
   NestFieldKind CheckError instPisWith fueledOps)
 
@@ -49,7 +49,7 @@ variable {V : Type w} [SetTheory V] {env : Env} {φ : Name → Nat}
 /-! ## Moving a frame's accessibility -/
 
 theorem FrameAccOut.mono {w : Nat} {ctx : NestCtx} {prog : List NestHole} {hi : Nat}
-    {R₀ : FrameRel V} {D : LfpDatum V} {ψ : Name → Nat} {dsa : List ITerm} {G G' : Nat → Prop}
+    {R₀ : FrameRel V} {D : LfpDatum V} {ψ : Name → Nat} {dsa : List Term} {G G' : Nat → Prop}
     (h : FrameAccOut w ctx prog hi R₀ D ψ dsa G) (hG : ∀ c, G' c → G c) :
     FrameAccOut w ctx prog hi R₀ D ψ dsa G' := by
   obtain ⟨A, hA, hinv, hacc⟩ := h
@@ -59,16 +59,16 @@ theorem FrameAccOut.mono {w : Nat} {ctx : NestCtx} {prog : List NestHole} {hi : 
 frameless relation** (the push of a cached key): no item sits at an
 empty frame hole, so every item moves down past the frames. -/
 theorem frameAccOut_unextend {w : Nat} {ctx : NestCtx} {prog : List NestHole}
-    {R00 : FrameRel V} {D : LfpDatum V} {ψ : Name → Nat} {dsa0 : List ITerm} {G : Nat → Prop}
+    {R00 : FrameRel V} {D : LfpDatum V} {ψ : Name → Nat} {dsa0 : List Term} {G : Nat → Prop}
     (h : FrameAccOut w ctx prog (ctx.hiAt prog.length)
       (fun σ σ' => ∃ ρ ρ', R00 ρ ρ' ∧ σ = consList (List.replicate prog.length empty) ρ ∧
         σ' = consList (List.replicate prog.length empty) ρ') D ψ
-      (dsa0.map (ITerm.liftN prog.length · 0)) G) :
+      (dsa0.map (Term.liftN prog.length · 0)) G) :
     FrameAccOut w ctx [] (ctx.hiAt 0) R00 D ψ dsa0 G := by
   obtain ⟨A, hA, hinv, hacc⟩ := h
   have hhi : ctx.hiAt prog.length = ctx.hiAt 0 + prog.length := by
     simp only [NestCtx.hiAt]; omega
-  have hkf : ∀ ρ : Nat → V, keyFrame (dsa0.map (ITerm.liftN prog.length · 0))
+  have hkf : ∀ ρ : Nat → V, keyFrame (dsa0.map (Term.liftN prog.length · 0))
       (ctx.hiAt prog.length) (consList (List.replicate prog.length empty) ρ)
       = keyFrame dsa0 (ctx.hiAt 0) ρ := by
     intro ρ
@@ -136,16 +136,16 @@ positions only). -/
 theorem accConcl_of_frameAccOut {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     {D : LfpDatum V} (hD : D ∈ mp.lfpBlocks) {mm : Nat} (hmm : mm < D.k) {cv : ConstantVal}
     {caps : IndCaps} (hf : env.find? (D.member mm) = some (.indInfo cv caps)) {us : List Level}
-    {dep b : Nat} (hbd : b ≤ dep) {ds is : List Expr} {wa : ITerm}
-    (hwa : denoteMeta mp.base2.acval env φ dep
+    {dep b : Nat} (hbd : b ≤ dep) {ds is : List Expr} {wa : Term}
+    (hwa : denote mp.base2.acval env φ dep
       (Expr.mkAppN (.const (D.member mm) us) (ds ++ is)) = some wa)
     (hlenP : ds.length = (D.params (Level.substFn φ cv.levelParams us)).length)
     (hlenI : is.length = (D.ids mm (Level.substFn φ cv.levelParams us)).length)
-    (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List ITerm}
-    (hdsa : DenoteMetaSpine mp.base2.acval env φ b ds dsa)
-    {w : Nat} {ctx : NestCtx} {prog : List NestHole} {Δa : List ITerm} {R : FrameRel V}
+    (hdsw : ∀ x ∈ ds, Expr.WScoped b x) {dsa : List Term}
+    (hdsa : DenoteSpine mp.base2.acval env φ b ds dsa)
+    {w : Nat} {ctx : NestCtx} {prog : List NestHole} {Δa : List Term} {R : FrameRel V}
     (hR : HoleRelA mp.base2 φ w ctx prog dep Δa R) (hgr : GradedTy V Δa wa)
-    (hisC : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
+    (hisC : ∀ isa, DenoteSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
     (hwD : D.w (Level.substFn φ cv.levelParams us) = w) {G : Nat → Prop}
     (hacc : FrameAccOut w ctx prog b (FrameRel.drop R (dep - b)) D (Level.substFn φ cv.levelParams us)
       dsa G) (hG : G mm) :
@@ -196,7 +196,7 @@ theorem accConcl_of_frameAccOut {μ : ConLeche.CheckMode} (mp : EnvModelM V μ e
 /-- A frameless frame's accessibility under any frames: a member hole is
 admissible there too. -/
 theorem FrameAccOut.progNil {w : Nat} {ctx : NestCtx} {prog : List NestHole} {hi : Nat}
-    {R₀ : FrameRel V} {D : LfpDatum V} {ψ : Name → Nat} {dsa : List ITerm} {G : Nat → Prop}
+    {R₀ : FrameRel V} {D : LfpDatum V} {ψ : Name → Nat} {dsa : List Term} {G : Nat → Prop}
     (h : FrameAccOut w ctx [] hi R₀ D ψ dsa G) : FrameAccOut w ctx prog hi R₀ D ψ dsa G := by
   obtain ⟨A, hA, hinv, hacc⟩ := h
   refine ⟨A, hA, hinv, fun c hc ρ ρ₀ hR i hi x hx => ?_⟩
@@ -219,10 +219,10 @@ container's carrier is accessible (`FrameAccOut`, at its own member). -/
       key.lvls.length = cv.levelParams.length →
       cv.levelParams.Nodup ∧
       (D.params (Level.substFn φ cv.levelParams key.lvls)).length = key.ds.length ∧
-      ∀ (Δ0 : List ITerm) (R00 : FrameRel V),
+      ∀ (Δ0 : List Term) (R00 : FrameRel V),
         HoleRelA mp.base2 φ w ctx [] (ctx.hiAt 0) Δ0 R00 →
         Δ0.length = ctx.hiAt 0 → (∀ x ∈ key.ds, CtxOkP mp.base2 φ (ctx.hiAt 0) Δ0 x) →
-        ∀ dsa, DenoteMetaSpine mp.base2.acval env φ (ctx.hiAt 0) key.ds dsa →
+        ∀ dsa, DenoteSpine mp.base2.acval env φ (ctx.hiAt 0) key.ds dsa →
         D.w (Level.substFn φ cv.levelParams key.lvls) = w ∧
         FrameAccOut w ctx [] (ctx.hiAt 0) R00 D (Level.substFn φ cv.levelParams key.lvls) dsa
           (fun c => c = mm)
@@ -233,12 +233,12 @@ seen at the block's own depth, makes the instance accessible. -/
 theorem contHit_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {w : Nat}
     {ctx : NestCtx} (hfind : ∀ n, ctx.find? n = env.find? n) {prog : List NestHole} {dep : Nat}
     (hhid : ctx.hiAt prog.length ≤ dep) {n : Name} {us : List Level} {ds is : List Expr}
-    {wa : ITerm}
-    (hwa : denoteMeta mp.base2.acval env φ dep (Expr.mkAppN (.const n us) (ds ++ is)) = some wa)
-    {Δa : List ITerm} {R : FrameRel V}
+    {wa : Term}
+    (hwa : denote mp.base2.acval env φ dep (Expr.mkAppN (.const n us) (ds ++ is)) = some wa)
+    {Δa : List Term} {R : FrameRel V}
     (hC : CtxOkP mp.base2 φ dep Δa (Expr.mkAppN (.const n us) (ds ++ is)))
     (hgr : GradedTy V Δa wa) (hR : HoleRelA mp.base2 φ w ctx prog dep Δa R)
-    (hisC : ∀ isa, DenoteMetaSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
+    (hisC : ∀ isa, DenoteSpine mp.base2.acval env φ dep is isa → ∀ v ∈ isa, ConstOn R v)
     (hdsw : ∀ x ∈ ds, Expr.WScoped (ctx.hiAt prog.length) x ∧ x.looseBVarsBounded 0 = true)
     (hfree : ∀ x ∈ ds, x.fvarB ≤ ctx.hiAt 0) {nI : Nat} {cty : Expr}
     (hnI : ConLeche.nestInstType (m := CheckM) ctx (ctx.hiAt prog.length) ⟨n, us, ds⟩
@@ -254,13 +254,13 @@ theorem contHit_acc {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env) {w : Nat
   have hds0 : ∀ x ∈ ds, Expr.WScoped (ctx.hiAt 0) x := fun x hx =>
     ConLeche.WScoped.of_fvarsBelow (hdsw x hx).1 (ConLeche.Expr.fvarB_le (hfree x hx))
   -- the parameters' readings at the two depths
-  obtain ⟨fa, vs, hfa, hsp, -⟩ := denoteMeta_mkAppN_inv hwa
-  obtain ⟨hul, -⟩ := Rules.denoteMeta_const_arityK hf hfa
+  obtain ⟨fa, vs, hfa, hsp, -⟩ := denote_mkAppN_inv hwa
+  obtain ⟨hul, -⟩ := Rules.denote_const_arityK hf hfa
   change us.length = cv.levelParams.length at hul
   obtain ⟨hnd, hlenP, hacc0⟩ := hk cv caps hf hul
-  obtain ⟨vs₁, vs₂, -, hsp₁, -⟩ := DenoteMetaSpine.split _ hsp
-  obtain ⟨dsa0, hdsa0, -⟩ := DenoteMetaSpine.unlift (m := mp.base2) (φ := φ) hle0d hds0 hsp₁
-  obtain ⟨dsa, hdsa, -⟩ := DenoteMetaSpine.unlift (m := mp.base2) (φ := φ) hhid
+  obtain ⟨vs₁, vs₂, -, hsp₁, -⟩ := DenoteSpine.split _ hsp
+  obtain ⟨dsa0, hdsa0, -⟩ := DenoteSpine.unlift (m := mp.base2) (φ := φ) hle0d hds0 hsp₁
+  obtain ⟨dsa, hdsa, -⟩ := DenoteSpine.unlift (m := mp.base2) (φ := φ) hhid
     (fun x hx => (hdsw x hx).1) hsp₁
   -- the index count
   obtain ⟨-, hids, -⟩ := n2_link mp hD hmm hfind hnI hf hnd hul hlenP hdsw hdsa

@@ -17,7 +17,7 @@ This file carries the two currency-independent halves of the field:
   the finitely many names the operation's own branch mentions
   (`dmValNames`), so agreement there transports them;
 * `divMod_cons_fresh` — preservation across every fresh cons.  Unlike
-  `natOps_cons_fresh` there is no `denoteMeta` crossing to make: a clause
+  `natOps_cons_fresh` there is no `denote` crossing to make: a clause
   is a *pure value fact* over closed leaves, so the whole transport is
   `acvalWith_ne` at each mentioned head, and each head is `≠` the fresh
   name because the guard says it is stored.
@@ -31,7 +31,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint natOpGuard natLitSupported)
 
@@ -163,7 +163,7 @@ extension: the guard by `natOpGuard_cons`, the clauses by
 move. -/
 theorem divMod_entry_cons {m : EnvModel V env} {φ : Name → Nat}
     (hprev : DivMod m φ)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
     (hac : m₂.acval = acvalWith m.acval c₀.name A)
@@ -206,7 +206,7 @@ theorem divMod_entry_cons {m : EnvModel V env} {φ : Name → Nat}
 except a WF operation's own install discharges its obligation here. -/
 theorem divMod_cons_fresh {m : EnvModel V env} {φ : Name → Nat}
     (hprev : DivMod m φ)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hnothead : (∀ cv v hint, c₀ ≠ .defnInfo cv v hint) ∨
       c₀.name ∉ ConLeche.natDivModNames)
@@ -234,7 +234,7 @@ the cons *is* `Eq`, which is the basis install's own case and is
 excluded by the premise's shape there.) -/
 theorem eqLaw_cons_fresh {m : EnvModel V env}
     (hprev : EqLaw m)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hne : eqName ≠ c₀.name)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
     (hac : m₂.acval = acvalWith m.acval c₀.name A) :
@@ -255,7 +255,7 @@ needed: `Eq`'s pin is an `indInfo`, so a `defn`/`thm`/`axiom`/`opaque`
 cons named `Eq` makes the law's own premise false. -/
 theorem eqLaw_cons_valueKind {m : EnvModel V env}
     (hprev : EqLaw m)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hnotind : ∀ cv caps, c₀ ≠ .indInfo cv caps)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
     (hac : m₂.acval = acvalWith m.acval c₀.name A) :
@@ -286,7 +286,7 @@ standard/`trustCompiler`/`ofReduce*` family, none of which is a reduce
 operation). -/
 theorem reduceOps_entry_cons {m : EnvModel V env}
     (hprev : ReduceOps m)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
     (hac : m₂.acval = acvalWith m.acval c₀.name A)
@@ -332,7 +332,7 @@ standard/`trustCompiler`/`ofReduce*` family, none of which is a reduce
 operation). -/
 theorem reduceOps_cons_fresh {m : EnvModel V env}
     (hprev : ReduceOps m)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hnothead : (∀ cv, c₀ ≠ .axiomInfo cv) ∨
       c₀.name ∉ ConLeche.reduceOpNames)

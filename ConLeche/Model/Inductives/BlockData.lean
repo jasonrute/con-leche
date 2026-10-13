@@ -24,7 +24,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
  )
 
@@ -39,7 +39,7 @@ block's formers (see the module docstring). -/
 structure BlockCtorDataI {env : Env} (m : EnvModel V env) (T : Name)
     (lps : List Name) (cvC : ConstantVal) (nP nF nIdx : Nat) (resSort : Level)
     (isProp large : Bool) (idxArgs : List Expr)
-    (ds : (Name → Nat) → List ITerm) (Es : (Name → Nat) → List ITerm)
+    (ds : (Name → Nat) → List Term) (Es : (Name → Nat) → List Term)
     (srcs : List (Option Nat)) (fvsP xFvs : List Expr) (xrest : Expr) : Prop
     extends CtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs where
   opens : ∃ crest, openPisAtFvars nP cvC.type 0 = some (fvsP, crest) ∧
@@ -50,7 +50,7 @@ structure BlockCtorDataI {env : Env} (m : EnvModel V env) (T : Name)
   pIdx : ∀ k x, fvsP[k]? = some x → ∃ ty, x = Expr.fvar k ty
   idxEq : idxArgs = xrest.getAppArgs.drop nP
   domRead : ∀ ψ i x, xFvs[i]? = some x →
-    denoteMeta m.acval env ψ (nP + i) x.fvarTypeD = some ((ds ψ).getD (nP + i) default)
+    denote m.acval env ψ (nP + i) x.fvarTypeD = some ((ds ψ).getD (nP + i) default)
   /-- the opened residual is the member at the parameter variables and the
   index arguments (the result the hole reading abstracts) -/
   resShape : xrest = Expr.mkAppN (.const T (lps.map .param)) (fvsP ++ idxArgs)
@@ -61,7 +61,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps)
 
 universe w'
@@ -69,16 +69,16 @@ universe w'
 variable {V : Type w'} [SetTheory V] {μ : CheckMode} {env : Env}
 
 /-- The parameter variables read to the parameter spine at depth `D`. -/
-theorem denoteMetaSpine_params {acval : Name → (Name → Nat) → ITerm} {φ : Name → Nat}
+theorem denoteSpine_params {acval : Name → (Name → Nat) → Term} {φ : Name → Nat}
     (D : Nat) {fvsP : List Expr} {nP : Nat} (hlen : fvsP.length = nP)
     (hidx : ∀ k x, fvsP[k]? = some x → ∃ ty, x = Expr.fvar k ty) :
-    DenoteMetaSpine acval env φ D fvsP (paramBvarsAt nP D) := by
-  have := denoteMetaSpine_fvars (acval := acval) (env := env) (φ := φ) D fvsP 0
+    DenoteSpine acval env φ D fvsP (paramBvarsAt nP D) := by
+  have := denoteSpine_fvars (acval := acval) (env := env) (φ := φ) D fvsP 0
     (fun k x hx => by
       obtain ⟨ty, h⟩ := hidx k x hx
       exact ⟨ty, by rw [h, Nat.zero_add]⟩)
   rw [hlen] at this
-  have he : ((List.range nP).map fun k => ITerm.bvar (D - 1 - (0 + k))) = paramBvarsAt nP D := by
+  have he : ((List.range nP).map fun k => Term.bvar (D - 1 - (0 + k))) = paramBvarsAt nP D := by
     unfold paramBvarsAt
     apply List.map_congr_left
     intro k _
@@ -88,11 +88,11 @@ theorem denoteMetaSpine_params {acval : Name → (Name → Nat) → ITerm} {φ :
 /-- The Π-tower's closedness, inverted: the domains under the earlier
 ones, the body under all. -/
 theorem bvarsBelow_mkPisAV_inv {k : Nat} :
-    ∀ {ds : List ITerm} {b : ITerm}, Term.bvarsBelow k (mkPisAV ds b).erase →
-      DomsBelow k ds ∧ Term.bvarsBelow (k + ds.length) b.erase
+    ∀ {ds : List Term} {b : Term}, Term.bvarsBelow k (mkPisAV ds b) →
+      DomsBelow k ds ∧ Term.bvarsBelow (k + ds.length) b
   | [], _, h => ⟨trivial, by simpa [mkPisAV] using h⟩
   | d :: ds, b, h => by
-    simp only [mkPisAV, ITerm.erase_pi] at h
+    simp only [mkPisAV] at h
     obtain ⟨hd, hb⟩ := h
     obtain ⟨h1, h2⟩ := bvarsBelow_mkPisAV_inv (k := k + 1) (ds := ds) hb
     exact ⟨⟨hd, h1⟩, by simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using h2⟩
@@ -151,7 +151,7 @@ they are arguments of the opened residual. -/
 theorem BlockCtorDataI.idxArgs_resolve {env : Env} {m : EnvModel V env} {T : Name}
     {lps : List Name} {cvC : ConstantVal} {nP nF nIdx : Nat} {resSort : Level}
     {isProp large : Bool} {idxArgs : List Expr}
-    {ds : (Name → Nat) → List ITerm} {Es : (Name → Nat) → List ITerm}
+    {ds : (Name → Nat) → List Term} {Es : (Name → Nat) → List Term}
     {srcs : List (Option Nat)} {fvsP xFvs : List Expr} {xrest : Expr}
     (h : BlockCtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs fvsP xFvs
       xrest) {env₀ : Env} (hres : cvC.type.constsResolve env₀ = true) :
@@ -176,8 +176,8 @@ theorem blockCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
     (hfT : env.find? T = some (.indInfo cvTa caps))
     (hlpsT : cvTa.levelParams = lps)
     (hstripT : cvTa.type.stripPis (nP + nIdx) = some (bs, .sort sT)) :
-    ∃ (idxArgs : List Expr) (ds : (Name → Nat) → List ITerm)
-      (Es : (Name → Nat) → List ITerm) (srcs : List (Option Nat))
+    ∃ (idxArgs : List Expr) (ds : (Name → Nat) → List Term)
+      (Es : (Name → Nat) → List Term) (srcs : List (Option Nat))
       (fvsP xFvs : List Expr) (xrest : Expr),
       BlockCtorDataI mp.base2 T lps cvCa nP nF nIdx resSort isProp large
         idxArgs ds Es srcs fvsP xFvs xrest := by
@@ -198,7 +198,7 @@ theorem blockCtorData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ e
     openPisAtFvars_add nP hopP (by rw [Nat.zero_add]; exact hopX)
   -- every field's opened domain reads to its entry
   have hdomRead : ∀ ψ i x, xFvs[i]? = some x →
-      denoteMeta mp.base2.acval env ψ (nP + i) x.fvarTypeD
+      denote mp.base2.acval env ψ (nP + i) x.fvarTypeD
         = some ((ds ψ).getD (nP + i) default) := by
     intro ψ i x hx
     have hO := opened_of_peel hopAll hcf hcb (hCD.read ψ) (hCD.len ψ) (hCD.okTyV ψ)

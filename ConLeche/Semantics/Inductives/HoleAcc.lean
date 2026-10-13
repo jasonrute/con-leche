@@ -62,6 +62,7 @@ positions), which the run inversion states off the walk's output and
 -/
 
 namespace ConLeche.Semantics
+open ConLeche.Term (Term)
 open ConLeche.SetModel
 
 open SetTheory
@@ -95,7 +96,7 @@ theorem SmallAt.zero (x : V) : SmallAt 0 x := fun h => absurd rfl h
 /-- **Accessible along `R` with bound `A`, admissible items `Q`, at the
 level `w`** (see the module docstring). -/
 def AccOn (w : Nat) (Q : Nat → Nat → Prop) (R : FrameRel V) (A : (Nat → V) → V)
-    (a : ITerm) : Prop :=
+    (a : Term) : Prop :=
   ∀ ρ ρ₀, R ρ ρ₀ → ∀ x, SmallAt w x → x ∈ˢ interp V ρ a →
     ∃ (B : V) (g : V → Occ V), B ⊆ˢ A ρ ∧ (∀ b, b ∈ˢ B → Adm Q (g b) ∧ Holds ρ (g b)) ∧
       ∀ ρ', R ρ ρ' → (∀ b, b ∈ˢ B → Holds ρ' (g b)) → x ∈ˢ interp V ρ' a
@@ -110,7 +111,7 @@ def InvOn (M : Nat → Prop) (A : (Nat → V) → V) : Prop :=
 
 /-- **The point is stable**: a reading holding the point at a frame holds
 it at every related frame. -/
-def PtOn (R : FrameRel V) (a : ITerm) : Prop :=
+def PtOn (R : FrameRel V) (a : Term) : Prop :=
   ∀ ρ ρ', R ρ ρ' → (pt : V) ∈ˢ interp V ρ a → (pt : V) ∈ˢ interp V ρ' a
 
 /-- **Point-free holes**: an admissible position, applied at its arity,
@@ -120,7 +121,7 @@ def PtFreeOn (Q : Nat → Nat → Prop) (R : FrameRel V) : Prop :=
 
 /-- **The fibres are types** at both frames of every related pair (the
 grading of a walked Π's body, at satisfying frames). -/
-def FibTyOn (R : FrameRel V) (D B : ITerm) : Prop :=
+def FibTyOn (R : FrameRel V) (D B : Term) : Prop :=
   ∀ ρ ρ', R ρ ρ' → (∀ x, x ∈ˢ interp V ρ D → IsTy (interp V (cons x ρ) B)) ∧
     (∀ x, x ∈ˢ interp V ρ' D → IsTy (interp V (cons x ρ') B))
 
@@ -133,7 +134,7 @@ namespace FrameRel
 
 /-- **Under a binder of domain `A`, the value in the domain at both
 frames.** -/
-def underBoth (R : FrameRel V) (A : ITerm) : FrameRel V :=
+def underBoth (R : FrameRel V) (A : Term) : FrameRel V :=
   fun σ σ' => ∃ x ρ ρ', σ = cons x ρ ∧ σ' = cons x ρ' ∧ R ρ ρ' ∧
     x ∈ˢ interp V ρ A ∧ x ∈ˢ interp V ρ' A
 
@@ -141,11 +142,11 @@ def underBoth (R : FrameRel V) (A : ITerm) : FrameRel V :=
 def Symm (R : FrameRel V) : Prop := ∀ ρ ρ', R ρ ρ' → R ρ' ρ
 
 theorem AgreesOff.underBoth {R : FrameRel V} {P : Nat → Prop} (h : R.AgreesOff P)
-    (A : ITerm) : (R.underBoth A).AgreesOff (shiftP P) := by
+    (A : Term) : (R.underBoth A).AgreesOff (shiftP P) := by
   rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, -, -⟩
   exact agreeOff_cons (h ρ ρ' hR) x
 
-theorem Symm.underBoth {R : FrameRel V} (h : R.Symm) (A : ITerm) : (R.underBoth A).Symm := by
+theorem Symm.underBoth {R : FrameRel V} (h : R.Symm) (A : Term) : (R.underBoth A).Symm := by
   rintro _ _ ⟨x, ρ, ρ', rfl, rfl, hR, hx, hx'⟩
   exact ⟨x, ρ', ρ, rfl, rfl, h ρ ρ' hR, hx', hx⟩
 
@@ -157,7 +158,7 @@ end FrameRel
 
 /-- **Point-freeness survives a binder.** -/
 theorem PtFreeOn.underBoth {Q : Nat → Nat → Prop} {R : FrameRel V} (h : PtFreeOn Q R)
-    (A : ITerm) : PtFreeOn (shiftQ Q) (R.underBoth A) := by
+    (A : Term) : PtFreeOn (shiftQ Q) (R.underBoth A) := by
   rintro _ _ ⟨x, ρ, ρ₀, rfl, rfl, hR, -, -⟩ i vs hQ
   cases i with
   | zero => exact hQ.elim
@@ -169,7 +170,7 @@ theorem SizeOn.const {w : Nat} {R : FrameRel V} {c : V} (hc : c ∈ˢ (tg w : V)
     SizeOn w R (fun _ => c) := fun _ _ _ _ => hc
 
 /-- **A hole-free reading** is accessible with the empty bound. -/
-theorem ConstOn.accOn {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {a : ITerm}
+theorem ConstOn.accOn {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {a : Term}
     (h : ConstOn R a) : AccOn w Q R (fun _ => empty) a := by
   intro ρ ρ₀ _ x _ hx
   refine ⟨empty, fun _ => (0, [], empty), Subset.refl _,
@@ -179,7 +180,7 @@ theorem ConstOn.accOn {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {a :
 
 /-- **The `whnf` step.** -/
 theorem AccOn.of_eqOn {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {P : (Nat → V) → Prop}
-    (hdom : ∀ ρ ρ', R ρ ρ' → P ρ ∧ P ρ') {A : (Nat → V) → V} {a b : ITerm}
+    (hdom : ∀ ρ ρ', R ρ ρ' → P ρ ∧ P ρ') {A : (Nat → V) → V} {a b : Term}
     (heq : ∀ ρ, P ρ → interp V ρ a = interp V ρ b) (hb : AccOn w Q R A b) : AccOn w Q R A a := by
   intro ρ ρ₀ hR x hxw hx
   rw [heq ρ (hdom ρ ρ₀ hR).1] at hx
@@ -225,7 +226,7 @@ theorem small_of_mem_piSet {w : Nat} (hw : w ≠ 0) {D f : V} {F : V → V} (hf 
 
 /-- **The bound of a Π**: the glued bounds of the body over the domain,
 where the domain is small. -/
-noncomputable def piBound (w : Nat) (D : ITerm) (Bb : (Nat → V) → V) (ρ : Nat → V) : V :=
+noncomputable def piBound (w : Nat) (D : Term) (Bb : (Nat → V) → V) (ρ : Nat → V) : V :=
   open Classical in
   if SmallAt w (interp V ρ D) then sigmaPairs (interp V ρ D) fun d => Bb (cons d ρ) else empty
 
@@ -240,7 +241,7 @@ domain that is not small (`w ≠ 0`) is the point, whose membership needs
 no item (`PtOn`).  At the target frame the member lies in the Π by
 `mem_piV_of_app`, the fibres at both frames being types (`hT`, the
 grading: "not pt" source (1)). -/
-theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : ITerm}
+theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : Term}
     (hD : ConstOn R D)
     {Bb : (Nat → V) → V} (hB : AccOn w (shiftQ Q) (R.underBoth D) Bb B)
     (hT : FibTyOn R D B) (hP : w ≠ 0 → PtOn (R.underBoth D) B) :
@@ -311,7 +312,7 @@ theorem AccOn.pi {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {D B : IT
     exact (holds_cons_down (hne d hd b hb)).mpr this
 
 /-- The Π bound is a set of the level. -/
-theorem SizeOn.pi {w : Nat} {R : FrameRel V} {D : ITerm} (hD : ConstOn R D)
+theorem SizeOn.pi {w : Nat} {R : FrameRel V} {D : Term} (hD : ConstOn R D)
     {Bb : (Nat → V) → V} (hB : SizeOn w (R.underBoth D) Bb) : SizeOn w R (piBound w D Bb) := by
   intro ρ ρ₀ hR hw
   unfold piBound
@@ -323,8 +324,8 @@ theorem SizeOn.pi {w : Nat} {R : FrameRel V} {D : ITerm} (hD : ConstOn R D)
 
 /-- **A member hole at its full arity, at hole-free arguments.** -/
 theorem AccOn.holeApp {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {h : Nat}
-    {es : List ITerm} (hQ : Q h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
-    AccOn w Q R (fun _ => unitSet) (ITerm.mkAppN (.bvar h) es) := by
+    {es : List Term} (hQ : Q h es.length) (hes : ∀ e ∈ es, ConstOn R e) :
+    AccOn w Q R (fun _ => unitSet) (Term.mkAppN (.bvar h) es) := by
   intro ρ ρ₀ _ x _ hx
   rw [interp_mkAppN_foldl, interp_bvar] at hx
   refine ⟨unitSet, fun _ => (h, es.map (interp V ρ), x), Subset.refl _,
@@ -337,11 +338,11 @@ theorem AccOn.holeApp {w : Nat} {Q : Nat → Nat → Prop} {R : FrameRel V} {h :
 
 /-! ## The cases: the point -/
 
-theorem ConstOn.ptOn {R : FrameRel V} {a : ITerm} (h : ConstOn R a) : PtOn R a :=
+theorem ConstOn.ptOn {R : FrameRel V} {a : Term} (h : ConstOn R a) : PtOn R a :=
   fun ρ ρ' hR hp => h ρ ρ' hR ▸ hp
 
 theorem PtOn.of_eqOn {R : FrameRel V} {P : (Nat → V) → Prop}
-    (hdom : ∀ ρ ρ', R ρ ρ' → P ρ ∧ P ρ') {a b : ITerm}
+    (hdom : ∀ ρ ρ', R ρ ρ' → P ρ ∧ P ρ') {a b : Term}
     (heq : ∀ ρ, P ρ → interp V ρ a = interp V ρ b) (hb : PtOn R b) : PtOn R a := by
   intro ρ ρ' hR hp
   rw [heq ρ' (hdom ρ ρ' hR).2]
@@ -351,7 +352,7 @@ theorem PtOn.of_eqOn {R : FrameRel V} {P : (Nat → V) → Prop}
 /-- **A Π over a hole-free domain** holds the point exactly when every
 fibre does (its fibres being types, `hT`), so it carries the point along
 the relation as its body does. -/
-theorem PtOn.pi {R : FrameRel V} {D B : ITerm} (hD : ConstOn R D)
+theorem PtOn.pi {R : FrameRel V} {D B : Term} (hD : ConstOn R D)
     (hT : FibTyOn R D B) (hB : PtOn (R.underBoth D) B) : PtOn R (.pi D B) := by
   intro ρ ρ' hR hp
   rw [interp_pi] at hp ⊢
@@ -363,7 +364,7 @@ theorem PtOn.pi {R : FrameRel V} {D B : ITerm} (hD : ConstOn R D)
 /-- **A hole at its full arity** never holds the point (`PtFreeOn`), so
 it carries it vacuously. -/
 theorem PtOn.holeApp {Q : Nat → Nat → Prop} {R : FrameRel V} (hfree : PtFreeOn Q R) {h : Nat}
-    {es : List ITerm} (hQ : Q h es.length) : PtOn R (ITerm.mkAppN (.bvar h) es) := by
+    {es : List Term} (hQ : Q h es.length) : PtOn R (Term.mkAppN (.bvar h) es) := by
   intro ρ ρ' hR hp
   rw [interp_mkAppN_foldl, interp_bvar] at hp
   exact absurd hp (hfree ρ ρ' hR h (es.map (interp V ρ)) (by simpa using hQ))
@@ -380,7 +381,7 @@ theorem InvOn.const (M : Nat → Prop) (c : V) : InvOn M (fun _ : Nat → V => c
   fun _ _ _ => rfl
 
 /-- **The Π bound reads what its domain and its body's bound read.** -/
-theorem InvOn.pi {w : Nat} {M : Nat → Prop} {D : ITerm} (hD : NoBVar (fun i => ¬ M i) D)
+theorem InvOn.pi {w : Nat} {M : Nat → Prop} {D : Term} (hD : NoBVar (fun i => ¬ M i) D)
     {Bb : (Nat → V) → V} (hB : InvOn (liftM M) Bb) : InvOn M (piBound w D Bb) := by
   intro ρ ρ' hag
   have hD' : interp V ρ D = interp V ρ' D :=
