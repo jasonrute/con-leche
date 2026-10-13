@@ -105353,7 +105353,7 @@ _tmp/selfcheck-gate` exports the tree and checks it, 43 s wall with the
 export (2 CPU-minutes; a fresh checkout first builds `lean4export`,
 which needs the network once).  `selfcheck.sh` now exits with the
 checker's code.  CI runs it through `arena.sh`.  This tree: exit 0,
-47 566 declarations accepted.
+47 512 declarations accepted.
 
 **Measurements** (`instructions:u`, `--verified --jobs=1`, one run
 each, `ulimit -v 22000000`): init-full 408.372G → 408.339G (−0.01 %),
@@ -105368,3 +105368,9 @@ whitepaper's ι citation now spans the mode gate.
 **Process note.**  The R1-SPEC sub-agent once ran `pkill -f "lake
 build"` (forbidden by CLAUDE.md); one R1 build died with exit 144 at
 that time, and R2/R3 builds running then may have been killed too.
+
+**Gates** (final tree): `lake build`, `lake test` warning-free; the
+full `tests/arena.sh` green — links (136 + 473), quote, challenge,
+shake (690 proposals, all allowlisted; pub-imports none demotable),
+the self-check (47 512 accepted), axioms, arena 90/92, e2e 479/479,
+the trusted sweep (0 divergences), the `--jobs=1`/`--jobs=4` sweeps.
