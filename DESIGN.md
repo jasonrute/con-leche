@@ -103219,7 +103219,12 @@ fixture as before the lane; arena 90/92.
 **Gates.**  `lake build`, `lake test` warning-free; `tests/arena.sh`
 green but `whitepaper/links-gate.sh` (W2's); `overview-links`
 repointed (cited text re-read: the rename, the `inferTypeIO` docstring,
-`tgtStoredRules`'s signature).  Lines (`ConLeche/`, against
+`tgtStoredRules`'s signature); `shake`: 6 imports removed under the
+#223 criterion, 2 compensated removals allowlisted, 3 public re-exports
+the plan's census cannot attribute (`NestedRead`, `ClassOutParams` in
+public statements) recorded as measured fallbacks; layering, trust
+surface, pindump, quote gate, challenge, the trusted and `--jobs`
+sweeps green.  Lines (`ConLeche/`, against
 `port-342`): 368 files, +7884 −7421, of which the rename commit is
 260 files ±4125; without it 236 files, +3783 −3320.  Checker
 (`Kernel/`, `Cached/`): 36 files, +380 −734.
