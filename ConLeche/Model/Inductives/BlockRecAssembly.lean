@@ -61,9 +61,8 @@ It is the rule record's `hnoProj` at the environment the stage stores
 it in — the BARE-`k` one, whose `findProj?` is `envC`'s, because no
 recursor's name is projection-shaped. -/
 theorem recStage_rhsNoProj {envC : Env} {p : BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs) :
+    (h : ConLeche.RecStageG μ F envC p cvTas rs) :
     ∀ r ∈ rs, ∀ rhsA ∈ r.2.1, ∀ (T : Name) (i : Nat),
       envC.findProj? T i = none → Expr.NoProjAt T i rhsA := by
   obtain ⟨R⟩ := id h
@@ -88,9 +87,8 @@ environment**, stated at the list the model's bare cons is built over
 (`bareOf rs`, spelled out — `BlockStageRec`'s abbreviation is not in
 this file's public view): the rule record's `htyR`. -/
 theorem recStage_rhsInfer {envC : Env} {p : BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs) :
+    (h : ConLeche.RecStageG μ F envC p cvTas rs) :
     ∀ r ∈ rs, ∀ rhsA ∈ r.2.1, ∃ tyR : Expr,
       ConLeche.inferTypeCore μ
           (consBlockRecsBare p.toBlockShape 0 (rs.map fun r => (r.1, r.2.2.1)) envC) F 0 rhsA
@@ -312,10 +310,9 @@ stored names distinct (`hnd`), the LEAF's facts with the family premise
 (`BlockRecLeafOk`) and the rule seam (`hnew`). -/
 theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
     {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
-    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs)
+    (h : ConLeche.RecStageG μ F envC p cvTas rs)
     (hnd : (rs.map (·.1.name)).Nodup)
     {R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
     {nPc : Nat → Nat}

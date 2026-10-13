@@ -68,19 +68,7 @@ theorem structConstWF {env : Env} {c : ConstantInfo}
         (RecRule.rhs r).constsResolve env = true ∧
         (RecRule.rhs r).looseBVarsBounded 0 = true ∧
         ∀ lvls pins, RecRule.fire r = .nested lvls pins →
-          rP ≤ mI ∧
-          (∀ l ∈ lvls, l.allParamsDefined cv.levelParams = true) ∧
-          (∀ pin ∈ pins, pin.hasFvar = false ∧
-            pin.allLevelParamsDefined cv.levelParams = true ∧
-            pin.constsResolve env = true ∧
-            pin.looseBVarsBounded rP = true) ∧
-          ∃ pre dom body D,
-            cv.type.stripPis mI = some (pre, .forallE dom body) ∧
-            dom.getAppFn = .const D lvls ∧
-            dom.getAppArgs =
-              pins.map (Expr.liftLooseBVars (mI - rP) 0) ++
-                (List.range (mI - rP)).map
-                  (fun i => Expr.bvar (mI - rP - 1 - i)))
+          NestedRead (·.constsResolve env) cv.levelParams cv.type mI rP pins.length lvls pins)
     (h8 : ∀ tbl, c = .projInfo tbl →
       tbl.bodies.size = tbl.numFields ∧
       ∀ (i : Nat) (b : Expr), tbl.bodies[i]? = some b →

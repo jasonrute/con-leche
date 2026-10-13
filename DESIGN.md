@@ -104939,3 +104939,40 @@ Fragment line counts (so no `links-gate.sh --update` needed); genuine
 **Gates.** `whitepaper/fragment-gate.sh` green; `whitepaper/build.sh`
 (via `nix develop ./whitepaper`) builds PDF and HTML with no warning,
 synced to `_out/whitepaper/`. OVERVIEW/README untouched.
+
+## TASK #342 — S5D: S5c's code leftovers (2026-10-13, agent/342-s5d)
+
+Lane S5d, the first step of W2's assignment (S5c's "reported, not
+done"), on `port-342`.  Verdicts unchanged (e2e and arena fixture for
+fixture as S5c; arena 90/92); `MainTheorem`, `Denotes`, `Challenge`
+untouched; no `sorry`, no new axiom, no new `unsafe`.
+
+- **`RecStage`/`RecStageG` lose `ctorsAs`.**  No field read it; the
+  parameter goes at its 160 application sites, and the 28 theorem
+  binders that existed only to feed it go with it.
+- **`genOutPinVal` reads its pins off the firing.**  `tgtFireOf_nested_eq`
+  says the `.nested` datum is the class's levels and parameters closed
+  over the rule prefix, so the levels conjunct is `rfl` and the `q`-th
+  pin is `ds[q].abstractRange 0 rP` outright.  The proof no longer goes
+  through `nestedRead_open` and `genRun_binders`' erasure-equality of
+  the stored major with the class applied (the stored major's argument,
+  its fvar leaves among the openers, the round trip to it, and its
+  erasure to the class's parameter).  What replaces them: the round trip
+  `instSeq_abstractRange_open` now concludes `ErasedEq` (the openers'
+  types may differ) from the premise "every fvar leaf is below the
+  openers' count", which `ds[q]`'s scoping gives directly.  The one
+  lemma serves both users: `recStagePinsOk` (`GenRecPins`) drops its
+  leaf-membership derivation the same way and reads through
+  `denoteMeta_erasedEq`.  `genOutPinVal` no longer needs `hμ`, `hg` or a
+  heartbeat override.  4 files, +101 −190.
+- **`EnvWF`'s `.nested` clause is `NestedRead`** (at `cnP :=
+  pins.length`), so the environment invariant and the generated stage
+  state the same predicate; `structConstWF`'s and
+  `envWF_consBlockRecsR`'s hypotheses follow, and two proofs add the
+  trivial length conjunct.  5 files, +14 −48.
+- `ExprOps`: `instantiate1Lift`'s section comment no longer counts the
+  deleted `lowerBVars` among the unguarded install-path rebuilds.
+
+**Gates.**  `lake build`, `lake test` warning-free; the verdict checks
+(e2e, arena) identical to S5c's.  Lines (`ConLeche/`): 36 files, +270
+−414.

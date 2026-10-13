@@ -399,19 +399,8 @@ theorem envWF_consBlockRecsR
       rs[j]? = some r → ∀ rl ∈ R j r,
         rl.rhs ∈ r.2.1 ∧
         ∀ lvls pins, rl.fire = .nested lvls pins →
-          q.rulePrefixAt j ≤ q.majorIdxAt j ∧
-          (∀ l ∈ lvls, l.allParamsDefined r.1.levelParams = true) ∧
-          (∀ pin ∈ pins, pin.hasFvar = false ∧
-            pin.allLevelParamsDefined r.1.levelParams = true ∧
-            pin.constsResolve env = true ∧
-            pin.looseBVarsBounded (q.rulePrefixAt j) = true) ∧
-          ∃ pre dom body D,
-            r.1.type.stripPis (q.majorIdxAt j) = some (pre, .forallE dom body) ∧
-            dom.getAppFn = .const D lvls ∧
-            dom.getAppArgs =
-              pins.map (Expr.liftLooseBVars (q.majorIdxAt j - q.rulePrefixAt j) 0) ++
-                (List.range (q.majorIdxAt j - q.rulePrefixAt j)).map
-                  (fun i => Expr.bvar (q.majorIdxAt j - q.rulePrefixAt j - 1 - i))) :
+          NestedRead (·.constsResolve env) r.1.levelParams r.1.type (q.majorIdxAt j)
+            (q.rulePrefixAt j) pins.length lvls pins) :
     EnvWF (consBlockRecsR R q 0 rs env) := by
   have hdomEnv : ∀ n, (env.find? n).isSome = true →
       ((consBlockRecsR R q 0 rs env).find? n).isSome = true :=

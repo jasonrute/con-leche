@@ -1971,13 +1971,14 @@ def abstract1Fast (e : Expr) (d : Nat) (k : Nat := 0) : Expr :=
 
 /-! ### `instantiate1Lift` reads the loose-bvar bound, and memoizes
 
-The pure capture-avoiding substitution is the last of the three
-rebuilds on an install path without either guard (the cached engine's
-twin, `Cached.instantiate1Lift`, has carried both since task #214):
+The pure capture-avoiding substitution is, with `abstract1`, a rebuild
+on an install path without either guard (the cached engine's twin,
+`Cached.instantiate1Lift`, has carried both since task #214):
 `structProjBodiesGo` runs it down a constructor telescope.
-`tests/e2e/tower_nested.ndjson` is the fixture that walked it.  Same arrangement as `abstract1`: the `O(1)` bound read
-first, the memo — keyed by the node and the CURSOR `d`, which shifts
-under binders — behind it. -/
+`tests/e2e/tower_nested.ndjson` is the fixture that walked it.  Same
+arrangement as `abstract1`: the `O(1)` bound read first, the memo —
+keyed by the node and the CURSOR `d`, which shifts under binders —
+behind it. -/
 
 /-- Substituting for a variable no loose variable reaches is the
 identity. -/

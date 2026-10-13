@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Kernel.Core
+public import ConLeche.Verify.Inductives.NestedRead
 
 public section
 
@@ -151,26 +152,14 @@ theorem stripPis_isSome_of_le :
       (RecRule.rhs r).allLevelParamsDefined cv.levelParams = true ∧
       (RecRule.rhs r).constsResolve env = true ∧
       (RecRule.rhs r).looseBVarsBounded 0 = true ∧
-      -- a certified nested rule's stored instantiations are
-      -- syntactically well-formed in the recursor's rule-prefix
-      -- context, and the recursor type's major-premise domain applies
-      -- the constructor family to exactly their liftings past the
-      -- index binders followed by the index variables in order
-      -- (what the generated stage stores, `genStage_nestedRead`)
+      -- a nested rule's datum reads off the recursor type
+      -- (`NestedRead`: the pins are well formed in the rule-prefix
+      -- context, and the major's domain applies the class's inductive
+      -- at the levels to the pins' liftings past the index binders,
+      -- followed by the index variables; what the generated stage
+      -- stores, `genStage_nestedRead`)
       ∀ lvls pins, RecRule.fire r = .nested lvls pins →
-        rP ≤ mI ∧
-        (∀ l ∈ lvls, l.allParamsDefined cv.levelParams = true) ∧
-        (∀ pin ∈ pins, pin.hasFvar = false ∧
-          pin.allLevelParamsDefined cv.levelParams = true ∧
-          pin.constsResolve env = true ∧
-          pin.looseBVarsBounded rP = true) ∧
-        ∃ pre dom body D,
-          cv.type.stripPis mI = some (pre, .forallE dom body) ∧
-          dom.getAppFn = .const D lvls ∧
-          dom.getAppArgs =
-            pins.map (Expr.liftLooseBVars (mI - rP) 0) ++
-              (List.range (mI - rP)).map
-                (fun i => Expr.bvar (mI - rP - 1 - i))) ∧
+        NestedRead (·.constsResolve env) cv.levelParams cv.type mI rP pins.length lvls pins) ∧
   -- (a theorem's stored value carries NO clause: a theorem is opaque
   -- to reduction and stored by its statement — the value is the
   -- record's own, unread by the kernel and by the invariant)

@@ -30,6 +30,7 @@ import ConLeche.Model.IndOpenRev
 import ConLeche.Model.IndFrame
 import ConLeche.Model.RecRulesCons
 import ConLeche.Model.Levels
+import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Model.Tiers
 import ConLeche.Model.WellDenotedTransport
 import ConLeche.Semantics.Tower.SumTower
@@ -184,7 +185,7 @@ spine's head and arguments; a term scoped at the prefix infers alike
 there), scoped, and in the prefix context — the prefix openers' readings
 are the prefix domains, graded types (see the module docstring). -/
 theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
+    (h : ConLeche.RecStageG μ F envC pp cvTas rs)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[j]? = some r) (ψ : Name → Nat) {fvs : List Expr} {concl maj : Expr}
     (hop : openPisAtFvars (pp.toBlockShape.majorIdxAt j + 1) r.1.type 0 = some (fvs, concl))
@@ -336,7 +337,7 @@ theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V �
 over the prefix is graded at every prefix spine** (`storedMajorSub_ctx`,
 then the inference's soundness). -/
 theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
+    (h : ConLeche.RecStageG μ F envC pp cvTas rs)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[j]? = some r) (ψ : Name → Nat) {fvs : List Expr} {concl maj : Expr}
     (hop : openPisAtFvars (pp.toBlockShape.majorIdxAt j + 1) r.1.type 0 = some (fvs, concl))
@@ -360,7 +361,7 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
 /-- **A stored major-domain argument over the prefix is graded at every
 prefix spine** (`storedMajorSub_graded` at an argument). -/
 theorem storedMajorArg_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
+    (h : ConLeche.RecStageG μ F envC pp cvTas rs)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[j]? = some r) (ψ : Name → Nat) {fvs : List Expr} {concl maj : Expr}
     (hop : openPisAtFvars (pp.toBlockShape.majorIdxAt j + 1) r.1.type 0 = some (fvs, concl))
@@ -386,13 +387,13 @@ stage** (`tgtRecPinsOk` without the target check's run), given that a
 `.nested` firing reads off the stored type (`hread`; the generated stage's
 `GenRecRun.fire_nestedRead`).  The pins are the stored type's major-domain
 parameters closed over the rule prefix (`nestedRead_open`), so opened
-back at the prefix openers they ARE those parameters
+back at the prefix openers they are those parameters up to erasure
 (`instSeq_abstractRange_open`), graded at every prefix spine by the
 stored type's own inference (`storedMajorArg_graded`); `nestedPinGrade`
 carries the grading to the chain of any graded fit of the recursor
 type. -/
 theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-        (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+        (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out))
     {Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
     {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
     (m₃ : EnvModel V (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC))
@@ -480,32 +481,13 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
   have hxb : x.looseBVarsBounded 0 = true :=
     ConLeche.looseBVarsBounded_getAppArgs
       ((openPisAtFvars_bounded _ hopen hb0).2 TE.maj (List.mem_of_getElem? hmaj)) x hxA
-  have hnil : r.1.type.fvarLeaves = [] := fvarLeaves_nil_of_wscoped_zero hw0
   have hxlt : ∀ l ∈ x.fvarLeaves, l.1 < rP :=
     fun l hl => ConLeche.Expr.fvarLeaves_lt_of_wscoped hwsX l hl
-  have hxl : ∀ l ∈ x.fvarLeaves, Expr.fvar l.1 l.2 ∈ TE.fvs.take rP := by
-    intro l hl
-    obtain ⟨tyM, hmajE⟩ := ConLeche.openPisAtFvars_index _ _ _ hopen mI TE.maj hmaj
-    have hlM : l ∈ TE.maj.fvarLeaves := by
-      have h1 := ConLeche.fvarLeaves_getAppArgs hxA l hl
-      rw [hmajE] at h1 ⊢
-      simp only [Expr.fvarTypeD] at h1
-      simp only [Expr.fvarLeaves, List.mem_cons]
-      exact Or.inr h1
-    rcases openPisAtFvars_leaves _ hopen l (Or.inr ⟨TE.maj, List.mem_of_getElem? hmaj, hlM⟩)
-      with h' | h'
-    · rw [hnil] at h'; exact nomatch h'
-    · obtain ⟨pos, hpos⟩ := List.getElem?_of_mem h'
-      obtain ⟨ty', hty'⟩ := ConLeche.openPisAtFvars_index _ _ _ hopen pos _ hpos
-      have h1 : l.1 = pos := by injection hty' with a b; omega
-      have hpt : (TE.fvs.take rP)[pos]? = some (Expr.fvar l.1 l.2) := by
-        rw [List.getElem?_take, ite_eq_left (show pos < rP by have := hxlt l hl; omega)]
-        exact hpos
-      exact List.mem_of_getElem? hpt
-  -- the round trip: the pin opened at the prefix openers IS the parameter
-  have hround : Expr.instSpine (TE.fvs.take rP) (rP - 1) (pins.getD q default) = x := by
+  -- the round trip: the pin opened at the prefix openers is the parameter, up to erasure
+  have hround : Expr.ErasedEq (Expr.instSpine (TE.fvs.take rP) (rP - 1) (pins.getD q default))
+      x := by
     rw [hpinq, Expr.instSpine_eq_instSeq]
-    have := ConLeche.instSeq_abstractRange_open hpre x 0 hxb hxl
+    have := ConLeche.instSeq_abstractRange_open hpre x 0 hxb (by rw [hoslen]; exact hxlt)
     rw [hoslen, Nat.zero_add] at this
     exact this
   -- the level valuation the instantiation reads at
@@ -519,7 +501,7 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
     fun n ψ' y k => AVExprSubst.inst_eq_self_of_closed (mpC.base2.acval_closed n ψ') y k
   have hw' : denoteMeta mpC.base2.acval envC ψ (rP + 0)
       (Expr.instSpine (TE.fvs.take rP) (rP - 1) (pins.getD q default)) = some w := by
-    rw [hround, Nat.add_zero]; exact hw
+    rw [denoteMeta_erasedEq hround, Nat.add_zero]; exact hw
   obtain ⟨vpa, hvpden⟩ := pinOpenRevReads (acval := mpC.base2.acval) (cval := mpC.base2.cvalE)
     (env := envC) (φ := ψ) hacl hainst mpC.base2.acval_erase mpC.base2.cval_closed hoslen hshape
     hwsOs hbOs hpF hpB hw'
