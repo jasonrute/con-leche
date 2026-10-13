@@ -11,7 +11,6 @@ import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Verify.PropRead
 import ConLeche.Model.Reading.Closed
 import ConLeche.Verify.InstLevels
-import ConLeche.Semantics.Hoist
 import ConLeche.Model.Reading.Levels
 import ConLeche.Rules.Rigid
 

@@ -230,14 +230,14 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.StoredShapes', 'ConLeche.Verify.Inductives.PosDeriv'),
     # lane FLATACC: after the flat (W) witness went (LfpHoleWitness,
     # TupleContainer, Container, BlockHoleFlat deleted) the model stopped
-    # attributing these eight re-exports; each MEASURED by demoting it alone
+    # attributing these re-exports; each MEASURED by demoting it alone
     # (`nonempty_shapes`, `AxiomPin.lean:304`; `interp_sort_mem`,
     # `TowerCons.lean:161`, for both Claims→Skeleton and Skeleton→Univ;
     # `capsOk_cons_proj`, `ProjCons.lean:210`; `essOfR_fixCtorDataList_getD`,
     # `BlockStageCtors.lean:257`; `fixFibre_zero_elim`, `FixZeroField.lean:97`;
-    # `erasePwNames_forallE_invS`, `AxiomMem.lean:151`; `CtxOk.nil`,
-    # `BlockRecRead.lean:176`).
-    ('ConLeche.Model.AxiomMem', 'ConLeche.Verify.StdAxiomPin'),
+    # `CtxOk.nil`, `BlockRecRead.lean:176`).  (Its AxiomMem→StdAxiomPin
+    # entry went at task #342 R1: the model keeps that edge public
+    # without it.)
     ('ConLeche.Model.Claims', 'ConLeche.Semantics.Skeleton'),
     ('ConLeche.Model.IndProjEta', 'ConLeche.Model.IndProjCaps'),
     ('ConLeche.Model.Tiers', 'ConLeche.Model.CtxOkKit'),
