@@ -261,7 +261,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
     (R : GenRecRun μ F (mkFEnv envI) envI (mkFEnv envC) pp.toBlockShape nested posR cvTasR
       block ctorsAsR out)
-    (h : ConLeche.RecStageG μ F envC pp cvTasR ctorsAsR (tgtRs out) (fun _ => False))
+    (h : ConLeche.RecStageG μ F envC pp cvTasR ctorsAsR (tgtRs out))
     (hg : ConLeche.ClassGenScoped R.g)
     (hTbl : ∀ e ∈ R.st.ctorNfs.toList, ConLeche.ScB pp.nP e.ty)
     {mk : EnvModelM V μ envI} (hmkC : LfpCover mk pp.toBlockShape.memberNames)

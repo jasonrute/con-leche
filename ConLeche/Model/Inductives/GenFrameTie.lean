@@ -103,7 +103,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
     (R : GenRecRun μ F (mkFEnv envI) envI (mkFEnv envC) pp.toBlockShape nested posR cvTasR
       block ctorsAsR out)
-    (h : ConLeche.RecStageG μ F envC pp cvTasR ctorsAsR (ConLeche.tgtRs out) (fun _ => False))
+    (h : ConLeche.RecStageG μ F envC pp cvTasR ctorsAsR (ConLeche.tgtRs out))
     (hparG : ∀ c, c < (ConLeche.tgtRs out).length → ∀ (ψ : Name → Nat) (ρ : Nat → V)
       (xs : List V),
       SpineFit ρ (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (ConLeche.tgtRs out) ψ c)

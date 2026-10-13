@@ -148,7 +148,7 @@ section Pins
 
 variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))}
-  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {memR : Nat → Prop}
+  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
 
 /-- An application spine's head is scoped where the spine is. -/
 theorem WScoped.mkAppN_head {d : Nat} :
@@ -184,7 +184,7 @@ spine's head and arguments; a term scoped at the prefix infers alike
 there), scoped, and in the prefix context — the prefix openers' readings
 are the prefix domains, graded types (see the module docstring). -/
 theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[j]? = some r) (ψ : Name → Nat) {fvs : List Expr} {concl maj : Expr}
     (hop : openPisAtFvars (pp.toBlockShape.majorIdxAt j + 1) r.1.type 0 = some (fvs, concl))
@@ -336,7 +336,7 @@ theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V �
 over the prefix is graded at every prefix spine** (`storedMajorSub_ctx`,
 then the inference's soundness). -/
 theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[j]? = some r) (ψ : Name → Nat) {fvs : List Expr} {concl maj : Expr}
     (hop : openPisAtFvars (pp.toBlockShape.majorIdxAt j + 1) r.1.type 0 = some (fvs, concl))
@@ -360,7 +360,7 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
 /-- **A stored major-domain argument over the prefix is graded at every
 prefix spine** (`storedMajorSub_graded` at an argument). -/
 theorem storedMajorArg_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
     {j : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[j]? = some r) (ψ : Name → Nat) {fvs : List Expr} {concl maj : Expr}
     (hop : openPisAtFvars (pp.toBlockShape.majorIdxAt j + 1) r.1.type 0 = some (fvs, concl))
@@ -392,8 +392,7 @@ stored type's own inference (`storedMajorArg_graded`); `nestedPinGrade`
 carries the grading to the chain of any graded fit of the recursor
 type. -/
 theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    {memR : Nat → Prop}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out) memR)
+        (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
     {Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
     {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
     (m₃ : EnvModel V (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC))

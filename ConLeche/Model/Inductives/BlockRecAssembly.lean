@@ -63,7 +63,7 @@ recursor's name is projection-shaped. -/
 theorem recStage_rhsNoProj {envC : Env} {p : BlockParts} {cvTas : List ConstantVal}
     {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR) :
+    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs) :
     ∀ r ∈ rs, ∀ rhsA ∈ r.2.1, ∀ (T : Name) (i : Nat),
       envC.findProj? T i = none → Expr.NoProjAt T i rhsA := by
   obtain ⟨R⟩ := id h
@@ -90,7 +90,7 @@ this file's public view): the rule record's `htyR`. -/
 theorem recStage_rhsInfer {envC : Env} {p : BlockParts} {cvTas : List ConstantVal}
     {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR) :
+    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs) :
     ∀ r ∈ rs, ∀ rhsA ∈ r.2.1, ∃ tyR : Expr,
       ConLeche.inferTypeCore μ
           (consBlockRecsBare p.toBlockShape 0 (rs.map fun r => (r.1, r.2.2.1)) envC) F 0 rhsA
@@ -315,7 +315,7 @@ theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
     {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
     {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
-    {memR : Nat → Prop} (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs memR)
+    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs)
     (hnd : (rs.map (·.1.name)).Nodup)
     {R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
     {nPc : Nat → Nat}

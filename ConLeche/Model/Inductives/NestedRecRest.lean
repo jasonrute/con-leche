@@ -86,8 +86,8 @@ positionally the records' (`recStageG_recNames`), which the pins make
 distinct (`RecPinsF.nodup`). -/
 theorem recStageG_nodup {mode : CheckMode} {F : Nat} {env : Env} {p : BlockParts}
     {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
-    {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {mem : Nat → Prop}
-    (h : RecStageG mode F env p cvTas ctorsAs rs mem)
+    {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
+    (h : RecStageG mode F env p cvTas ctorsAs rs)
     (hndM : p.toBlockShape.memberNames.Nodup) : (rs.map (·.1.name)).Nodup := by
   obtain ⟨hpins, hlenR, hall⟩ := recStageG_recNames h
   have hmap : rs.map (·.1.name) = p.recs.map (·.cvR.name) := by
@@ -242,13 +242,13 @@ section Pins
 
 variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
   {ctorsAs : List (List (ConstantVal × Nat))}
-  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {mem : Nat → Prop}
+  {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
 
 omit [SetTheory V] in
 /-- **A `.nested` firing's pins mention no empty
 projection slot** — they are the stored (checked) recursor type's
 major-domain arguments (`NestedRead`), lowered. -/
-theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs mem) :
+theorem tgtFire_pinsNoProj (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs) :
     ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       rs[j]? = some r → ∀ {resolves : Expr → Bool} {cnP : Nat} {lvls : List Level}
         {pins : List Expr},
