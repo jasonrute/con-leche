@@ -561,8 +561,8 @@ theorem genStage_nestedRead {env : Env} {p : BlockShape} {nestedBit : Bool}
       exact fun hmem => hMs₀ Ms₀[c] (List.getElem_mem hcl) hmem
   obtain ⟨hdsLen, hdsSc⟩ := hMout hm
   -- the generated type
-  obtain ⟨-, -, -, -, hlb, hfv, hlp, hcr, -, -, -, -, hcvEq⟩ := classConstOk_inv T.hcv
-  rw [hcvEq]
+  obtain ⟨-, -, -, -, hlb, hfv, hlp, hcr, -, -, -, -⟩ := classConstOk_inv T.hcv
+  rw [T.hcvG] at hlb hfv hlp hcr ⊢
   dsimp only at hlb hfv hlp hcr ⊢
   have hgty := T.hgty
   unfold classGenRecTy at hgty

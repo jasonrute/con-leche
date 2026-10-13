@@ -1544,8 +1544,7 @@ theorem genRulePrefRead (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ e
   rw [hrP, ← hnF] at hop
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hop.symm.trans hop'))
   -- the stored recursor type is the generated one
-  obtain ⟨-, -, -, -, -, -, -, -, _st, _u, -, -, hcvE⟩ := ConLeche.classConstOk_inv TR.hcv
-  have hty : r.1.type = TR.gty := congrArg ConstantVal.type hcvE
+  have hty : r.1.type = TR.gty := TR.type_eq
   obtain ⟨ifs, maj, -, -, hgty, hbnd, hbody⟩ := ConLeche.classGenRecTy_spec hg TR.hgty
   have hpreB : ∀ q ∈ R.g.pre, q.looseBVarsBounded 0 = true := fun q hq =>
     hbnd q (List.mem_append_left _ (List.mem_append_left _ hq))
@@ -1654,7 +1653,8 @@ theorem genIhFree_run
   rw [hopI] at hop2
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hop2)
   -- the stored type: its constants resolve at the constructors' environment
-  obtain ⟨-, -, -, -, -, -, -, hres, _st, _u, -, -, hcvE⟩ := ConLeche.classConstOk_inv TR.hcv
+  obtain ⟨-, -, -, -, -, -, -, hres, -, -, -, -⟩ := ConLeche.classConstOk_inv TR.hcv
+  rw [TR.type_eq] at hres
   have hgtyC : CBNF envC TR.gty :=
     constsBound_eraseFVars _ (constsBound_of_constsResolve _ hres)
   obtain ⟨ifs, maj, -, -, hgty, -, -⟩ := ConLeche.classGenRecTy_spec hg TR.hgty

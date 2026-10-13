@@ -466,11 +466,11 @@ theorem classesCtorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     exact SimC.pure hs₂ rfl
 
 /-- **A generated constant, checked** (`classConstOk`): the cached twin
-of `checkConstantValS_sim` for a generated constant — the stored
-constant is the input, closed by the guard. -/
+of `checkConstantValS_sim` for a generated constant — the checked
+constant's type is well-scoped. -/
 theorem classConstOkS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
     {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun v w => v = w ∧ WScoped 0 v.type)
+    SimC mode env s₀ (fun _ _ => WScoped 0 cv.type)
       (classConstOk (sharedOpsC mode (mkFEnv env)) (mkFEnv env) cv)
       (classConstOk (fueledOpsM mode) (mkFEnv env) cv) := by
   unfold classConstOk
@@ -504,7 +504,7 @@ theorem classConstOkS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) 
   refine SimC.bind (opE_infer_sim hμ henv hs hwty) (fun s₂ sty sty' hs₂ hP₂ => ?_)
   obtain ⟨rfl, hwsty⟩ := hP₂
   refine SimC.bind (opS_sim hμ henv hs₂ hwsty) (fun s₃ u u' hs₃ hP₃ => ?_)
-  exact SimC.pure hs₃ ⟨rfl, hwty⟩
+  exact SimC.pure hs₃ hwty
 
 /-- **One recursor's generated type, checked and compared**: the stored
 constant is closed. -/
@@ -522,8 +522,7 @@ theorem classRecTyOkS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) 
   case isFalse => exact SimC.throw_bind
   refine SimC.bind (SimC.unwrapOr' hs) (fun s₁ gty gty' hs₁ hG => ?_)
   obtain ⟨rfl, -⟩ := hG
-  refine SimC.bind (classConstOkS_sim hμ henv hs₁) (fun s₂ cvG cvG' hs₂ hC => ?_)
-  obtain ⟨rfl, hwG⟩ := hC
+  refine SimC.bind (classConstOkS_sim hμ henv hs₁) (fun s₂ _ _ hs₂ hwG => ?_)
   dsimp only [sharedOpsC]
   refine SimC.bind (opB_sim hμ henv hs₂ hRi hwG) (fun s₃ b b' hs₃ hB => ?_)
   obtain rfl : b = b' := hB

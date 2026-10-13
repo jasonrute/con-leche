@@ -359,7 +359,7 @@ def classFormerTy (fe : FEnv) (cvTas : List ConstantVal) (M : TargetMajor) : m E
 /-- **A generated constant, checked** — `checkConstantValF`: the
 generated type is stored as the generator built it; inference validates
 it like any other declared type. -/
-def classConstOk (ops : CheckerOps m) (fe : FEnv) (cv : ConstantVal) : m ConstantVal := do
+def classConstOk (ops : CheckerOps m) (fe : FEnv) (cv : ConstantVal) : m Unit := do
   if (fe.find? cv.name).isSome then
     throw (.invalid s!"duplicate declaration {cv.name}")
   if reservedBasisNames.contains cv.name then
@@ -378,7 +378,6 @@ def classConstOk (ops : CheckerOps m) (fe : FEnv) (cv : ConstantVal) : m Constan
     throw (unresolvedConstsError s!"type of {cv.name}" cv.type)
   let stype ← ops.inferType fe.env 0 cv.type
   let _u ← ops.ensureSort fe.env 0 stype
-  pure cv
 
 /-- **One recursor's generated type, checked and compared**: the record's
 member, rule prefix and major index are the generated ones; the generated
@@ -394,7 +393,8 @@ def classRecTyOk (ops : CheckerOps m) (fe : FEnv) (g : ClassGen) (k : Nat) (rc :
     throw (.invalid "generated recursor: the recursor record's rule prefix or major index is \
       not the generated one")
   let gty ← unwrapOr (classGenRecTy g c) (.internal "generated recursor: recursor type")
-  let cvG ← classConstOk ops fe { rc.cvR with type := gty }
+  let cvG := { rc.cvR with type := gty }
+  classConstOk ops fe cvG
   unless ← ops.isDefEq fe.env 0 cvRi.type cvG.type do
     throw (.invalid s!"generated recursor: the type of {rc.cvR.name} is not the generated one \
       (official: invalid recursor)")

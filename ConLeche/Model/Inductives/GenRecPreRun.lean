@@ -553,10 +553,9 @@ theorem genRun_storedTy (hμ : μ.verifiedChecks = true)
   have hr : (tgtRs out)[c]? = some (cvG, rhss, (R.Ms.getD cls default).nIdx,
       (R.Ms.getD cls default).ctors) := by
     simp [tgtRs, List.getElem?_map, ho]
-  obtain ⟨-, -, -, -, -, -, -, -, S, -, hinf, -, hcvEq⟩ := ConLeche.classConstOk_inv T.hcv
-  have htype : cvG.type = T.gty := by
-    have := congrArg ConstantVal.type hcvEq
-    simpa using this
+  obtain ⟨-, -, -, -, -, -, -, -, S, -, hinf, -⟩ := ConLeche.classConstOk_inv T.hcv
+  have htype : cvG.type = T.gty := T.type_eq
+  rw [T.hcvG] at hinf
   dsimp only at hinf
   obtain ⟨-, -, -, hta, hTyE, hlenRds, -, -, -⟩ := recStage_tyPis (V := V) hμ mpC h hr ψ
   replace hta : denoteMeta mpC.base2.acval envC ψ 0 T.gty
