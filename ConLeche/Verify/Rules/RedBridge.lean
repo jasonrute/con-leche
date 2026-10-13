@@ -179,7 +179,7 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
     ⟨rfl, hlen, hlps, hslots, rfl, ⟨tf, htf, hdq⟩, hpirr⟩
   · -- the major's half of the `proofIrrel (fab, major)` run: a proof
     obtain ⟨-, -, -, tb, stb, vT, -, -, -, -, htb, hstb, hwstb, hvT⟩ :=
-      proofIrrel_inv hpirr
+      proofIrrel_inv (hpirr rfl)
     exact .rescueK hfr hk hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
       hlps hle rfl hsc1 hsc2 hsc3
       (inferTypeIO_bridge hio htf) (hd hdq) (inferTypeIO_bridge hio htb)
@@ -188,7 +188,7 @@ theorem majorToCtor_bridge (hw : WhnfBridge env fuel)
     exact .rescueEta hfr heta hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh)
       hfn hlen hlps hnz rfl hsc1 hsc2 hsc3 hresT hresc htow
   · obtain ⟨-, -, -, tb, stb, vT, -, -, -, -, htb, hstb, hwstb, hvT⟩ :=
-      proofIrrel_inv hpirr
+      proofIrrel_inv (hpirr rfl)
     exact .rescueAnd hfr hfj hpi hfT (inferTypeIO_bridge hio hinf) (hw hwh) hfn
       hlen hlps hslots rfl hsc1 hsc2 hsc3
       (inferTypeIO_bridge hio htf) (hd hdq) (inferTypeIO_bridge hio htb)
@@ -243,7 +243,7 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     exact peelPis_isSome_instantiateLevelParams _ _ _ (iotaRec_arity h hfn hfc)
   by_cases hc3 : iotaCase3 env.find? rl cvj
       (recFireComparands rl cv.levelParams us cvj.levelParams e.getAppArgs rP).1 = true
-  · obtain ⟨hlev, hpeq, hcerts, hidx⟩ := h3 hc3
+  · obtain ⟨hlev, hpeq, hcerts, hidx⟩ := h3 rfl hc3
     by_cases hne : mI = rP
     · exact .iota (residual := .bvar 0) hfn hfc hlen hlvl hmaj hmfn hfj hrule hml
         (fun _ => hlev) (fun _ => defEqList_bridge hd hpeq)

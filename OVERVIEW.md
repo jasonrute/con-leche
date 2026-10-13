@@ -531,7 +531,12 @@ presentation and matter for the proof:
   stored type is checked to have the spine's number of binders. The
   synthetic constructor applications of the K and `And` rescues are
   typed at the io grade only: their io type is compared with the
-  major's, then proof irrelevance compares them with the major. Binders
+  major's (both modes), then, at the verified mode, proof irrelevance
+  compares them with the major — a certificate family, off at the
+  trusted mode, as is the ι rule's case-3 decision (the constructor's
+  levels and parameters against the comparands, the constructor
+  telescope at the full grade, and the canonical-index comparison).
+  Binders
   carry no data the checker reads, and declarations are stored as declared, `let`s included:
   `whnfCore` ζ-reduces and inference runs the official `infer_let`.
 * **Fuel and memos.** The pure checker is fueled; the cached checker is
