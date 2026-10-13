@@ -336,7 +336,7 @@ theorem Expr.constsResolve_getAppFn {env : Env} :
 
 /-- **A resolving expression's `piResult`'s head constant is stored**
 (task #342 L10): the constructor's stored type resolves (`ConstWF`),
-so the family name heading its result — the one `iotaCtorLicensed`
+so the family name heading its result — the one `iotaCtorNeverProp`
 looks up — is stored too, hence never the fresh name of a cons. -/
 theorem Expr.find?_isSome_of_piResult_getAppFn_const {env : Env} {e : Expr}
     {T : Name} {us : List Level} (hres : e.constsResolve env = true)

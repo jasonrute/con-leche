@@ -22,7 +22,7 @@ head — a constant, or a free variable — whose type is a ∀-telescope
 whose residual is an application of a type former (a constant, a free
 variable, or a binder of the telescope) whose own type, peeled through
 identity wrappers (`outParam`, …), ends in a sort that is zero at every
-valuation.  `prf_of_isProofFast` is the model licence: such a term is
+valuation.  `prf_of_isProofFast` is the model justification: such a term is
 the point.
 
 The steps, all at the value reading:
@@ -667,7 +667,7 @@ theorem prf_core (hin : RulesInputs V m φ) :
       exact prf_head hin hf hC hda hρ hL hpw hprop
 
 /-- **A term whose stored data say "proof" is the point** — the
-`isProofFast` yes-arm's licence (`DefEq.proofFast`). -/
+`isProofFast` yes-arm's justification (`DefEq.proofFast`). -/
 theorem prf_of_isProofFast (hin : RulesInputs V m φ)
     {d : Nat} {a : Expr} {Δa : List ITerm} {aa : ITerm}
     (h : ConLeche.isProofFast env.find? a = true) (hfa : Frame d a)

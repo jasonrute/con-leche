@@ -1083,7 +1083,7 @@ theorem natRecMajor_ne_pt (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
   rw [h] at ha
   exact pt_not_mem_omega ha
 
-/-- **`Nat.rec`'s licence facts**, either rule: not K; the major's
+/-- **`Nat.rec`'s ι facts**, either rule: not K; the major's
 domain `ω` holds no point, so (S) and (P) hold outright; the
 constructors have no level parameters, so (T) is the fired application
 itself; no indices, so (U) is the trivial index pin. -/
@@ -1118,7 +1118,7 @@ theorem natRecExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
   · intro ρ xs ys restR restC _ _ _ _ _ _ _ _ _ _
     exact ⟨restC, [], rfl, Or.inl rfl, fun i hi => absurd hi (by omega)⟩
 
-/-- `Nat.rec`'s `zero` rule's licence facts. -/
+/-- `Nat.rec`'s `zero` rule's ι facts. -/
 theorem natRecZeroExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     (hN : env.find? natName = some natA)
     (hZ : env.find? natZeroName = some natZeroA)
@@ -1138,7 +1138,7 @@ theorem natRecZeroExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
       injection Option.some.inj hfj with a1 _ _
       rw [← a1])
 
-/-- `Nat.rec`'s `succ` rule's licence facts. -/
+/-- `Nat.rec`'s `succ` rule's ι facts. -/
 theorem natRecSuccExtra (m₂ : EnvModel V ⟨natRecA :: env.consts⟩)
     (hN : env.find? natName = some natA)
     (hZ : env.find? natZeroName = some natZeroA)

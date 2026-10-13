@@ -15,7 +15,7 @@ does not produce, over PLAIN hypotheses (no class kit):
   value (from `hconclTy`); at a nonzero width the class's recorded clause
   injection is injective (`LfpClause.mkInj`), given the class's fit is the
   clause's hole fit at its carrier and its injection the clause's; at a
-  `Prop`-valued class under a large eliminator a per-major LICENCE (fits at
+  `Prop`-valued class under a large eliminator a per-major PREMISE (fits at
   one index tuple coincide — the elimination guard's criterion).
 * **`hconclTy`** (`genConclTy_of`): the conclusion's typing at every fit of
   the generated domains, read at the generated classes.
@@ -53,7 +53,7 @@ of the recorded clause `D c` at `ψ c` and the true frame `fr c`: its
 decoding fit is the clause's hole fit at the carrier (`hfit`) and its
 injection the clause's (`hinj`).  At `ℓ = 0` the bound is a truth value
 (`hconclTy`); at a nonzero width the injection is injective; at width `0`
-under `ℓ ≠ 0` the licence `hlic` does it. -/
+under `ℓ ≠ 0` the premise `hlic` does it. -/
 theorem genUniq (D : Nat → LfpDatum V) (ψ : Nat → Name → Nat) (fr : Nat → Nat → V)
     (m : Nat → Nat)
     (hcl : ∀ c, c < K → ∀ t, t ∈ˢ Is xs c → LfpClause acval (D c))

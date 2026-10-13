@@ -66,17 +66,17 @@ theorem constsBound_openRev {env₀ : Env} {e : Expr}
       (.fvar (d + n) (.sort .zero)) 0)
     exact ConstsBound.instantiate1 (by simp) _ 0 ih
 
-/-- **(S)'s `iotaCtorLicensed` guard is the prefix's**: it reads
+/-- **(S)'s `iotaCtorNeverProp` guard is the prefix's**: it reads
 `find?` only at the constructor's result family, and that name is
 stored (not the fresh one) whenever the constructor's type resolves —
 guaranteed here by `ConstWF` (`EnvModel.wf`). -/
-theorem iotaCtorLicensed_cons_of_isSome {c₀ : ConstantInfo} {env : Env}
+theorem iotaCtorNeverProp_cons_of_isSome {c₀ : ConstantInfo} {env : Env}
     (hfresh : env.find? c₀.name = none) {cvj : ConstantVal} {usj : List Level}
     (hT : ∀ T us, cvj.type.piResult.getAppFn = .const T us →
       (env.find? T).isSome = true) :
-    ConLeche.iotaCtorLicensed (ConLeche.Env.find? ⟨c₀ :: env.consts⟩) cvj usj
-      = ConLeche.iotaCtorLicensed env.find? cvj usj := by
-  unfold ConLeche.iotaCtorLicensed
+    ConLeche.iotaCtorNeverProp (ConLeche.Env.find? ⟨c₀ :: env.consts⟩) cvj usj
+      = ConLeche.iotaCtorNeverProp env.find? cvj usj := by
+  unfold ConLeche.iotaCtorNeverProp
   match hh : cvj.type.piResult.getAppFn with
   | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
   | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
@@ -94,11 +94,11 @@ premise is produced at the prefix and moved FORWARD by
 (`acval n`, `acval rl.ctor`) are the prefix's by `acvalWith_ne`.  New
 here: the K clause's `∀ Ra` is identified with the main law's own `Ra`
 the same way; the arity clause is syntactic, hence untouched; clause
-(S)'s `iotaCtorLicensed` guard, read at the extended environment's
+(S)'s `iotaCtorNeverProp` guard, read at the extended environment's
 `find?`, agrees with the prefix's reading because it consults `find?`
 only at the constructor's result family — a name the constructor's
 (resolving) stored type names, hence itself stored, hence not the
-fresh one (`iotaCtorLicensed_cons_of_isSome`). -/
+fresh one (`iotaCtorNeverProp_cons_of_isSome`). -/
 theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
     (hfresh : env.find? c₀.name = none)
@@ -192,10 +192,10 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
         ((hntc.typeOf hfcjE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja
-    -- (S)/(T)'s `iotaCtorLicensed` guard is the prefix's
+    -- (S)/(T)'s `iotaCtorNeverProp` guard is the prefix's
     have hlicE : ∀ lvs : List Level,
-        ConLeche.iotaCtorLicensed (ConLeche.Env.find? ⟨c₀ :: env.consts⟩) cvj lvs
-          = ConLeche.iotaCtorLicensed env.find? cvj lvs := by
+        ConLeche.iotaCtorNeverProp (ConLeche.Env.find? ⟨c₀ :: env.consts⟩) cvj lvs
+          = ConLeche.iotaCtorNeverProp env.find? cvj lvs := by
       intro lvs
       obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
         mp.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfcjE)
@@ -204,7 +204,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
           (env.find? T).isSome = true :=
         fun T us' heq' =>
           ConLeche.Expr.find?_isSome_of_piResult_getAppFn_const hresolve heq'
-      exact iotaCtorLicensed_cons_of_isSome hfresh hTiso
+      exact iotaCtorNeverProp_cons_of_isSome hfresh hTiso
     obtain ⟨hS, hT, hPU⟩ := hnk hk
     refine ⟨fun hlic => hS (by rwa [hlicE] at hlic), ?_, ?_⟩
     · intro hlic usj husj TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hne

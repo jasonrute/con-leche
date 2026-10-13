@@ -729,10 +729,10 @@ major premise whnfs to a fully applied constructor with a matching
 rule (a literal major converts to constructor form — see
 `litMajorToCtor` —, a
 stuck major may be rescued — see `majorToCtor`), and the recursor's
-stored type has the redex's arity.  The constructor side follows **the ι licence** (task #342
-L10, S5c), decided at the rule's comparand levels (`recFireComparands`):
+stored type has the redex's arity.  The constructor side follows **the
+ι case split** (task #342 L10, S5c), decided at the rule's comparand levels (`recFireComparands`):
 a K rule, and a rule whose constructor's family is never `Prop` there
-(`iotaCtorLicensed`), fire with no check of the constructor application
+(`iotaCtorNeverProp`), fire with no check of the constructor application
 — official's `inductive_reduce_rec` checks nothing of it either; every
 other rule (case 3, `iotaCase3`) compares the constructor's levels and
 parameters with the rule's comparands, certifies the constructor
@@ -757,7 +757,7 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
       -- level parameter the subject never had.  Ungated: the reference has it
       -- unconditionally, so a mode gate would break parity.
       -- task #342 L18: the stored type's syntactic arity, which the
-      -- uncertified (licensed) recursor spine is read against
+      -- uncertified recursor spine is read against
       if args.length = mI + 1 ∧ us.length = cv.levelParams.length ∧
           (Expr.peelPis (mI + 1) cv.type).isSome = true then
         -- the major's preparation (K rescue / whnf / literal / eta) in
@@ -786,9 +786,9 @@ def iotaRec (r : CoreFns m) (env : Env) (depth : Nat) (e : Expr) :
                 -- major-domain instantiations), from the firing mode
                 -- computed once at install (`sumRules` / `auxRuleFire`)
                 let cmp := recFireComparands rl cv.levelParams us cvj.levelParams args rP
-                -- **the ι licence** (task #342 L10, #349, S5c), decided at
+                -- **the ι case split** (task #342 L10, #349, S5c), decided at
                 -- the comparand levels: a K rule, or a family never `Prop`
-                -- there (`iotaCtorLicensed`), fires with no check, as
+                -- there (`iotaCtorNeverProp`), fires with no check, as
                 -- official's `inductive_reduce_rec` (it compares nothing
                 -- of the major's constructor); case 3 compares the
                 -- constructor's levels and parameters with the comparands,

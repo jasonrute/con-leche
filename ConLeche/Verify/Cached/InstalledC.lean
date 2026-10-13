@@ -92,11 +92,11 @@ theorem installHeaderC_run {env : Env}
 
 /-- Phase A's value install is the pure install half. -/
 theorem installValueGuardsC_run {env : Env}
-    {cvA : ConstantVal} {value : Expr} {s₀ s' : CState}
+    {cv : ConstantVal} {value : Expr} {s₀ s' : CState}
     (hs : CSOK μ env s₀)
-    (h : installValueGuardsC (mkFEnv env) cvA value s₀ = .ok ((), s')) :
+    (h : installValueGuardsC (mkFEnv env) cv value s₀ = .ok ((), s')) :
     CSOK μ env s' ∧ Expr.WScoped 0 value ∧
-    installValueGuards (m := CheckM) env cvA value = .ok () := by
+    installValueGuards (m := CheckM) env cv value = .ok () := by
   unfold installValueGuardsC at h
   by_cases h1 : Expr.looseBVarsBounded 0 value = true
   case neg => rw [ite_eq_right h1] at h; exact absurd h throwC_bind_ok
@@ -107,7 +107,7 @@ theorem installValueGuardsC_run {env : Env}
   rw [ite_eq_right h2] at h
   try dsimp only at h
   rw [Expr.allLevelParamsDefinedC_spec] at h
-  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams value = true
+  by_cases h3 : Expr.allLevelParamsDefined cv.levelParams value = true
   case neg => rw [ite_eq_right h3] at h; exact absurd h throwC_bind_ok
   rw [ite_eq_left h3] at h
   rw [constsResolveFC_spec, constsResolveF_eq] at h
@@ -130,7 +130,7 @@ kinds. -/
 theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : EnvWF env)
     {feFinal : FEnv} {pc : PendingCheck}
     (hfind : ∀ n, (feFinal.restrictTo pc.vis).find? n = env.find? n)
-    (hwty : Expr.WScoped 0 pc.vg.cvA.type)
+    (hwty : Expr.WScoped 0 pc.vg.cv.type)
     (hwv : pc.vg.kind ≠ .thm → Expr.WScoped 0 pc.vg.jv)
     {s₀ s' : CState} (hres : CSOKF s₀)
     (h : checkPending μ feFinal pc s₀ = .ok ((), s')) :
@@ -153,12 +153,12 @@ theorem checkPending_run (hμ : μ.verifiedChecks = true) {env : Env} (henv : En
   -- install)
   have tail : ∀ {s₄ : CState} (jv : Expr), CSOK μ env s₄ → Expr.WScoped 0 jv →
       ((coreKnotI μ (mkFEnv env) checkFuel).infer 0 jv >>= fun jvt =>
-        (coreKnotI μ (mkFEnv env) checkFuel).defeq 0 jvt pc.vg.cvA.type >>= fun b =>
+        (coreKnotI μ (mkFEnv env) checkFuel).defeq 0 jvt pc.vg.cv.type >>= fun b =>
           if b = true then pure () else
-            throw (.invalid s!"type mismatch in {pc.vg.kind.word} {pc.vg.cvA.name}")) s₄
+            throw (.invalid s!"type mismatch in {pc.vg.kind.word} {pc.vg.cv.name}")) s₄
         = .ok ((), s') →
       CSOKF s' ∧ ∃ F jvt, inferTypeCore μ env F 0 jv = .ok jvt ∧
-        isDefEqCore μ env F 0 jvt pc.vg.cvA.type = .ok true := by
+        isDefEqCore μ env F 0 jvt pc.vg.cv.type = .ok true := by
     intro s₄ jv hs₄ hwjv h
     obtain ⟨jvt, s₅, hvt, h⟩ := bindC_ok h
     obtain ⟨hs₅, wvt, ⟨rfl, hwvt⟩, F₃, hF₃⟩ :=

@@ -333,16 +333,16 @@ theorem checkConstantValC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.
     strLitSupportedF_congr hfe]
 
 /-- A definition's value check reads its index only through `find?`. -/
-theorem checkDefnValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
+theorem checkDefnValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cv : ConstantVal)
     (value : Expr) (hint : ReducibilityHint) :
-    checkDefnValCI mode fe₁ cvA value hint = checkDefnValCI mode fe₂ cvA value hint := by
+    checkDefnValCI mode fe₁ cv value hint = checkDefnValCI mode fe₂ cv value hint := by
   unfold checkDefnValCI
   simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 
 /-- An opaque's value check reads its index only through `find?`. -/
-theorem checkOpaqueValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cvA : ConstantVal)
+theorem checkOpaqueValCI_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (cv : ConstantVal)
     (value : Expr) :
-    checkOpaqueValCI mode fe₁ cvA value = checkOpaqueValCI mode fe₂ cvA value := by
+    checkOpaqueValCI mode fe₁ cv value = checkOpaqueValCI mode fe₂ cv value := by
   unfold checkOpaqueValCI
   simp only [coreKnotI_congr hfe, constsResolveFC_congr hfe, strLitSupportedF_congr hfe]
 

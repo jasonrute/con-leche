@@ -1,7 +1,7 @@
 --#export letBad1
 
 /- End-to-end fixture (task #208; inductive audit #206, S1 / crack C9 —
-   an ACCEPT-SUPERSET, the only unlicensed one the audit found).
+   an ACCEPT-SUPERSET, the only unjustified one the audit found).
 
    `def letBad1 : Nat := let x : Nat := Bool.true; Nat.zero`, with the
    bound variable UNUSED.  Official runs `infer_let`

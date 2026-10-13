@@ -10,7 +10,7 @@ public section
 /-!
 # The soundness of the telescope checks and of `DefEqList` (task #305)
 
-The licensed telescope check (the syntactic arity), the full-grade
+The arity-checked telescope (the syntactic arity), the full-grade
 certificate `CertsF` (one step per constructor) and `DefEqList`
 (pointwise), at one valuation (task #342, L9).  The certificate's slot
 comparison is between two types (the argument's inferred type and the
@@ -86,8 +86,8 @@ theorem teleFitPA_of_peel_ne_pt {ρ : Nat → V} :
   | _ :: _, .snd _, _, _, hp, _, _, _, _ | _ :: _, .prf, _, _, hp, _, _, _, _ =>
     nomatch hp
 
-/-- **The licensed check** (`teleArityOk`): no certificate, the
-telescope's syntactic arity only.  A licensed walk's spine is the
+/-- **The arity check** (`teleArityOk`): no certificate, the
+telescope's syntactic arity only.  An arity-checked walk's spine is the
 subject's own; where it is not the point ("not pt" source (2): a
 reduction claims nothing of a redex that is the point) it fits its
 head's telescope (`teleFitPA_of_peel_ne_pt`), the arity making the

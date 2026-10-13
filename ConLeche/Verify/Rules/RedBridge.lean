@@ -223,7 +223,7 @@ theorem peelPis_isSome_instantiateLevelParams (ks : List Name) (us : List Level)
     simp [Expr.peelPis] at h
 
 /-- `iotaRec` ⇒ `Red.iota` (`iotaRec_inv`, `prepareMajor_bridge`,
-`defEqList_bridge`, the licensed recursor spine, and at a case-3 redex
+`defEqList_bridge`, the arity-checked recursor spine, and at a case-3 redex
 `iotaCertsFull_bridge` and `iotaIndexOk_inv`). -/
 theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     (hd : DefEqBridge env fuel) (hi : InferBridge env fuel)
@@ -235,7 +235,7 @@ theorem iotaRec_bridge (hw : WhnfBridge env fuel)
     hfn, hfc, hlen, hlvl, hprep, hmfn, hfj, hrule, hml, h3, rfl⟩ := iotaRec_inv h
   have hmaj : Red env d (e.getAppArgs.getD mI (.bvar 0)) major :=
     prepareMajor_bridge hw hd hio ⟨cv, mI, rP, hfc⟩ hprep
-  -- the licensed recursor spine's arity: the checker's test on the
+  -- the arity-checked recursor spine's arity: the checker's test on the
   -- stored type (task #342 L18)
   have harity : (Expr.peelPis e.getAppArgs.length
       (cv.type.instantiateLevelParams cv.levelParams us)).isSome = true := by

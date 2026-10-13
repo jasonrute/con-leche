@@ -132,15 +132,15 @@ theorem checkConstantValC_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF e
 /-- `checkDefnValCI` simulates the generic `checkDefnVal`: the record
 pushed onto the index is `mkFEnv` of the fueled environment, whose head
 stores the (fvar-free) value. -/
-theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cvA : ConstantVal}
+theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
     {value : Expr} {ve : Expr} {hint : ReducibilityHint}
-    (htf : Expr.WScoped 0 cvA.type)
+    (htf : Expr.WScoped 0 cv.type)
     (hdenv : RelC value ve) (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun ci w => (mkFEnv env).push ci = mkFEnv w ∧
-        ∀ cv' v' h', w.find? cvA.name = some (.defnInfo cv' v' h') →
+        ∀ cv' v' h', w.find? cv.name = some (.defnInfo cv' v' h') →
           v'.hasFvar = false)
-      (checkDefnValCI mode (mkFEnv env) cvA value hint)
-      (checkDefnVal (fueledOpsM mode) env cvA ve hint) := by
+      (checkDefnValCI mode (mkFEnv env) cv value hint)
+      (checkDefnVal (fueledOpsM mode) env cv ve hint) := by
   obtain rfl := hdenv
   unfold checkDefnValCI checkDefnVal
   by_cases h1 : Expr.looseBVarsBounded 0 value = true
@@ -156,7 +156,7 @@ theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
   have hwv : Expr.WScoped 0 value :=
     Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h2)
   rw [Expr.allLevelParamsDefinedC_spec]
-  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams value = true
+  by_cases h3 : Expr.allLevelParamsDefined cv.levelParams value = true
   case neg =>
     simp only [ite_eq_right h3]
     exact SimC.throw_bind
@@ -181,21 +181,21 @@ theorem checkDefnValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     simp only [↓reduceIte]
     refine SimC.pure hs₃ ⟨push_mkFEnv env _, ?_⟩
     intro cv' v' h' hf
-    rw [Env.find?_cons, ite_eq_left (show (ConstantInfo.defnInfo cvA value
-      hint).name = cvA.name from rfl)] at hf
+    rw [Env.find?_cons, ite_eq_left (show (ConstantInfo.defnInfo cv value
+      hint).name = cv.name from rfl)] at hf
     simp only [Option.some.injEq, ConstantInfo.defnInfo.injEq] at hf
     obtain ⟨-, rfl, -⟩ := hf
     exact Expr.not_hasFvar_of_fvarsBelow_zero hwv.fvarsBelow
 
 /-- `checkOpaqueValCI` simulates the generic `checkOpaqueVal`: the
 record pushed onto the index is `mkFEnv` of the fueled environment. -/
-theorem checkOpaqueValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cvA : ConstantVal}
+theorem checkOpaqueValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
     {value : Expr} {ve : Expr}
-    (htf : Expr.WScoped 0 cvA.type)
+    (htf : Expr.WScoped 0 cv.type)
     (hdenv : RelC value ve) (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun ci w => (mkFEnv env).push ci = mkFEnv w ∧ ve.hasFvar = false)
-      (checkOpaqueValCI mode (mkFEnv env) cvA value)
-      (checkOpaqueVal (fueledOpsM mode) env cvA ve) := by
+      (checkOpaqueValCI mode (mkFEnv env) cv value)
+      (checkOpaqueVal (fueledOpsM mode) env cv ve) := by
   obtain rfl := hdenv
   unfold checkOpaqueValCI checkOpaqueVal
   by_cases h1 : Expr.looseBVarsBounded 0 value = true
@@ -211,7 +211,7 @@ theorem checkOpaqueValCI_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF en
   have hwv : Expr.WScoped 0 value :=
     Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h2)
   rw [Expr.allLevelParamsDefinedC_spec]
-  by_cases h3 : Expr.allLevelParamsDefined cvA.levelParams value = true
+  by_cases h3 : Expr.allLevelParamsDefined cv.levelParams value = true
   case neg =>
     simp only [ite_eq_right h3]
     exact SimC.throw_bind

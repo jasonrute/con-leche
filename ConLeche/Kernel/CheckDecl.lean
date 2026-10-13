@@ -135,32 +135,31 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
         throw (.notImplemented "quotient soundness axiom mismatch"))
     else do
       checkConstantVal ops env cv
-      let cvA := cv
-      if stdAxiomOk env cvA then
-        pure ⟨.axiomInfo cvA :: env.consts⟩
-      else if cvA.name = trustCompilerName then
+      if stdAxiomOk env cv then
+        pure ⟨.axiomInfo cv :: env.consts⟩
+      else if cv.name = trustCompilerName then
         -- `Lean.trustCompiler : True` is trivially realizable (task
         -- #95): installed exactly like a checked `opaque` with witness
         -- value `True.intro` over the pinned `True` family — the pin
         -- guarantees everything the ordinary opaque check would have
         -- checked for that value, and the model interprets the constant
         -- by `True.intro`'s interpretation.
-        if trustCompilerOk env cvA then
-          pure ⟨.axiomInfo cvA :: env.consts⟩
+        if trustCompilerOk env cv then
+          pure ⟨.axiomInfo cv :: env.consts⟩
         else throw (.notImplemented
           s!"unsupported Lean.trustCompiler shape ({cv.name})")
-      else if cvA.name = ofReduceNatName ∨ cvA.name = ofReduceBoolName then
+      else if cv.name = ofReduceNatName ∨ cv.name = ofReduceBoolName then
         -- The pinned `ofReduce*` axioms (task #95): over the pinned
         -- `Eq` basis, the element inductive and the identity-certified
         -- reduce opaque, `∀ a b, reduce a = b → a = b` interprets to an
         -- inhabited proposition (the hypothesis *is* the conclusion).
-        if ofReduceAxOk env cvA then
-          pure ⟨.axiomInfo cvA :: env.consts⟩
+        if ofReduceAxOk env cv then
+          pure ⟨.axiomInfo cv :: env.consts⟩
         else throw (.notImplemented
           s!"unsupported compiler-trust axiom environment ({cv.name})")
-      else if cvA.name = propextName ∨ cvA.name = choiceName then
+      else if cv.name = propextName ∨ cv.name = choiceName then
         throw (.notImplemented s!"standard axiom shape mismatch ({cv.name})")
-      else if cvA.name = sorryAxName then
+      else if cv.name = sorryAxName then
         pure env
       else
         throw (.notImplemented s!"non-standard axiom ({cv.name})")

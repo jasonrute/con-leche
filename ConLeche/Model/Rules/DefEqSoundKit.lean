@@ -155,7 +155,7 @@ theorem acval_const_congr' {m : EnvModel V env} (hap : AcvalParams m)
 
 /-! ## The proof-irrelevance fast arm: the shared facts
 
-The licence itself (`prf_of_isProofFast`) is `ProofFastSound.lean`. -/
+The justification itself (`prf_of_isProofFast`) is `ProofFastSound.lean`. -/
 
 /-- Every application of `pt` is `pt` (`app_pt`, folded along a spine). -/
 theorem foldl_app_pt' {ρ : Nat → V} : ∀ (as : List ITerm),

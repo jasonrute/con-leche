@@ -91,21 +91,21 @@ theorem installStepC_model (hμ : μ.verifiedChecks = true)
     -- a separable value declaration: phase A's install (its facts
     -- given), phase B's check at the prefix view
     have value : ∀ (kind : ValueKind) (mk : ConstantVal → Expr → ConstantInfo)
-        (d : Declaration) (cvA : ConstantVal) (jv : Expr),
+        (d : Declaration) (cv : ConstantVal) (jv : Expr),
         pd = d →
         CSOKF s₁ →
-        fe₁ = fe.push (mk cvA jv) →
-        pend₁ = pend.push ⟨⟨kind, cvA, jv⟩, i, fe.visibleBelow⟩ →
-        Expr.WScoped 0 cvA.type →
+        fe₁ = fe.push (mk cv jv) →
+        pend₁ = pend.push ⟨⟨kind, cv, jv⟩, i, fe.visibleBelow⟩ →
+        Expr.WScoped 0 cv.type →
         (kind ≠ .thm → Expr.WScoped 0 jv) →
-        (∀ F, checkValueGroup (fueledOps μ F) fe.env ⟨kind, cvA, jv⟩ = .ok () →
-          ∃ F', checkDecl μ (fueledOps μ F') pins fe.env d = .ok ⟨mk cvA jv :: fe.env.consts⟩) →
+        (∀ F, checkValueGroup (fueledOps μ F) fe.env ⟨kind, cv, jv⟩ = .ok () →
+          ∃ F', checkDecl μ (fueledOps μ F') pins fe.env d = .ok ⟨mk cv jv :: fe.env.consts⟩) →
         EnvModelOk V μ fe₁.env ∧ CSOKF s₁ ∧
           ∃ F, checkDecl μ (fueledOps μ F) pins fe.env pd = .ok fe₁.env := by
-      intro kind mk d cvA jv hdrel hres₁ hfe₁' hpend₁' hwty hwv hsplit
+      intro kind mk d cv jv hdrel hres₁ hfe₁' hpend₁' hwty hwv hsplit
       subst hfe₁' hpend₁'
       -- the record's check, from a fresh memo state
-      have hmem : (⟨⟨kind, cvA, jv⟩, i, fe.visibleBelow⟩ : PendingCheck) ∈ q.2.2.toList := by
+      have hmem : (⟨⟨kind, cv, jv⟩, i, fe.visibleBelow⟩ : PendingCheck) ∈ q.2.2.toList := by
         rw [hpend₁, Array.toList_push]
         exact List.mem_append_left _ (List.mem_append_right _ (List.mem_singleton.mpr rfl))
       obtain ⟨sB, hchk⟩ := hB _ hmem
@@ -114,13 +114,13 @@ theorem installStepC_model (hμ : μ.verifiedChecks = true)
       have hfind : ∀ n, (q.2.1.restrictTo fe.env.consts.length).find? n = fe.env.find? n := by
         obtain ⟨newF, hnewF⟩ := hchainF.2.1
         exact restrictTo_find?_of_extends hchainF.canon hnd
-          (new := newF ++ [mk cvA jv]) (by rw [hnewF, List.append_assoc]; rfl)
+          (new := newF ++ [mk cv jv]) (by rw [hnewF, List.append_assoc]; rfl)
       obtain ⟨-, F₂, hC⟩ := checkPending_run hμ henv
-        (pc := ⟨⟨kind, cvA, jv⟩, i, fe.visibleBelow⟩) (by rw [hvis]; exact hfind)
+        (pc := ⟨⟨kind, cv, jv⟩, i, fe.visibleBelow⟩) (by rw [hvis]; exact hfind)
         hwty hwv CSOKF.empty hchk
       -- the two halves are the declaration's check
       obtain ⟨F', hF⟩ := hsplit F₂ hC
-      have hm₁ : EnvModelOk V μ (fe.push (mk cvA jv)).env :=
+      have hm₁ : EnvModelOk V μ (fe.push (mk cv jv)).env :=
         declStep_preserves hμ mp hcov hE (ConLeche.Semantics.checkDeclRun_ofEnvFactsK hF)
       exact ⟨hm₁, hres₁, F', hdrel ▸ hF⟩
     cases pd with

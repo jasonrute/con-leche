@@ -937,7 +937,7 @@ theorem genRow_hrule (hμ : μ.verifiedChecks = true)
 /-- **Row `huniq`**, from the classes' recorded clauses (`genUniq`): the
 class fit is the clause's hole fit at the carrier and the injection the
 clause's, definitionally; at `ℓ = 0` the conclusion's typing; at a
-`Prop`-valued class under a nonzero elimination level, the licence. -/
+`Prop`-valued class under a nonzero elimination level, the elimination guard. -/
 theorem genRow_huniq (hμ : μ.verifiedChecks = true)
     (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (ψ : Name → Nat)
     (ρ : Nat → V) (hB : GenClsBack pp out mpC d Dc mc cvc ψ ρ)
@@ -1427,7 +1427,7 @@ variable {F : Nat} {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
 variable (pp out mpC d Dc mc cvc g rd) in
 /-- **What the candidate still asks**, at one level assignment and base
 frame: the class facts (split both ways, decoding both ways), the
-classes' recorded clauses, the elimination licence, the generated `ih`s'
+classes' recorded clauses, the elimination guard, the generated `ih`s'
 data (callees, bounds, calls' typing), the stored conclusion as the
 motive applied, the minor premise's typing at the rule frame, the
 prefix positions, and the class induction (lane B2's interface). -/

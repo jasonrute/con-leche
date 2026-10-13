@@ -1126,7 +1126,7 @@ They are one theorem because they are one `&&`: stating them
 separately would mean reading the same guard three times, and the
 reason the arm may read it at all is the same in each case.
 
-**The pass is the licence; this theorem is the reading.**  The
+**The pass is the justification; this theorem is the reading.**  The
 antecedent `blockLargeElimAllowed = true` is produced by the counting
 pass: `checkBlockRecSmallElim` (`Kernel/Inductives/BlockInstall.lean`)
 states `blockLargeElimAllowed p nested || every level is zero` — the

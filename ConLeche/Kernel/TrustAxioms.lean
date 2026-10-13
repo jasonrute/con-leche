@@ -142,14 +142,14 @@ def ofReducePinA (n : Name) : ConstantVal :=
 be stored with the pinned shapes (so the synthesized value
 `True.intro` resolves and inhabits the pinned type), and the checked
 axiom's type must match the pin. -/
-def trustCompilerOk (env : Env) (cvA : ConstantVal) : Bool :=
+def trustCompilerOk (env : Env) (cv : ConstantVal) : Bool :=
   (match env.find? trueName with
    | some (.indInfo cvT _) => ConstantVal.matchesPin cvT trueCvA
    | _ => false) &&
   (match env.find? trueIntroName with
    | some (.ctorInfo cvTi 0 0) => ConstantVal.matchesPin cvTi trueIntroCvA
    | _ => false) &&
-  ConstantVal.matchesPin cvA trustCompilerA
+  ConstantVal.matchesPin cv trustCompilerA
 
 /-- Is the reduce operation `c` stored as a checked opaque
 (`axiomInfo`, the storage kind of every checked `opaque`) of the
@@ -173,12 +173,12 @@ environment?  Requires the pinned `Eq` basis (the type is an equality
 implication), the element inductive, and the reduce operation stored
 as a pinned opaque — whose install already ran the identity
 certificate (`checkReducePin`), the fact the model consumes here. -/
-def ofReduceAxOk (env : Env) (cvA : ConstantVal) : Bool :=
-  let c := ofReduceOp cvA.name
+def ofReduceAxOk (env : Env) (cv : ConstantVal) : Bool :=
+  let c := ofReduceOp cv.name
   decide (env.find? eqName = some eqA) &&
   reduceElemOk env c &&
   reduceStoredOk env c &&
-  ConstantVal.matchesPin cvA (ofReducePinA cvA.name)
+  ConstantVal.matchesPin cv (ofReducePinA cv.name)
 
 /-! ## The reduce-operation install pin -/
 

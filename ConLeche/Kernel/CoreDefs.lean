@@ -20,8 +20,8 @@ the literal shapes and their guards (`natLitToConstructor`,
 reducts and pins (`natOpNames`, `natDivModNames`, `natOpEquations`,
 `natOpResult`, `natOpStoredOk`, …), the structure-η fabrications
 (`etaProjs`, `etaFabArgsE`, `andRescueSlots`), the install-time rule
-bits (`recRuleBits`, `recRuleK`, `recFireComparands`), the ι licence
-(`iotaCtorLicensed`, `iotaCase3`) and the tower entry's readers
+bits (`recRuleBits`, `recRuleK`, `recFireComparands`), the ι case split
+(`iotaCtorNeverProp`, `iotaCase3`) and the tower entry's readers
 (`ProjEntry.fireOk`, `ProjEntry.typeAt`).
 
 Split out of `ConLeche/Kernel/Core.lean` at task #305 (prep): a
@@ -69,7 +69,7 @@ def capsNeverZero (lps : List Name) (us : List Level) (caps : IndCaps) :
     Bool :=
   (Level.substPW lps us caps.sortZ).isNever
 
-/-- **The ι licence's case test** (task #342 L10, the licence of task
+/-- **The ι case split's test** (task #342 L10, after task
 #349's prototype): is the constructor's family never `Prop` at the
 level instantiation `us`?  The ι step asks it at the rule's comparand
 levels (`recFireComparands`: the recursor's own instantiation, or a
@@ -82,7 +82,7 @@ and not the point, is an injection of fields that fit the family's
 constructor there.  Read off the family's recorded sort zero-ness
 (`IndCaps.sortZ`, recorded for every block member and for the pinned
 `Nat`, `Empty` and `Quot`). -/
-def iotaCtorLicensed (find? : Name → Option ConstantInfo) (cvj : ConstantVal)
+def iotaCtorNeverProp (find? : Name → Option ConstantInfo) (cvj : ConstantVal)
     (us : List Level) : Bool :=
   match (cvj.type.piResult).getAppFn with
   | .const T _ =>
@@ -92,7 +92,7 @@ def iotaCtorLicensed (find? : Name → Option ConstantInfo) (cvj : ConstantVal)
     | _ => false
   | _ => false
 
-/-- **Case 3 of the ι licence** (task #342 L10, S5c): a rule that is not
+/-- **Case 3 of the ι case split** (task #342 L10, S5c): a rule that is not
 K whose constructor's family may be `Prop` at the comparand levels `us`.
 There the constructor's levels and parameters are compared with the
 comparands, the constructor telescope is certified at the full grade,
@@ -101,7 +101,7 @@ and the indices are compared (task #342 L7's counterexample: at a
 a `.nested` rule alike. -/
 def iotaCase3 (find? : Name → Option ConstantInfo) (rl : RecRule) (cvj : ConstantVal)
     (us : List Level) : Bool :=
-  !rl.k && !iotaCtorLicensed find? cvj us
+  !rl.k && !iotaCtorNeverProp find? cvj us
 
 /-- Unfold the (application of a) definition at the head, one step.
 `none` when the head is not an unfoldable constant.  **Theorems are

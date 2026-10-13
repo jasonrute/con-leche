@@ -192,7 +192,7 @@ inductive Red (env : Env) : Nat → Expr → Expr → Prop where
   the constructor's full-grade telescope certificate and the index
   comparison are the checker's, in its order.
 
-  **The ι licence** (task #342 L10, S5c): `iotaCase3` at the comparand
+  **The ι case split** (task #342 L10, S5c): `iotaCase3` at the comparand
   levels is the checker's test.  A K rule, and a rule whose
   constructor's family is never `Prop` at the comparand levels (case 2),
   carry no premise about the constructor application; case 3 carries

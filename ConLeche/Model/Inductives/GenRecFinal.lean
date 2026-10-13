@@ -231,7 +231,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
   have heqP := genRecHeqP hμ R hg h hsP hrowP
   have hdataS := genRecHdataS hμ R hg h hndM heqB heqP hpre hfind
     (genRulePrefRead hμ mpC R hg h) (genRuleFieldRead R hg mpC.base2.acval) hrow3
-  -- the ι licence's facts (task #342 L10)
+  -- the ι case split's facts (task #342 L10)
   have hseam := genRecCtor_seam R hN hcore hctorsAs ⟨pk, uOfD, ppsOf, hdRe⟩ hcov
   have hleaf := blockRecLeafOk_of hμ mpC h heqB heqP hpre
   have hextra : ∀ (Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) →

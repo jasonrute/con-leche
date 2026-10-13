@@ -506,7 +506,7 @@ theorem harvestDefn (hμ : μ.verifiedChecks = true)
 (`ConstantValRun`, `ValueFrontRun`), the same leaf (the value's
 `denoteMeta` reading), the same claims, the same crossing.  The deltas:
 
-* the stored kind is `.thmInfo cvA` — no `hint`, and no div/mod
+* the stored kind is `.thmInfo cv` — no `hint`, and no div/mod
   pin clause;
 * there is no erasure link to read: a theorem is opaque to reduction
   (`unfoldDefinition` has no `thmInfo` arm — anticipating

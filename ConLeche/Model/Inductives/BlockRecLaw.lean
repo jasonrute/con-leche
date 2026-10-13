@@ -80,20 +80,20 @@ iterated form would need an `EnvModelM` at each intermediate
 environment, and the statement `hrecP` is posed at is about an
 arbitrary `EnvModel` of the final one. -/
 
-/-- **(S)'s `iotaCtorLicensed` guard, across the `k` recursors' cons**:
-mirrors `iotaCtorLicensed_cons_of_isSome` (`Model/RecRulesCons.lean`) —
+/-- **(S)'s `iotaCtorNeverProp` guard, across the `k` recursors' cons**:
+mirrors `iotaCtorNeverProp_cons_of_isSome` (`Model/RecRulesCons.lean`) —
 it reads `find?` only at the constructor's result family, and that
 name is stored below the new recursors (not one of the `k` fresh
 names) whenever the constructor's type resolves. -/
-theorem iotaCtorLicensed_consBlockRecsR_of_isSome {R : Nat → RecDatum → List RecRule}
+theorem iotaCtorNeverProp_consBlockRecsR_of_isSome {R : Nat → RecDatum → List RecRule}
     {q : BlockShape} {rs : List RecDatum} {envC : Env}
     (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
     {cvj : ConstantVal} {usj : List Level}
     (hT : ∀ T us, cvj.type.piResult.getAppFn = .const T us →
       (envC.find? T).isSome = true) :
-    ConLeche.iotaCtorLicensed (consBlockRecsR R q 0 rs envC).find? cvj usj
-      = ConLeche.iotaCtorLicensed envC.find? cvj usj := by
-  unfold ConLeche.iotaCtorLicensed
+    ConLeche.iotaCtorNeverProp (consBlockRecsR R q 0 rs envC).find? cvj usj
+      = ConLeche.iotaCtorNeverProp envC.find? cvj usj := by
+  unfold ConLeche.iotaCtorNeverProp
   match hh : cvj.type.piResult.getAppFn with
   | .bvar _ | .fvar _ _ | .sort _ | .app _ _ | .lam _ _
   | .forallE _ _ | .letE _ _ _ | .lit _ | .proj _ _ _ => rfl
@@ -111,9 +111,9 @@ theorem iotaCtorLicensed_consBlockRecsR_of_isSome {R : Nat → RecDatum → List
 conjunct, `recRuleExtra_cons_prefix`'s (`Model/RecRulesCons.lean`) twin
 at `consBlockRecsR`: the crossing is `hmono` in place of
 `denoteMeta_cons_mono` and the valuation's agreement off the new names
-(`hacvAt`) in place of `acvalWith_ne`.  Clause (S)'s `iotaCtorLicensed`
+(`hacvAt`) in place of `acvalWith_ne`.  Clause (S)'s `iotaCtorNeverProp`
 guard agrees with the constructors' environment's for the same reason
-as there (`iotaCtorLicensed_consBlockRecsR_of_isSome`). -/
+as there (`iotaCtorNeverProp_consBlockRecsR_of_isSome`). -/
 theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
     {envC : Env} {acv : Name → (Name → Nat) → ITerm} (mpC : EnvModelM V μ envC)
     (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
@@ -197,10 +197,10 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
         Option.some.inj ((hmono _ 0 _ (constsBound_instType mpC.base2.wf
           (ConLeche.Semantics.Env.find?_mem hfcjE) usj) hTVja').symm.trans hTVja)
       exact hTVja'
-    -- (S)/(T)'s `iotaCtorLicensed` guard is the prefix's
+    -- (S)/(T)'s `iotaCtorNeverProp` guard is the prefix's
     have hlicE : ∀ lvs : List Level,
-        ConLeche.iotaCtorLicensed (consBlockRecsR R q 0 rs envC).find? cvj lvs
-          = ConLeche.iotaCtorLicensed envC.find? cvj lvs := by
+        ConLeche.iotaCtorNeverProp (consBlockRecsR R q 0 rs envC).find? cvj lvs
+          = ConLeche.iotaCtorNeverProp envC.find? cvj lvs := by
       intro lvs
       obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
         mpC.base2.wf _ (ConLeche.Semantics.Env.find?_mem hfcjE)
@@ -209,7 +209,7 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
           (envC.find? T).isSome = true :=
         fun T us' heq' =>
           ConLeche.Expr.find?_isSome_of_piResult_getAppFn_const hresolve heq'
-      exact iotaCtorLicensed_consBlockRecsR_of_isSome hfr hTiso
+      exact iotaCtorNeverProp_consBlockRecsR_of_isSome hfr hTiso
     obtain ⟨hS, hT, hPU⟩ := hnk hk
     refine ⟨fun hlic => hS (by rwa [hlicE] at hlic), ?_, ?_⟩
     · intro hlic usj husj TVja hTVja ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hne
@@ -605,7 +605,7 @@ context-guarded grading — vacuous at a rule that does not fire
           TeleFitPA V ρ TVa zs restR →
           WellDenoted V ρ (ConLeche.Model.ITerm.instRevChain zs vpa)
 
-/-! ### 7a. `RecRuleLaw`'s licence facts (task #342 L10)
+/-! ### 7a. `RecRuleLaw`'s ι facts (task #342 L10)
 
 `RecRuleExtra` splits in two.  Its K clause (the law at ANY major) is
 derived from the main law at a FIRED spine — the K witness
@@ -714,13 +714,13 @@ arity, and for a rule that is not K the (S), (T), (P), (U) clauses
     (cvj.type.stripPis (RecRule.ctorParams rl + RecRule.nfields rl)).isSome = true ∧
     (RecRule.k rl = false →
     -- (S)
-    (ConLeche.iotaCtorLicensed env.find? cvj
+    (ConLeche.iotaCtorNeverProp env.find? cvj
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true →
       ∀ (ρ : Nat → V) (xs : List ITerm) (a restR : ITerm),
         xs.length = mI → TeleFitPA V ρ TVa (xs ++ [a]) restR →
         interp V ρ a ≠ pt) ∧
     -- (T)
-    (ConLeche.iotaCtorLicensed env.find? cvj
+    (ConLeche.iotaCtorNeverProp env.find? cvj
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams [] rP).1 = true →
       ∀ (usj : List Level), usj.length = cvj.levelParams.length →
       ∀ TVja : ITerm,

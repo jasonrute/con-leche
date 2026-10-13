@@ -387,7 +387,7 @@ theorem mkAppN_head {ρ : Nat → V} :
     have h' : WellDenoted V ρ (.app f a) := mkAppN_head as h
     exact (cast (WellDenoted_app V ρ f a) h').1
 
-/-- **The ι-slot licence, one slot**: a graph member of two function
+/-- **The ι-slot transfer, one slot**: a graph member of two function
 spaces fixes their common domain; a member of a truth-value slot is the
 point, which no graph is. -/
 theorem slotTransfer {v v' : Nat} {A A' f a : V} {B B' : V → V}

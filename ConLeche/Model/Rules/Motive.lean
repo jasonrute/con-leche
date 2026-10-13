@@ -222,7 +222,7 @@ sort, at the hereditary clause's witness. -/
   | .full, d, e, t => InferSemFull m φ d e t
   | .io, d, e, t => InferSemIO m φ d e t
 
-/-- **The licensed telescope check's motive**: a spine of the subject
+/-- **The arity-checked telescope's motive**: a spine of the subject
 whose head's telescope has the spine's syntactic arity fits the
 telescope's reading, substitution-peeling, where the spine is graded,
 its head a member of the telescope's reading and the application not

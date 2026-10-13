@@ -124,7 +124,7 @@
 #       official kernel's `replace_fn` keys its cache on
 #       (`is_likely_unshared`); the walks memoise exactly the nodes it
 #       reports shared.  The obligation `h : k true = k false` is what
-#       licenses the substitution: the continuation cannot observe the
+#       justifies the substitution: the continuation cannot observe the
 #       answer, so the compiled program computes the definition's
 #       value — the same arrangement as `Init.Util`'s `withPtrAddr`
 #       (`k 0` in the model, the address in the binary).  Every use in
