@@ -528,7 +528,7 @@ leaves among the openers. -/
 theorem genMinorOpen (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
@@ -795,7 +795,7 @@ prefix openers, then the minor premise's field openers at the rule prefix
 theorem genFieldFrame (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
@@ -942,7 +942,7 @@ minor premise's conclusion, which the stored type's inference infers. -/
 theorem genArgs_graded (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
@@ -1075,7 +1075,7 @@ graded — all from the stored type's inference of the `ih` binder. -/
 theorem genIhFrame (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))
@@ -1385,7 +1385,7 @@ name only its own level parameters. -/
 theorem genRowParams (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2)) :
@@ -1465,7 +1465,7 @@ tower is then a truth value (`mkPisAV_mem_univZero`). -/
 theorem genRecTyZ (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC) :
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (mpC : EnvModelM V μ envC) :
     ∀ c, c < (tgtRs out).length → ∀ (ψ : Name → Nat) (ρ : Nat → V),
       Level.eval ψ (ConLeche.structElimLevel pp.toBlockShape.elim pp.toBlockShape.large) = 0 →
       interp V ρ (blockRecTyAV mpC.base2.acval envC (tgtRs out) ψ c) ∈ˢ (univZero : V) := by
@@ -1542,7 +1542,7 @@ is the point (`genMinor_pt`), so is every body value, and so is the tower
 theorem genRuleRaZ (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out) (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) (mpC : EnvModelM V μ envC)
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) (mpC : EnvModelM V μ envC)
     (hfind : ∀ (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[j]? = some r → ∀ (i : Nat) (cA : ConstantVal × Nat), r.2.2.2[i]? = some cA →
         envC.find? cA.1.name = some (.ctorInfo cA.1 (ConLeche.tgtMajorsOf out j).nPc cA.2))

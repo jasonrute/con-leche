@@ -212,7 +212,7 @@ theorem isDefEqCore_self {envK : Env} {F d : Nat} (a : Expr) :
 
 open ConLeche (BlockParts BlockShape RecShape GenRecRun ClassRecTyRun FEnv mkFEnv NestState
   ConstantInfo TargetMajor RecStageG RecStage RecTyGen RecPrefixSame RuleOutOk tgtRs
-  structElimLevel fueledOps consBlockRecsBare consBlockRecsBareF classFeR classRecOf
+  structElimLevel consBlockRecsBare consBlockRecsBareF classFeR classRecOf
   classRulesOk classRuleOk StructWalkers)
 
 section Stage
@@ -357,7 +357,7 @@ theorem recStage_of_gen (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
     (hg : ClassGenScoped R.g) :
-    RecStageG μ F envC p cvTas ctorsAs (tgtRs out) := by
+    RecStageG μ F envC p cvTas (tgtRs out) := by
   have hcvGs := R.hcvGs
   have hrules := R.hrules
   obtain ⟨hlenG, hallG⟩ := ConLeche.classRecTysOk_run hcvGs

@@ -1193,7 +1193,7 @@ by the family's valuation as that position's leaf. -/
 theorem genHcallee
     (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block ctorsAs
       out)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out))
     (hnd : ((tgtRs out).map (·.1.name)).Nodup)
     {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
     {Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
@@ -1526,7 +1526,7 @@ theorem genRulePrefRead (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ e
     (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
       ctorsAs out)
     (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) :
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) :
     GenRulePrefRead mpC.base2.acval envC pp.toBlockShape out := by
   intro j r hr i cA rhs hcA hrhs ψ bs body hop
   obtain ⟨cls, x, fvs0, res0, hc, hrP, -, -, -, -, hop0, -, -, -, hcx, hnF, hxmem, -, -, -,
@@ -1817,7 +1817,7 @@ theorem genRecHeqB_R (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
       ctorsAs out)
     (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) :
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) :
     ∀ (ψ : Name → Nat) (e : ITerm),
       e ∈ blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
@@ -1853,7 +1853,7 @@ terms are parametric at the stored rule's footprint
 theorem genRecHeqP_R (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
       ctorsAs out)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out))
     {s : (Name → Nat) → Nat}
     (hsP : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[i]? = some r → ∀ (ψ₁ ψ₂ : Name → Nat),
@@ -1909,12 +1909,11 @@ theorem genRecHeqP_R (hμ : μ.verifiedChecks = true)
 /-- **The environment crossing at `CBNF`**: a term whose constants
 (free variables forgotten) are the constructors' environment's reads
 alike there and at the recursors' cons. -/
-theorem blockRecDenote_cross_CBNF {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))} {F : Nat}
+theorem blockRecDenote_cross_CBNF {envC : Env} {pp : BlockParts} {cvTas : List ConstantVal} {F : Nat}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
     {mpC : EnvModelM V μ envC} {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
     {R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs rs)
+    (h : ConLeche.RecStageG μ F envC pp cvTas rs)
     (ψ : Name → Nat) (d : Nat) (e : Expr) (hcb : CBNF envC e) :
     denoteMeta mpC.base2.acval envC ψ d e
       = denoteMeta (blockRecAcv mpC.base2.acval envC rs s eqs)
@@ -1939,7 +1938,7 @@ theorem genRecHdataS (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
       ctorsAs out)
     (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out))
     (hndM : pp.toBlockShape.memberNames.Nodup)
     {s : (Name → Nat) → Nat}
     (heqB : ∀ (ψ : Name → Nat), ∀ e ∈ (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
@@ -2130,7 +2129,7 @@ theorem genEqs_eq_R
     (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
       ctorsAs out)
     (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out))
     (ψ : Name → Nat) :
     (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
@@ -2155,7 +2154,7 @@ theorem genRecHeqB (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
       ctorsAs out)
     (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out)) :
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out)) :
     ∀ (ψ : Name → Nat) (e : ITerm), e ∈ (blockRecEqs (blockRecNCt (tgtRs out)) (tgtRs out)
           (fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
           (fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)
@@ -2171,7 +2170,7 @@ theorem genRecHeqP (hμ : μ.verifiedChecks = true)
     (R : GenRecRun μ F fe₁ env₁ (ConLeche.mkFEnv envC) pp.toBlockShape nb pos cvTas block
       ctorsAs out)
     (hg : ClassGenScoped R.g)
-    (h : ConLeche.RecStageG μ F envC pp cvTas ctorsAs (tgtRs out))
+    (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out))
     {s : (Name → Nat) → Nat}
     (hsP : ∀ (i : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)),
       (tgtRs out)[i]? = some r → ∀ (ψ₁ ψ₂ : Name → Nat),
