@@ -356,7 +356,7 @@ theorem denote_holeHead {ctx : NestCtx} {t l : Nat} {e : Expr} {ea : Term}
     exact noBVar_holeSlots_of_nestOcc (hwArgs a ha) (hfree a ha) hr
 
 /-- An application spine grows at the right. -/
-theorem Term.mkAppN_snoc' :
+theorem _root_.ConLeche.Term.Term.mkAppN_snoc' :
     ∀ (as : List Term) (f a : Term),
       Term.mkAppN f (as ++ [a]) = .app (Term.mkAppN f as) a := by
   intro as

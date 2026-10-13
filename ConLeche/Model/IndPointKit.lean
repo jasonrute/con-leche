@@ -87,7 +87,7 @@ theorem instSeqAV_mkAppN : ∀ (as : List Term) (t : Nat) (f : Term)
 
 /-- Applications of equal arity are equal only at equal heads and
 equal argument lists (`Term.mkAppN_inj`). -/
-theorem Term.mkAppN_inj :
+theorem _root_.ConLeche.Term.Term.mkAppN_inj :
     ∀ {as bs : List Term} {f g : Term},
       Term.mkAppN f as = Term.mkAppN g bs → as.length = bs.length →
       f = g ∧ as = bs := by

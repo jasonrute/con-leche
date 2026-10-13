@@ -300,10 +300,10 @@ theorem DenoteSpine.getD_read {d : Nat} :
       DenoteSpine.getD_read hsp (Nat.lt_of_succ_lt_succ hk)
 
 /-- An application spine splits at any point. -/
-theorem iTermMkAppN_append (f : Term) :
+theorem _root_.ConLeche.Term.Term.mkAppN_append (f : Term) :
     ∀ (as bs : List Term),
       Term.mkAppN f (as ++ bs) = Term.mkAppN (Term.mkAppN f as) bs
   | [], _ => rfl
-  | _ :: as, bs => iTermMkAppN_append _ as bs
+  | _ :: as, bs => mkAppN_append _ as bs
 
 end ConLeche.Model

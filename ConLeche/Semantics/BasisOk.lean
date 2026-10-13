@@ -43,7 +43,7 @@ open ConLeche.Verify (projNV)
 open ConLeche.SetModel
 
 open SetTheory
-open ConLeche.Term (Term BConst lv)
+open ConLeche.Term (Term BConst lv emptyT)
 open ConLeche.SetTheory.Tower (mkTower projS)
 
 universe w
@@ -127,7 +127,7 @@ theorem bval_mem_emptyRec (us : List Nat) (ρ : Nat → V) :
     bval V .emptyRec us
       ∈ˢ interp V ρ (BConst.typeAV .emptyRec us) := by
   show emptyRecV V (lv us 1) ∈ˢ _
-  simp only [BConst.typeAV, arrowA, emptyAV, interp_pi, interp_const,
+  simp only [BConst.typeAV, arrowA, emptyT, interp_pi, interp_const,
     interp_app, interp_bvar, interp_sort, Term.lift, Term.liftN, cons_zero,
     cons_succ, bval]
   exact lamV_mem (fun _ _ => lamV_mem (fun t ht => absurd ht (not_mem_empty t))
@@ -277,7 +277,7 @@ theorem bval_mem_propext (us : List Nat) (ρ : Nat → V) :
 theorem bval_mem_choice (us : List Nat) (ρ : Nat → V) :
     bval V .choice us ∈ˢ interp V ρ (BConst.typeAV .choice us) := by
   show choiceV V (lv us 0) ∈ˢ _
-  simp only [BConst.typeAV, negTyAV, arrowA, emptyAV, interp_pi,
+  simp only [BConst.typeAV, negTyAV, arrowA, emptyT, interp_pi,
     interp_bvar, interp_sort, interp_const, Term.lift, Term.liftN, cons_zero,
     cons_succ, bval, piV_dneg_eq]
   exact choiceV_mem V _

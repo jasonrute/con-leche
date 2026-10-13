@@ -10,10 +10,8 @@ public import ConLeche.Verify.Denote
 # `BConst.typeAV` — the spelled basis-constant types (#151)
 
 The first of the two suppliers the skeleton's `const` row waits on
-(`Semantics/Skeleton.lean`): the `Term` mirror of
-`ConLeche/Term/Const.lean`'s `BConst.type`, so that a built-in constant's
-type can be *written* as an `Term` at all (`BConst.type` yields a
-`Term`, not an `Term`).
+(`Semantics/Skeleton.lean`): each built-in constant's type, *written*
+as a `Term`.
 
 The spelling carries no regime: `interp` reads each binder's regime off
 the values (`piV`/`lamV`).  A codomain `Sort k` makes a function space
@@ -42,12 +40,13 @@ namespace ConLeche.Semantics
 open ConLeche.Verify (projNV)
 
 
-open ConLeche.Term (Term BConst lv tupleIdxSort tupleFamSort)
+open ConLeche.Term (Term BConst lv tupleIdxSort tupleFamSort emptyT)
 
 /-! ## `Term` smart constructors
 
-Mirrors of `ConLeche/Term/Const.lean`'s, one per former the basis types
-mention.  Each carries the level numerals its own shape fixes. -/
+One per former the basis types mention, beside
+`ConLeche/Term/Const.lean`'s `emptyT`.  Each carries the level numerals
+its own shape fixes. -/
 
 /-- `Nat` -/
 def natTyAV : Term := .const .nat []
@@ -57,8 +56,6 @@ def natZeroAV : Term := .const .natZero []
 def natSuccAV (e : Term) : Term := .app (.const .natSucc []) e
 /-- `PUnit.{u}` -/
 def punitAV (u : Nat) : Term := .const .punit [u]
-/-- `Empty.{u}` -/
-def emptyAV (u : Nat) : Term := .const .empty [u]
 /-- `@BConst.psigma.{u,v} A B`, the dependent pair -/
 def psigmaAV (u v : Nat) (A B : Term) : Term :=
   Term.mkAppN (.const .psigma [u, v]) [A, B]
@@ -79,7 +76,7 @@ def relAV (A : Term) : Term :=
   .pi A (.pi A.lift (.sort 0))
 
 /-- `¬ A`, i.e. `A → False`. -/
-def negTyAV (A : Term) : Term := arrowA A (emptyAV 0)
+def negTyAV (A : Term) : Term := arrowA A (emptyT 0)
 
 /-! ## The block carrier's tuple spelling (#315)
 
@@ -153,8 +150,8 @@ def BConst.typeAV : BConst → List Nat → Term
   | .empty, us => .sort (lv us 0)
   | .emptyRec, us =>
     let u := lv us 0; let v := lv us 1
-    .pi (arrowA (emptyAV u) (.sort v)) <|
-    .pi (emptyAV u) <|
+    .pi (arrowA (emptyT u) (.sort v)) <|
+    .pi (emptyT u) <|
     .app (.bvar 1) (.bvar 0)
   | .quot, us =>
     let u := lv us 0

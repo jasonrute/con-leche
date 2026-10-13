@@ -75,11 +75,11 @@ theorem mkAppN_append' : ∀ (as bs : List Expr) (f : Expr),
 
 omit [SetTheory V] in
 /-- Lifting an application spine lifts its head and arguments. -/
-theorem iTermLiftN_mkAppN (n k : Nat) :
+theorem _root_.ConLeche.Term.Term.liftN_mkAppN (n k : Nat) :
     ∀ (as : List Term) (f : Term),
       (Term.mkAppN f as).liftN n k = Term.mkAppN (f.liftN n k) (as.map (·.liftN n k))
   | [], _ => rfl
-  | a :: as, f => iTermLiftN_mkAppN n k as (.app f a)
+  | a :: as, f => liftN_mkAppN n k as (.app f a)
 
 omit [SetTheory V] in
 /-- Scoping transfers along erasure: the annotations are the scoped
@@ -815,9 +815,9 @@ theorem genCls_open (hμ : μ.verifiedChecks = true)
         show (tgtMajor out c).ds.length + (tgtClsD d Dc out c).k - 1
             - ((tgtClsD d Dc out c).k - 1 - tgtClsM mc pp.toBlockShape out c)
           = (tgtMajor out c).ds.length + tgtClsM mc pp.toBlockShape out c by omega,
-        hr, Option.getD_some, iTermLiftN_mkAppN,
+        hr, Option.getD_some, Term.liftN_mkAppN,
         liftN_eq_self_of_closed (mpC.base2.cval_closed _ _) 0 _]
-    rw [Term.substAV_mkAppN, hhead, ← iTermMkAppN_append] at heq
+    rw [Term.substAV_mkAppN, hhead, ← Term.mkAppN_append] at heq
     have hvsE := Term.mkAppN_inj_head heq.symm
     have hvsM := denoteSpine_eq_map hvs
     rw [tgtEsAV, hcbE, hcE, Expr.getAppArgs_mkAppN, hB]

@@ -313,7 +313,7 @@ theorem numeralAV_wellDenoted : ∀ (i : Nat) (ρ : Nat → V), WellDenoted V ρ
     rw [interp_numeralAV]
     exact vnat_mem_omega i
 
-theorem numeralAV_erase_below (i k : Nat) : Term.bvarsBelow k (numeralAV i) := by
+theorem numeralAV_below (i k : Nat) : Term.bvarsBelow k (numeralAV i) := by
   induction i with
   | zero => trivial
   | succ i ih => exact ⟨trivial, ih⟩
@@ -2124,7 +2124,7 @@ theorem sumMkAV_below {w j : Nat} {ds : List Term}
     have hmk := mkTowerGoU_below (w := w) (E := idxEqAV [])
       (DomsBelow_append_idxEq hF fun _ h => nomatch h)
     have := sumInjAtAV_below (w := w) (K := k + nP) (Fss := Fss) (d := Fs.length)
-      (tag := numeralAV j) (payload := mkTowerGoU w Fs (idxEqAV [])) hFss (numeralAV_erase_below j _) hmk
+      (tag := numeralAV j) (payload := mkTowerGoU w Fs (idxEqAV [])) hFss (numeralAV_below j _) hmk
     rwa [show k + nP + Fs.length = k + ds.length from by omega] at this)
 
 end ConLeche.Semantics

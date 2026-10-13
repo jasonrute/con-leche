@@ -246,7 +246,7 @@ theorem wellDenoted_mkAppN_snoc_congrK {ρ : Nat → V} {f a a' : Term}
     (h : WellDenoted V ρ (Term.mkAppN f (as ++ [a])))
     (ha' : WellDenoted V ρ a') (heq : interp V ρ a = interp V ρ a') :
     WellDenoted V ρ (Term.mkAppN f (as ++ [a'])) := by
-  rw [iTermMkAppN_append] at h ⊢
+  rw [Term.mkAppN_append] at h ⊢
   exact wellDenoted_app_congr_argK h ha' heq
 
 /-! ## The fired rule's right-hand side and the telescope residual -/

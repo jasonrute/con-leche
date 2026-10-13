@@ -147,7 +147,7 @@ theorem sizeOf_le_mkAppN : ∀ (as : List Term) (f : Term),
 omit [SetTheory V] in
 /-- **Two applications of the same head are equal only at equal
 argument lists.** -/
-theorem Term.mkAppN_inj_head {f : Term} :
+theorem _root_.ConLeche.Term.Term.mkAppN_inj_head {f : Term} :
     ∀ {as bs : List Term}, Term.mkAppN f as = Term.mkAppN f bs → as = bs := by
   intro as bs h
   rcases Nat.lt_trichotomy as.length bs.length with hlt | heq | hgt
@@ -155,7 +155,7 @@ theorem Term.mkAppN_inj_head {f : Term} :
     obtain ⟨b₁, b₂, rfl, hl⟩ : ∃ b₁ b₂, bs = b₁ ++ b₂ ∧ b₂.length = as.length :=
       ⟨bs.take (bs.length - as.length), bs.drop (bs.length - as.length), by simp,
         by rw [List.length_drop]; omega⟩
-    rw [iTermMkAppN_append] at h
+    rw [Term.mkAppN_append] at h
     obtain ⟨hf, -⟩ := Term.mkAppN_inj h hl.symm
     have hne : b₁ ≠ [] := by
       intro h0; subst h0; rw [List.nil_append] at hlt; omega
@@ -170,7 +170,7 @@ theorem Term.mkAppN_inj_head {f : Term} :
     obtain ⟨a₁, a₂, rfl, hl⟩ : ∃ a₁ a₂, as = a₁ ++ a₂ ∧ a₂.length = bs.length :=
       ⟨as.take (as.length - bs.length), as.drop (as.length - bs.length), by simp,
         by rw [List.length_drop]; omega⟩
-    rw [iTermMkAppN_append] at h
+    rw [Term.mkAppN_append] at h
     obtain ⟨hf, -⟩ := Term.mkAppN_inj h hl
     have hne : a₁ ≠ [] := by
       intro h0; subst h0; rw [List.nil_append] at hgt; omega

@@ -204,7 +204,7 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
   case lfpTuple k => exact WellDenoted_lfpTuple V k us ρ
   all_goals
     simp +contextual +decide only [BConst.typeAV, arrowA, relAV, negTyAV,
-      natTyAV, natZeroAV, natSuccAV, punitAV, emptyAV,
+      natTyAV, natZeroAV, natSuccAV, punitAV, emptyT,
       psigmaAV, quotAV, quotMkAV, Term.mkAppN, Term.lift,
       Term.liftN, WellDenoted_pi, WellDenoted_app, WellDenoted_eqE,
       WellDenoted_bvar, WellDenoted_sort, WellDenoted_const,
