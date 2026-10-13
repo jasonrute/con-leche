@@ -4,7 +4,6 @@ public import ConLeche.Verify.Inductives.BlockRecRun
 import ConLeche.Verify.ProjSlots
 import ConLeche.Verify.CheckerF
 public import ConLeche.Verify.Inductives.BlockWF
-import ConLeche.Verify.Inductives.NestedRead
 import ConLeche.Verify.Inductives.DirectGen
 
 public section

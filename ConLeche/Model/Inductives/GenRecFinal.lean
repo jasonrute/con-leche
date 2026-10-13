@@ -22,7 +22,6 @@ import ConLeche.Model.Inductives.GenClsData
 import ConLeche.Model.Inductives.GenRecExtra
 import ConLeche.Verify.Inductives.GenRecScoped
 import ConLeche.Verify.Inductives.NestNfScope
-import ConLeche.Verify.CheckerF
 
 public section
 

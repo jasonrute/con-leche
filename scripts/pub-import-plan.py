@@ -755,6 +755,14 @@ FALLBACK = {
     # (`:78`, `:81`); each MEASURED by demoting it alone.
     ('ConLeche.Model.Inductives.GenClassNodes', 'ConLeche.Model.Inductives.GenRecAssembly'),
     ('ConLeche.Model.Inductives.GenClassNodes', 'ConLeche.Model.Inductives.TargetNodePres'),
+    # task #342 (s5c): `NestedRead` (a `def … : Prop`) and `ClassOutParams`
+    # are named in these files' own public statements (`TargetAuxFire.lean:237`,
+    # `TargetRecC.lean:433`, `GenRecC.lean:190`), which the census does not
+    # attribute to the importing module; each MEASURED by demoting it alone
+    # (unknown identifier).
+    ('ConLeche.Verify.Inductives.TargetAuxFire', 'ConLeche.Verify.Inductives.NestedRead'),
+    ('ConLeche.Verify.Cached.TargetRecC', 'ConLeche.Verify.Inductives.NestedRead'),
+    ('ConLeche.Verify.Cached.GenRecC', 'ConLeche.Verify.Inductives.TargetAuxFire'),
 }
 
 # `whitepaper/` (task #324) is its own lake library — the paper's Lean

@@ -3,9 +3,7 @@ module
 public import ConLeche.Verify.Cached.TargetRecC
 public import ConLeche.Kernel.Inductives.GenRec
 import ConLeche.Verify.Inductives.RecCheckScope
-import ConLeche.Verify.Inductives.GenRecRun
 import ConLeche.Verify.BridgeDecl
-import ConLeche.Verify.Inductives.RecStage
 import ConLeche.Verify.BridgeWfImp
 import ConLeche.Verify.Cached.WalkersC
 import ConLeche.Verify.Cached.NestPosC
