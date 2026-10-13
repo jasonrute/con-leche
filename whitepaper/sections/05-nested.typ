@@ -280,7 +280,7 @@ takes the constructor's levels and parameters to be the recursor's
 own. At a container class they are not: $ListCons$ in the class
 $List thick (Tree thick alpha)$ has the parameter $Tree thick alpha$,
 not the recursor's $alpha$, and $List$'s level names, not $Tree$'s. So
-#src("ConLeche/Kernel/Env.lean", 103, 109)[each rule of a recursor at a container class stores the instantiation]
+#src("ConLeche/Kernel/Env.lean", 104, 110)[each rule of a recursor at a container class stores the instantiation]
 — the class's levels and parameters, as terms in the recursor's
 level parameters and parameters
 (#src("ConLeche/Kernel/Inductives/RecCheck.lean", 602, 614)[the stored rules at a container class]).

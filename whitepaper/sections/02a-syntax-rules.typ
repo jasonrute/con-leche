@@ -64,8 +64,8 @@ and does not verify it.  It #src("whitepaper/Fragment/Level.lean", 130, 145)[_as
 specification: $u <= v$ is answered yes exactly when the value of $u$
 is at most the value of $v$ at every valuation, and $u = v$ exactly
 when the values agree at every valuation
-(#src("ConLeche/Kernel/Level.lean", 143, 145)[the real $<=$],
-#src("ConLeche/Kernel/Level.lean", 163, 166)[the real $=$] and their
+(#src("ConLeche/Kernel/Level.lean", 144, 146)[the real $<=$],
+#src("ConLeche/Kernel/Level.lean", 164, 167)[the real $=$] and their
 #src("ConLeche/Verify/Level.lean", 173, 174)[soundness]
 #src("ConLeche/Verify/Level.lean", 201, 202)[proofs]).  We write
 $u eq.dot v$ for "the oracle says $u = v$".
@@ -296,8 +296,8 @@ itself in place of the variable.
 
 #real[
   The checker substitutes the value in the same way, both when it
-  #src("ConLeche/Kernel/Core.lean", 921, 923)[reduces] and when it
-  #src("ConLeche/Kernel/Core.lean", 1102, 1107)[infers]; it keeps no
+  #src("ConLeche/Kernel/Core.lean", 943, 945)[reduces] and when it
+  #src("ConLeche/Kernel/Core.lean", 1124, 1129)[infers]; it keeps no
   variables bound to values.
   Lean's kernel opens the body at such a variable instead, which avoids
   copying the value when the body uses it many times; for con-leche

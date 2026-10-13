@@ -11,7 +11,7 @@ checking what the official kernel checks (on a few features it declines
 instead; @sec:left-out). It comes with a proof, written in Lean itself, of what an
 acceptance means: every environment the checker accepts
 #src("ConLeche/MainTheorem.lean", 96, 99)[has a model in set theory].
-#src("ConLeche/Denotes.lean", 266, 286)[Each constant is assigned a set], each type denotes a set, and every stored
+#src("ConLeche/Denotes.lean", 269, 289)[Each constant is assigned a set], each type denotes a set, and every stored
 constant is a member of the set its type denotes; the constant `False`
 denotes the empty set, and `Eq` denotes set equality, so every equation
 the checker accepts is an equality of sets.
