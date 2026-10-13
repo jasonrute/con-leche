@@ -1277,18 +1277,18 @@
    795        Infer env Γ (b.inst v) B →
    796        Infer env Γ (letE T v b) B
 
-== ConLeche/Kernel/Core.lean#L921-L923
-   921      | .letE _ v b =>
-   922        -- Task #342 S0: ζ
-   923        r.whnfCore cheap depth (b.instantiate1 v)
+== ConLeche/Kernel/Core.lean#L949-L951
+   949      | .letE _ v b =>
+   950        -- Task #342 S0: ζ
+   951        r.whnfCore cheap depth (b.instantiate1 v)
 
-== ConLeche/Kernel/Core.lean#L1102-L1107
-  1102      | .letE ty v b => do
-  1103        -- Task #342 S0: official `infer_let`
-  1104        let _ ← ensureSort r env depth (← r.infer depth ty)
-  1105        unless ← r.defeq depth (← r.infer depth v) ty do
-  1106          throw (.invalid "let value type mismatch")
-  1107        r.infer depth (b.instantiate1 v)
+== ConLeche/Kernel/Core.lean#L1141-L1146
+  1141      | .letE ty v b => do
+  1142        -- Task #342 S0: official `infer_let`
+  1143        let _ ← ensureSort r env depth (← r.infer depth ty)
+  1144        unless ← r.defeq depth (← r.infer depth v) ty do
+  1145          throw (.invalid "let value type mismatch")
+  1146        r.infer depth (b.instantiate1 v)
 
 >>> whitepaper/sections/02b-model-proof.typ
 
@@ -2242,14 +2242,14 @@
    545  "reduce, then continue": `redL`.
    546  -/
 
-== ConLeche/Kernel/Core.lean#L1249-L1255
-  1249  /-- The innermost level of `defeqLams`: the opened bodies, and at the
-  1250  verified mode their FULL-grade types. -/
-  1251  def defeqLamsInner (r : CoreFns m) (depth : Nat) (b₁ b₂ : Expr) : m Bool := do
-  1252    unless ← r.defeq (depth + 1) b₁ b₂ do return false
-  1253    if mode.verifiedChecks then
-  1254      unless ← r.defeq (depth + 1) (← r.infer (depth + 1) b₁)
-  1255          (← r.infer (depth + 1) b₂) do return false
+== ConLeche/Kernel/Core.lean#L1288-L1294
+  1288  /-- The innermost level of `defeqLams`: the opened bodies, and at the
+  1289  verified mode their FULL-grade types. -/
+  1290  def defeqLamsInner (r : CoreFns m) (depth : Nat) (b₁ b₂ : Expr) : m Bool := do
+  1291    unless ← r.defeq (depth + 1) b₁ b₂ do return false
+  1292    if mode.verifiedChecks then
+  1293      unless ← r.defeq (depth + 1) (← r.infer (depth + 1) b₁)
+  1294          (← r.infer (depth + 1) b₂) do return false
 
 == ConLeche/Kernel/Core.lean#L475-L480
    475        -- Task #342 S0: the λ/η tax (T2)
@@ -2259,19 +2259,19 @@
    479                (body₁.instantiate1 (.fvar depth ty₁)))
    480              (cod₂.instantiate1 (.fvar depth ty₁)) do return false
 
-== ConLeche/Kernel/Core.lean#L795-L806
-   795                  if ← (if iotaCase3 env.find? rl cvj cmp.1 then do
-   796                      if ← liftFueled "level comparison" (Level.isEquivList usj cmp.1) then
-   797                        if ← defEqList r env depth (margs.take rl.ctorParams) cmp.2 then
-   798                          if ← iotaCertsFull r env depth
-   799                              (cvj.type.instantiateLevelParams cvj.levelParams usj)
-   800                              margs then
-   801                            iotaIndexOk r env depth mI rP rl.ctorParams
-   802                              (cvj.type.instantiateLevelParams cvj.levelParams usj)
-   803                              margs ((args.take mI).drop rP)
-   804                          else pure false
-   805                        else pure false
-   806                      else pure false
+== ConLeche/Kernel/Core.lean#L823-L834
+   823                  if ← (if iotaCase3 env.find? rl cvj cmp.1 then do
+   824                      if ← liftFueled "level comparison" (Level.isEquivList usj cmp.1) then
+   825                        if ← defEqList r env depth (margs.take rl.ctorParams) cmp.2 then
+   826                          if ← iotaCertsFull r env depth
+   827                              (cvj.type.instantiateLevelParams cvj.levelParams usj)
+   828                              margs then
+   829                            iotaIndexOk r env depth mI rP rl.ctorParams
+   830                              (cvj.type.instantiateLevelParams cvj.levelParams usj)
+   831                              margs ((args.take mI).drop rP)
+   832                          else pure false
+   833                        else pure false
+   834                      else pure false
 
 == whitepaper/Fragment/Unannot.lean#L177-L184
    177  /-- **Untyped λ-congruence is unsound** in the value-driven model: the
@@ -2481,13 +2481,13 @@
    481      (hA : DefEqSem m φ Γ A₂ A₁)
    482      (hbody : DefEqSem m φ (A₁ :: Γ) b₁ (.app (b.liftN 1) (.bvar 0)))
 
-== ConLeche/Kernel/Core.lean#L1111-L1116
-  1111  /-- **The io inference body** (tasks #161, #170, #346): official's
-  1112  `infer_type_core` with `infer_only = true`.  It differs from
-  1113  `inferBody` at three clauses: an application's argument is not
-  1114  checked against the domain, a λ's domain is not checked to be a type,
-  1115  and a `let`'s type and value are not checked (the body is inferred at
-  1116  the value).  The computed types and the "function expected" rejection
+== ConLeche/Kernel/Core.lean#L1150-L1155
+  1150  /-- **The io inference body** (tasks #161, #170, #346): official's
+  1151  `infer_type_core` with `infer_only = true`.  It differs from
+  1152  `inferBody` at three clauses: an application's argument is not
+  1153  checked against the domain, a λ's domain is not checked to be a type,
+  1154  and a `let`'s type and value are not checked (the body is inferred at
+  1155  the value).  The computed types and the "function expected" rejection
 
 >>> whitepaper/sections/03-definitions.typ
 
