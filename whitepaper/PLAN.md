@@ -66,7 +66,7 @@ are recorded here so every lane works from the same spec. Task #324.
   NO transitivity rule — and the paper explains why none can be added.
 * **Inference**: Lean's rules at the full grade; the cheaper grade
   (`infer_only`, the hereditary claim) as its own subsection.
-* **Certificate walks** (`Certs`, `DefEqList`, `EtaProjCerts`): folded into
+* **Certificate walks** (`CertsF`, `DefEqList`): folded into
   the rules that use them.
 * **Environment section**: `def`s (δ) and single, non-mutual, non-nested
   inductives with parameters, indices, recursive AND reflexive fields
@@ -81,7 +81,7 @@ are recorded here so every lane works from the same spec. Task #324.
   projections, mutual/nested blocks, Nat/String literals and the Nat fast
   path, Quot, pinned blocks, axioms/trust, structure η,
   unit-likeness, the And rescue, fuel/caches/the executable checker and its
-  bridge theorem, the two-phase parallel fold, the AnnotTerm intermediate
+  bridge theorem, the two-phase parallel fold, the `ITerm` intermediate
   layer (the paper has ONE denotation, directly on the terms).
 * **A later section**: K-like reduction, η for structures, unit-likeness
   etc. all FOLLOW from extensionality of the model — show this.
@@ -115,7 +115,7 @@ are recorded here so every lane works from the same spec. Task #324.
 5. Nested inductive types (the full check, the model as a sketch).
 6. Extensionality corollaries (η for structures, unit-like).
 7. What we left out, and how the real proof differs from the fragment
-   (fvar, AnnotTerm layer, bridge, ...), with links.
+   (fvar, `ITerm` layer, bridge, ...), with links.
 
 Links: unobtrusive, `blob/master/...#L..-L..` into the real proof AND into
 `whitepaper/Fragment`, at the point where a definition/theorem is stated.
@@ -125,11 +125,12 @@ in HTML the phrase shows the cited lines on hover.
 
 ## Process
 
-* Branch `whitepaper`; agents work in worktrees under `_tmp/wp/<lane>`
-  (own `.lake`), rebase onto `whitepaper` and merge (fast-forward) THEMSELVES
-  when done; after every merge run `whitepaper/build.sh` and sync
-  `_out/whitepaper/`. Commit messages end with
-  `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+* The whitepaper lives with the code it cites; lanes work in worktrees
+  under `_tmp/` (own `.lake`) and land on the integration branch with a
+  merge commit; after every landing run `whitepaper/build.sh` (via
+  `nix develop ./whitepaper`) and sync `_out/whitepaper/`.
+  `whitepaper/fragment-gate.sh` and `whitepaper/links-gate.sh` run in
+  `tests/arena.sh`.
 * Every prose section gets a critical review pass (accessible? jargon
   free? to the point?) before it is considered done.
 * Keep this file current when rulings change.
@@ -290,8 +291,8 @@ pen-and-paper claim without the fragment behind it".
 * **Path independence**: describe the design as it is, as if it had
   always been so. No mention of what the design used to have, not even
   in contrast ("no longer", "unlike before"); the same for NOTES.md
-  entries. `// PORT:` Typst comments mark real-checker statements and
-  citations that change when the port lands (they do not render).
+  entries. The `#real` blocks and the con-leche citations describe the
+  checker and proof as they are in the tree the paper is built from.
 * The cheaper grade skips the `let` value check, as `infer_only` does;
   the full grade keeps it.
 * Terminology: a ∀-type is a "Π-type" (syntax) and its denotation a
