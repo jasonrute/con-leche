@@ -213,12 +213,11 @@ theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche
           ∀ l, l < p.nP → ∃ D b, instPisWith (xs.take l) cvT.type = some (.forallE D b) ∧
             ConLeche.isDefEqCore μ envC F' p.nP ((xs.map Expr.fvarTypeD).getD l default) D
               = .ok true := by
-  obtain ⟨-, -, -, -, -, hfv0, -, -, stype, u0, hinf, -, hcvEq⟩ :=
+  obtain ⟨-, -, -, -, -, hfv0, -, -, stype, u0, hinf, -⟩ :=
     ConLeche.classConstOk_inv T.hcv
+  rw [T.hcvG] at hfv0 hinf
   generalize htyG : T.gty = type at hfv0 hinf
-  have htype : cvG.type = type := by
-    have := congrArg ConstantVal.type hcvEq
-    simpa [htyG] using this
+  have htype : cvG.type = type := by rw [T.hcvG]; exact htyG
   dsimp only at hfv0 hinf
   obtain ⟨ifs, maj, hmaj, hifl, hgty, hcl, hbb⟩ := ConLeche.classGenRecTy_spec hg T.hgty
   rw [htyG] at hgty

@@ -12,11 +12,10 @@ public section
 /-!
 # Stage (b)'s record
 
-`RecTyEntry`: one recursor's type as checked against its MAJOR member —
-the checked constant, the member's former and its parameter domains, the
-major at the index binders, the conclusion's sort.  The stage record
-`RecStage` hands it out per recursor in its member set `memR` (empty at
-the generated stage, `recStage_of_gen`).
+`RecTyGen`: one recursor's type as checked at ANY major — the checked
+constant, the prefix and the major's position, the recursor type's
+openers, the conclusion's sort and the elimination half.  The stage
+record `RecStage` hands it out per recursor (`tyGen`).
 -/
 
 namespace ConLeche
@@ -35,61 +34,6 @@ local macro_rules
             (by simp [bind, Except.bind, throw, throwThe, MonadExceptOf.throw]))
 
 /-! ## Stage (b): one recursor's TYPE -/
-
-/-- **Stage (b) at ONE recursor**.  `ri` is the recursor's position in the block, `rc` its
-record, and `(cvRi, nIdx, u)` the entry the stage returns for it: the
-CHECKED constant, the member's index count and the conclusion's
-sort. -/
-structure RecTyEntry (mode : CheckMode) (F : Nat) (env : Env) (p : BlockShape)
-    (nested : Bool) (cvTas : List ConstantVal) (ri : Nat) (rc : RecShape)
-    (cvRi : ConstantVal) (nIdx : Nat) (u : Level) : Type where
-  /-- the member the recursor's major names -/
-  ms : MemberShape
-  /-- that member's checked type former -/
-  cvTa : ConstantVal
-  /-- the recursor type's `mI + 1` openers and its conclusion -/
-  fvs : List Expr
-  concl : Expr
-  /-- the former's `nP` parameter openers and the rest of its type -/
-  tfvs : List Expr
-  trest : Expr
-  /-- the MAJOR's opener -/
-  maj : Expr
-  /-- the conclusion's inferred type -/
-  sty : Expr
-  hms : p.members[p.recTgtAt ri]? = some ms
-  hcvTa : cvTas[p.recTgtAt ri]? = some cvTa
-  hcv : cvRi = rc.cvR ∧ checkConstantVal (fueledOps mode F) env rc.cvR = .ok ()
-  hnIdx : nIdx = ms.nIdx
-  /-- the prefix starts with the block's parameters (nothing is counted
-  after them: a motive is a parameter like any other) -/
-  hroom : p.nP ≤ p.rulePrefixAt ri
-  hmI : p.majorIdxAt ri = p.rulePrefixAt ri + ms.nIdx
-  hopen : openPisAtFvars (p.majorIdxAt ri + 1) cvRi.type 0 = some (fvs, concl)
-  hopenT : openPisAtFvars p.nP cvTa.type 0 = some (tfvs, trest)
-  htfvs : tfvs.length = p.nP
-  /-- the parameter domains, binder by binder, against the former's -/
-  hparams : ∀ l, l < p.nP →
-    isDefEqCore mode env F p.nP ((tfvs.map Expr.fvarTypeD).getD l default)
-      (((fvs.take p.nP).map Expr.fvarTypeD).getD l default) = .ok true
-  hmaj : fvs[p.majorIdxAt ri]? = some maj
-  hmajFn : (Expr.fvarTypeD maj).getAppFn = Expr.const ms.cvT.name (p.lps.map .param)
-  hmajLen : (Expr.fvarTypeD maj).getAppArgs.length = p.nP + ms.nIdx
-  hmajParams : (Expr.fvarTypeD maj).getAppArgs.take p.nP = fvs.take p.nP
-  hmajIdx : (Expr.fvarTypeD maj).getAppArgs.drop p.nP
-    = (fvs.drop (p.rulePrefixAt ri)).take ms.nIdx
-  hsty : inferTypeCore mode env F (p.majorIdxAt ri + 1) concl = .ok sty
-  hu : ensureSortCore mode env F (p.majorIdxAt ri + 1) sty = .ok u
-  /-- the elimination restriction's per-recursor half -/
-  hsmall : blockLargeElimAllowed p nested = true ∨
-    isDefEqCore mode env F (p.majorIdxAt ri + 1) sty (.sort .zero) = .ok true
-
-namespace RecTyEntry
-
-variable {F : Nat} {env : Env} {p : BlockShape} {nested : Bool} {cvTas : List ConstantVal}
-  {ri : Nat} {rc : RecShape} {cvRi : ConstantVal} {nIdx : Nat} {u : Level}
-
-end RecTyEntry
 
 /-- **A checked constant's facts** — what every consumer of a recursor
 type's check reads, whichever check stored it: `checkConstantVal` (the
@@ -115,12 +59,11 @@ structure ConstChecked (mode : CheckMode) (F : Nat) (env : Env) (cv0 cv : Consta
     ensureSortCore mode env F 0 stype = .ok u
   noProj : ∀ (T : Name) (i : Nat), env.findProj? T i = none → Expr.NoProjAt T i cv.type
 
-/-- **Stage (b) at ONE recursor, at ANY major**: the part
-of `RecTyEntry` that does not name the major's inductive — the checked
-constant, the prefix and the major's position, the recursor type's
-openers, the conclusion's sort and the elimination half.  A nested
-block's auxiliary recursor (an OUTSIDE major, a container) has it with
-`nIdx` the container's index count. -/
+/-- **Stage (b) at ONE recursor, at ANY major**: the checked constant,
+the prefix and the major's position, the recursor type's openers, the
+conclusion's sort and the elimination half.  A nested block's auxiliary
+recursor (an OUTSIDE major, a container) has it with `nIdx` the
+container's index count. -/
 structure RecTyGen (mode : CheckMode) (F : Nat) (env : Env) (p : BlockShape)
     (nested : Bool) (ri : Nat) (rc : RecShape) (cvRi : ConstantVal) (nIdx : Nat) (u : Level) :
     Type where

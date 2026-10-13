@@ -181,13 +181,12 @@ theorem genRun_binders (hμ : μ.verifiedChecks = true)
   have hsty : ((tgtRs out)[c]'hc).1.type = gty := by
     obtain ⟨rc, cls', cvG, rhss, -, -, -, ⟨T⟩, ho, -, hgc'⟩ := genRun_at R hc
     obtain rfl : cls' = cls := hgc'.symm.trans hgc
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, hcvEq⟩ := ConLeche.classConstOk_inv T.hcv
     have hc' : c < out.length := by simpa [tgtRs] using hc
     have hr1 : ((tgtRs out)[c]'hc).1 = cvG := by
       have : out[c] = (cvG, R.Ms.getD cls' default, rhss) :=
         Option.some.inj ((List.getElem?_eq_getElem hc').symm.trans ho)
       simp [tgtRs, this]
-    rw [hr1, hcvEq]
+    rw [hr1, T.hcvG]
     show T.gty = gty
     exact Option.some.inj (T.hgty.symm.trans hgty)
   obtain ⟨ifs, maj, hmaj, hifl, rfl, hcl, hbb⟩ := ConLeche.classGenRecTy_spec hg hgty

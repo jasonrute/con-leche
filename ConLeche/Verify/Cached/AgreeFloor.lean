@@ -544,13 +544,13 @@ theorem Yields.unwrapOr {α : Type} {o : Option α} {e : CheckError} :
 
 The recursor stage is `genRecCheck` (`ConLeche/Kernel/Inductives/GenRec.lean`). -/
 
-/-- A generated constant checked: its name, fresh at the stage's index. -/
+/-- A generated constant checked: fresh at the stage's index. -/
 theorem classConstOk_fresh (ops : CheckerOps CheckCM) (fe : FEnv) (cv : ConstantVal) :
     Yields (classConstOk ops fe cv)
-      (fun cvA => cvA.name = cv.name ∧ fe.find? cv.name = none) := by
+      (fun _ => fe.find? cv.name = none) := by
   unfold classConstOk
   yields
-  all_goals exact Yields.pure ⟨rfl, Option.not_isSome_iff_eq_none.mp (by assumption)⟩
+  all_goals exact Yields.pure (Option.not_isSome_iff_eq_none.mp (by assumption))
 
 /-- One recursor's generated type: stored under the record's name, fresh
 at the stage's index. -/
@@ -565,9 +565,9 @@ theorem classRecTyOk_name (ops : CheckerOps CheckCM) (fe : FEnv) (g : ClassGen) 
   split
   case isFalse => exact Yields.ofThrowBind
   refine Yields.bind fun gty => ?_
-  refine Yields.bind' (classConstOk_fresh ops fe _) fun cvG hcv => ?_
+  refine Yields.bind' (classConstOk_fresh ops fe _) fun _ hcv => ?_
   yields
-  all_goals first | exact Yields.ofThrow | exact Yields.pure hcv
+  all_goals first | exact Yields.ofThrow | exact Yields.pure ⟨rfl, hcv⟩
 
 /-- Every recursor's generated type, against the records: one per
 record, in order, under its name; the classes cover the records. -/
