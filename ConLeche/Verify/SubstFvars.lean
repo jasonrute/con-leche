@@ -16,7 +16,7 @@ frame's constructor type is the recorded member-abstracted constructor
 type so substituted: the parameter variables by the
 key's parameters, the member holes by the frame's holes (the reached
 group) or the members' constants (the rest).  The reading side is
-`denoteMeta_substFvars` (`Model/Reading/SubstFvars.lean`).
+`denote_substFvars` (`Model/Reading/SubstFvars.lean`).
 -/
 
 namespace ConLeche.Expr

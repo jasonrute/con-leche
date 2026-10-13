@@ -72,7 +72,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps RecRule)
 
 universe w
@@ -101,7 +101,7 @@ structure BlockData (V : Type w) where
   /-- per member: its index count -/
   nIdxs : List Nat
   /-- per component: its parameter-and-index telescope reading -/
-  ppsM : Nat → (Name → Nat) → List ITerm
+  ppsM : Nat → (Name → Nat) → List Term
   /-- per component: its index-tuple sort -/
   uM : Nat → (Name → Nat) → Nat
   /-- per component: its constructors, in order, with their field counts -/
@@ -109,9 +109,9 @@ structure BlockData (V : Type w) where
   /-- per component and constructor: the residual's index arguments -/
   idxF : Nat → Nat → List Expr
   /-- per component and constructor: the type reading's domains -/
-  dsF : Nat → Nat → (Name → Nat) → List ITerm
+  dsF : Nat → Nat → (Name → Nat) → List Term
   /-- per component and constructor: the result's index readings -/
-  esF : Nat → Nat → (Name → Nat) → List ITerm
+  esF : Nat → Nat → (Name → Nat) → List Term
   /-- per component and constructor: the field sources -/
   srcsF : Nat → Nat → List (Option Nat)
   /-- per component and constructor: the opened parameter variables -/
@@ -123,7 +123,7 @@ structure BlockData (V : Type w) where
   /-- per component and constructor: the fields WITH HOLES —
   the walked term's reading, members abstracted to the holes
   (`BlockAbsRead`) -/
-  absFF : Nat → Nat → (Name → Nat) → List ITerm
+  absFF : Nat → Nat → (Name → Nat) → List Term
   /-- per component and constructor: the positivity walk's NORMAL FORM of
   the member-abstracted constructor type, at the walk's
   context (parameters `0 ..< nP`, member `m` at `nP + m`) — the term the
@@ -155,10 +155,10 @@ variable (d : BlockData V)
 
 /-- The parameter telescope (the block's, read off component `0`: the
 components share their parameters). -/
-@[expose] def params (ψ : Name → Nat) : List ITerm := ((d.ppsM 0 ψ).take d.nP)
+@[expose] def params (ψ : Name → Nat) : List Term := ((d.ppsM 0 ψ).take d.nP)
 
 /-- Component `c`'s own index telescope, at the parameter frame. -/
-@[expose] def IdsM (c : Nat) (ψ : Name → Nat) : List ITerm :=
+@[expose] def IdsM (c : Nat) (ψ : Name → Nat) : List Term :=
   ((d.ppsM c ψ).drop d.nP)
 
 /-- Component `c`'s constructor data list (the fixpoint kit's, its
@@ -169,10 +169,10 @@ field-kind slots empty: the block's datum classifies no field). -/
 
 /-- Component `c`'s field domains, per constructor (the real readings:
 a recursive entry is its TARGET's former applied). -/
-@[expose] def Fss (c : Nat) (ψ : Name → Nat) : List (List ITerm) := fssOfR d.nP (d.cds c ψ)
+@[expose] def Fss (c : Nat) (ψ : Name → Nat) : List (List Term) := fssOfR d.nP (d.cds c ψ)
 
 /-- Component `c`'s results' index readings, per constructor. -/
-@[expose] def Ess (c : Nat) (ψ : Name → Nat) : List (List ITerm) := essOfR (d.cds c ψ)
+@[expose] def Ess (c : Nat) (ψ : Name → Nat) : List (List Term) := essOfR (d.cds c ψ)
 
 /-- **The tuple of index-tuple sets** at a parameter frame: component
 `c`'s is the tower set over its own index telescope. -/
@@ -240,11 +240,11 @@ variable (d : BlockData V)
 
 /-- Component `c`'s constructor `j`'s fields with holes (the datum's
 own, `absFF`). -/
-@[expose] def absF (ψ : Name → Nat) (c j : Nat) : List ITerm := d.absFF c j ψ
+@[expose] def absF (ψ : Name → Nat) (c j : Nat) : List Term := d.absFF c j ψ
 
 /-- Component `c`'s constructor `j`'s result index readings, below the
 holes and the fields. -/
-@[expose] def absE (ψ : Name → Nat) (c j : Nat) : List ITerm :=
+@[expose] def absE (ψ : Name → Nat) (c j : Nat) : List Term :=
   ((d.Ess c ψ).getD j []).map (·.liftN d.k ((d.Fss c ψ).getD j []).length)
 
 end BlockData

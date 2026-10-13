@@ -32,7 +32,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level NestCtx NestHole NestKey PosTree TargetMajor ConstantVal
   BlockShape CheckMode)
 
@@ -49,20 +49,20 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 /-- **The true valuation at a frame stack**: the prefix spine's first `nP`
 values (the parameters), then every hole at its read-back's value at the
 prefix. -/
-@[expose] noncomputable def nodeTrueVal (nP : Nat) (hv : List ITerm) (xs : List V)
+@[expose] noncomputable def nodeTrueVal (nP : Nat) (hv : List Term) (xs : List V)
     (ρ : Nat → V) : Nat → V :=
   consList (xs.take nP ++ hv.map (interp V (consList xs ρ))) ρ
 
 section Node
 
-variable (acval : Name → (Name → Nat) → ITerm) (envC : Env) (ctx : NestCtx)
+variable (acval : Name → (Name → Nat) → Term) (envC : Env) (ctx : NestCtx)
   (ψ : Name → Nat) (ρ : Nat → V) (xs : List V)
 
 /-- **The holes' read-backs at a frame stack**, read at the depth `d`
 (every hole's whole application, over the block's parameters). -/
-@[expose] def nodeHv (occ : List NestHole) (d : Nat) : List ITerm :=
+@[expose] def nodeHv (occ : List NestHole) (d : Nat) : List Term :=
   (List.range (ctx.hiAt occ.length - ctx.nP)).map fun i =>
-    (denoteMeta acval envC ψ d (nodeImg ctx occ (ctx.nP + i))).getD .prf
+    (denote acval envC ψ d (nodeImg ctx occ (ctx.nP + i))).getD .prf
 
 /-- **A node's level assignment**: the key's levels over its container's
 level parameters. -/
@@ -73,7 +73,7 @@ level parameters. -/
 depth, at the true valuation. -/
 @[expose] noncomputable def nodeFr (t : PosTree) : Nat → V :=
   keyFrame (t.key.ds.map fun x =>
-      (denoteMeta acval envC ψ (ctx.hiAt t.occ.length) x).getD default)
+      (denote acval envC ψ (ctx.hiAt t.occ.length) x).getD default)
     (ctx.hiAt t.occ.length)
     (nodeTrueVal ctx.nP (nodeHv acval envC ctx ψ t.occ xs.length) xs ρ)
 
@@ -81,11 +81,11 @@ end Node
 
 /-- **The holes' read-backs are read** at a stack, at every depth above the
 parameters. -/
-@[expose] def NodeHolesRead (acval : Name → (Name → Nat) → ITerm) (envC : Env)
+@[expose] def NodeHolesRead (acval : Name → (Name → Nat) → Term) (envC : Env)
     (ctx : NestCtx) (occ : List NestHole) : Prop :=
   (∀ x ∈ ctx.params, ConLeche.ScB ctx.nP x) ∧ ConLeche.ProgScB ctx occ ∧
   ∀ (ψ : Name → Nat) (d : Nat), ctx.nP ≤ d → ∀ i, i < ctx.hiAt occ.length →
-    ∃ x, denoteMeta acval envC ψ d (nodeImg ctx occ i) = some x
+    ∃ x, denote acval envC ψ d (nodeImg ctx occ i) = some x
 
 omit [SetTheory V] in
 /-- A read-back image at a longer stack is the shorter one's below it. -/
@@ -105,7 +105,7 @@ theorem progScB_suffix {ctx : NestCtx} :
 
 omit [SetTheory V] in
 /-- A read stack's suffix is read. -/
-theorem NodeHolesRead.suffix {acval : Name → (Name → Nat) → ITerm} {envC : Env}
+theorem NodeHolesRead.suffix {acval : Name → (Name → Nat) → Term} {envC : Env}
     {ctx : NestCtx} {X anc : List NestHole} (h : NodeHolesRead acval envC ctx (X ++ anc)) :
     NodeHolesRead acval envC ctx anc :=
   ⟨h.1, progScB_suffix X anc h.2.1, fun ψ d hd i hi => by
@@ -118,7 +118,7 @@ theorem NodeHolesRead.hs {envC : Env} {m : EnvModel V envC} {ctx : NestCtx} {occ
     (h : NodeHolesRead m.acval envC ctx occ) (ψ : Name → Nat) {d : Nat} (hd : ctx.nP ≤ d) :
     ∀ i, i < ctx.hiAt occ.length → Expr.WScoped d (nodeImg ctx occ i) ∧
       (nodeImg ctx occ i).looseBVarsBounded 0 = true ∧
-      denoteMeta m.acval envC ψ d (nodeImg ctx occ i) = some (nodeImgX m ψ ctx occ d i) :=
+      denote m.acval envC ψ d (nodeImg ctx occ i) = some (nodeImgX m ψ ctx occ d i) :=
   nodeImg_hs m hd h.1 h.2.1 (h.2.2 ψ d hd)
 
 /-- **A spine read back, read**: at a depth `rP` where the images read, a
@@ -128,11 +128,11 @@ theorem readback_spine {env : Env} (m : EnvModel V env) {φ : Name → Nat} {ctx
     {occ : List NestHole} {rP : Nat}
     (hs : ∀ i, i < ctx.hiAt occ.length → Expr.WScoped rP (nodeImg ctx occ i) ∧
       (nodeImg ctx occ i).looseBVarsBounded 0 = true ∧
-      denoteMeta m.acval env φ rP (nodeImg ctx occ i) = some (nodeImgX m φ ctx occ rP i))
+      denote m.acval env φ rP (nodeImg ctx occ i) = some (nodeImgX m φ ctx occ rP i))
     (σ : Nat → V) :
-    ∀ {ds : List Expr} {dsa : List ITerm}, (∀ x ∈ ds, Expr.WScoped (ctx.hiAt occ.length) x) →
-      DenoteMetaSpine m.acval env φ (ctx.hiAt occ.length) ds dsa →
-      ∃ ebs, DenoteMetaSpine m.acval env φ rP (ds.map (nodeRb ctx occ)) ebs ∧
+    ∀ {ds : List Expr} {dsa : List Term}, (∀ x ∈ ds, Expr.WScoped (ctx.hiAt occ.length) x) →
+      DenoteSpine m.acval env φ (ctx.hiAt occ.length) ds dsa →
+      ∃ ebs, DenoteSpine m.acval env φ rP (ds.map (nodeRb ctx occ)) ebs ∧
         ebs.map (interp V σ) = dsa.map (interp V
           (substE V (substTau (ctx.hiAt occ.length) rP (nodeImgX m φ ctx occ rP)) 0 σ))
   | [], [], _, .nil => ⟨[], .nil, rfl⟩
@@ -144,7 +144,7 @@ theorem readback_spine {env : Env} (m : EnvModel V env) {φ : Name → Nat} {ctx
 
 /-- **The substituted valuation of the read-back IS the true valuation** at
 a prefix spine of the substitution's depth. -/
-theorem substE_trueVal {n rP nP : Nat} (x : Nat → ITerm) {xs : List V} (ρ : Nat → V)
+theorem substE_trueVal {n rP nP : Nat} (x : Nat → Term) {xs : List V} (ρ : Nat → V)
     (hxs : xs.length = rP) (hnP : nP ≤ n) (hnPr : nP ≤ rP)
     (hpar : ∀ v, v < nP → x v = .bvar (rP - 1 - v)) :
     substE V (substTau n rP x) 0 (consList xs ρ)
@@ -177,7 +177,7 @@ theorem substE_nodeImgX_trueVal {envC : Env} (m : EnvModel V envC) (ψ : Name �
         (consList xs ρ)
       = nodeTrueVal ctx.nP (nodeHv m.acval envC ctx ψ occ xs.length) xs ρ := by
   rw [substE_trueVal _ ρ rfl (by simp only [NestCtx.hiAt]; omega) hnP (fun v hv => by
-    simp only [nodeImgX, nodeImg, ite_eq_left hv, denoteMeta_fvar, Option.getD_some])]
+    simp only [nodeImgX, nodeImg, ite_eq_left hv, denote_fvar, Option.getD_some])]
   rfl
 
 theorem erasedEqL_refl : ∀ (l : List Expr), Expr.ErasedEqL l l
@@ -198,16 +198,16 @@ theorem tgtNodeTie {envC : Env} {mpC : EnvModelM V μ envC} {ex : List Name}
     (hsel : Dc c = lfpSel mpC D0 (tgtMajor out c).ind)
     (hR : NodeMajor F envC p formerTys ctx (tgtMajor out c) t)
     (hfr : (tgtMajor out c).ds.map (fun x => interp V (consList xs ρ)
-        ((denoteMeta mpC.base2.acval envC ψ (tgtRP p c) x).getD default))
+        ((denote mpC.base2.acval envC ψ (tgtRP p c) x).getD default))
       = (t.key.ds.map (nodeRb ctx t.occ)).map (fun x => interp V (consList xs ρ)
-        ((denoteMeta mpC.base2.acval envC ψ (tgtRP p c) x).getD default)))
+        ((denote mpC.base2.acval envC ψ (tgtRP p c) x).getD default)))
     -- the node's facts
     (hblk : ∃ D ∈ mpC.lfpBlocks, t.key.cname ∈ D.names ∧ (tgtMajor out c).ind ∈ D.names)
     (hlps : lpsOf envC t.key.cname = lpsOf envC (tgtMajor out c).ind)
     (hread : NodeHolesRead mpC.base2.acval envC ctx t.occ)
     (hws : ∀ x ∈ t.key.ds, Expr.WScoped (ctx.hiAt t.occ.length) x)
-    {dsa : List ITerm}
-    (hsp : DenoteMetaSpine mpC.base2.acval envC ψ (ctx.hiAt t.occ.length) t.key.ds dsa)
+    {dsa : List Term}
+    (hsp : DenoteSpine mpC.base2.acval envC ψ (ctx.hiAt t.occ.length) t.key.ds dsa)
     -- the prefix
     (hnP : ctx.nP ≤ tgtRP p c) (hxs : xs.length = tgtRP p c) :
     tgtClsD d Dc out c = lfpSel mpC D0 t.key.cname ∧
@@ -226,12 +226,12 @@ theorem tgtNodeTie {envC : Env} {mpC : EnvModelM V μ envC} {ex : List Name}
     simp only [tgtClsψ, hMo', Bool.false_eq_true, ite_false, nodeψ, hl, hlps]
     exact ConLeche.Level.substFn_congr (ConLeche.Level.isEquivList_sound hlv ψ)
   · have hdsa : dsa = t.key.ds.map fun x =>
-        (denoteMeta mpC.base2.acval envC ψ (ctx.hiAt t.occ.length) x).getD default :=
-      denoteMetaSpine_eq_map hsp
+        (denote mpC.base2.acval envC ψ (ctx.hiAt t.occ.length) x).getD default :=
+      denoteSpine_eq_map hsp
     simp only [tgtClsFr, hMo', Bool.false_eq_true, ite_false, tgtOutDsa, nodeFr]
     rw [← hdsa]
     rw [keyFrame_eq_of_params (dsa₂ := (t.key.ds.map (nodeRb ctx t.occ)).map fun x =>
-      (denoteMeta mpC.base2.acval envC ψ (tgtRP p c) x).getD default) (by
+      (denote mpC.base2.acval envC ψ (tgtRP p c) x).getD default) (by
         simpa [List.map_map, Function.comp_def] using hfr)]
     have := keyFrame_readback (V := V) mpC.base2 (hread.hs ψ hnP) hws hsp (erasedEqL_refl _)
       (consList xs ρ)

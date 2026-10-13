@@ -32,7 +32,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level NestCtx)
 open ConLeche.SetTheory.Tower (projS)
 
@@ -41,7 +41,7 @@ universe w
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name → Nat}
 
 /-- The substituted valuation below a spine of the substitution's depth. -/
-theorem substE_consList (τ : Nat → ITerm) :
+theorem substE_consList (τ : Nat → Term) :
     ∀ (fs : List V) (k : Nat) (σ : Nat → V),
       substE V τ (k + fs.length) (consList fs σ) = consList fs (substE V τ k σ)
   | [], k, σ => rfl
@@ -56,16 +56,16 @@ expressions, which are hole-free, so each substituted index reads alike on
 related frames. -/
 theorem resIdx_constOn {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
     {ctx : NestCtx} {hi' : Nat} {cur : Expr}
-    {τ : Nat → ITerm} {p : Nat} (hhead : (τ (D.k - 1 - c)).liftN nF 0 = .bvar p)
+    {τ : Nat → Term} {p : Nat} (hhead : (τ (D.k - 1 - c)).liftN nF 0 = .bvar p)
     {Rx : FrameRel V}
     (hresAt : ResultAt m φ ctx.nP hi' (hi' + nF) cur Rx
-      (ITerm.substAV τ (ITerm.mkAppN (.bvar (nF + (D.k - 1 - c))) (D.resIdx ψ c j)) nF))
+      (Term.substAV τ (Term.mkAppN (.bvar (nF + (D.k - 1 - c))) (D.resIdx ψ c j)) nF))
     (hres : ConLeche.nestResHead cur = true)
     (hidx : cur.getAppArgs.all (fun x => !x.nestOcc ctx.names ctx.nP hi') = true) :
-    ∀ e ∈ D.resIdx ψ c j, ConstOn Rx (ITerm.substAV τ e nF) := by
+    ∀ e ∈ D.resIdx ψ c j, ConstOn Rx (Term.substAV τ e nF) := by
   intro e he
   obtain ⟨hag, hrd, hws⟩ := hresAt
-  rw [ITerm.substAV_mkAppN, ITerm.substAV_bvar_ge τ (by omega),
+  rw [Term.substAV_mkAppN, Term.substAV_bvar_ge τ (by omega),
     show nF + (D.k - 1 - c) - nF = D.k - 1 - c by omega, hhead] at hrd
   have hspine := Expr.mkAppN_getApp cur
   obtain ⟨i, ty, hfn⟩ : ∃ i ty, cur.getAppFn = .fvar i ty := by
@@ -74,8 +74,8 @@ theorem resIdx_constOn {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
     · rename_i i ty heq; exact ⟨i, ty, heq⟩
     · exact nomatch hres
   rw [← hspine, hfn] at hrd hws
-  obtain ⟨fa, vs, hfa, hsp, hvs⟩ := denoteMeta_mkAppN_inv hrd
-  rw [denoteMeta_fvar] at hfa
+  obtain ⟨fa, vs, hfa, hsp, hvs⟩ := denote_mkAppN_inv hrd
+  rw [denote_fvar] at hfa
   cases hfa
   obtain ⟨-, hvs⟩ := mkAppN_bvar_inj hvs
   have hwsargs := (wScoped_mkAppN _ hws).2
@@ -92,14 +92,14 @@ fit of the recorded constructor from the hole frame the substituted
 smaller walk valuation IS to the one the substituted larger one is. -/
 theorem ctor_transfer {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
     {ctx : NestCtx} {hi' : Nat} {cur : Expr}
-    {ab : List ITerm} {Δ : List ITerm}
+    {ab : List Term} {Δ : List Term}
     (hEq : FieldsEqOn V Δ ab (D.fields ψ c j))
     (hlen : ab.length = nF)
-    {τ : Nat → ITerm} {p : Nat} (hhead : (τ (D.k - 1 - c)).liftN nF 0 = .bvar p)
+    {τ : Nat → Term} {p : Nat} (hhead : (τ (D.k - 1 - c)).liftN nF 0 = .bvar p)
     {R' : FrameRel V}
     (hwalk : PiPosThen (ResultAt m φ ctx.nP hi' (hi' + nF) cur) nF R'
-      (mkPisAV (ITerm.substTele τ 0 ab)
-        (ITerm.substAV τ (ITerm.mkAppN (.bvar (nF + (D.k - 1 - c))) (D.resIdx ψ c j))
+      (mkPisAV (Term.substTele τ 0 ab)
+        (Term.substAV τ (Term.mkAppN (.bvar (nF + (D.k - 1 - c))) (D.resIdx ψ c j))
           ab.length)))
     (hres : ConLeche.nestResHead cur = true)
     (hidx : cur.getAppArgs.all (fun x => !x.nestOcc ctx.names ctx.nP hi') = true)
@@ -109,12 +109,12 @@ theorem ctor_transfer {D : LfpDatum V} {ψ : Name → Nat} {c j nF : Nat}
     ∀ t fs, D.HFits ψ ρpS XS t c j fs → D.HFits ψ ρpL XL t c j fs := by
   intro t fs hf
   obtain ⟨hjS, hspS, hresS⟩ := hf
-  have hlenS : (ITerm.substTele τ 0 ab).length = nF := by
+  have hlenS : (Term.substTele τ 0 ab).length = nF := by
     rw [substTele_length, hlen]
   rw [← hlenS] at hwalk
   obtain ⟨htele, hresAt⟩ := piPosThen_mkPisAV _ R' _ hwalk
   -- the fields: through the substitution, the walk, and back
-  have h1 : SpineFit σS (ITerm.substTele τ 0 ab) fs :=
+  have h1 : SpineFit σS (Term.substTele τ 0 ab) fs :=
     (spineFit_substTele V τ ab 0 σS fs).mpr
       (by rw [hvS]; exact (hEq.spineFit_iff hsatS fs).mpr hspS)
   have h2 := spineFit_mono _ htele hR h1

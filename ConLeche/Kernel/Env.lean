@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Kernel.Expr
+public import ConLeche.Kernel.PropWhen
 
 @[expose] public section
 

@@ -30,7 +30,7 @@ The fields, each a payoff of the fuel-free reading:
 
 * **existence, not uniqueness** — `defn_reads` is `AcvalDefnInst`: a
   stored definition's or theorem's value *reads*, to the constant's own
-  leaf; `denoteMeta` has no fuel, and a checked value is never out of
+  leaf; `denote` has no fuel, and a checked value is never out of
   fragment.
 * **the stored types read, are graded types, and are inhabited** —
   `type_reads`/`type_wellDenotedTy`/`mem_type`, at the *uninstantiated* type
@@ -49,7 +49,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   IndCaps RecRule)
 
@@ -74,11 +74,11 @@ sort.  What makes a container's frame
 hole — the hole value at the container's instantiation — inhabit the
 container's type (the walk's context), and a group-mate's former agree
 with its hole value applied to the frame's parameters. -/
-@[expose] def LfpReads {V : Type w} [SetTheory V] (acval : Name → (Name → Nat) → ITerm)
+@[expose] def LfpReads {V : Type w} [SetTheory V] (acval : Name → (Name → Nat) → Term)
     (env : Env) (D : LfpDatum V) : Prop :=
   ∀ mm, mm < D.k → ∃ cv caps, env.find? (D.member mm) = some (.indInfo cv caps) ∧
-    ∀ ψ : Name → Nat, ∃ ab : List ITerm,
-      denoteMeta acval env ψ 0 cv.type = some (mkPisAV ab (.sort (D.w ψ))) ∧
+    ∀ ψ : Name → Nat, ∃ ab : List Term,
+      denote acval env ψ 0 cv.type = some (mkPisAV ab (.sort (D.w ψ))) ∧
       ab = D.pars mm ψ ++ D.ids mm ψ
 
 /-! ### The recorded constructor readings (M2)
@@ -126,7 +126,7 @@ datatype parameters", `inductive.cpp`).  An outside class's rule
 certificates read it: the instantiated constructor's field domains are
 graded because the parameters' readings fit the constructor's own
 parameter binders. -/
-@[expose] def LfpCtorReads {V : Type w} [SetTheory V] (acval : Name → (Name → Nat) → ITerm)
+@[expose] def LfpCtorReads {V : Type w} [SetTheory V] (acval : Name → (Name → Nat) → Term)
     (env : Env) (D : LfpDatum V) : Prop :=
   D.names.length = D.k ∧
   ∀ c, c < D.k → ∀ j, j < D.nctors c → ∃ cv nPc nF,
@@ -134,21 +134,21 @@ parameter binders. -/
     cv.type.hasFvar = false ∧
     (∀ mm, mm < D.k → ∃ cvm caps, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
       cvm.levelParams = cv.levelParams) ∧
-    (∀ (ψ : Name → Nat) (dsC : List ITerm) (bodyC : ITerm),
-      denoteMeta acval env ψ 0 cv.type = some (mkPisAV dsC bodyC) → nPc ≤ dsC.length →
+    (∀ (ψ : Name → Nat) (dsC : List Term) (bodyC : Term),
+      denote acval env ψ 0 cv.type = some (mkPisAV dsC bodyC) → nPc ≤ dsC.length →
       ∀ ρ : Nat → V, Sat V (D.params ψ).reverse ρ →
         Sat V (dsC.take nPc).reverse ρ) ∧
     ∃ A, ConLeche.nestCanonCrest D.names (cv.levelParams.map .param) nPc cv.type = some A ∧
       A.nestOcc D.names 0 0 = false ∧
       ∀ ψ : Name → Nat, (D.params ψ).length = nPc ∧ (D.fields ψ c j).length = nF ∧
-        ∃ (ab : List ITerm) (Tys : List ITerm),
-          denoteMeta acval env ψ (nPc + D.k) A
-            = some (mkPisAV ab (ITerm.mkAppN (.bvar (nF + (D.k - 1 - c)))
+        ∃ (ab : List Term) (Tys : List Term),
+          denote acval env ψ (nPc + D.k) A
+            = some (mkPisAV ab (Term.mkAppN (.bvar (nF + (D.k - 1 - c)))
                 (D.resIdx ψ c j))) ∧
           ab.length = nF ∧ Tys.length = D.k ∧
           (∀ mm, mm < D.k → ∃ cvm caps ty, env.find? (D.member mm) = some (.indInfo cvm caps) ∧
             ConLeche.instPisWith (canonParams nPc) cvm.type = some ty ∧
-            denoteMeta acval env ψ (nPc + mm) ty = some (Tys.getD mm default)) ∧
+            denote acval env ψ (nPc + mm) ty = some (Tys.getD mm default)) ∧
           FieldsEqOn V (D.params ψ ++ Tys).reverse ab (D.fields ψ c j)
 
 /-- **A recorded block's capability records and constructor shapes**
@@ -159,7 +159,7 @@ and each constructor's stored type concludes, past its parameters and
 fields, in its member at its own level parameters applied to the
 parameter variables and then the index expressions (official's
 `check_constructors`: the result's parameters are the parameters).  The
-ι licence's facts at an outside class read them: a container's
+ι case split's facts at an outside class read them: a container's
 capabilities decide its sort's zero-ness and its K rule, and its
 constructor's residual is the former at the constructor's parameters. -/
 @[expose] def LfpCaps {V : Type w} [SetTheory V] (env : Env) (D : LfpDatum V) : Prop :=
@@ -178,8 +178,8 @@ variable {V}
 
 /-- **An application along a Π-tower lands in its body**
 (`app_mem_piV` per binder). -/
-theorem foldl_app_mem_mkPisAV {B : ITerm} :
-    ∀ {tl : List ITerm} {ρ : Nat → V} {bs : List V} {f : V},
+theorem foldl_app_mem_mkPisAV {B : Term} :
+    ∀ {tl : List Term} {ρ : Nat → V} {bs : List V} {f : V},
       SpineFit ρ tl bs →
       f ∈ˢ interp V ρ (mkPisAV tl B) →
       bs.foldl SetTheory.app f ∈ˢ interp V (consList bs ρ) B
@@ -196,8 +196,8 @@ theorem foldl_app_mem_mkPisAV {B : ITerm} :
 /-- **A Π-tower whose body is a truth value at every fitting spine is a
 truth value**: each binder's fibres are (by induction), so each
 function space is the truth-value regime's (`piV_eq_zero`). -/
-theorem mkPisAV_mem_univZero {B : ITerm} :
-    ∀ {tl : List ITerm} {ρ : Nat → V},
+theorem mkPisAV_mem_univZero {B : Term} :
+    ∀ {tl : List Term} {ρ : Nat → V},
       (∀ bs, SpineFit ρ tl bs → interp V (consList bs ρ) B ∈ˢ (univZero : V)) →
       interp V ρ (mkPisAV tl B) ∈ˢ (univZero : V)
   | [], _, h => h [] trivial
@@ -209,8 +209,8 @@ theorem mkPisAV_mem_univZero {B : ITerm} :
 
 /-- **The body of a graded Π-tower is a type at every fitting spine**:
 it is the innermost binder's fibre, which the grading makes a type. -/
-theorem isTy_of_wd_mkPisAV {B : ITerm} :
-    ∀ {tl : List ITerm} {ρ : Nat → V} {bs : List V}, tl ≠ [] →
+theorem isTy_of_wd_mkPisAV {B : Term} :
+    ∀ {tl : List Term} {ρ : Nat → V} {bs : List V}, tl ≠ [] →
       WellDenoted V ρ (mkPisAV tl B) → SpineFit ρ tl bs →
       IsTy (interp V (consList bs ρ) B)
   | [], _, _, h, _, _ => absurd rfl h
@@ -231,19 +231,19 @@ structure EnvModelM (μ : CheckMode) (env : Env) where
   base2 : EnvModel V env
   /-- every stored type reads, at every ground assignment -/
   type_reads : ∀ c ∈ env.consts, ∀ ψ : Name → Nat,
-    ∃ ta : ITerm,
-      denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta
+    ∃ ta : Term,
+      denote base2.acval env ψ 0 c.toConstantVal.type = some ta
   /-- the stored types' readings are graded types -/
-  type_wellDenotedTy : ∀ c ∈ env.consts, ∀ (ψ : Name → Nat) (ta : ITerm),
-    denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta →
+  type_wellDenotedTy : ∀ c ∈ env.consts, ∀ (ψ : Name → Nat) (ta : Term),
+    denote base2.acval env ψ 0 c.toConstantVal.type = some ta →
     ∀ ρ : Nat → V, WellDenotedTy V ρ ta
   /-- stored constants inhabit their types' readings (a projection
   table's constant type is the closed dummy `Sort 1` and its leaf is
   `Sort 0`, so the row holds of tables too; that a table is not a term
   is `inferTypeCore`'s own rejection of a `.const` naming one) -/
   mem_type : ∀ c ∈ env.consts,
-    ∀ (ψ : Name → Nat) (ta : ITerm),
-    denoteMeta base2.acval env ψ 0 c.toConstantVal.type = some ta →
+    ∀ (ψ : Name → Nat) (ta : Term),
+    denote base2.acval env ψ 0 c.toConstantVal.type = some ta →
     ∀ ρ : Nat → V,
       interp V ρ (base2.acval c.name ψ) ∈ˢ interp V ρ ta
   /-- stored definition and theorem values read, to the constant's own
@@ -330,19 +330,19 @@ theorem constType (m : EnvModelM V μ env) : ConstType m.base2 φ := by
   have hwf := m.base2.wf ci hmem
   -- the reading is closed, hence depth-free
   have hcl : ∀ k : Nat, ta.liftN 1 k = ta := fun k =>
-    denoteMeta_closed m.base2.acval_erase m.base2.cval_closed
+    denote_liftN_eq_self m.base2.cval_closed
       hwf.1 hwf.2.2.2.1 hta 1 k
   have hdepth :
-      denoteMeta m.base2.acval env
+      denote m.base2.acval env
           (Level.substFn φ ci.toConstantVal.levelParams us) d
           ci.toConstantVal.type = some ta :=
-    denoteMeta_depth_of_closed m.base2.acval_closed hwf.1 hcl hta d
+    denote_depth_of_closed m.base2.acval_closed hwf.1 hcl hta d
   -- the instantiated type's reading, by the crossing
   have hcross :
-      denoteMeta m.base2.acval env φ d
+      denote m.base2.acval env φ d
           (ci.toConstantVal.type.instantiateLevelParams
             ci.toConstantVal.levelParams us)
-        = denoteMeta m.base2.acval env
+        = denote m.base2.acval env
             (Level.substFn φ ci.toConstantVal.levelParams us) d
             ci.toConstantVal.type :=
     denotePInstLevels m.base2 φ ci.toConstantVal.levelParams us d
@@ -368,11 +368,11 @@ theorem indFibLaw (m : EnvModelM V μ env) (φ : Name → Nat) : IndFibLaw m.bas
   obtain ⟨ta, hta⟩ := m.type_reads _ hmem (Level.substFn φ cv.levelParams us)
   rw [hcv] at hta
   have hcl : ∀ k : Nat, ta.liftN 1 k = ta := fun k =>
-    denoteMeta_closed m.base2.acval_erase m.base2.cval_closed
+    denote_liftN_eq_self m.base2.cval_closed
       hwf.1 hwf.2.2.2.1 hta 1 k
-  have hdepth : denoteMeta m.base2.acval env (Level.substFn φ cv.levelParams us) d cv.type
+  have hdepth : denote m.base2.acval env (Level.substFn φ cv.levelParams us) d cv.type
       = some ta :=
-    denoteMeta_depth_of_closed m.base2.acval_closed hwf.1 hcl hta d
+    denote_depth_of_closed m.base2.acval_closed hwf.1 hcl hta d
   have hcross := denotePInstLevels m.base2 φ cv.levelParams us d cv.type
   rw [hcross, hdepth] at hread
   obtain rfl := Option.some.inj hread
@@ -393,30 +393,28 @@ projection:
 | `EnvFacts` field | source |
 |---|---|
 | `cval`, `cval_closed`, `wf`, `proj_ok` | `base2`'s own |
-| `val_params` | `acval_params`, erased |
-| `ty_denotes` | `type_reads` through `denoteMeta_erase` |
-| `defn_eq` | `defn_reads` through `denoteMeta_erase` (definitions only: a theorem is opaque to reduction, and the invariant keeps no equation for its value) |
+| `val_params` | `acval_params` |
+| `ty_denotes` | `type_reads` |
+| `defn_eq` | `defn_reads` (definitions only: a theorem is opaque to reduction, and the invariant keeps no equation for its value) |
 | `rec_rhs_denotes`, `rec_params_le` | `rec_rules`' `RecRuleLaw`, whose first two components are exactly those two facts |
 | `nat_op_guard` | `nat_ops`/`div_mod` through `natOpStored_inv` |
 -/
 def toEnvFacts {V : Type w} [SetTheory V] {μ : CheckMode}
     {env : Env} (m : EnvModelM V μ env) : ConLeche.Semantics.EnvFacts env where
-  cval := m.base2.cvalE
+  cval := m.base2.acval
   cval_closed := m.base2.cval_closed
   wf := m.base2.wf
   val_params := fun n ci hf φ₁ φ₂ hp =>
-    congrArg ITerm.erase (m.base2.acval_params n ci hf φ₁ φ₂ hp)
+    m.base2.acval_params n ci hf φ₁ φ₂ hp
   ty_denotes := fun c hc ψ => by
     obtain ⟨ta, hta⟩ := m.type_reads c hc ψ
-    exact ⟨ta.erase,
-      denoteMeta_erase m.base2.acval_erase 0 c.toConstantVal.type hta⟩
+    exact ⟨ta, hta⟩
   defn_eq := fun cv value hint hmem ψ =>
-    denoteMeta_erase m.base2.acval_erase 0 value
-      (m.defn_reads ψ cv value ⟨hint, hmem⟩)
+    (m.defn_reads ψ cv value ⟨hint, hmem⟩)
   rec_rhs_denotes := fun n cv mI rP rules hf r hr us ψ hlen => by
     obtain ⟨-, hus, -⟩ := m.rec_rules ψ n cv mI rP rules hf r hr
     obtain ⟨Ra, hRa, -, -⟩ := hus us hlen
-    exact ⟨Ra.erase, denoteMeta_erase m.base2.acval_erase 0 _ hRa⟩
+    exact ⟨Ra, hRa⟩
   rec_params_le := fun n cv mI rP rules hf r hr =>
     (m.rec_rules (fun _ => 0) n cv mI rP rules hf r hr).1
   proj_ok := m.base2.proj_ok
@@ -508,22 +506,22 @@ every stored inductive former and its leaf, and every successful reading
 of a stored former's type — the transport every construction site of
 the invariant (the cons funnel, the rule-list swap) instantiates. -/
 theorem lfp_ok_transport (mp : EnvModelM V μ env) {env' : Env}
-    {acval' : Name → (Name → Nat) → ITerm}
+    {acval' : Name → (Name → Nat) → Term}
     (hfind : ∀ n ci, env.find? n = some ci → (∀ cv mI rP rules, ci ≠ .recInfo cv mI rP rules) →
       env'.find? n = some ci)
     (hag : ∀ n ci, env.find? n = some ci → (∀ cv mI rP rules, ci ≠ .recInfo cv mI rP rules) →
       acval' n = mp.base2.acval n)
     (hread : ∀ n cv caps, env.find? n = some (.indInfo cv caps) → ∀ (ψ : Name → Nat)
-      (ta : ITerm), denoteMeta mp.base2.acval env ψ 0 cv.type = some ta →
-      denoteMeta acval' env' ψ 0 cv.type = some ta)
+      (ta : Term), denote mp.base2.acval env ψ 0 cv.type = some ta →
+      denote acval' env' ψ 0 cv.type = some ta)
     (hreadT : ∀ n cv nPc nF, env.find? n = some (.ctorInfo cv nPc nF) → ∀ (ψ : Name → Nat)
-      (ta : ITerm), denoteMeta mp.base2.acval env ψ 0 cv.type = some ta →
-      denoteMeta acval' env' ψ 0 cv.type = some ta)
+      (ta : Term), denote mp.base2.acval env ψ 0 cv.type = some ta →
+      denote acval' env' ψ 0 cv.type = some ta)
     (hreadC : ∀ n ci, env.find? n = some ci → (∀ cv mI rP rules, ci ≠ .recInfo cv mI rP rules) →
       ∀ A, CanonOf ci.toConstantVal.type A →
-      ∀ (ψ : Name → Nat) (d : Nat) (ta : ITerm),
-      denoteMeta mp.base2.acval env ψ d A = some ta →
-      denoteMeta acval' env' ψ d A = some ta) :
+      ∀ (ψ : Name → Nat) (d : Nat) (ta : Term),
+      denote mp.base2.acval env ψ d A = some ta →
+      denote acval' env' ψ d A = some ta) :
     ∀ D ∈ mp.lfpBlocks, LfpClause acval' D ∧ LfpStored env' D ∧ LfpReads acval' env' D ∧
       LfpCtorReads acval' env' D ∧ LfpCaps env' D := by
   intro D hD
@@ -550,7 +548,7 @@ theorem lfp_ok_transport (mp : EnvModelM V μ env) {env' : Env}
       exact ⟨cvm, caps, hfind _ _ hfm fun _ _ _ _ h => ConstantInfo.noConfusion h, hl⟩
     · -- the new reading is the old one (the old one exists, and crosses)
       obtain ⟨ta, hta⟩ := mp.type_reads _ (List.mem_of_find?_eq_some hf) ψ
-      change denoteMeta mp.base2.acval env ψ 0 cv.type = some ta at hta
+      change denote mp.base2.acval env ψ 0 cv.type = some ta at hta
       have hta' := hreadT _ _ _ _ hf ψ _ hta
       rw [hrd'] at hta'
       obtain rfl := Option.some.inj hta'

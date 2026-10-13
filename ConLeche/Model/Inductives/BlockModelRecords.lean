@@ -23,7 +23,7 @@ open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
 open ConLeche.SetTheory.Tower
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars)
 
 universe w
@@ -48,7 +48,7 @@ the injections' identification stay premises (both `rfl` at
 frame, from the constructors' stage. -/
 theorem BlockCtorsStage.idxOkAt {envI : Env} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → ITerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf) (hk0 : 0 < d.k) :
     ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
@@ -62,7 +62,7 @@ the datum's operator is the hole operator (`hPhi`), whose fibre is the
 hole fit (`LfpDatum.holeOp_fibre`). -/
 theorem blockHoleFib_of_records {envC envI : Env} {mo : EnvModel V envC} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → ITerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)
@@ -94,7 +94,7 @@ theorem blockHoleFib_of_records {envC envI : Env} {mo : EnvModel V envC} {d : Bl
 /-- **The block's representation, from the stages' three records.** -/
 theorem blockModelAt_of_records {envC envI : Env} {mo : EnvModel V envC} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → ITerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)
@@ -241,7 +241,7 @@ readings are the stored ones (`blockResIdxFit_lfp`), which the constructors' typ
 in the member's index telescope (`BlockModelAt.resIdxFit`). -/
 theorem blockResIdxFit_of_records {envC envI : Env} {mo : EnvModel V envC} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → ITerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)
@@ -281,7 +281,7 @@ theorem blockResIdxFit_of_records {envC envI : Env} {mo : EnvModel V envC} {d : 
 /-- **The block's lfp clause, in hole form, from the stages' records.** -/
 theorem blockLfpClause_of_records {envC envI : Env} {mo : EnvModel V envC} {d : BlockData V}
     {lps : List Name} {cvTas : List ConstantVal} {p₁ : ConLeche.BlockShape} {isRec : Bool}
-    {F : Nat} {A : Nat → (Name → Nat) → ITerm}
+    {F : Nat} {A : Nat → (Name → Nat) → Term}
     {ctorsOf : Name → List Name}
     (hN : BlockNamesOk (V := V) d cvTas)
     (hS : BlockCtorsStage (V := V) μ F d lps cvTas p₁ isRec A envI ctorsOf)

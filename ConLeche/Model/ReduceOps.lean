@@ -67,7 +67,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal)
 
 universe w
@@ -81,12 +81,12 @@ variable {μ : CheckMode} {env : Env}
 element inductives — `Nat`, `Bool` — are stored level-free, so the
 spelling is the plain assignment). -/
 def elemA {env : Env} (m : EnvModel V env) (c : Name)
-    (ψ : Name → Nat) : ITerm :=
+    (ψ : Name → Nat) : Term :=
   m.acval (ConLeche.reduceElemName c) ψ
 
 /-- The certificate's context: one slot, the element type. -/
 def elemCtx {env : Env} (m : EnvModel V env) (c : Name)
-    (ψ : Name → Nat) : List ITerm :=
+    (ψ : Name → Nat) : List Term :=
   [elemA m c ψ]
 
 /-- One element member satisfies the one-variable context (the leaf
@@ -155,17 +155,17 @@ the module docstring for the route. -/
 theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     (mp : EnvModelM V μ env) {F : Nat}
     {cv : ConstantVal} {value type' value' : Expr}
-    {A Ta : (Name → Nat) → ITerm}
+    {A Ta : (Name → Nat) → Term}
     (hfresh : env.find? cv.name = none)
     (hvf' : value'.hasFvar = false)
     (hbv' : value'.looseBVarsBounded 0 = true)
     (hannv : value' = value)
     (hA : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 0 value' = some (A ψ))
+      denote mp.base2.acval env ψ 0 value' = some (A ψ))
     (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAok : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (A ψ))
     (hTa : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 0 type' = some (Ta ψ))
+      denote mp.base2.acval env ψ 0 type' = some (Ta ψ))
     (hTaOk : ∀ (ψ : Name → Nat) (ρ : Nat → V), WellDenoted V ρ (Ta ψ))
     (hmemA : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       interp V ρ (A ψ) ∈ˢ interp V ρ (Ta ψ))
@@ -193,11 +193,11 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     intro h; rw [h, hfresh] at hfE; exact nomatch hfE
   have hEty := reduceElemTy_constS cv.name
   have hdenE : ∀ (ψ : Name → Nat) (d : Nat),
-      denoteMeta mp.base2.acval env ψ d (ConLeche.reduceElemTy cv.name)
+      denote mp.base2.acval env ψ d (ConLeche.reduceElemTy cv.name)
         = some (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ) := by
     intro ψ d
     rw [hEty]
-    exact denoteMeta_levelless_const hfE hlpE
+    exact denote_levelless_const hfE hlpE
   -- the two leaf moves
   have hmoveE : m₂.acval (ConLeche.reduceElemName cv.name)
       = mp.base2.acval (ConLeche.reduceElemName cv.name) := by
@@ -229,12 +229,12 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
         (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ) := by
     intro ψ
     have h := hTa ψ
-    rw [show denoteMeta mp.base2.acval env ψ 0
+    rw [show denote mp.base2.acval env ψ 0
           (Expr.forallE (ConLeche.reduceElemTy cv.name)
             (ConLeche.reduceElemTy cv.name))
         = some (.pi (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)
             (mp.base2.acval (ConLeche.reduceElemName cv.name) ψ)) from by
-      rw [denoteMeta_forallE, hdenE ψ 0, hinst, hdenE ψ 1]; rfl] at h
+      rw [denote_forallE, hdenE ψ 0, hinst, hdenE ψ 1]; rfl] at h
     exact (Option.some.inj h).symm
   -- the element type is a type: the operation type's domain
   have helemTy : ∀ (ψ : Name → Nat) (ρ' : Nat → V),
@@ -301,20 +301,20 @@ theorem reduceOps_install (hμ : μ.verifiedChecks = true)
     exact (hctxCert ψ).2 l hl
   -- the two sides' readings at the certificate's depth
   have hdenCert : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 1 (ConLeche.reduceCertVar cv.name)
+      denote mp.base2.acval env ψ 1 (ConLeche.reduceCertVar cv.name)
         = some (.bvar 0) := by
     intro ψ
-    rw [ConLeche.reduceCertVar, denoteMeta_fvar]
+    rw [ConLeche.reduceCertVar, denote_fvar]
   have hdenV1 : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 1 value' = some (A ψ) := fun ψ =>
-    denoteMeta_depth_of_closed mp.base2.acval_closed hvf'
+      denote mp.base2.acval env ψ 1 value' = some (A ψ) := fun ψ =>
+    denote_depth_of_closed mp.base2.acval_closed hvf'
       (fun k => hAclosed ψ k) (hA ψ) 1
   have hdenApp : ∀ ψ : Name → Nat,
-      denoteMeta mp.base2.acval env ψ 1
+      denote mp.base2.acval env ψ 1
           (Expr.app value' (ConLeche.reduceCertVar cv.name))
         = some (.app (A ψ) (.bvar 0)) := by
     intro ψ
-    rw [denoteMeta_app, hdenV1 ψ, hdenCert ψ]
+    rw [denote_app, hdenV1 ψ, hdenCert ψ]
     rfl
   -- the claims at the prefix environment
   have hclaims := fun ψ =>

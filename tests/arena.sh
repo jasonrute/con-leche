@@ -10,7 +10,7 @@
 # The expectations file additionally pins the current accept/decline status
 # so that progress and regressions are both visible; update it consciously.
 #
-# Usage: tests/arena.sh [--no-sweeps] [tests-dir]
+# Usage: tests/arena.sh [--no-sweeps] [--no-selfcheck] [tests-dir]
 #
 # An <expectation> is a single exit code.
 #
@@ -27,7 +27,8 @@
 #     stops or starts detecting differently).
 #
 # `--no-sweeps` skips the extra pass for a tight edit loop; a landing
-# gate runs it.
+# gate runs it.  `--no-selfcheck` skips the self-check sub-gate (below)
+# likewise.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -44,10 +45,12 @@ export TMPDIR="${TMPDIR:-$PWD/_tmp/tmp}"
 mkdir -p "$TMPDIR"
 
 MODE_SWEEPS=on
+SELFCHECK=on
 args=()
 for a in "$@"; do
   case "$a" in
     --no-sweeps) MODE_SWEEPS=off;;
+    --no-selfcheck) SELFCHECK=off;;
     *) args+=("$a");;
   esac
 done
@@ -214,6 +217,22 @@ if tests/challenge.sh; then :; else fail=1; fi
 # built tree; ~1 min, most of it the two olean dumps the fixpoint reads.
 if tests/shake.sh; then :; else fail=1; fi
 
+# THE SELF-CHECK (task #199; a sub-gate since task #342 R1).
+# `scripts/selfcheck.sh --fresh` exports this tree's own development
+# (every con-leche declaration and its dependency cone, ~0.7 GB of
+# NDJSON) and runs the checker on it at `--verified --jobs=8`: under a
+# minute with the export (2 CPU-minutes); the first run in a checkout
+# also clones and builds `lean4export` at the tree's toolchain (it needs
+# the network once).  The gate is the checker's exit 0.
+if [ "$SELFCHECK" = on ]; then
+  if scripts/selfcheck.sh --fresh _tmp/selfcheck-gate > _tmp/selfcheck-gate.log 2>&1; then
+    echo "selfcheck: $(grep -o 'accepted [0-9]* declarations' _tmp/selfcheck-gate.log | tail -1)"
+  else
+    echo "SELFCHECK FAIL: see _tmp/selfcheck-gate.log"; tail -5 _tmp/selfcheck-gate.log
+    fail=1
+  fi
+fi
+
 # THE AXIOM PIN (2026-09-06, external review §2/§5.1).  The two main
 # theorems, the four letters, the assembly under them and the `IO`
 # loop's bridge — and, since task #181, the `False` letters — carry `#guard_msgs in #print axioms`
@@ -291,7 +310,12 @@ arena_half() {
 # k_rescue_stuck: BELOW the default too — checks in milliseconds, and a
 # regression (task #334: whnf of the major restored after a failed K
 # rescue) does not terminate.
+# whnf_delta_loop, whnf_core_loop: their expected verdict IS the timeout
+# (exit 124: a head normalization that does not terminate, run in
+# constant stack); 5 s is plenty to tell it from a stack overflow.
 declare -A E2E_TIMEOUT=(
+  [whnf_delta_loop.ndjson]=5
+  [whnf_core_loop.ndjson]=5
   [complete_c05b_nest30_pi1000.ndjson]=600
   [proj_stuck_struct.ndjson]=10
   [omega_kloop.ndjson]=10

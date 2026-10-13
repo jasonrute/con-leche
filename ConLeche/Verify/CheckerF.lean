@@ -75,12 +75,12 @@ theorem natOpStoredOkF_eq (env : Env) (n : Name) :
   simp only [natOpStoredOkF, natOpStoredOk, mkFEnv_find?,
     natOpTyPinnedF_eq] <;> rfl
 
-theorem stdAxiomOkF_eq (env : Env) (cvA : ConstantVal) :
-    stdAxiomOkF (mkFEnv env) cvA = stdAxiomOk env cvA := by
+theorem stdAxiomOkF_eq (env : Env) (cv : ConstantVal) :
+    stdAxiomOkF (mkFEnv env) cv = stdAxiomOk env cv := by
   simp only [stdAxiomOkF, stdAxiomOk, mkFEnv_find?] <;> rfl
 
-theorem trustCompilerOkF_eq (env : Env) (cvA : ConstantVal) :
-    trustCompilerOkF (mkFEnv env) cvA = trustCompilerOk env cvA := by
+theorem trustCompilerOkF_eq (env : Env) (cv : ConstantVal) :
+    trustCompilerOkF (mkFEnv env) cv = trustCompilerOk env cv := by
   simp only [trustCompilerOkF, trustCompilerOk, mkFEnv_find?] <;> rfl
 
 theorem reduceStoredOkF_eq (env : Env) (c : Name) :
@@ -91,8 +91,8 @@ theorem reduceElemOkF_eq (env : Env) (c : Name) :
     reduceElemOkF (mkFEnv env) c = reduceElemOk env c := by
   simp only [reduceElemOkF, reduceElemOk, mkFEnv_find?] <;> rfl
 
-theorem ofReduceAxOkF_eq (env : Env) (cvA : ConstantVal) :
-    ofReduceAxOkF (mkFEnv env) cvA = ofReduceAxOk env cvA := by
+theorem ofReduceAxOkF_eq (env : Env) (cv : ConstantVal) :
+    ofReduceAxOkF (mkFEnv env) cv = ofReduceAxOk env cv := by
   simp only [ofReduceAxOkF, ofReduceAxOk, mkFEnv_find?,
     reduceElemOkF_eq, reduceStoredOkF_eq] <;> rfl
 

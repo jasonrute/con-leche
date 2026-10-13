@@ -77,7 +77,7 @@ position. -/
 def checkLabel {mode : ConLeche.CheckMode} {ds : List ConLeche.Declaration}
     (e : ConLeche.Cached.InstalledEnv mode ConLeche.natOpPinSets ds) (k : Nat) : String :=
   match e.pend[k]? with
-  | some p => s!"{p.vg.kind.word} {p.vg.cvA.name} (#{p.pos})"
+  | some p => s!"{p.vg.kind.word} {p.vg.cv.name} (#{p.pos})"
   | none => s!"check {k}"
 
 /-- The check phase's heartbeat: on the `stride`-th completed check
@@ -98,7 +98,7 @@ def checkHeartbeat (err : IO.FS.Stream) (stride t0 : Nat) {mode : ConLeche.Check
       | some lv => lv.report (checkLabel e)
       | none => pure ""
     err.putStr s!"con-leche: check {n}/{e.pend.size} \
-      {e.pend[k].vg.kind.word} {e.pend[k].vg.cvA.name} \
+      {e.pend[k].vg.kind.word} {e.pend[k].vg.cv.name} \
       t={ConLeche.Cached.msSecs (now - t0)}s{extra}\n"
     err.flush
 

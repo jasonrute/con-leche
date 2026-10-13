@@ -35,7 +35,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal openPisAtFvars closeTelescope
   ClassGen ClassGenScoped ScB SameDoms EndsInSort classGenRecTy classBinder)
 
@@ -198,22 +198,22 @@ theorem consList_prefix_getD' {xs bs : List V} {ρ : Nat → V} {k : Nat} (hk : 
 
 /-- **A variable applied to variables, read and interpreted** at a frame
 of the reading's depth: the head's value applied to the arguments'. -/
-theorem interp_denoteMeta_fvarSpine {acval : Name → (Name → Nat) → ITerm} {env : Env}
+theorem interp_denote_fvarSpine {acval : Name → (Name → Nat) → Term} {env : Env}
     {φ : Name → Nat} {ρ : Nat → V} {vs : List V} {d : Nat} (hvl : vs.length = d) :
-    ∀ (as : List Expr) (f : Expr) (fa : ITerm),
-      denoteMeta acval env φ d f = some fa →
+    ∀ (as : List Expr) (f : Expr) (fa : Term),
+      denote acval env φ d f = some fa →
       (∀ a ∈ as, ∃ i T, a = .fvar i T ∧ i < d) →
-      ∃ ra, denoteMeta acval env φ d (Expr.mkAppN f as) = some ra ∧
+      ∃ ra, denote acval env φ d (Expr.mkAppN f as) = some ra ∧
         interp V (consList vs ρ) ra
           = (as.map fun a => vs.getD (fvIdx a) (SetTheory.pt : V)).foldl SetTheory.app
               (interp V (consList vs ρ) fa)
   | [], f, fa, hf, _ => ⟨fa, hf, rfl⟩
   | a :: as, f, fa, hf, has => by
     obtain ⟨i, T, rfl, hi⟩ := has a List.mem_cons_self
-    have hfa : denoteMeta acval env φ d (.app f (.fvar i T))
+    have hfa : denote acval env φ d (.app f (.fvar i T))
         = some (.app fa (.bvar (d - 1 - i))) := by
-      rw [denoteMeta_app, hf, denoteMeta_fvar]; rfl
-    obtain ⟨ra, hra, hint⟩ := interp_denoteMeta_fvarSpine hvl as _ _ hfa
+      rw [denote_app, hf, denote_fvar]; rfl
+    obtain ⟨ra, hra, hint⟩ := interp_denote_fvarSpine hvl as _ _ hfa
       (fun b hb => has b (List.mem_cons_of_mem _ hb))
     refine ⟨ra, hra, ?_⟩
     rw [hint]
@@ -226,13 +226,13 @@ set_option maxHeartbeats 800000 in
 prefix, an index spine and a major, the motive's value applied to the
 index spine and the major. -/
 theorem classGenRecTy_concl
-    {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat} {g : ClassGen}
+    {acval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat} {g : ClassGen}
     (hg : ClassGenScoped g) {c s : Nat}
     (hm : ConLeche.ClassRead.motiveSlot ⟨g.slots, []⟩ c = some s)
-    {gty : Expr} {ea : ITerm}
+    {gty : Expr} {ea : Term}
     (hgty : classGenRecTy g c = some gty)
-    (hread : denoteMeta acval env φ 0 gty = some ea) {pps : List ITerm}
-    {b : ITerm}
+    (hread : denote acval env φ 0 gty = some ea) {pps : List Term}
+    {b : Term}
     (hst : stripPisAV (g.pre.length + (g.cls.getD c default).nIdx + 1) ea = some (pps, b)) :
     ∀ (ρ : Nat → V) (xs zs : List V) (x : V), xs.length = g.pre.length →
       zs.length = (g.cls.getD c default).nIdx →
@@ -251,16 +251,16 @@ theorem classGenRecTy_concl
   obtain ⟨fvs, o, hop, hrest, -⟩ := open_of_erasedEq_closeTelescope nds 0 body
     (closeTelescope nds 0 body) hcl hbb (Expr.ErasedEq.rfl _)
   rw [hn] at hop
-  obtain ⟨pps', b', hst', hbo, -, -⟩ := denoteMeta_openPis _ hop hread
+  obtain ⟨pps', b', hst', hbo, -, -⟩ := denote_openPis _ hop hread
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj (hst.symm.trans hst'))
   have hoE : Expr.ErasedEq o body := hrest
-  rw [Nat.zero_add, denoteMeta_erasedEq hoE, ← hbody, ConLeche.ClassGen.motVar_eq hm] at hbo
+  rw [Nat.zero_add, denote_erasedEq hoE, ← hbody, ConLeche.ClassGen.motVar_eq hm] at hbo
   have hvl : (xs ++ (zs ++ [x])).length = g.pre.length + (g.cls.getD c default).nIdx + 1 := by
     simp only [List.length_append, List.length_singleton, hxl, hzl]; omega
   have hsl : s < g.slots.length := ConLeche.ClassRead.motiveSlot_lt hm
-  obtain ⟨ra, hra, hint⟩ := interp_denoteMeta_fvarSpine (acval := acval) (env := env) (φ := φ)
+  obtain ⟨ra, hra, hint⟩ := interp_denote_fvarSpine (acval := acval) (env := env) (φ := φ)
     (ρ := ρ) hvl (ifs ++ [.fvar (g.pre.length + ifs.length) maj]) (.fvar (g.nP + s) (.sort .zero))
-    _ (denoteMeta_fvar _ _ _ _) (fun a ha => by
+    _ (denote_fvar _ _ _ _) (fun a ha => by
       rcases List.mem_append.mp ha with ha | ha
       · obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem ha
         obtain ⟨ty, hxe, -⟩ := hifs k _ (List.getElem?_eq_getElem hk)
@@ -310,16 +310,16 @@ section Rows
 variable {V : Type w} [SetTheory V] {env : Env}
 
 /-- `a` is the model's reading, at depth `D`, of a term scoped at `D`. -/
-@[expose] def IsReadingAt (m : EnvModel V env) (φ : Name → Nat) (D : Nat) (a : ITerm) :
+@[expose] def IsReadingAt (m : EnvModel V env) (φ : Name → Nat) (D : Nat) (a : Term) :
     Prop :=
-  ∃ e : Expr, ScB D e ∧ denoteMeta m.acval env φ D e = some a
+  ∃ e : Expr, ScB D e ∧ denote m.acval env φ D e = some a
 
 /-- A reading of a scoped term names no variable at or above its depth. -/
-theorem IsReadingAt.below {m : EnvModel V env} {φ : Name → Nat} {D : Nat} {a : ITerm}
-    (h : IsReadingAt m φ D a) : Term.bvarsBelow D a.erase := by
+theorem IsReadingAt.below {m : EnvModel V env} {φ : Name → Nat} {D : Nat} {a : Term}
+    (h : IsReadingAt m φ D a) : Term.bvarsBelow D a := by
   obtain ⟨e, ⟨hw, hb⟩, hd⟩ := h
-  exact ConLeche.Verify.denote_bvarsBelow m.cval_closedL D e hw hb
-    (denoteMeta_erase (cval := fun n ψ => (m.acval n ψ).erase) (fun _ _ => rfl) D e hd)
+  exact ConLeche.Verify.denote_bvarsBelow m.cval_closed D e hw hb
+    hd
 
 end Rows
 

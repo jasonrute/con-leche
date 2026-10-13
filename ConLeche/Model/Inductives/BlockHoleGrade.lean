@@ -40,7 +40,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal CheckM NestCtx NestState
   BlockParts BlockShape instPisWith nestHoles openPisAtFvars fueledOps)
 
@@ -53,7 +53,7 @@ variable {V : Type w} [SetTheory V]
 /-- A field list is hereditarily graded (`FieldsOkB`) when each field
 is graded, and bounded at a nonzero universe, at every fitting prefix. -/
 theorem fieldsOkB_of_prefix {w : Nat} :
-    ∀ (Fs : List ITerm) (σ : Nat → V),
+    ∀ (Fs : List Term) (σ : Nat → V),
       (∀ i, i < Fs.length → ∀ as : List V, SpineFit σ (Fs.take i) as →
         WellDenoted V (consList as σ) (Fs.getD i default) ∧
         IsTy (interp V (consList as σ) (Fs.getD i default)) ∧
@@ -68,7 +68,7 @@ theorem fieldsOkB_of_prefix {w : Nat} :
 
 /-- A graded Π-tower's body is graded under all its binders. -/
 theorem gradedV_mkPisAV_body :
-    ∀ {ab : List ITerm} {Δa : List ITerm} {B : ITerm},
+    ∀ {ab : List Term} {Δa : List Term} {B : Term},
       (∀ ρ : Nat → V, Sat V Δa ρ → WellDenoted V ρ (mkPisAV ab B)) →
       ∀ ρ : Nat → V, Sat V ((ab).reverse ++ Δa) ρ → WellDenoted V ρ B
   | [], _, _, h, ρ, hρ => h ρ (by simpa using hρ)
@@ -114,7 +114,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
       (Level.isEquiv p.resSort .zero == some true) false p.resSort
       ((p.nestCtx fvsP env.find?).hiAt 0) xq.1 [] cA.2 = .ok sorts) :
     (DomsBelow (d.nP + d.k) (d.absF ψ c j) ∧
-      ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e.erase) ∧
+      ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e) ∧
     ∀ (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
     ∀ X : Nat → V, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
     FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
@@ -125,14 +125,13 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
       hcv0 hop0 hholes hcj hCf hCb hcrest hinf hsort hd hnf
   -- the bounds: the reading of a well-scoped term
   have hbelow : DomsBelow (d.nP + d.k) (d.absF ψ c j) ∧
-      ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e.erase := by
+      ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e := by
     obtain ⟨hdoms, hbody⟩ := bvarsBelow_mkPisAV_inv (bvarsBelow_of_reading hfr.1 hfr.2.1 hca)
     have hlen : (d.absF ψ c j).length = ab.length := by rw [← hab]
     refine ⟨by rw [← hab]; exact hdoms, fun e he => ?_⟩
     rw [hlen]
-    rw [ITerm.erase_mkAppN] at hbody
     exact (bvarsBelow_mkAppN_inv hbody).2 _
-      (List.mem_map.mpr ⟨e, he, rfl⟩)
+      (he)
   refine ⟨hbelow, fun ρp hs X hX => ?_⟩
   have hσ := hsatFrame ρp hs X hX
   generalize d.toLfp.frame ψ ρp X = σ at hσ ⊢
@@ -166,7 +165,7 @@ theorem blockCtorHoleGrade_of_walk {env : Env} (mp : EnvModelM V .verified env)
     obtain ⟨hlenS, hfields⟩ := ConLeche.checkStructFieldSortsI_inv hsorts
     rw [hhi] at hxq hfields
     have hxq' : openPisAtFvars cA.2 tyN (d.nP + d.k) = some (xq.1, xq.2) := hxq
-    obtain ⟨pps, b, hst, -, -, hbind⟩ := denoteMeta_openPis cA.2 hxq' hca
+    obtain ⟨pps, b, hst, -, -, hbind⟩ := denote_openPis cA.2 hxq' hca
     rw [← habLen, stripPisAV_mkPisAV] at hst
     obtain ⟨rfl, -⟩ := Prod.mk.inj (Option.some.inj hst).symm
     have hlenX : xq.1.length = cA.2 := ConLeche.Verify.openPisAtFvars_length _ hxq'
@@ -225,7 +224,7 @@ theorem blockHoleGrade_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChecks
       d.nfFF c j = (posKs.2.1.getD c []).getD j default)
     (ψ : Name → Nat) {c : Nat} (hc : c < d.N) {j : Nat} (hj : j < (d.ctorsM c).length) :
     (DomsBelow (d.nP + d.k) (d.absF ψ c j) ∧
-      ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e.erase) ∧
+      ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e) ∧
     ∀ (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
     ∀ X : Nat → V, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
     FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
@@ -369,13 +368,13 @@ theorem blockRunLink (ψ : Name → Nat)
       (d.xFvsF c j) (d.xrestF c j) (d.idxF c j) (d.dsF c j) (d.esF c j)) :
     ConstsBound env ((posKs.2.1.getD c []).getD j default) ∧
     lpDefF lps ((posKs.2.1.getD c []).getD j default) = true ∧
-    ∃ (A : Expr) (abD abN : List ITerm),
+    ∃ (A : Expr) (abD abN : List Term),
       ConLeche.nestCanonCrest d.memberNames (lps.map .param) d.nP cA.1.type = some A ∧
-      denoteMeta mp.base2.acval env ψ (d.nP + d.k) A
-        = some (mkPisAV abD (ITerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
+      denote mp.base2.acval env ψ (d.nP + d.k) A
+        = some (mkPisAV abD (Term.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
             (d.absE ψ c j))) ∧
-      denoteMeta mp.base2.acval env ψ (d.nP + d.k) ((posKs.2.1.getD c []).getD j default)
-        = some (mkPisAV abN (ITerm.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
+      denote mp.base2.acval env ψ (d.nP + d.k) ((posKs.2.1.getD c []).getD j default)
+        = some (mkPisAV abN (Term.mkAppN (.bvar (cA.2 + (d.k - 1 - c)))
             (d.absE ψ c j))) ∧
       abD.length = cA.2 ∧ abN.length = cA.2 ∧
       FieldsEqOn V (d.holeCtx ψ).reverse (abD) (abN) ∧
@@ -478,7 +477,7 @@ theorem blockRunLink (ψ : Name → Nat)
     hcrest
   have hA' : ConLeche.nestCanonCrest d.memberNames (lps.map .param) d.nP cA.1.type = some A := by
     rw [← hnames, ← hlps, ← hnP]; exact hA
-  rw [denoteMeta_erasedEq herased] at hRD
+  rw [denote_erasedEq herased] at hRD
   rw [hkL, hnP, hnIdxs, hFssD.symm] at hS
   -- the normal form has the block's levels
   have hlpN' : lpDefF lps tyN = true := by
@@ -634,19 +633,18 @@ theorem blockStoredShapes_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChe
 omit [SetTheory V] in
 /-- A parallel substitution at the cut `k` keeps a term below `k + b`
 when it was below `k + n` and every substituted term is below `b`. -/
-theorem bvarsBelow_substAV (τ : Nat → ITerm) {n b : Nat}
-    (hτ : ∀ j, j < n → Term.bvarsBelow b (τ j).erase) :
-    ∀ (e : ITerm) (k : Nat), Term.bvarsBelow (k + n) e.erase →
-      Term.bvarsBelow (k + b) (ITerm.substAV τ e k).erase := by
+theorem bvarsBelow_substAV (τ : Nat → Term) {n b : Nat}
+    (hτ : ∀ j, j < n → Term.bvarsBelow b (τ j)) :
+    ∀ (e : Term) (k : Nat), Term.bvarsBelow (k + n) e →
+      Term.bvarsBelow (k + b) (Term.substAV τ e k) := by
   intro e
   induction e with
   | bvar i =>
     intro k h
-    simp only [ITerm.substAV, ITerm.erase_bvar, Term.bvarsBelow] at h ⊢
+    simp only [Term.substAV, Term.bvarsBelow] at h ⊢
     split
-    · simp only [ITerm.erase_bvar, Term.bvarsBelow]; omega
-    · rw [ITerm.erase_liftN]
-      have := VExprAux.bvarsBelow_liftN k (τ (i - k)).erase b 0 (hτ _ (by omega))
+    · simp only [Term.bvarsBelow]; omega
+    · have := VExprAux.bvarsBelow_liftN k (τ (i - k)) b 0 (hτ _ (by omega))
       rwa [Nat.add_comm b k] at this
   | sort u => intro _ _; trivial
   | const c us => intro _ _; trivial
@@ -678,21 +676,21 @@ theorem bvarsBelow_substAV (τ : Nat → ITerm) {n b : Nat}
 omit [SetTheory V] in
 /-- The hole substitution sends the holes and the parameters below the
 operator's frame `(t, Y, parameters)`. -/
-theorem holeTau_below {k nP : Nat} {H : Nat → ITerm}
-    (hH : ∀ m, m < k → Term.bvarsBelow (nP + 2) (H m).erase) :
-    ∀ j, j < k + nP → Term.bvarsBelow (nP + 2) (holeTau k H j).erase := by
+theorem holeTau_below {k nP : Nat} {H : Nat → Term}
+    (hH : ∀ m, m < k → Term.bvarsBelow (nP + 2) (H m)) :
+    ∀ j, j < k + nP → Term.bvarsBelow (nP + 2) (holeTau k H j) := by
   intro j hj
   unfold holeTau
   split
   · exact hH _ (by omega)
-  · simp only [ITerm.erase_bvar, Term.bvarsBelow]; omega
+  · simp only [Term.bvarsBelow]; omega
 
 omit [SetTheory V] in
 /-- A constructor's fields with holes, as chain entries, are closed below
 the operator's frame. -/
-theorem domsBelow_holeEntsAV {k nP : Nat} {H : Nat → ITerm}
-    (hH : ∀ m, m < k → Term.bvarsBelow (nP + 2) (H m).erase) :
-    ∀ (Fs : List ITerm) (i : Nat), DomsBelow (i + (k + nP)) Fs →
+theorem domsBelow_holeEntsAV {k nP : Nat} {H : Nat → Term}
+    (hH : ∀ m, m < k → Term.bvarsBelow (nP + 2) (H m)) :
+    ∀ (Fs : List Term) (i : Nat), DomsBelow (i + (k + nP)) Fs →
       DomsBelow (nP + 2 + i) (holeEntsAV k H i Fs)
   | [], _, _ => trivial
   | F :: Fs, i, hF => by
@@ -707,14 +705,14 @@ omit [SetTheory V] in
 omit [SetTheory V] in
 /-- **A member's hole term is closed below the operator's frame**, from
 its index telescope below the parameters. -/
-theorem holeTmAV_below {u m nP : Nat} {Is : List ITerm} (hI : DomsBelow nP Is) :
-    Term.bvarsBelow (nP + 2) (holeTmAV u m Is).erase := by
+theorem holeTmAV_below {u m nP : Nat} {Is : List Term} (hI : DomsBelow nP Is) :
+    Term.bvarsBelow (nP + 2) (holeTmAV u m Is) := by
   unfold holeTmAV
   have hI' : DomsBelow (nP + 2) (liftFields 2 0 Is) :=
     DomsBelow_liftFields (n := 2) (Nat.zero_le nP) hI
   refine mkLamsAV_below (hI') ?_
-  simp only [liftFields_length, ITerm.erase_app, Term.bvarsBelow]
-  refine ⟨projAV_below (by simp only [ITerm.erase_bvar, Term.bvarsBelow]; omega), ?_⟩
+  simp only [liftFields_length, Term.bvarsBelow]
+  refine ⟨projNV_below (by simp only [Term.bvarsBelow]; omega), ?_⟩
   have := mkTowerGo_below (w := u) hI'
   rwa [liftFields_length] at this
 
@@ -730,10 +728,10 @@ readings below them and the fields. -/
 theorem holeChains_below {ψ : Name → Nat} {nP : Nat}
     (hI : ∀ m, m < D.k → DomsBelow nP (D.ids m ψ))
     {c : Nat} (hF : ∀ j, j < D.nctors c → DomsBelow (nP + D.k) (D.fields ψ c j) ∧
-      (∀ e ∈ D.resIdx ψ c j, Term.bvarsBelow (nP + D.k + (D.fields ψ c j).length) e.erase) ∧
+      (∀ e ∈ D.resIdx ψ c j, Term.bvarsBelow (nP + D.k + (D.fields ψ c j).length) e) ∧
       (D.resIdx ψ c j).length = (D.ids c ψ).length) :
     ∀ chain ∈ D.holeChains ψ c, DomsBelow (nP + 2) chain := by
-  have hH : ∀ m, m < D.k → Term.bvarsBelow (nP + 2) (D.holeTm ψ m).erase :=
+  have hH : ∀ m, m < D.k → Term.bvarsBelow (nP + 2) (D.holeTm ψ m) :=
     fun m hm => holeTmAV_below (hI m hm)
   intro chain hch
   unfold holeChains holeChs termChs at hch
@@ -765,7 +763,7 @@ theorem holeChains_below {ψ : Name → Nat} {nP : Nat}
   unfold holeEqsAV at he
   obtain ⟨l, hlr, rfl⟩ := List.mem_map.mp he
   rw [holeEntsAV_length]
-  refine ⟨?_, projAV_below (by simp only [ITerm.erase_bvar, Term.bvarsBelow]; omega)⟩
+  refine ⟨?_, projNV_below (by simp only [Term.bvarsBelow]; omega)⟩
   have hl : l < (D.resIdx ψ c j).length := by rw [hElen]; exact List.mem_range.mp hlr
   have hmem : (D.resIdx ψ c j).getD l default ∈ D.resIdx ψ c j := by
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl]; exact List.getElem_mem _
@@ -790,7 +788,7 @@ theorem blockHoleChains_facts {env : Env} {m : EnvModel V env} {d : BlockData V}
     (hIdsB : ∀ c, c < d.k → DomsBelow d.nP (d.IdsM c ψ))
     (hG : ∀ c, c < d.N → ∀ j, j < (d.ctorsM c).length →
       (DomsBelow (d.nP + d.k) (d.absF ψ c j) ∧
-        ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e.erase) ∧
+        ∀ e ∈ d.absE ψ c j, Term.bvarsBelow (d.nP + d.k + (d.absF ψ c j).length) e) ∧
       ∀ (ρp : Nat → V), Sat V (d.params ψ).reverse ρp →
       ∀ X : Nat → V, InTupleSpaceU (d.toLfp.w ψ) d.toLfp.N (d.toLfp.idx ψ ρp) X →
       FieldsOkB (d.w ψ) (d.toLfp.frame ψ ρp X) (d.absF ψ c j) ∧
@@ -845,7 +843,7 @@ theorem LfpDatum.holeChains_congr {D D' : LfpDatum V} {ψ ψ' : Name → Nat} (h
 /-! ## A closed telescope's prefix -/
 
 omit [SetTheory V] in
-theorem domsBelow_take : ∀ {Fs : List ITerm} {k : Nat} (n : Nat),
+theorem domsBelow_take : ∀ {Fs : List Term} {k : Nat} (n : Nat),
     DomsBelow k Fs → DomsBelow k (Fs.take n)
   | [], _, _, _ => by simp; trivial
   | _ :: _, _, 0, _ => trivial
@@ -854,7 +852,7 @@ theorem domsBelow_take : ∀ {Fs : List ITerm} {k : Nat} (n : Nat),
 /-- **A graded closed telescope's first `n` domains** are closed and
 hereditarily graded at every frame — a member's parameter
 telescope, read off its former's type. -/
-theorem teleTake_ok {pps : List ITerm} {B : ITerm} (n : Nat)
+theorem teleTake_ok {pps : List Term} {B : Term} (n : Nat)
     (hok : ∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps B)) (hb : DomsBelow 0 pps) :
     DomsBelow 0 ((pps.take n)) ∧ ∀ σ : Nat → V,
       FieldsOkB 0 σ ((pps.take n)) := by

@@ -1232,7 +1232,7 @@ theorem checkDecl_datF (env : Env) (d : Declaration) (F : Nat) :
     · rw [ite_eq_right hqs, ite_eq_right hqs]
       rw [FueledM.atF_bind, checkConstantVal_datF]
       congr 1
-      funext cvA
+      funext cv
       simp only [FueledM.atF_ite, FueledM.atF_pure, FueledM.atF_throw]
   | basisDecl kind => exact checkBasisDecl_datF env kind F
   | quotDecl k cv =>

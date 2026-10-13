@@ -12,7 +12,7 @@ public section
 The projection table stores, per field, a **body**
 `F_i[p⃗ ↦ bvars, f_j ↦ .proj T j (bvar 0)]` scoped at `nP + 1`, and a
 `.proj` use instantiates it in one `instantiateList`
-(`ProjEntry.typeAt`).  The reading (`denoteMeta`) has no clause for a
+(`ProjEntry.typeAt`).  The reading (`denote`) has no clause for a
 loose `bvar`, so the proof side reads the body through a syntactic
 device: `projTele (nP + 1) body`, the body under `nP + 1` closed
 binders of domain `Sort 0`.  Its reading opens the body at fresh

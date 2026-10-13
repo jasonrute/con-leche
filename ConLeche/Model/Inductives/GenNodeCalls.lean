@@ -64,7 +64,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx
   NestHole NestCtorNf BlockParts BlockShape TargetMajor fueledOps PosD PosTree
   NestFieldKind PosNodeOk closeTelescope targetPiDomsWith targetMajorNfs
@@ -109,7 +109,7 @@ theorem genNCt {μ : CheckMode} {F : Nat} {envI envC : Env} {pp : BlockParts} {n
     (R : GenRecRun μ F (mkFEnv envI) envI (mkFEnv envC) pp.toBlockShape nested posR cvTasR
       block ctorsAsR out) (hg : ConLeche.ClassGenScoped R.g)
     (hdR : ∃ (pk : Nat → BlockMemberPick) (uOfD : Nat → (Name → Nat) → Nat)
-        (ppsOf : Nat → (Name → Nat) → List ITerm),
+        (ppsOf : Nat → (Name → Nat) → List Term),
       dR = blockDataOf V pp.toBlockShape ctorsAsR pk uOfD ppsOf)
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     (hcls : ∀ c, c < (tgtRs out).length → (tgtMajor out c).member = none →
@@ -231,7 +231,7 @@ closed type). -/
 theorem canonPars_of_forests {μ : CheckMode} {F : Nat} {envC envI : Env} {pp : BlockParts}
     {cvTasR : List ConstantVal} {ctorsAsR : List (List (ConstantVal × Nat))}
     {mpC : EnvModelM V μ envC} {dR : BlockData V} {isRecR : Bool}
-    {A : Nat → (Name → Nat) → ITerm}
+    {A : Nat → (Name → Nat) → Term}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : ConLeche.NestState}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
@@ -255,7 +255,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     {ctorsAsR : List (List (ConstantVal × Nat))}
     {out : List (ConstantVal × ConLeche.TargetMajor × List Expr)}
     {mpC : EnvModelM V μ envC} {dR : BlockData V} {isRecR : Bool}
-    {A : Nat → (Name → Nat) → ITerm}
+    {A : Nat → (Name → Nat) → Term}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : ConLeche.NestState} {nested : Bool}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
@@ -268,9 +268,9 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     (hmk : ∀ D ∈ mk.lfpBlocks, D ∈ mpC.lfpBlocks)
     (hag : ∀ n, (envI.find? n).isSome = true → mpC.base2.acval n = mk.base2.acval n)
     (hsubC : ∀ D ∈ mpC.lfpBlocks, D = dR.toLfp ∨ D ∈ mk.lfpBlocks)
-    (htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : ITerm},
-      denoteMeta mk.base2.acval envI ψ dd e = some ea →
-        denoteMeta mpC.base2.acval envC ψ dd e = some ea)
+    (htr : ∀ (ψ : Name → Nat) (dd : Nat) (e : Expr) {ea : Term},
+      denote mk.base2.acval envI ψ dd e = some ea →
+        denote mpC.base2.acval envC ψ dd e = some ea)
     (hcoreK : BlockHoleCtxFacts mk.base2 dR pp.lps cvTasR pp.toBlockShape isRecR)
     {fvsP : List Expr} {ns : List PosTree}
     (hok : ∀ t ∈ ns, PosNodeOk (fueledOps .verified F) envI (pp.nestCtx fvsP envI.find?) t)
@@ -450,7 +450,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
               (nlFr mpC (pp.nestCtx fvsP envI.find?) dR ns ψ ρ xs b)) Y) prog σN ∧
           fs.length = nF ∧
           ∀ (i : Nat) (nd : Expr), nds[i]? = some nd →
-            ∃ nda, denoteMeta mpC.base2.acval envC ψ
+            ∃ nda, denote mpC.base2.acval envC ψ
                 ((pp.nestCtx fvsP envI.find?).hiAt prog.length + i) nd = some nda ∧
               fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda) ∧
       (prog = [] ∨ ∃ u, 0 < b ∧ ns.getD (b - 1) default = u ∧
@@ -548,7 +548,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
                 (nlFr mpC (pp.nestCtx fvsP envI.find?) dR ns ψ ρ xs 0)) Y) [] σN) ∧
             fs.length = cA.2 ∧
             ∀ (i : Nat) (nd : Expr), nds[i]? = some nd →
-              ∃ nda, denoteMeta mpC.base2.acval envC ψ
+              ∃ nda, denote mpC.base2.acval envC ψ
                   ((pp.nestCtx fvsP envI.find?).hiAt ([] : List NestHole).length + i) nd
                     = some nda ∧
                 fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda := by
@@ -672,7 +672,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
                 (nlFr mpC (pp.nestCtx fvsP envI.find?) dR ns ψ ρ xs b)) Y) prog σN ∧
             fs.length = nF ∧
             ∀ (i : Nat) (nd : Expr), nds[i]? = some nd →
-              ∃ nda, denoteMeta mpC.base2.acval envC ψ
+              ∃ nda, denote mpC.base2.acval envC ψ
                   ((pp.nestCtx fvsP envI.find?).hiAt prog.length + i) nd = some nda ∧
                 fs.getD i pt ∈ˢ interp V (consList (fs.take i) σN) nda := by
         intro G ρ' hA Y hY hH
@@ -710,7 +710,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
             exact h'.suffix
         obtain ⟨nPc0, ctorsAs0, henvC0⟩ := H.henvC
         exact nodeHolesRead_grp' (H.hok u hu) hrdA
-          (fun ψ' => ⟨_, DenoteMetaSpine.transport (fun e _ he => H.htr ψ' _ e he)
+          (fun ψ' => ⟨_, DenoteSpine.transport (fun e _ he => H.htr ψ' _ e he)
             (dyn_dsaI H hu ψ')⟩)
           (grp_find_of H.hcov H.hsub henvC0 (H.hok u hu))
       refine ⟨prog, fun i => if i < u.anc.length then holeOwner ns par b i else b, nF, crest, ks, nds,
@@ -819,7 +819,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
   obtain ⟨hcr', ht'r, hyr⟩ := tagged_inj hv
   subst c' t' y
   have hyE : interp V (consList bs (consList (xs ++ fs) ρ))
-      ((denoteMeta mpC.base2.acval envC ψ (R.pre.length + x.nF + xsO.length)
+      ((denote mpC.base2.acval envC ψ (R.pre.length + x.nF + xsO.length)
         (Expr.mkAppN (fvsR.getD iF default) xsO)).getD default) = bs.foldl app (fs.getD iF pt) := by
     obtain ⟨tyF, htyF⟩ := hfvF' iF hiF
     rw [hxsOl]
@@ -832,11 +832,11 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     rw [← hleafHd, ConLeche.Expr.mkAppN_getApp]
   have hidxE : ((leafO.getAppArgs.drop (R.Ms.getD tt default).nPc).map fun e =>
         interp V (consList bs (consList (xs ++ fs) ρ))
-          ((denoteMeta mpC.base2.acval envC ψ (R.pre.length + x.nF + xsO.length) e).getD default))
+          ((denote mpC.base2.acval envC ψ (R.pre.length + x.nF + xsO.length) e).getD default))
       = ((leafR.getAppArgs.drop (R.Ms.getD tt default).nPc).map
           (·.instantiateList (locOpen (R.pre.length + fvsR.length) teleR.length) 0)).map
         (fun xR => interp V (consList bs (consList (xs ++ fs) ρ))
-          ((denoteMeta mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
+          ((denote mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
             default)) := by
     have hL := hleafO
     rw [hleafApp, instantiateList_mkAppN] at hL
@@ -868,7 +868,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
       have hab := hallA _ a _ hq (by rw [List.getElem?_map, hb0]; rfl)
       congr 1
       simp only [Function.comp]
-      rw [denoteMeta_erasedEq hab, hlR, hbsl, hxsOl, hteleL]
+      rw [denote_erasedEq hab, hlR, hbsl, hxsOl, hteleL]
   rw [hidxE] at ht' ⊢
   generalize hidxR : (leafR.getAppArgs.drop (R.Ms.getD tt default).nPc).map
     (·.instantiateList (locOpen (R.pre.length + fvsR.length) teleR.length) 0) = idxR
@@ -928,23 +928,23 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
             (nlFr mpC (pp.nestCtx fvsP envI.find?) dR ns ψ ρ xs b)) Y) prog σN ∧
         (∀ v, v < (pp.nestCtx fvsP envI.find?).nP →
           σN ((pp.nestCtx fvsP envI.find?).hiAt prog.length - 1 - v) = xs.getD v pt) ∧
-        ∃ (ha : ITerm) (argsA : List ITerm),
-          denoteMeta mpC.base2.acval envC ψ
+        ∃ (ha : Term) (argsA : List Term),
+          denote mpC.base2.acval envC ψ
             ((pp.nestCtx fvsP envI.find?).hiAt prog.length + iF + bs.length)
             w.getAppFn = some ha ∧
-          DenoteMetaSpine mpC.base2.acval envC ψ
+          DenoteSpine mpC.base2.acval envC ψ
             ((pp.nestCtx fvsP envI.find?).hiAt prog.length + iF + bs.length)
             w.getAppArgs argsA ∧
           bs.foldl app (fs.getD iF pt) ∈ˢ
             (argsA.map (interp V (consList (fs.take iF ++ bs) σN))).foldl app
               (interp V (consList (fs.take iF ++ bs) σN) ha) ∧
-          ∀ (l : Nat) (xa : ITerm), argsA[off + l]? = some xa →
+          ∀ (l : Nat) (xa : Term), argsA[off + l]? = some xa →
             (∀ xW, w.getAppArgs[off + l]? = some xW →
               xW.nestOcc (pp.nestCtx fvsP envI.find?).names
                 (pp.nestCtx fvsP envI.find?).nP
                 ((pp.nestCtx fvsP envI.find?).hiAt prog.length) = false) →
             (idxR.map fun xR => interp V (consList bs (consList (xs ++ fs) ρ))
-              ((denoteMeta mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
+              ((denote mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
                 default))[l]? = some (interp V (consList (fs.take iF ++ bs) σN) xa) := by
     intro off hargsO hoffL G ρ' hA Y hY hH
     obtain ⟨σN, hAdmN, -, hmemN⟩ := hvisit G ρ' hA Y hY hH
@@ -962,8 +962,8 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     obtain ⟨xR, hxR⟩ : ∃ xR, idxR[l]? = some xR := hoffL l xW hxW
     rw [List.getElem?_map, hxR, Option.map_some, hidxA l xR xW xa hxR hxW hxa (hhf xW hxW)]
   -- a spine read entrywise
-  have hmapI : ∀ (argsA : List ITerm) (f : ITerm → V) (L : List V),
-      argsA.length = L.length → (∀ (l : Nat) (xa : ITerm), argsA[l]? = some xa →
+  have hmapI : ∀ (argsA : List Term) (f : Term → V) (L : List V),
+      argsA.length = L.length → (∀ (l : Nat) (xa : Term), argsA[l]? = some xa →
         L[l]? = some (f xa)) →
       argsA.map f = L := by
     intro argsA f L hlen h
@@ -1051,7 +1051,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     rw [headRead_fvar hha htmh hLl σN] at hyA
     have hmA : argsA.map (interp V (consList (List.take iF fs ++ bs) σN))
         = idxR.map fun xR => interp V (consList bs (consList (xs ++ fs) ρ))
-          ((denoteMeta mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
+          ((denote mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
             default) :=
       hmapI argsA _ _ (by rw [List.length_map, ← hwl, hspA.length])
         (fun l xa hxa => by
@@ -1072,7 +1072,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     have hI := (mpC.lfpClause_of_mem H.hd0).idxOk ψ _ hsP' tm
       (Nat.lt_of_lt_of_le htk (mpC.lfpClause_of_mem H.hd0).kN)
     have hmem' : tupW (dR.toLfp.u tm ψ) (idxR.map fun xR => interp V (consList bs (consList (xs ++ fs) ρ))
-        ((denoteMeta mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
+        ((denote mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
           default)) ∈ˢ dR.toLfp.idx ψ (consList (xs.take dR.nP) ρ) tm := by
       have h := ht'
       rw [tgtClsIs_mem hmemC xs, hT1] at h
@@ -1130,7 +1130,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     rw [headRead_fvar hha hvl hLl σN, hv'] at hyA
     have hmA : argsA.map (interp V (consList (List.take iF fs ++ bs) σN))
         = idxR.map fun xR => interp V (consList bs (consList (xs ++ fs) ρ))
-          ((denoteMeta mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
+          ((denote mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
             default) :=
       hmapI argsA _ _ (by rw [List.length_map, ← hwl, hspA.length])
         (fun l xa hxa => by
@@ -1249,7 +1249,7 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
     -- the head: the container's former
     rw [hfn] at hha
     obtain ⟨caps', hfI'⟩ := hTO'.hfind
-    obtain ⟨-, rfl⟩ := Rules.denoteMeta_const_arityK hfI' (hIM ▸ hha)
+    obtain ⟨-, rfl⟩ := Rules.denote_const_arityK hfI' (hIM ▸ hha)
     have hLl : (pp.nestCtx fvsP envI.find?).hiAt prog.length + iF + bs.length
         = (pp.nestCtx fvsP envI.find?).hiAt prog.length
           + (fs.take iF ++ bs).length := by
@@ -1266,27 +1266,27 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
       ← hdsK] at hyA
     -- the key's parameters, read at the kid's valuation
     have hdsaK := dyn_dsaI H hu''ns ψ
-    have hmapK : (u''.key.ds.map fun x => interp V σN ((denoteMeta mpC.base2.acval envC ψ
+    have hmapK : (u''.key.ds.map fun x => interp V σN ((denote mpC.base2.acval envC ψ
         ((pp.nestCtx fvsP envI.find?).hiAt prog.length) x).getD default))
         = (nodeDsaI mk (pp.nestCtx fvsP envI.find?) ψ u'').map (interp V σK) := by
       rcases hσKe with ⟨h', rfl⟩ | ⟨h', rfl⟩
       · rw [h'] at hdsaK
-        have hC := DenoteMetaSpine.transport (fun e _ he => H.htr ψ _ e he) hdsaK
-        rw [← DenoteMetaSpine.getD_eq hC, List.map_map]; rfl
+        have hC := DenoteSpine.transport (fun e _ he => H.htr ψ _ e he) hdsaK
+        rw [← DenoteSpine.getD_eq hC, List.map_map]; rfl
       · rw [h'] at hdsaK
         have hle0 : (pp.nestCtx fvsP envI.find?).hiAt ([] : List NestHole).length
             ≤ (pp.nestCtx fvsP envI.find?).hiAt prog.length := by
           simp only [ConLeche.NestCtx.hiAt, List.length_nil]; omega
-        have hL := DenoteMetaSpine.lift (m := mk.base2) (φ := ψ) hle0
+        have hL := DenoteSpine.lift (m := mk.base2) (φ := ψ) hle0
           (fun x hx => by
             have := (posNodeOk_dsAnc hok'' x hx).1; rwa [h'] at this) hdsaK
-        have hC := DenoteMetaSpine.transport (fun e _ he => H.htr ψ _ e he) hL
-        have e0 : (u''.key.ds.map fun x => interp V σN ((denoteMeta mpC.base2.acval envC ψ
+        have hC := DenoteSpine.transport (fun e _ he => H.htr ψ _ e he) hL
+        have e0 : (u''.key.ds.map fun x => interp V σN ((denote mpC.base2.acval envC ψ
             ((pp.nestCtx fvsP envI.find?).hiAt prog.length) x).getD default))
-            = (u''.key.ds.map fun x => (denoteMeta mpC.base2.acval envC ψ
+            = (u''.key.ds.map fun x => (denote mpC.base2.acval envC ψ
               ((pp.nestCtx fvsP envI.find?).hiAt prog.length) x).getD default).map
                 (interp V σN) := by rw [List.map_map]; rfl
-        rw [e0, DenoteMetaSpine.getD_eq hC, List.map_map]
+        rw [e0, DenoteSpine.getD_eq hC, List.map_map]
         refine List.map_congr_left fun a _ => ?_
         show interp V σN (a.liftN _ 0) = _
         rw [interp_liftN]
@@ -1308,11 +1308,11 @@ theorem genNodeCalls {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
         = (nodeDsaI mk (pp.nestCtx fvsP envI.find?) ψ u'').map (interp V σK) := by
       unfold keyFrame
       refine frameIdx_consList ?_ _
-      rw [List.length_map, ← DenoteMetaSpine.length_eq hdsaK, hψc, hlenP,
+      rw [List.length_map, ← DenoteSpine.length_eq hdsaK, hψc, hlenP,
         houtLen hu''ns hMo' (by rw [← hIM]; exact hIo)]
     rw [← hfI] at hyA
     have his : ((idxR.map fun xR => interp V (consList bs (consList (xs ++ fs) ρ))
-        ((denoteMeta mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
+        ((denote mpC.base2.acval envC ψ (R.pre.length + fvsR.length + bs.length) xR).getD
           default))).length
         = ((Dc r).ids (mc r) (tgtClsψ cvc out ψ r)).length := by
       rw [List.length_map, hψc, genOutIdxLen hTO' hinst' ψ hlenP]

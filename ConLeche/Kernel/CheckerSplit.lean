@@ -54,7 +54,7 @@ looked at it: a theorem is stored by its statement, and the check half
 runs the value's guards itself, `checkValueGroup`). -/
 structure ValueGroup where
   kind : ValueKind
-  cvA : ConstantVal
+  cv : ConstantVal
   jv : Expr
 
 variable (mode : CheckMode)
@@ -101,14 +101,14 @@ the value's type against the declared one — the inference and
 conversion calls of `checkConstantVal` and `check{Defn,Thm,Opaque}Val`,
 in their order, with their messages. -/
 def checkValueGroup (ops : CheckerOps m) (env : Env) (g : ValueGroup) : m Unit := do
-  let stype ← ops.inferType env 0 g.cvA.type
+  let stype ← ops.inferType env 0 g.cv.type
   let u ← ops.ensureSort env 0 stype
   if g.kind = .thm then do
       unless (← liftFueled "level comparison" (Level.isEquiv u .zero)) do
-        throw (.invalid s!"type of theorem {g.cvA.name} is not a proposition")
-      installValueGuards env g.cvA g.jv
+        throw (.invalid s!"type of theorem {g.cv.name} is not a proposition")
+      installValueGuards env g.cv g.jv
   let vtype ← ops.inferType env 0 g.jv
-  unless ← ops.isDefEq env 0 vtype g.cvA.type do
-    throw (.invalid s!"type mismatch in {g.kind.word} {g.cvA.name}")
+  unless ← ops.isDefEq env 0 vtype g.cv.type do
+    throw (.invalid s!"type mismatch in {g.kind.word} {g.cv.name}")
 
 end ConLeche

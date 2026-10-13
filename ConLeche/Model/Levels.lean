@@ -5,30 +5,31 @@ public import ConLeche.Model.BasisEmpty
 public section
 
 /-!
-# `denoteMeta` crosses level instantiation (task #161, ENDGAME G)
+# `denote` crosses level instantiation (task #161, ENDGAME G)
 
 The basis tier's remaining bill — twenty type readings and seven
 `RecRuleLaw` rows — is stated at *instantiated* subjects:
 `RecRuleLaw` reads `rhs.instantiateLevelParams cv.levelParams us` and
 `cv.type.instantiateLevelParams cv.levelParams us`, and
 `EnvModelM.type_reads` reads the stored type at the identity
-substitution.  Walking a substituted tree with the `denoteMeta` clause
+substitution.  Walking a substituted tree with the `denote` clause
 equations is possible but miserable: every `.sort` carries a
 `Level.subst`, every `.const` a `List.map (Level.subst …)`, and every
 binder a `Level.substPW`, so the clause equations no longer see
 constructor applications and the `acval_basis_pinned` leaves no longer
 match.
 
-The fix is the crossing law, and for `denoteMeta` it is **pure algebra**:
+The fix is the crossing law, and for `denote` it is **pure algebra**:
 
-> `denoteMeta acval env φ d (e.instantiateLevelParams ks us)`
-> `= denoteMeta acval env (Level.substFn φ ks us) d e`
+> `denote acval env φ d (e.instantiateLevelParams ks us)`
+> `= denote acval env (Level.substFn φ ks us) d e`
 
-`denoteMeta` runs no checker, so the law is unconditional.
+`denote` runs no checker, so the law is unconditional.
 
-The binder step is `pwBit_substPW`, whose docstring already names this
-theorem as its consumer; the constant step is `Level.substFn_map_subst`
-under `acval_params`; the two literal clauses are the assignment-
+The binder steps are the induction hypotheses, with
+`instantiateLevelParams` commuting with opening
+(`Expr.instantiateLevelParams_instantiate1`); the constant step is
+`Level.substFn_map_subst` under `acval_params`; the two literal clauses are the assignment-
 insensitivity of the support slots, off a bare `acval_params`
 hypothesis.
 -/
@@ -38,7 +39,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal)
 
 universe w
@@ -51,7 +52,7 @@ variable {env : Env}
 /-- A leaf reads only its own level parameters — `EnvModel.acval_params`
 as a standalone predicate, so the crossing does not need a carrier. -/
 def AcvalParamsAt (env : Env)
-    (acval : Name → (Name → Nat) → ITerm) : Prop :=
+    (acval : Name → (Name → Nat) → Term) : Prop :=
   ∀ (n : Name) (ci : ConstantInfo), env.find? n = some ci →
     ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ ci.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
@@ -61,7 +62,7 @@ def AcvalParamsAt (env : Env)
 theorem acvalParamsAt_of_core (m : EnvModel V env) :
     AcvalParamsAt env m.acval := m.acval_params
 
-variable {acval : Name → (Name → Nat) → ITerm}
+variable {acval : Name → (Name → Nat) → Term}
 
 /-- A stored slot with no level parameters is valued independently of
 the assignment (`acval_isEmpty`, off the bare hypothesis). -/
@@ -152,58 +153,58 @@ theorem acvalAt_natPair (hp : AcvalParamsAt env acval)
 /-! ## The crossing -/
 
 set_option maxHeartbeats 1000000 in
-/-- **`denoteMeta` crosses level instantiation** — unconditionally, since
-the reading runs no checker.  Clause for clause, with `pwBit_substPW`
-at the binders and `AcvalParamsAt` at the constants. -/
-theorem denoteMeta_instLevels (hp : AcvalParamsAt env acval)
+/-- **`denote` crosses level instantiation** — unconditionally, since
+the reading runs no checker.  Clause for clause, with
+`AcvalParamsAt` at the constants. -/
+theorem denote_instLevels (hp : AcvalParamsAt env acval)
     {ks : List Name} {us : List Level} (φ : Name → Nat) :
     ∀ (d : Nat) (e : Expr),
-      denoteMeta acval env φ d (e.instantiateLevelParams ks us)
-        = denoteMeta acval env (Level.substFn φ ks us) d e := by
+      denote acval env φ d (e.instantiateLevelParams ks us)
+        = denote acval env (Level.substFn φ ks us) d e := by
   intro d e
-  induction d, e using denoteMeta.induct
+  induction d, e using denote.induct
     (env := env) with
   | case1 d u =>
-    simp only [Expr.instantiateLevelParams, denoteMeta_sort, Level.eval_subst]
+    simp only [Expr.instantiateLevelParams, denote_sort, Level.eval_subst]
   | case2 d idx ty =>
-    simp only [Expr.instantiateLevelParams, denoteMeta_fvar]
+    simp only [Expr.instantiateLevelParams, denote_fvar]
   | case3 d n ws ci h1 h2 =>
     rw [Expr.instantiateLevelParams,
-      denoteMeta_const h1 (by simpa using h2), denoteMeta_const h1 h2]
+      denote_const h1 (by simpa using h2), denote_const h1 h2]
     exact congrArg some
       (hp n ci h1 _ _ fun p hpm => Level.substFn_map_subst h2 hpm)
   | case4 d n ws ci h1 h2 =>
-    rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, h1]
+    rw [Expr.instantiateLevelParams, denote, denote, h1]
     simp only []
     rw [ite_eq_right h2, ite_eq_right (by simpa using h2)]
   | case5 d n ws h1 =>
-    rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, h1]
+    rw [Expr.instantiateLevelParams, denote, denote, h1]
   | case6 d ty body ihty ihbody =>
-    rw [Expr.instantiateLevelParams, denoteMeta_forallE, denoteMeta_forallE,
+    rw [Expr.instantiateLevelParams, denote_forallE, denote_forallE,
       ihty,
       ← Expr.instantiateLevelParams_instantiate1, ihbody]
   | case7 d ty body ihty ihbody =>
-    rw [Expr.instantiateLevelParams, denoteMeta_lam, denoteMeta_lam,
+    rw [Expr.instantiateLevelParams, denote_lam, denote_lam,
       ihty,
       ← Expr.instantiateLevelParams_instantiate1, ihbody]
   | case8 d fe a ihf iha =>
-    rw [Expr.instantiateLevelParams, denoteMeta_app, denoteMeta_app, ihf, iha]
+    rw [Expr.instantiateLevelParams, denote_app, denote_app, ihf, iha]
   | case9 d ty val body ihty ihv ihbody =>
-    rw [Expr.instantiateLevelParams, denoteMeta_letE, denoteMeta_letE,
+    rw [Expr.instantiateLevelParams, denote_letE, denote_letE,
       ihty, ihv, ← Expr.instantiateLevelParams_instantiate1, ihbody]
   | case10 d sn i e ihe =>
-    rw [Expr.instantiateLevelParams, denoteMeta_proj, denoteMeta_proj, ihe]
+    rw [Expr.instantiateLevelParams, denote_proj, denote_proj, ihe]
   | case11 d k hsup =>
-    rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, ite_eq_left hsup,
+    rw [Expr.instantiateLevelParams, denote, denote, ite_eq_left hsup,
       ite_eq_left hsup]
     obtain ⟨ez, es⟩ := acvalAt_natPair hp hsup
       (Level.substFn φ [] []) (Level.substFn (Level.substFn φ ks us) [] [])
     rw [ez, es]
   | case12 d k hsup =>
-    rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, ite_eq_right hsup,
+    rw [Expr.instantiateLevelParams, denote, denote, ite_eq_right hsup,
       ite_eq_right hsup]
   | case13 d s hsup =>
-    rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, ite_eq_left hsup,
+    rw [Expr.instantiateLevelParams, denote, denote, ite_eq_left hsup,
       ite_eq_left hsup]
     have hg := hsup
     simp only [ConLeche.strLitSupported, Bool.and_eq_true] at hg
@@ -245,12 +246,12 @@ theorem denoteMeta_instLevels (hp : AcvalParamsAt env acval)
       φ (Level.substFn φ ks us)
     rw [ez, es, esol, echar, eofn, enil, econs]
   | case14 d s hsup =>
-    rw [Expr.instantiateLevelParams, denoteMeta, denoteMeta, ite_eq_right hsup,
+    rw [Expr.instantiateLevelParams, denote, denote, ite_eq_right hsup,
       ite_eq_right hsup]
   | case15 d x hxs hfv hc hpi hlam happ hlet hproj hnat hstr =>
     cases x with
     | bvar i =>
-      rw [Expr.instantiateLevelParams, denoteMeta.eq_def, denoteMeta.eq_def]
+      rw [Expr.instantiateLevelParams, denote.eq_def, denote.eq_def]
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)

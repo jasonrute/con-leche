@@ -186,7 +186,7 @@ FALLBACK = {
     # six re-exports the model calls demotable, each MEASURED by demoting it
     # alone.  `TargetCallEntry` loses `Expr.ErasedEqL` (`:40`, via
     # `TargetNodeRb`) and `TargetCallRun` (`:55`, `RecCheckRun`);
-    # `TargetCallRead` loses `ITerm.substAV` (`:46`, `BitSubstFvars`),
+    # `TargetCallRead` loses `ITerm.substAV` (`:46`, `Reading.SubstFvars`),
     # `holeP` (`:202`, `NestPosMono`), `LocList` (`:77`, `TargetNodeRead`);
     # `NestCallRun` loses `FEnv` (`:42`, `RecCheckRun`).
     ('ConLeche.Model.Inductives.TargetCallEntry', 'ConLeche.Model.Inductives.TargetNodeRb'),
@@ -230,14 +230,14 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.StoredShapes', 'ConLeche.Verify.Inductives.PosDeriv'),
     # lane FLATACC: after the flat (W) witness went (LfpHoleWitness,
     # TupleContainer, Container, BlockHoleFlat deleted) the model stopped
-    # attributing these eight re-exports; each MEASURED by demoting it alone
+    # attributing these re-exports; each MEASURED by demoting it alone
     # (`nonempty_shapes`, `AxiomPin.lean:304`; `interp_sort_mem`,
     # `TowerCons.lean:161`, for both Claims→Skeleton and Skeleton→Univ;
     # `capsOk_cons_proj`, `ProjCons.lean:210`; `essOfR_fixCtorDataList_getD`,
     # `BlockStageCtors.lean:257`; `fixFibre_zero_elim`, `FixZeroField.lean:97`;
-    # `erasePwNames_forallE_invS`, `AxiomMem.lean:151`; `CtxOk.nil`,
-    # `BlockRecRead.lean:176`).
-    ('ConLeche.Model.AxiomMem', 'ConLeche.Verify.StdAxiomPin'),
+    # `CtxOk.nil`, `BlockRecRead.lean:176`).  (Its AxiomMem→StdAxiomPin
+    # entry went at task #342 R1: the model keeps that edge public
+    # without it.)
     ('ConLeche.Model.Claims', 'ConLeche.Semantics.Skeleton'),
     ('ConLeche.Model.IndProjEta', 'ConLeche.Model.IndProjCaps'),
     ('ConLeche.Model.Tiers', 'ConLeche.Model.CtxOkKit'),
@@ -344,7 +344,7 @@ FALLBACK = {
     # `BlockParts.nestCtx` (`:172`).  (Its sixth, `Model.Rules.Inputs`,
     # WAS demotable and is demoted.)
     # lane CONTSEM session 4: `ContN2`'s `keyFrame_eq_substE` states
-    # `substTau` (`BitSubstFvars`); MEASURED by demoting it alone
+    # `substTau` (`Reading.SubstFvars`); MEASURED by demoting it alone
     # (`Unknown identifier substTau`, `ContN2.lean:295`).
     ('ConLeche.Model.Inductives.ContN2', 'ConLeche.Model.Reading.SubstFvars'),
     # lane NESTIND session 3: `RecCheckRun`'s public statements
@@ -439,7 +439,7 @@ FALLBACK = {
     # name `blockRuleIhsRunAV`/`BlockCtorDataI`/`FvarList` (the census sees
     # none of a variable binder's class).  MEASURED: demoting it alone fails
     # the build with `Unknown identifier SetTheory` (`:39`); making
-    # `BitLevels` public instead leaves `Unknown identifier FvarList` and
+    # `Reading.Levels` public instead leaves `Unknown identifier FvarList` and
     # `EnvModelM`, the compiler naming `BlockRecRule` back.
     ('ConLeche.Model.Inductives.BlockRuleParams',
      'ConLeche.Model.Inductives.BlockRuleRun'),
@@ -503,7 +503,7 @@ FALLBACK = {
     # `Model/Inductives/BlockStageRec.lean` that the model drops and the
     # compiler asks back, MEASURED one at a time — `EnvModelM` carries the
     # `[SetTheory V]` the file's `variable` binder needs (a class in a
-    # variable binder stores no census row), `BitConsCross` carries
+    # variable binder stores no census row), `Reading.ConsCross` carries
     # `acvalWith` and `NoProjEnv`, and `IndBlockFacts` carries `SwapShList`
     # / `SwapNResS`.  Demoting any one of them fails the build with an
     # `Unknown identifier` at the corresponding name.
@@ -624,7 +624,10 @@ FALLBACK = {
     ('ConLeche.Model.Inductives.StoredShapes','ConLeche.Model.Inductives.BlockData'),
     ('ConLeche.Model.Inductives.StoredShapes','ConLeche.Model.Inductives.NestPosMono'),
     ('ConLeche.Model.Inductives.StoredShapes','ConLeche.Model.Inductives.NestPosOut'),
-    ('ConLeche.Model.Inductives.BlockHoleRead','ConLeche.Model.Reading.DenoteMeta'),
+    # task #342 R3: `Reading/DenoteMeta` is gone (`denoteMeta` folded into
+    # `denote`); the re-export moved to `TowerKit`.  MEASURED by demoting it
+    # alone: unknown identifier `Term`, `BlockHoleRead.lean:396`.
+    ('ConLeche.Model.Inductives.BlockHoleRead','ConLeche.Semantics.Tower.TowerKit'),
     # lane ALPHA1: after the positivity files' imports narrowed, the model
     # calls six more edges demotable; each MEASURED by demoting it alone,
     # all coverage failures one tier down: `IndFieldGrade` without
@@ -698,7 +701,7 @@ FALLBACK = {
     # `phApp?`/`replaceApps` by dot-notation through `Positivity`
     # (`ReplaceApps.lean:30`); `CanonCrest`'s name `canonParams`/`CanonOf`
     # (`:230`, through `EnvModelM`) and `ConstsBound` (`:33`, through
-    # `BitConsCross`); `HoleBack`'s name `Expr`/`Name`/`Level` (`:24`,
+    # `Reading.ConsCross`); `HoleBack`'s name `Expr`/`Name`/`Level` (`:24`,
     # through `SubstFvars`); `BlockHoleGrade`'s reach `Expr.occDeep` by
     # dot-notation (`:302`); and two re-exports downstream proofs use:
     # `BlockHoleRead`'s `ReplaceApps` (unknown `wscoped_instPisWith`,
@@ -737,7 +740,7 @@ FALLBACK = {
     # (unknown field `proofDepth`, `ProofFastSound.lean:614`).
     ('ConLeche.Model.Rules.ProofFastSound', 'ConLeche.Verify.PropReadInst'),
     # task #342 (s4-shake): `TargetCallLand`'s own public statements name
-    # `substE` by dot-notation through `BitSubstFvars` (`:160`), and
+    # `substE` by dot-notation through `Reading.SubstFvars` (`:160`), and
     # `holeFam`/`IdxOk`/`tupW`/`idxSet`/`LfpDatum`/`EnvModelM`/`Sat`/
     # `frameIdx`/`AgreeOff` through `NestPosMono`'s own re-export chain
     # (`:48`, `:90`, `:91`, `:109`, `:113`, `:126`-`:131`, `:159`); each

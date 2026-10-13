@@ -8,7 +8,7 @@ public section
 # The WF-recursive `Nat` operations' literal values at `interp`
 (task #161, literal tier — the divmod leg, part 2)
 
-Meta-level strong inductions at the `denoteMeta` currency: the `ble`-guarded value clauses of
+Meta-level strong inductions at the `denote` currency: the `ble`-guarded value clauses of
 `DivMod` drive the recursion, the guards are computed by
 `natOpV_ble`, the steps by the structural operations' closed forms
 (`Model/NatSem.lean`), and the metatheory-side bit-operation recurrences
@@ -26,7 +26,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint natOpGuard natLitSupported)
 

@@ -17,11 +17,11 @@ so every move below is the `Empty` module's with the level numeral `1`
 replaced by `0`.  `BConst.typeAV`/`bval_mem_type`/`WellDenoted_bconst_type`
 are stated at every level list, so nothing new is proved about the
 built-ins; the type readings are recomputed at the `False` pins
-(`denoteMeta_falseA_type`, `denoteMeta_falseRecA_type`) and are
+(`denote_falseA_type`, `denote_falseRecA_type`) and are
 `BConst.typeAV .empty [0]` / `.emptyRec [0, ψ u]` on the nose.
 
 The point of the pin is the capstone: `no_constant_of_False`
-(`Model/Capstone.lean`) reads the leaf's value off `basis_pinnedL` exactly as
+(`Model/Capstone.lean`) reads the leaf's value off `basis_pinned` exactly as
 `no_constant_of_Empty` does, so `no_proof_of_False_pure` needs no
 hypothesis about how a stream declared `False`.
 -/
@@ -31,7 +31,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   falseA falseRecA falseName uN)
 
@@ -44,12 +44,12 @@ variable {μ : CheckMode} {env : Env}
 
 /-- The `False` former's type reading: `Sort 0`, which is
 `BConst.typeAV .empty [0]` on the nose. -/
-theorem denoteMeta_falseA_type
-    {acval : Name → (Name → Nat) → ITerm} (ψ : Name → Nat) :
-    denoteMeta acval ⟨falseA :: env.consts⟩ ψ 0 falseA.toConstantVal.type
+theorem denote_falseA_type
+    {acval : Name → (Name → Nat) → Term} (ψ : Name → Nat) :
+    denote acval ⟨falseA :: env.consts⟩ ψ 0 falseA.toConstantVal.type
       = some (BConst.typeAV .empty [0]) := by
   rw [show falseA.toConstantVal.type = Expr.sort .zero from rfl,
-    denoteMeta_sort]
+    denote_sort]
   rfl
 
 /-- **`False`, installed at the P tier.** -/
@@ -61,9 +61,9 @@ theorem extendFalse (mp : EnvModelM V μ env)
   refine coverTo_addLfp (D := emptyLfp falseName 0)
     (hL := emptyLfp_clause 0 (fun _ _ => by unfold acvalWith; split; rfl; exact absurd rfl ‹_›)) (hst := lfp0_stored)
     (hrd := lfp0_reads (by rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl)
-      (fun ψ => by show denoteMeta _ _ _ 0 (.sort _) = _; rw [denoteMeta_sort]; rfl))
+      (fun ψ => by show denote _ _ _ 0 (.sort _) = _; rw [denote_sort]; rfl))
     (hrdC := lfp0_ctorReads (by rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl)
-      (fun ψ => ⟨_, by show denoteMeta _ _ _ 0 (.sort _) = _; rw [denoteMeta_sort]⟩) fun j hj => absurd hj (Nat.not_lt_zero j))
+      (fun ψ => ⟨_, by show denote _ _ _ 0 (.sort _) = _; rw [denote_sort]⟩) fun j hj => absurd hj (Nat.not_lt_zero j))
     (hcaps := lfp0_caps (by rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl)
       (fun ψ _ => by
         show ConLeche.PropWhen.holds ψ (ConLeche.PropWhen.ifAllZero []) = true
@@ -77,7 +77,7 @@ theorem extendFalse (mp : EnvModelM V μ env)
     (hown := lfpOwn_former0 (c₀ := falseA) rfl rfl rfl rfl rfl (by decide) fun _ => rfl)
     (hex := filter_not_mem_self _)
     (coverA_pend hfresh <| declStep_preserves_of_basis_cons mp
-    (A := fun _ => ITerm.const .empty [0]) hfresh
+    (A := fun _ => Term.const .empty [0]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (fun _ _ _ _ h => nomatch h)
@@ -86,19 +86,18 @@ theorem extendFalse (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT falseA.name ψ
           = some (Term.const .empty [0]) from rfl] at hp
-        rw [← Option.some.inj hp]
-        rfl)
+        rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
     (fun _ _ => rfl) (fun _ _ _ => rfl)
     (fun _ _ => trivial)
-    (fun ψ => ⟨_, denoteMeta_falseA_type ψ⟩) ?_ ?_
-    (hind := indStrictHead_cons_prop (ab := fun _ => []) fun ψ => denoteMeta_falseA_type ψ))
+    (fun ψ => ⟨_, denote_falseA_type ψ⟩) ?_ ?_
+    (hind := indStrictHead_cons_prop (ab := fun _ => []) fun ψ => denote_falseA_type ψ))
   · intro ψ ta h ρ
-    rw [denoteMeta_falseA_type ψ] at h
+    rw [denote_falseA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
     exact WellDenotedTy_bconst_type V .empty [0] ρ
   · intro ψ ta h ρ
-    rw [denoteMeta_falseA_type ψ] at h
+    rw [denote_falseA_type ψ] at h
     obtain rfl := (Option.some.inj h).symm
     exact bval_mem_type V .empty [0] ρ
 
@@ -106,10 +105,10 @@ theorem extendFalse (mp : EnvModelM V μ env)
 
 /-- **`False.rec`'s type reading.**  The moves of `BasisEmpty`'s module
 docstring; the leaves are `acval_basis_pinned` at `Empty`. -/
-theorem denoteMeta_falseRecA_type {m : EnvModel V env}
-    {A : (Name → Nat) → ITerm} (ψ : Name → Nat)
+theorem denote_falseRecA_type {m : EnvModel V env}
+    {A : (Name → Nat) → Term} (ψ : Name → Nat)
     (hE : env.find? falseName = some falseA) :
-    denoteMeta (acvalWith m.acval falseRecA.name A)
+    denote (acvalWith m.acval falseRecA.name A)
         ⟨falseRecA :: env.consts⟩ ψ 0 falseRecA.toConstantVal.type
       = some (.pi (.pi (.const .empty [0]) (.sort (ψ uN)))
           (.pi (.const .empty [0])
@@ -118,30 +117,30 @@ theorem denoteMeta_falseRecA_type {m : EnvModel V env}
       = some (Term.const .empty [0]) := by
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hleaf : acvalWith m.acval falseRecA.name A falseName ψ
-      = ITerm.const .empty [0] := by
+      = Term.const .empty [0] := by
     rw [acvalWith_ne (by decide)]
     exact acval_basis_pinned hE (by decide) hpd
   have hEc : ∀ d : Nat,
-      denoteMeta (acvalWith m.acval falseRecA.name A)
+      denote (acvalWith m.acval falseRecA.name A)
           ⟨falseRecA :: env.consts⟩ ψ d (.const falseName [])
-        = some (ITerm.const .empty [0]) := by
+        = some (Term.const .empty [0]) := by
     intro d
     have hf : (⟨falseRecA :: env.consts⟩ : Env).find? falseName
         = some falseA := by
       rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hE
-    rw [denoteMeta_levelless_const hf (by rfl), hleaf]
+    rw [denote_levelless_const hf (by rfl), hleaf]
   rw [show falseRecA.toConstantVal.type
       = Expr.forallE
           (Expr.forallE (.const falseName [])
             (.sort (.param uN)))
           (Expr.forallE (.const falseName [])
             (.app (.bvar 1) (.bvar 0))) from rfl]
-  simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+  simp [denote_forallE, denote_sort, denote_app, denote_fvar,
     Expr.instantiate1, hEc, Level.eval]
 
 /-- **The reading is `BConst.typeAV`.** -/
 theorem falseRecA_reading_eq (ψ : Name → Nat) :
-    (ITerm.pi (.pi (.const .empty [0]) (.sort (ψ uN)))
+    (Term.pi (.pi (.const .empty [0]) (.sort (ψ uN)))
         (.pi (.const .empty [0])
           (.app (.bvar 1) (.bvar 0))))
       = BConst.typeAV .emptyRec [0, ψ uN] := rfl
@@ -153,10 +152,10 @@ theorem extendFalseRec (mp : EnvModelM V μ env)
     (hwf : EnvWF ⟨falseRecA :: env.consts⟩) {ex : List Name} :
     CoverTo mp ex ⟨falseRecA :: env.consts⟩ ex := by
   have hty := fun ψ =>
-    denoteMeta_falseRecA_type (m := mp.base2)
-      (A := fun ψ => ITerm.const .emptyRec [0, ψ uN]) ψ hE
+    denote_falseRecA_type (m := mp.base2)
+      (A := fun ψ => Term.const .emptyRec [0, ψ uN]) ψ hE
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_basis_cons mp
-    (A := fun ψ => ITerm.const .emptyRec [0, ψ uN]) hfresh
+    (A := fun ψ => Term.const .emptyRec [0, ψ uN]) hfresh
     (fun _ _ _ h => nomatch h)
     (by decide) (by decide) (by decide) (by decide)
     (fun _ _ _ _ h => by injection h with _ _ _ h4; exact h4 ▸ rfl)
@@ -165,8 +164,7 @@ theorem extendFalseRec (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT falseRecA.name ψ
           = some (Term.const .emptyRec [0, ψ uN]) from rfl] at hp
-        rw [← Option.some.inj hp]
-        rfl)
+        rw [← Option.some.inj hp])
       (fun _ h => nomatch h)
       (fun _ _ _ _ h => by injection h with _ _ _ h4
                            intro r hr; rw [← h4] at hr; exact nomatch hr))

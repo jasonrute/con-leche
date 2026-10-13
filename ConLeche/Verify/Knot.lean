@@ -189,7 +189,7 @@ level up calls them with `pureFns mode env fuel`, so their facts appear in
 inversions at the same fuel as the entry-point facts. -/
 
 abbrev iotaRecFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr →
-    CheckM (Option Expr) := iotaRec (pureFns mode env fuel) env
+    CheckM (Option Expr) := iotaRec mode (pureFns mode env fuel) env
 
 abbrev iotaCertsFullFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr →
     List Expr → CheckM Bool := iotaCertsFull (pureFns mode env fuel) env
@@ -223,13 +223,13 @@ abbrev etaCertFueled (mode : CheckMode) (env : Env) (fuel : Nat) (d : Nat)
   etaCert mode (pureFns mode env fuel) env d ty body b
 
 abbrev majorToCtorFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Name →
-    List RecRule → Expr → CheckM Expr := majorToCtor (pureFns mode env fuel) env
+    List RecRule → Expr → CheckM Expr := majorToCtor mode (pureFns mode env fuel) env
 
 abbrev litMajorToCtorFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr →
     CheckM Expr := litMajorToCtor (pureFns mode env fuel) env
 
 abbrev prepareMajorFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Name →
-    List RecRule → Expr → CheckM Expr := prepareMajor (pureFns mode env fuel) env
+    List RecRule → Expr → CheckM Expr := prepareMajor mode (pureFns mode env fuel) env
 
 abbrev projLitToCtorFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Expr →
     CheckM Expr := projLitToCtor (pureFns mode env fuel) env
@@ -284,7 +284,7 @@ abbrev defeqStuckFueled (mode : CheckMode) (env : Env) (fuel : Nat) : Nat → Ex
 `P` names (used right after unfolding a body in an inversion proof). -/
 
 theorem iotaRec_fold (env : Env) (fuel : Nat) :
-    iotaRec (pureFns mode env fuel) env = iotaRecFueled mode env fuel := rfl
+    iotaRec mode (pureFns mode env fuel) env = iotaRecFueled mode env fuel := rfl
 theorem iotaCertsFull_fold (env : Env) (fuel : Nat) :
     iotaCertsFull (pureFns mode env fuel) env = iotaCertsFullFueled mode env fuel := rfl
 theorem iotaIndexOk_fold (env : Env) (fuel : Nat) :
@@ -307,11 +307,11 @@ theorem structUnitCert_fold (env : Env) (fuel : Nat) :
 theorem etaCert_fold (env : Env) (fuel : Nat) :
     etaCert mode (pureFns mode env fuel) env = etaCertFueled mode env fuel := rfl
 theorem majorToCtor_fold (env : Env) (fuel : Nat) :
-    majorToCtor (pureFns mode env fuel) env = majorToCtorFueled mode env fuel := rfl
+    majorToCtor mode (pureFns mode env fuel) env = majorToCtorFueled mode env fuel := rfl
 theorem litMajorToCtor_fold (env : Env) (fuel : Nat) :
     litMajorToCtor (pureFns mode env fuel) env = litMajorToCtorFueled mode env fuel := rfl
 theorem prepareMajor_fold (env : Env) (fuel : Nat) :
-    prepareMajor (pureFns mode env fuel) env = prepareMajorFueled mode env fuel := rfl
+    prepareMajor mode (pureFns mode env fuel) env = prepareMajorFueled mode env fuel := rfl
 theorem projLitToCtor_fold (env : Env) (fuel : Nat) :
     projLitToCtor (pureFns mode env fuel) env = projLitToCtorFueled mode env fuel := rfl
 theorem reduceNat_fold (env : Env) (fuel : Nat) :

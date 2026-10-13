@@ -16,7 +16,7 @@ a ∈ˢ A ∧ (v = 0 → …) ∧ (v ≠ 0 → IsTy A)`.  At a basis constant's 
 the slot is read off `bval_mem_type` at `BConst.typeAV`'s own binder:
 the function space is `piV`, whose regime numeral `propN` comes with
 its fibre fact (`propN_eq_zero`), so nothing is chosen
-(`bconst_app_data`/`_dataAV`/`_data3`/`_data4`, `slot_of_mem_piV`).
+(`bconst_app_data`/`_data2`/`_data3`/`_data4`, `slot_of_mem_piV`).
 The one bespoke supplier is `quotMk_mem_quot` (`Quot.ind`'s motive at a
 `Quot.mk` spine).
 -/
@@ -26,7 +26,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term SetTheory
-open ConLeche.Semantics (ITerm)
+
 
 universe w
 
@@ -105,7 +105,7 @@ theorem slot_app_piV {R a b A : V} {A2 : V → V} {B2 : V → V → V}
 function space is `typeAV`'s own outer binder's reading, the membership
 is `bval_mem_type` at that binder. -/
 theorem bconst_app_data (c : BConst) (us : List Nat) (ρ : Nat → V)
-    {A B : ITerm} (h : BConst.typeAV c us = .pi A B)
+    {A B : Term} (h : BConst.typeAV c us = .pi A B)
     {a : V} (ha : a ∈ˢ interp V ρ A) (hS : IsTy (interp V ρ A)) :
     ∃ (w : Nat) (S : V) (F : V → V), bval V c us ∈ˢ piR w S F ∧
       a ∈ˢ S ∧ (w = 0 → ∀ x, x ∈ˢ S → F x ∈ˢ (univZero : V)) ∧ (w ≠ 0 → IsTy S) := by
@@ -115,8 +115,8 @@ theorem bconst_app_data (c : BConst) (us : List Nat) (ρ : Nat → V)
 
 /-- The same one binder in: a basis constant applied to its first
 argument (`app_mem_piV`, no fibre premise). -/
-theorem bconst_app_dataAV (c : BConst) (us : List Nat) (ρ : Nat → V)
-    {A A2 B2 : ITerm}
+theorem bconst_app_data2 (c : BConst) (us : List Nat) (ρ : Nat → V)
+    {A A2 B2 : Term}
     (h : BConst.typeAV c us = .pi A (.pi A2 B2))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
     {a : V} (ha : a ∈ˢ interp V (cons a1 ρ) A2) (hS : IsTy (interp V (cons a1 ρ) A2)) :
@@ -136,7 +136,7 @@ theorem mem_univZero_of_zero {u : Nat} {X : V} (hu : u = 0)
 
 /-- Two binders in: the constant applied to its first two arguments. -/
 theorem bconst_app_data3 (c : BConst) (us : List Nat) (ρ : Nat → V)
-    {A A2 A3 B3 : ITerm}
+    {A A2 A3 B3 : Term}
     (h : BConst.typeAV c us = .pi A (.pi A2 (.pi A3 B3)))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
     {a2 : V} (ha2 : a2 ∈ˢ interp V (cons a1 ρ) A2)
@@ -157,7 +157,7 @@ theorem bconst_app_data3 (c : BConst) (us : List Nat) (ρ : Nat → V)
 arguments.  The basis *recursors*' RHS towers apply their
 head four and five deep (`Nat.rec`'s successor rule, `Quot.lift`). -/
 theorem bconst_app_data4 (c : BConst) (us : List Nat) (ρ : Nat → V)
-    {A A2 A3 A4 B4 : ITerm}
+    {A A2 A3 A4 B4 : Term}
     (h : BConst.typeAV c us
       = .pi A (.pi A2 (.pi A3 (.pi A4 B4))))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
@@ -204,9 +204,9 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
   case lfpTuple k => exact WellDenoted_lfpTuple V k us ρ
   all_goals
     simp +contextual +decide only [BConst.typeAV, arrowA, relAV, negTyAV,
-      natTyAV, natZeroAV, natSuccAV, punitAV, emptyAV,
-      psigmaAV, quotAV, quotMkAV, ITerm.mkAppN, ITerm.lift,
-      ITerm.liftN, WellDenoted_pi, WellDenoted_app, WellDenoted_eqE,
+      natTyAV, natZeroAV, natSuccAV, punitAV, emptyT,
+      psigmaAV, quotAV, quotMkAV, Term.mkAppN, Term.lift,
+      Term.liftN, WellDenoted_pi, WellDenoted_app, WellDenoted_eqE,
       WellDenoted_bvar, WellDenoted_sort, WellDenoted_const,
       interp_pi, interp_app, interp_eqE, interp_sort,
       interp_const, interp_bvar, cons_zero, cons_succ,
@@ -257,7 +257,7 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
       | (refine bconst_app_data V _ _ ρ rfl ?_ ?_ <;>
           (first | assumption | exact IsTy_univ _ | exact IsTy_piV | exact IsTy_omega |
             exact IsTy_of_mem_univ ‹_›))
-      | (refine bconst_app_dataAV V _ _ ρ rfl ?_ ?_ ?_ <;>
+      | (refine bconst_app_data2 V _ _ ρ rfl ?_ ?_ ?_ <;>
           (first | assumption | exact IsTy_univ _ | exact IsTy_piV | exact IsTy_omega |
             exact IsTy_of_mem_univ ‹_›))
       | (refine bconst_app_data3 V _ _ ρ rfl ?_ ?_ ?_ ?_ <;>

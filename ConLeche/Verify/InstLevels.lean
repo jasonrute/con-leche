@@ -3,7 +3,6 @@ module
 import ConLeche.Kernel.Level
 import ConLeche.Kernel.ExprOps
 import ConLeche.Verify.Level
-public import ConLeche.Verify.PropWhen
 public import ConLeche.Verify.Subst
 
 public section

@@ -31,7 +31,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal RecFieldKind IndCaps
   BlockShape MemberShape ProjTable RecRule)
 
@@ -43,7 +43,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 constructors' stage. -/
 structure BlockTablesStage (μ : CheckMode) (F : Nat) (d : BlockData V) (lps : List Name)
     (cvTasAll : List ConstantVal) (p₁ : BlockShape) (isRec : Bool)
-    (A : Nat → (Name → Nat) → ITerm)
+    (A : Nat → (Name → Nat) → Term)
     (envI : Env) (ctorsOf : Name → List Name) (sortsOf : Nat → List Level) : Prop
     extends BlockCtorsStage μ F d lps cvTasAll p₁ isRec A envI ctorsOf where
   /-- the η data a structure-like member's record carries -/
@@ -119,7 +119,7 @@ constructors' full data — a table's cons crosses a TYPE's reading,
 not an arbitrary term's. -/
 @[expose] def BlockTablesCore {env : Env} (m' : EnvModel V env) (d : BlockData V)
     (lps : List Name) (cvTasAll : List ConstantVal) (p₁ : BlockShape) (isRec : Bool)
-    (A : Nat → (Name → Nat) → ITerm) (nc : Nat) : Prop :=
+    (A : Nat → (Name → Nat) → Term) (nc : Nat) : Prop :=
   (∀ (c : Nat) (cvTb : ConstantVal), cvTasAll[c]? = some cvTb →
       env.find? cvTb.name = some (.indInfo cvTb (ConLeche.blockCapsAt p₁ c isRec)) ∧
       cvTb.type.constsResolve env = true ∧
@@ -128,9 +128,9 @@ not an arbitrary term's. -/
   (∀ (c j : Nat) (cA : ConstantVal × Nat), (d.ctorsM c)[j]? = some cA →
       env.find? cA.1.name = some (.ctorInfo cA.1 d.nP cA.2) ∧ cA.1.levelParams = lps ∧
       cA.1.type.constsResolve env = true ∧
-      (∀ ψ, denoteMeta m'.acval env ψ 0 cA.1.type
+      (∀ ψ, denote m'.acval env ψ 0 cA.1.type
         = some (mkPisAV (d.dsF c j ψ)
-            (ITerm.mkAppN (A c ψ) (paramBvars d.nP cA.2 ++ d.esF c j ψ)))) ∧
+            (Term.mkAppN (A c ψ) (paramBvars d.nP cA.2 ++ d.esF c j ψ)))) ∧
       (∀ ψ, m'.acval cA.1.name ψ = sumMkAV (d.w ψ) j (d.dsF c j ψ)
         (((d.dsF c j ψ).drop d.nP)) (uChains (d.Fss c ψ)))) ∧
   -- the members the tables' loop will still treat: their projection
@@ -141,7 +141,7 @@ not an arbitrary term's. -/
 /-- The constructors' stage's invariant, at the tables' stage. -/
 theorem blockTablesCore_of {env : Env} {m' : EnvModel V env} {d : BlockData V}
     {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → ITerm}
+    {A : Nat → (Name → Nat) → Term}
     (hN : BlockNamesOk (V := V) d cvTasAll)
     (h : BlockCtorsCore m' d lps cvTasAll p₁ isRec A d.k)
     (hnp : ∀ c, c < d.k → (∃ cA, d.ctorsM c = [cA]) → d.nIdxAt c = 0 →
@@ -171,7 +171,7 @@ projections do not occur"), and every LATER member's slots stay free
 — the consed table's bodies are the member's own. -/
 theorem BlockTablesCore.consTable {env : Env} {m' : EnvModel V env} {d : BlockData V}
     {lps : List Name} {cvTasAll : List ConstantVal} {p₁ : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → ITerm} {mm : Nat}
+    {A : Nat → (Name → Nat) → Term} {mm : Nat}
     (h : BlockTablesCore m' d lps cvTasAll p₁ isRec A mm)
     {tbl : ProjTable} (hstruct : tbl.structName = d.memberName mm)
     (hfresh : env.find? (ConstantInfo.projInfo tbl).name = none)
@@ -214,7 +214,7 @@ theorem BlockTablesCore.consTable {env : Env} {m' : EnvModel V env} {d : BlockDa
     refine ⟨ConLeche.Env.find?_cons_of_fresh hfresh hfind, hlps, Expr.constsResolve_mono hres,
       fun ψ => ?_, fun ψ => ?_⟩
     · rw [hac]
-      exact denoteMeta_cons_mono hfresh hcross ψ 0
+      exact denote_cons_mono hfresh hcross ψ 0
         (constsBound_of_constsResolve _ hres) (hread ψ)
     · rw [hac]
       show acvalWith m'.acval (ConstantInfo.projInfo tbl).name _ cA.1.name ψ = _
@@ -233,7 +233,7 @@ structure-like member, the tables' invariant threaded across the
 conses. -/
 theorem stageBlockTables {F : Nat} {d : BlockData V} {lps : List Name}
     {cvTasAll : List ConstantVal} {p₁ q : BlockShape} {isRec : Bool}
-    {A : Nat → (Name → Nat) → ITerm}
+    {A : Nat → (Name → Nat) → Term}
     {envI : Env} {ctorsOf : Name → List Name} {sortsOf : Nat → List Level}
     (hN : BlockNamesOk (V := V) d cvTasAll)
     (hS : BlockTablesStage (V := V) μ F d lps cvTasAll p₁ isRec A envI ctorsOf sortsOf)

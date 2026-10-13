@@ -10,7 +10,7 @@ public section
 
 `Rules.NatSuccRow` and `Rules.NatOpRow` (`Model/Rules/Inputs.lean`),
 discharged: the `Nat`-literal reduction's branch analysis at the
-`denoteMeta` currency, standing on `EnvModelM.nat_ops` and
+`denote` currency, standing on `EnvModelM.nat_ops` and
 `EnvModelM.div_mod` (the recurrence laws, from the run certificates)
 and the sixteen numeral transports (`Model/NatSem.lean`,
 `Model/NatWf.lean`).  `Model/Capstone.lean`'s `Rules.RulesInputs.ofSem`
@@ -22,7 +22,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
   ReducibilityHint natOpGuard natLitSupported natOpResult reduceNatFueled)
 
@@ -36,16 +36,16 @@ variable {μ : CheckMode} {env : Env} {φ : Name → Nat}
 /-- Whatever `rawNatLit?` accepts reads to the numeral spine it
 reports — its two shapes are the literal itself and the `Nat.zero`
 constant, and `natLit … 0` *is* the `Nat.zero` leaf. -/
-theorem denoteMeta_rawNatLit (m : EnvModel V env)
+theorem denote_rawNatLit (m : EnvModel V env)
     (hs : natLitSupported env = true) {a0 : Expr} {n : Nat}
     (h : ConLeche.rawNatLit? a0 = some n) (d : Nat) :
-    denoteMeta m.acval env φ d a0 = some (natLit m φ n) := by
+    denote m.acval env φ d a0 = some (natLit m φ n) := by
   obtain ⟨cvN, caps, cv0, i0, j0, cv1, i1, j1, hfN, hfZ, hfS, hlpN,
     hlpZ, hlpS, -⟩ := ConLeche.natLitSupported_inv hs
   match a0, h with
   | .lit (.natVal k), h =>
     obtain rfl : k = n := Option.some.inj h
-    exact denoteMeta_natLit_spine m hs d k
+    exact denote_natLit_spine m hs d k
   | .const c [], h =>
     simp only [ConLeche.rawNatLit?] at h
     split at h
@@ -53,19 +53,19 @@ theorem denoteMeta_rawNatLit (m : EnvModel V env)
       subst hc
       obtain rfl : (0 : Nat) = n := Option.some.inj h
       rw [natLit_zero]
-      exact denoteMeta_levelless_const hfZ
+      exact denote_levelless_const hfZ
         (show (ConstantInfo.ctorInfo cv0 i0 j0).toConstantVal.levelParams
           = [] from hlpZ)
     · exact nomatch h
 
 /-- A stored level-monomorphic head's reading, inverted. -/
-theorem denoteMeta_head {m : EnvModel V env} {d : Nat} {c : Name}
-    {ci : ConstantInfo} {fa : ITerm}
+theorem denote_head {m : EnvModel V env} {d : Nat} {c : Name}
+    {ci : ConstantInfo} {fa : Term}
     (hf : env.find? c = some ci)
     (hlp : ci.toConstantVal.levelParams = [])
-    (h : denoteMeta m.acval env φ d (.const c []) = some fa) :
+    (h : denote m.acval env φ d (.const c []) = some fa) :
     fa = m.acval c φ :=
-  (Option.some.inj ((denoteMeta_levelless_const hf hlp).symm.trans h)).symm
+  (Option.some.inj ((denote_levelless_const hf hlp).symm.trans h)).symm
 
 /-! ## The two semantic rows
 
@@ -89,16 +89,16 @@ theorem natSuccRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
   intro d w n ea hnat hraw hea
   obtain ⟨cvN, caps, cv0, i0, j0, cv1, i1, j1, hfN, hfZ, hfS, hlpN,
     hlpZ, hlpS, -⟩ := ConLeche.natLitSupported_inv hnat
-  obtain ⟨fa, wa, hfa, hwa, rfl⟩ := denoteMeta_app_inv hea
+  obtain ⟨fa, wa, hfa, hwa, rfl⟩ := denote_app_inv hea
   obtain rfl : fa = mp.base2.acval ConLeche.natSuccName φ :=
-    denoteMeta_head hfS
+    denote_head hfS
       (show (ConstantInfo.ctorInfo cv1 i1 j1).toConstantVal.levelParams
         = [] from hlpS) hfa
   obtain rfl : wa = natLit mp.base2 φ n :=
     Option.some.inj
-      (hwa.symm.trans (denoteMeta_rawNatLit mp.base2 hnat hraw d))
+      (hwa.symm.trans (denote_rawNatLit mp.base2 hnat hraw d))
   refine ⟨natLit mp.base2 φ (n + 1),
-    denoteMeta_natLit_spine mp.base2 hnat d (n + 1), fun ρ hg => ⟨?_, ?_⟩⟩
+    denote_natLit_spine mp.base2 hnat d (n + 1), fun ρ hg => ⟨?_, ?_⟩⟩
   · rw [natLit_succ]
     exact hg
   · rw [natLit_succ]
@@ -133,18 +133,18 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
     rcases h14 with rfl|rfl|rfl|rfl|rfl|rfl|rfl|rfl|rfl|rfl|rfl|rfl|
       rfl|rfl <;> decide
   obtain ⟨cvc, vc, hcnt, hfc, hlpc⟩ := hdeps c hself
-  obtain ⟨fab, ba, hfab, hba', rfl⟩ := denoteMeta_app_inv hea
-  obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv hfab
+  obtain ⟨fab, ba, hfab, hba', rfl⟩ := denote_app_inv hea
+  obtain ⟨fa, aa, hfa, haa, rfl⟩ := denote_app_inv hfab
   obtain rfl : fa = mp.base2.acval c φ :=
-    denoteMeta_head hfc
+    denote_head hfc
       (show (ConstantInfo.defnInfo cvc vc hcnt).toConstantVal.levelParams
         = [] from hlpc) hfa
   obtain rfl : aa = natLit mp.base2 φ n₁ :=
     Option.some.inj
-      (haa.symm.trans (denoteMeta_rawNatLit mp.base2 hnat hrawa d))
+      (haa.symm.trans (denote_rawNatLit mp.base2 hnat hrawa d))
   obtain rfl : ba = natLit mp.base2 φ n₂ :=
     Option.some.inj
-      (hba'.symm.trans (denoteMeta_rawNatLit mp.base2 hnat hrawb d))
+      (hba'.symm.trans (denote_rawNatLit mp.base2 hnat hrawb d))
   -- the two reduct shapes `natOpResult` can take
   have close : ∀ K : Nat, r = .lit (.natVal K) →
       (∀ ρ : Nat → V, SetTheory.app (SetTheory.app
@@ -152,17 +152,17 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
         (interp V ρ (natLit mp.base2 φ n₁)))
         (interp V ρ (natLit mp.base2 φ n₂))
         = interp V ρ (natLit mp.base2 φ K)) →
-      ∃ ra, denoteMeta mp.base2.acval env φ d r = some ra ∧
+      ∃ ra, denote mp.base2.acval env φ d r = some ra ∧
         ∀ ρ : Nat → V, WellDenoted V ρ ((.app (.app (mp.base2.acval c φ)
-              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : ITerm)) →
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : Term)) →
           WellDenoted V ρ ra ∧
           interp V ρ ((.app (.app (mp.base2.acval c φ)
-              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : ITerm))
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : Term))
             = interp V ρ ra := by
     intro K hr hop
     subst hr
     refine ⟨natLit mp.base2 φ K,
-      denoteMeta_natLit_spine mp.base2 hnat d K, fun ρ _ => ⟨?_, ?_⟩⟩
+      denote_natLit_spine mp.base2 hnat d K, fun ρ _ => ⟨?_, ?_⟩⟩
     · exact (natLit_facts mp.base2 (mp.nat_heads φ) hnat
         ρ K).1
     · rw [interp_app, interp_app]
@@ -176,12 +176,12 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
         (interp V ρ (natLit mp.base2 φ n₁)))
         (interp V ρ (natLit mp.base2 φ n₂))
         = interp V ρ (mp.base2.acval bn φ)) →
-      ∃ ra, denoteMeta mp.base2.acval env φ d r = some ra ∧
+      ∃ ra, denote mp.base2.acval env φ d r = some ra ∧
         ∀ ρ : Nat → V, WellDenoted V ρ ((.app (.app (mp.base2.acval c φ)
-              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : ITerm)) →
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : Term)) →
           WellDenoted V ρ ra ∧
           interp V ρ ((.app (.app (mp.base2.acval c φ)
-              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : ITerm))
+              (natLit mp.base2 φ n₁)) (natLit mp.base2 φ n₂) : Term))
             = interp V ρ ra := by
     intro hcb bn hbn hr hop
     subst hr
@@ -189,11 +189,11 @@ theorem natOpRow_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
       (by rcases hcb with rfl | rfl
           · exact Or.inl rfl
           · exact Or.inr (Or.inl rfl))
-    have hread : denoteMeta mp.base2.acval env φ d (.const bn [])
+    have hread : denote mp.base2.acval env φ d (.const bn [])
         = some (mp.base2.acval bn φ) := by
       rcases hbn with rfl | rfl
-      · exact denoteMeta_levelless_const hfT hlpT
-      · exact denoteMeta_levelless_const hfF hlpF
+      · exact denote_levelless_const hfT hlpT
+      · exact denote_levelless_const hfF hlpF
     refine ⟨mp.base2.acval bn φ, hread, fun ρ _ => ⟨?_, ?_⟩⟩
     · exact mp.base2.acval_wellDenoted _ _ ρ
     · rw [interp_app, interp_app]
@@ -286,7 +286,7 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
   rw [hf] at hfc
   obtain ⟨rfl, -, -⟩ := ConstantInfo.defnInfo.inj (Option.some.inj hfc)
   obtain rfl : ca = mp.base2.acval c φ :=
-    denoteMeta_head hf
+    denote_head hf
       (show (ConstantInfo.defnInfo cv v hh).toConstantVal.levelParams = [] from hlpc) hca
   -- the codomain is a stored level-free constant
   obtain ⟨codN, codCi, rfl, hcodF, hcodLp⟩ : ∃ codN codCi,
@@ -299,14 +299,14 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
       exact ⟨_, _, rfl, hfN,
         show (ConstantInfo.indInfo cvN caps).toConstantVal.levelParams = [] from hlpN⟩
   -- the leaf inhabits the pinned type's reading
-  have hta : denoteMeta mp.base2.acval env φ 0
+  have hta : denote mp.base2.acval env φ 0
       (ConstantInfo.defnInfo cv v hh).toConstantVal.type
       = some (.pi (mp.base2.acval ConLeche.natName φ)
           (.pi (mp.base2.acval ConLeche.natName φ)
             (mp.base2.acval codN φ))) := by
-    show denoteMeta mp.base2.acval env φ 0 cv.type = _
+    show denote mp.base2.acval env φ 0 cv.type = _
     rw [hty]
-    exact denoteMeta_pinnedBinTy mp.base2 φ hfN
+    exact denote_pinnedBinTy mp.base2 φ hfN
       (show (ConstantInfo.indInfo cvN caps).toConstantVal.levelParams = [] from hlpN)
       hcodF hcodLp
   have hmem := mp.mem_type _ (ConLeche.Semantics.Env.find?_mem hf) φ _ hta ρ
@@ -315,7 +315,7 @@ theorem natOpHead_of (mp : EnvModelM V μ env) (φ : Name → Nat) :
   rw [substFn_nil]
   have hfib : (fun x => interp V (cons x ρ)
         ((.pi (mp.base2.acval ConLeche.natName φ)
-          (mp.base2.acval codN φ)) : ITerm))
+          (mp.base2.acval codN φ)) : Term))
       = fun _ => piV (interp V ρ (mp.base2.acval ConLeche.natName φ))
           (fun _ => interp V ρ (mp.base2.acval codN φ)) := by
     funext x

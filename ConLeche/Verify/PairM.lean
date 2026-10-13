@@ -530,8 +530,8 @@ theorem structEtaCert_snd_proj (d : Nat) (a b : Expr) :
 -- each rescue branch separately.
 set_option maxHeartbeats 800000 in
 theorem majorToCtor_fst_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) :
-    (majorToCtor (pairFns r₁ r₂ h) env d c rules e).val.1 =
-      majorToCtor r₁ env d c rules e := by
+    (majorToCtor mode (pairFns r₁ r₂ h) env d c rules e).val.1 =
+      majorToCtor mode r₁ env d c rules e := by
   unfold majorToCtor
   by_cases hca : isCtorApp env e = true
   · rw [ite_eq_left hca, ite_eq_left hca]; rfl
@@ -570,8 +570,8 @@ theorem majorToCtor_fst_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Ex
 
 set_option maxHeartbeats 800000 in
 theorem majorToCtor_snd_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) :
-    (majorToCtor (pairFns r₁ r₂ h) env d c rules e).val.2 =
-      majorToCtor r₂ env d c rules e := by
+    (majorToCtor mode (pairFns r₁ r₂ h) env d c rules e).val.2 =
+      majorToCtor mode r₂ env d c rules e := by
   unfold majorToCtor
   by_cases hca : isCtorApp env e = true
   · rw [ite_eq_left hca, ite_eq_left hca]; rfl
@@ -621,28 +621,36 @@ theorem litMajorToCtor_snd_proj (d : Nat) (e : Expr) :
   snd_tac2
 
 theorem prepareMajor_fst_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) :
-    (prepareMajor (pairFns r₁ r₂ h) env d c rules e).val.1 =
-      prepareMajor r₁ env d c rules e := by
+    (prepareMajor mode (pairFns r₁ r₂ h) env d c rules e).val.1 =
+      prepareMajor mode r₁ env d c rules e := by
   unfold prepareMajor
-  split <;> (repeat (first
-    | rfl
-    | (rw [majorToCtor_fst_proj])
-    | (rw [litMajorToCtor_fst_proj])
-    | ((rw [PairM.fst_bind]; congr 1 <;> try rfl) <;> try funext _)
-    | (split <;> (first | rfl | rw [litMajorToCtor_fst_proj]))
-    | (dsimp only [])))
+  split
+  · repeat (first
+      | rfl
+      | (rw [majorToCtor_fst_proj])
+      | (rw [litMajorToCtor_fst_proj])
+      | ((rw [PairM.fst_bind]; congr 1 <;> try rfl) <;> try funext _)
+      | (split <;> (first | rfl | rw [litMajorToCtor_fst_proj]))
+      | (dsimp only []))
+  · simp only [PairM.fst_ite, PairM.fst_bind, PairM.fst_pure,
+      majorToCtor_fst_proj, litMajorToCtor_fst_proj]
+    rfl
 
 theorem prepareMajor_snd_proj (d : Nat) (c : Name) (rules : List RecRule) (e : Expr) :
-    (prepareMajor (pairFns r₁ r₂ h) env d c rules e).val.2 =
-      prepareMajor r₂ env d c rules e := by
+    (prepareMajor mode (pairFns r₁ r₂ h) env d c rules e).val.2 =
+      prepareMajor mode r₂ env d c rules e := by
   unfold prepareMajor
-  split <;> (repeat (first
-    | rfl
-    | (rw [majorToCtor_snd_proj])
-    | (rw [litMajorToCtor_snd_proj])
-    | ((rw [PairM.snd_bind]; congr 1 <;> try rfl) <;> try funext _)
-    | (split <;> (first | rfl | rw [litMajorToCtor_snd_proj]))
-    | (dsimp only [])))
+  split
+  · repeat (first
+      | rfl
+      | (rw [majorToCtor_snd_proj])
+      | (rw [litMajorToCtor_snd_proj])
+      | ((rw [PairM.snd_bind]; congr 1 <;> try rfl) <;> try funext _)
+      | (split <;> (first | rfl | rw [litMajorToCtor_snd_proj]))
+      | (dsimp only []))
+  · simp only [PairM.snd_ite, PairM.snd_bind, PairM.snd_pure,
+      majorToCtor_snd_proj, litMajorToCtor_snd_proj]
+    rfl
 
 theorem projLitToCtor_fst_proj (d : Nat) (e : Expr) :
     (projLitToCtor (pairFns r₁ r₂ h) env d e).val.1 =
@@ -733,14 +741,14 @@ theorem stuckIrrel_snd_proj (d : Nat) (a b : Expr) :
   snd_tac3
 
 theorem iotaRec_fst_proj (d : Nat) (e : Expr) :
-    (iotaRec (pairFns r₁ r₂ h) env d e).val.1 =
-      iotaRec r₁ env d e := by
+    (iotaRec mode (pairFns r₁ r₂ h) env d e).val.1 =
+      iotaRec mode r₁ env d e := by
   unfold iotaRec
   fst_tac3
 
 theorem iotaRec_snd_proj (d : Nat) (e : Expr) :
-    (iotaRec (pairFns r₁ r₂ h) env d e).val.2 =
-      iotaRec r₂ env d e := by
+    (iotaRec mode (pairFns r₁ r₂ h) env d e).val.2 =
+      iotaRec mode r₂ env d e := by
   unfold iotaRec
   snd_tac3
 

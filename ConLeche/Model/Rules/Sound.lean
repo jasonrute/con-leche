@@ -33,7 +33,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -59,7 +59,7 @@ theorem red_sound (hin : RulesInputs V m φ) :
   | _, _, _, .natLit h => Red.natLit_sound h
   | _, _, _, .strLit h => Red.strLit_sound h
   | _, _, _, .proj hent hhead hi hlen hus hfire hctor hcerts =>
-    Red.proj_sound hin hent hhead hi hlen hus hfire hctor (Certs.licensed_sound hcerts)
+    Red.proj_sound hin hent hhead hi hlen hus hfire hctor (teleArity_sound hcerts)
   | _, _, _, .natSucc hsup hw hn => Red.natSucc_sound hin hsup (red_sound hin hw) hn
   | _, _, _, .natOp hc hst hwa hn₁ hwb hn₂ hr =>
     Red.natOp_sound hin hc hst (red_sound hin hwa) hn₁ (red_sound hin hwb) hn₂ hr
@@ -69,7 +69,7 @@ theorem red_sound (hin : RulesInputs V m φ) :
       hparams hcertR hcertC hres hidx =>
     Red.iota_sound hin hhead hrec hlen hus (red_sound hin hmajor) hmhead hctor
       hrule hmlen hlv (fun hc => defEqList_sound hin (hparams hc))
-      (Certs.licensed_sound hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
+      (teleArity_sound hcertR) (fun h3 => certsF_sound hin (hcertC h3)) hres
       (fun h3 hne => defEqList_sound hin (hidx h3 hne))
   | _, _, _, .rescueK hrec hk hctor hres hind htm htmaj hthead hlv hnP hfab hws
       hb hlv' _ _ htp http hv hv0 =>
@@ -209,10 +209,10 @@ end
 /-- An establishing inference claim, at every satisfying valuation of a
 full context discipline. -/
 theorem InferSemFull.global {d : Nat} {e t : Expr} (h : InferSemFull m φ d e t)
-    (hf : Frame d e) {Δa : List ITerm} {ea : ITerm}
-    (hC : CtxOk m φ d Δa e) (hea : denoteMeta m.acval env φ d e = some ea) :
+    (hf : Frame d e) {Δa : List Term} {ea : Term}
+    (hC : CtxOk m φ d Δa e) (hea : denote m.acval env φ d e = some ea) :
     Frame d t ∧ LeavesSub t e ∧
-      ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
+      ∃ ta, denote m.acval env φ d t = some ta ∧
         Graded V Δa ea ∧ GradedTy V Δa ta ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea ∈ˢ interp V ρ ta := by
   obtain ⟨hft, hsub, ta, hta, hs⟩ := h hf hC.toS hea
@@ -227,11 +227,11 @@ a type is never the point ("not pt" source (1): `IsTy.ne_pt`).  The
 positivity readers (`Model/Inductives/Pos*`, `NestPosRed`) walk types and
 read their whnf steps through it. -/
 theorem red_sound_ty (hin : RulesInputs V m φ) {d : Nat} {e e' : Expr}
-    (h : Red env d e e') (hf : Frame d e) {Δa : List ITerm} {ea : ITerm}
-    (hC : CtxOk m φ d Δa e) (hea : denoteMeta m.acval env φ d e = some ea)
+    (h : Red env d e e') (hf : Frame d e) {Δa : List Term} {ea : Term}
+    (hC : CtxOk m φ d Δa e) (hea : denote m.acval env φ d e = some ea)
     (hg : GradedTy V Δa ea) :
     Frame d e' ∧ LeavesSub e' e ∧
-      ∃ ea', denoteMeta m.acval env φ d e' = some ea' ∧ GradedTy V Δa ea' ∧
+      ∃ ea', denote m.acval env φ d e' = some ea' ∧ GradedTy V Δa ea' ∧
         ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ ea = interp V ρ ea' := by
   obtain ⟨hf', hsub, ea', hea', hs⟩ := red_sound hin h hf hC.toS hea
   have hs' := fun ρ hρ => hs ρ hρ (hC.leavesGr hρ) (hg ρ hρ).1 (hg ρ hρ).2.ne_pt

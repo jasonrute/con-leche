@@ -254,7 +254,7 @@ def suffixes(name):
 # certificates: the olean records no edge, so every identifier the command
 # names (the raw pins, the `over` environment) is a seed, resolved in the
 # invoking module.
-ANNOTATE_RE = re.compile(r"^#stored_basis[^\n]*(?:\n[ \t]+[^\n]*)*", re.M)
+STORED_BASIS_RE = re.compile(r"^#stored_basis[^\n]*(?:\n[ \t]+[^\n]*)*", re.M)
 ANNOTATE_RHS_RE = TOKEN_RE
 
 
@@ -268,7 +268,7 @@ def annotate_seeds():
             path = os.path.relpath(os.path.join(dirpath, fn), ROOT)
             text = open(os.path.join(ROOT, path), errors="replace").read()
             mod = path[:-len(".lean")].replace("/", ".")
-            for block in ANNOTATE_RE.findall(text):
+            for block in STORED_BASIS_RE.findall(text):
                 out |= {(n, mod) for n in ANNOTATE_RHS_RE.findall(block)}
     return out
 

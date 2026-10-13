@@ -29,7 +29,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps CheckM NestCtx NestHole
   BlockParts BlockShape fueledOps PosTree)
 
@@ -123,10 +123,10 @@ theorem admVal_frame0 (H : DynCtx F mk mpC ctx d ns) (ψ : Name → Nat) (ρ : N
     obtain ⟨cv, caps, hf, hlps⟩ := H.hlpsM _ (List.getElem_mem ht)
     have hlen : (ctx.lps.map Level.param).length = cv.levelParams.length := by
       rw [List.length_map, hlps]
-    have hc : denoteMeta mpC.base2.acval envC ψ xs.length
+    have hc : denote mpC.base2.acval envC ψ xs.length
         (.const (ctx.names[t]'ht) (ctx.lps.map Level.param))
           = some (mpC.base2.acval (ctx.names[t]'ht) ψ) := by
-      have h1 := H.htr ψ xs.length _ (denoteMeta_const (acval := mk.base2.acval) (φ := ψ)
+      have h1 := H.htr ψ xs.length _ (denote_const (acval := mk.base2.acval) (φ := ψ)
         (d := xs.length) hf hlen)
       rw [h1, show (ConstantInfo.indInfo cv caps).toConstantVal = cv from rfl, hlps,
         ConLeche.Level.substFn_param_self, H.hag _ (by rw [hf]; rfl)]

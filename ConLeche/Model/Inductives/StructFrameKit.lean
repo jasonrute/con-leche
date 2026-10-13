@@ -42,7 +42,7 @@ the former's stage data.
 `piBits_of_infer` walks the Π-prefix of an inferred type: the innermost
 opened body has an inferred sort, and the whole type's sort is zero
 exactly when that one is.  `checkConstantVal`, `openPisAtFvars` and
-`denoteMeta` open the binders with the same `fvar`s.  The readings'
+`denote` open the binders with the same `fvar`s.  The readings'
 binders carry no regime (`piV`/`lamV` read it off the values).
 -/
 
@@ -267,7 +267,7 @@ premise.
 
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps)
 
 universe w
@@ -318,7 +318,7 @@ AT THE EXTENSION — so that a block's still-pending members are refuted
 from the head's KIND rather than from closure); the block's own
 family's laws at the extension are supplied (`hTlaws`). -/
 theorem capsOk_cons_native (mp : EnvModelM V μ env)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm} {T : Name}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term} {T : Name}
     (hfresh : env.find? c₀.name = none)
     (hcross : ConsCrossEnv env c₀)
     (hkind : (∃ cvT caps, c₀ = .indInfo cvT caps ∧ c₀.name = T) ∨
@@ -369,7 +369,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       mp.caps_ok.1 T' cvT' caps' hfE hcape hres hfam₀ φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_, ?_⟩
     · rw [hac]
-      exact denoteMeta_cons_mono hfresh
+      exact denote_cons_mono hfresh
         ((hcross.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
@@ -382,7 +382,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
         (fun _ _ _ => rfl)
       · rwa [hdown _ hnC] at hf₂
       · rw [hac]
-        exact denoteMeta_cons_mono hfresh
+        exact denote_cons_mono hfresh
           ((hcross.typeOf hf).instantiateLevelParams _ _) _ 0
           (constsBound_instType mp.base2.wf
             (ConLeche.Semantics.Env.find?_mem hf) us) hTCa
@@ -398,7 +398,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       mp.caps_ok.2 T' cvT' caps' hfE hcapu hres φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_⟩
     · rw [hac]
-      exact denoteMeta_cons_mono hfresh
+      exact denote_cons_mono hfresh
         ((hcross.typeOf hfE).instantiateLevelParams _ _) _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Semantics.Env.find?_mem hfE) us) hTVa
@@ -414,7 +414,7 @@ The P install reads a block's stored types at the stage environments
 and peels the Π-prefixes into the domains the tower leaves are
 built over.  Two syntactic facts carry the section:
 
-* **The unmentioned leaf** (`denoteMeta_agree_of_readsAt`): a term
+* **The unmentioned leaf** (`denote_agree_of_readsAt`): a term
   whose constants all resolve in the pre-block environment reads the
   same under any leaf at the block's name.  The type former's
   parameter domains and the constructor's field domains are such
@@ -423,7 +423,7 @@ built over.  Two syntactic facts carry the section:
   ingredients — are fixed before the leaves are, which is what lets
   the former's leaf mention them without circularity.
 
-* **The reading peel** (`denoteMeta_openPis`): `denoteMeta` opens a Π-prefix
+* **The reading peel** (`denote_openPis`): `denote` opens a Π-prefix
   with the very `fvar`s `openPisAtFvars` does, so a type's reading
   strips (`stripPisAV`) to the per-binder readings of the opened
   variables' annotations, each at its own depth.
@@ -472,65 +472,65 @@ theorem Expr.ReadsAt.instantiate1 {P : Name → Prop} {env : Env} {v : Expr}
 /-- **A reading consults the leaves only at the names it looks up**: two
 leaf assignments agreeing there read `e` alike (the two runs are `none`
 together). -/
-theorem denoteMeta_agree_of_readsAt
-    {acval₁ acval₂ : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat}
+theorem denote_agree_of_readsAt
+    {acval₁ acval₂ : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat}
     {P : Name → Prop} (hag : ∀ n, P n → acval₁ n = acval₂ n) :
     ∀ (d : Nat) (e : Expr), Expr.ReadsAt P env e →
-      denoteMeta acval₁ env φ d e = denoteMeta acval₂ env φ d e := by
+      denote acval₁ env φ d e = denote acval₂ env φ d e := by
   intro d e
-  induction d, e using denoteMeta.induct (env := env) with
-  | case1 d u => intro _; rw [denoteMeta, denoteMeta]
-  | case2 d idx ty => intro _; rw [denoteMeta, denoteMeta]
+  induction d, e using denote.induct (env := env) with
+  | case1 d u => intro _; rw [denote, denote]
+  | case2 d idx ty => intro _; rw [denote, denote]
   | case3 d n us ci hf hlen =>
     intro hcr
-    rw [denoteMeta, denoteMeta, hf]
+    rw [denote, denote, hf]
     dsimp only
     rw [ite_eq_left hlen, ite_eq_left hlen, hag n hcr]
   | case4 d n us ci hf hlen =>
     intro _
-    rw [denoteMeta, denoteMeta, hf]
+    rw [denote, denote, hf]
     dsimp only
     rw [ite_eq_right hlen, ite_eq_right hlen]
-  | case5 d n us hf => intro _; rw [denoteMeta, denoteMeta, hf]
+  | case5 d n us hf => intro _; rw [denote, denote, hf]
   | case6 d ty body ihty ihbody =>
     intro hcr
-    rw [denoteMeta, denoteMeta, ihty hcr.1,
+    rw [denote, denote, ihty hcr.1,
       ihbody (Expr.ReadsAt.instantiate1 (v := .fvar d ty) (by simp [Expr.ReadsAt]) _ 0 hcr.2)]
   | case7 d ty body ihty ihbody =>
     intro hcr
-    rw [denoteMeta, denoteMeta, ihty hcr.1,
+    rw [denote, denote, ihty hcr.1,
       ihbody (Expr.ReadsAt.instantiate1 (v := .fvar d ty) (by simp [Expr.ReadsAt]) _ 0 hcr.2)]
   | case8 d f a ihf iha =>
     intro hcr
-    rw [denoteMeta, denoteMeta, ihf hcr.1, iha hcr.2]
+    rw [denote, denote, ihf hcr.1, iha hcr.2]
   | case9 d ty val body ihty ihv ihbody =>
     intro hcr
-    rw [denoteMeta, denoteMeta, ihty hcr.1, ihv hcr.2.1,
+    rw [denote, denote, ihty hcr.1, ihv hcr.2.1,
       ihbody (Expr.ReadsAt.instantiate1 (v := .fvar d ty) (by simp [Expr.ReadsAt]) _ 0 hcr.2.2)]
   | case10 d sn i e ihe =>
     intro hcr
-    rw [denoteMeta, denoteMeta, ihe hcr]
+    rw [denote, denote, ihe hcr]
   | case11 d n hsup =>
     intro hcr
     obtain ⟨hZ, hS⟩ := hcr hsup
-    rw [denoteMeta, denoteMeta, ite_eq_left hsup, ite_eq_left hsup, hag natZeroName hZ,
+    rw [denote, denote, ite_eq_left hsup, ite_eq_left hsup, hag natZeroName hZ,
       hag natSuccName hS]
   | case12 d n hsup =>
     intro _
-    rw [denoteMeta, denoteMeta, ite_eq_right hsup, ite_eq_right hsup]
+    rw [denote, denote, ite_eq_right hsup, ite_eq_right hsup]
   | case13 d s hsup =>
     intro hcr
     obtain ⟨hO, hN, hC, hH, hF, hZ, hS⟩ := hcr hsup
-    rw [denoteMeta, denoteMeta, ite_eq_left hsup, ite_eq_left hsup,
+    rw [denote, denote, ite_eq_left hsup, ite_eq_left hsup,
       hag stringOfListName hO, hag listNilName hN, hag listConsName hC,
       hag charName hH, hag charOfNatName hF, hag natZeroName hZ, hag natSuccName hS]
   | case14 d s hsup =>
     intro _
-    rw [denoteMeta, denoteMeta, ite_eq_right hsup, ite_eq_right hsup]
+    rw [denote, denote, ite_eq_right hsup, ite_eq_right hsup]
   | case15 d x hs hfv hc hpi hlam happ hlet hproj hnat hstr =>
     intro _
     cases x with
-    | bvar i => rw [denoteMeta.eq_def, denoteMeta.eq_def]
+    | bvar i => rw [denote.eq_def, denote.eq_def]
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)
@@ -551,19 +551,19 @@ theorem denoteMeta_agree_of_readsAt
 `stripPisAV`-strippable reading whose domains are the opened
 variables' annotation readings at their own depths, and whose residual is
 the opened body's reading at the full depth. -/
-theorem denoteMeta_openPis {acval : Name → (Name → Nat) → ITerm} {env : Env}
+theorem denote_openPis {acval : Name → (Name → Nat) → Term} {env : Env}
     {φ : Name → Nat} :
     ∀ (n : Nat) {d : Nat} {e : Expr} {fvs : List Expr} {o : Expr}
-      {ea : ITerm},
+      {ea : Term},
       openPisAtFvars n e d = some (fvs, o) →
-      denoteMeta acval env φ d e = some ea →
-      ∃ (pps : List ITerm) (b : ITerm),
+      denote acval env φ d e = some ea →
+      ∃ (pps : List Term) (b : Term),
         stripPisAV n ea = some (pps, b) ∧
-        denoteMeta acval env φ (d + n) o = some b ∧
+        denote acval env φ (d + n) o = some b ∧
         pps.length = n ∧
         ∀ (i : Nat) (x : Expr), fvs[i]? = some x →
           ∃ p, pps[i]? = some p ∧
-            denoteMeta acval env φ (d + i) x.fvarTypeD = some p
+            denote acval env φ (d + i) x.fvarTypeD = some p
   | 0, d, e, fvs, o, ea, hop, hden => by
     simp only [openPisAtFvars, Option.some.injEq, Prod.mk.injEq] at hop
     obtain ⟨rfl, rfl⟩ := hop
@@ -577,8 +577,8 @@ theorem denoteMeta_openPis {acval : Name → (Name → Nat) → ITerm} {env : En
       · next fvs' o' hop' =>
         simp only [Option.some.injEq, Prod.mk.injEq] at hop
         obtain ⟨rfl, rfl⟩ := hop
-        obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv hden
-        obtain ⟨pps, b, hst, hb, hlen, hbind⟩ := denoteMeta_openPis n hop' hba
+        obtain ⟨ta, ba, hta, hba, rfl⟩ := denote_forallE_inv hden
+        obtain ⟨pps, b, hst, hb, hlen, hbind⟩ := denote_openPis n hop' hba
         refine ⟨ta :: pps, b, ?_, ?_, ?_, ?_⟩
         · simp only [stripPisAV, hst, Option.map_some]
         · rw [show d + (n + 1) = d + 1 + n from by omega]; exact hb
@@ -645,7 +645,7 @@ theorem cons_eta (ρ : Nat → V) : cons (ρ 0) (fun j => ρ (j + 1)) = ρ := by
   funext i
   cases i <;> rfl
 
-theorem Sat_cons_inv {Δ : List ITerm} {A : ITerm} {ρ : Nat → V}
+theorem Sat_cons_inv {Δ : List Term} {A : Term} {ρ : Nat → V}
     (h : Sat V (A :: Δ) ρ) :
     ρ 0 ∈ˢ interp V (fun j => ρ (j + 1)) A ∧
       Sat V Δ (fun j => ρ (j + 1)) :=
@@ -655,10 +655,10 @@ theorem Sat_cons_inv {Δ : List ITerm} {A : ITerm} {ρ : Nat → V}
 context by one with the same satisfying valuations whose entries
 interpret alike under them. -/
 theorem CtxOk.transfer {env : Env} {m : EnvModel V env} {φ : Name → Nat}
-    {d : Nat} {Δ₁ Δ₂ : List ITerm} {b : Expr}
+    {d : Nat} {Δ₁ Δ₂ : List Term} {b : Expr}
     (h : CtxOk m φ d Δ₁ b) (hlen : Δ₂.length = d)
     (hsat : ∀ ρ : Nat → V, Sat V Δ₂ ρ → Sat V Δ₁ ρ)
-    (hent : ∀ (p : Nat) (A₁ A₂ : ITerm), Δ₁[p]? = some A₁ →
+    (hent : ∀ (p : Nat) (A₁ A₂ : Term), Δ₁[p]? = some A₁ →
       Δ₂[p]? = some A₂ → ∀ ρ : Nat → V, Sat V Δ₂ ρ →
         interp V (fun j => ρ (j + p + 1)) A₁
           = interp V (fun j => ρ (j + p + 1)) A₂) :
@@ -680,9 +680,9 @@ theorem CtxOk.transfer {env : Env} {m : EnvModel V env} {φ : Name → Nat}
 (outermost first) is graded at every valuation satisfying the earlier
 domains, and the core at every valuation satisfying them all. -/
 theorem piTeleAV_graded :
-    ∀ {k : Nat} {T : ITerm} {Γ : List ITerm} {R : ITerm},
+    ∀ {k : Nat} {T : Term} {Γ : List Term} {R : Term},
       PiTeleAV k T Γ R →
-      ∀ {Δ₀ : List ITerm},
+      ∀ {Δ₀ : List Term},
         (∀ ρ : Nat → V, Sat V Δ₀ ρ → WellDenoted V ρ T) →
         (∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i) ++ Δ₀) ρ →
           WellDenotedTy V ρ (Γ.getD (k - 1 - i) default)) ∧
@@ -735,9 +735,9 @@ innermost first). -/
 theorem ctxOk_opened {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     {k : Nat} {e : Expr} {fvs : List Expr} {o : Expr}
     (hop : openPisAtFvars k e 0 = some (fvs, o)) (hcl : e.hasFvar = false)
-    {Γ : List ITerm} (hΓ : Γ.length = k)
+    {Γ : List Term} (hΓ : Γ.length = k)
     (hdoms : ∀ (i : Nat) (x : Expr), fvs[i]? = some x →
-      denoteMeta m.acval env φ i (Expr.fvarTypeD x)
+      denote m.acval env φ i (Expr.fvarTypeD x)
         = some (Γ.getD (k - 1 - i) default))
     (hokΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
       WellDenotedTy V ρ (Γ.getD (k - 1 - i) default))
@@ -847,12 +847,12 @@ variable {m : EnvModel V env} {F : Nat}
 /-- An inference run at a context: the type reads, both readings are
 graded, and the subject inhabits the type. -/
 theorem inferRow (hc : ClaimsAt μ m φ F) {d : Nat} {e t : Expr}
-    {Δ : List ITerm} {ea : ITerm}
+    {Δ : List Term} {ea : Term}
     (hi : inferTypeCore μ env F d e = .ok t)
     (hws : Expr.WScoped d e) (hb : e.looseBVarsBounded 0 = true)
     (hL : Expr.LeavesBounded e) (hC : CtxOk m φ d Δ e)
-    (hea : denoteMeta m.acval env φ d e = some ea) :
-    ∃ ta, denoteMeta m.acval env φ d t = some ta ∧
+    (hea : denote m.acval env φ d e = some ea) :
+    ∃ ta, denote m.acval env φ d t = some ta ∧
       (∀ ρ : Nat → V, Sat V Δ ρ → WellDenoted V ρ ea) ∧
       (∀ ρ : Nat → V, Sat V Δ ρ → WellDenoted V ρ ta) ∧
       ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ ea ∈ˢ interp V ρ ta := by
@@ -863,12 +863,12 @@ theorem inferRow (hc : ClaimsAt μ m φ F) {d : Nat} {e t : Expr}
 /-- An inference run whose type is a sort: the subject is graded and
 lands in that universe. -/
 theorem sortRow (hc : ClaimsAt μ m φ F) {d : Nat} {e t : Expr} {u : Level}
-    {Δ : List ITerm} {ea : ITerm}
+    {Δ : List Term} {ea : Term}
     (hi : inferTypeCore μ env F d e = .ok t)
     (hens : ensureSortCore μ env F d t = .ok u)
     (hws : Expr.WScoped d e) (hb : e.looseBVarsBounded 0 = true)
     (hL : Expr.LeavesBounded e) (hC : CtxOk m φ d Δ e)
-    (hea : denoteMeta m.acval env φ d e = some ea) :
+    (hea : denote m.acval env φ d e = some ea) :
     ∀ ρ : Nat → V, Sat V Δ ρ →
       WellDenoted V ρ ea ∧ interp V ρ ea ∈ˢ (univ (u.eval φ) : V) :=
   hc.sort hC hws hb hL hi (ConLeche.ensureSortCore_inv hens) hea
@@ -877,15 +877,15 @@ theorem sortRow (hc : ClaimsAt μ m φ F) {d : Nat} {e t : Expr} {u : Level}
 readings interpret alike ("not pt" source (1): types are not the point,
 so the conditional claim decides). -/
 theorem defEqRow (hc : ClaimsAt μ m φ F) {d : Nat} {a b : Expr}
-    {Δ : List ITerm} {aa ba : ITerm}
+    {Δ : List Term} {aa ba : Term}
     (h : ConLeche.isDefEqCore μ env F d a b = .ok true)
     (hwa : Expr.WScoped d a) (hba : a.looseBVarsBounded 0 = true)
     (hLa : Expr.LeavesBounded a)
     (hwb : Expr.WScoped d b) (hbb : b.looseBVarsBounded 0 = true)
     (hLb : Expr.LeavesBounded b)
     (hCa : CtxOk m φ d Δ a) (hCb : CtxOk m φ d Δ b)
-    (haa : denoteMeta m.acval env φ d a = some aa)
-    (hbA : denoteMeta m.acval env φ d b = some ba)
+    (haa : denote m.acval env φ d a = some aa)
+    (hbA : denote m.acval env φ d b = some ba)
     (hoka : ∀ ρ : Nat → V, Sat V Δ ρ → WellDenotedTy V ρ aa)
     (hokb : ∀ ρ : Nat → V, Sat V Δ ρ → WellDenotedTy V ρ ba) :
     ∀ ρ : Nat → V, Sat V Δ ρ → interp V ρ aa = interp V ρ ba := fun ρ hρ =>
@@ -901,14 +901,14 @@ end ClaimsAt
 reading, opened at its own variables. -/
 structure Opened {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (k : Nat) (e : Expr) (fvs : List Expr) (o : Expr)
-    (Γ : List ITerm) (R : ITerm) : Prop where
+    (Γ : List Term) (R : Term) : Prop where
   /-- the context has one entry per binder -/
   len : Γ.length = k
   /-- the opened body reads to the core at depth `k` -/
-  body : denoteMeta m.acval env φ k o = some R
+  body : denote m.acval env φ k o = some R
   /-- each variable's annotation reads to its entry at its own depth -/
   doms : ∀ (i : Nat) (x : Expr), fvs[i]? = some x →
-    denoteMeta m.acval env φ i (Expr.fvarTypeD x)
+    denote m.acval env φ i (Expr.fvarTypeD x)
       = some (Γ.getD (k - 1 - i) default)
   /-- the entries are graded types under the earlier ones -/
   okΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
@@ -939,9 +939,9 @@ theorem opened_of {env : Env} {m : EnvModel V env} {φ : Name → Nat}
     {k : Nat} {e : Expr} {fvs : List Expr} {o : Expr}
     (hop : openPisAtFvars k e 0 = some (fvs, o)) (hcl : e.hasFvar = false)
     (hb : e.looseBVarsBounded 0 = true)
-    {T : ITerm} (hT : denoteMeta m.acval env φ 0 e = some T)
+    {T : Term} (hT : denote m.acval env φ 0 e = some T)
     (hokT : ∀ ρ : Nat → V, WellDenoted V ρ T) :
-    ∃ (Γ : List ITerm) (R : ITerm),
+    ∃ (Γ : List Term) (R : Term),
       PiTeleAV k T Γ R ∧ Opened m φ k e fvs o Γ R := by
   obtain ⟨Γ, R, htele, hbody, hdoms⟩ := openPisAtFvars_denotePTele k hop hT
   have hlen : Γ.length = k := htele.length
@@ -1025,7 +1025,7 @@ bridges the two:
 /-! ## The peel and the context -/
 
 theorem PiTeleAV.unique :
-    ∀ {k : Nat} {T : ITerm} {Γ Γ' : List ITerm} {R R' : ITerm},
+    ∀ {k : Nat} {T : Term} {Γ Γ' : List Term} {R R' : Term},
       PiTeleAV k T Γ R → PiTeleAV k T Γ' R' → Γ = Γ' ∧ R = R' := by
   intro k T Γ Γ' R R' h
   induction h generalizing Γ' R' with
@@ -1041,7 +1041,7 @@ theorem PiTeleAV.unique :
 
 /-- A successful peel is a `.pi` context: the peel's domains reversed. -/
 theorem piTeleAV_of_stripPisAV :
-    ∀ {k : Nat} {T : ITerm} {pps : List ITerm} {b : ITerm},
+    ∀ {k : Nat} {T : Term} {pps : List Term} {b : Term},
       stripPisAV k T = some (pps, b) →
       PiTeleAV k T pps.reverse b
   | 0, T, pps, b, h => by
@@ -1063,8 +1063,8 @@ theorem piTeleAV_of_stripPisAV :
     simp [stripPisAV] at h
 
 /-- The peel's entries, read off the reversed context. -/
-theorem getD_reverse_of_peel {pps : List ITerm} {k : Nat}
-    (hlen : pps.length = k) {i : Nat} (hi : i < k) {p : ITerm}
+theorem getD_reverse_of_peel {pps : List Term} {k : Nat}
+    (hlen : pps.length = k) {i : Nat} (hi : i < k) {p : Term}
     (hp : pps[i]? = some p) :
     (pps.reverse).getD (k - 1 - i) default = p := by
   rw [List.getD, List.getElem?_reverse (by omega), hlen,
@@ -1076,16 +1076,16 @@ theorem getD_reverse_of_peel {pps : List ITerm} {k : Nat}
 /-- **The hereditary walk**: a binder-descending predicate holds along
 a peel whose entries are graded under the earlier ones, from its base
 case at the full context. -/
-theorem hereditaryWalk {Q : (Nat → V) → List ITerm → Prop}
-    {n : Nat} {Γ : List ITerm} {pps : List ITerm}
+theorem hereditaryWalk {Q : (Nat → V) → List Term → Prop}
+    {n : Nat} {Γ : List Term} {pps : List Term}
     (hΓ : Γ.length = n) (hlen : pps.length = n)
     (hent : ∀ i, i < n → ∃ p, pps[i]? = some p ∧
       p = Γ.getD (n - 1 - i) default)
     (okΓ : ∀ i, i < n → ∀ ρ : Nat → V, Sat V (Γ.drop (n - i)) ρ →
       WellDenotedTy V ρ (Γ.getD (n - 1 - i) default))
     (hnil : ∀ ρ : Nat → V, Sat V Γ ρ → Q ρ [])
-    (hcons : ∀ (ρ : Nat → V) (d : ITerm)
-      (ds : List ITerm), d ∈ pps →
+    (hcons : ∀ (ρ : Nat → V) (d : Term)
+      (ds : List Term), d ∈ pps →
       WellDenotedTy V ρ d →
       (∀ a, a ∈ˢ interp V ρ d → Q (cons a ρ) ds) → Q ρ (d :: ds)) :
     ∀ (i : Nat), i ≤ n → ∀ ρ : Nat → V, Sat V (Γ.drop (n - i)) ρ →
@@ -1133,10 +1133,10 @@ theorem hereditaryWalk {Q : (Nat → V) → List ITerm → Prop}
 
 /-- The field entries of a context, in binder order, from position
 `j`: entry `nP + j + t` of an opening of length `k`. -/
-@[expose] def fieldsFrom (Γ : List ITerm) (k nP nF j : Nat) : List ITerm :=
+@[expose] def fieldsFrom (Γ : List Term) (k nP nF j : Nat) : List Term :=
   (List.range (nF - j)).map fun t => Γ.getD (k - 1 - (nP + j + t)) default
 
-theorem fieldsFrom_succ {Γ : List ITerm} {k nP nF j : Nat} (hj : j < nF) :
+theorem fieldsFrom_succ {Γ : List Term} {k nP nF j : Nat} (hj : j < nF) :
     fieldsFrom Γ k nP nF j
       = Γ.getD (k - 1 - (nP + j)) default :: fieldsFrom Γ k nP nF (j + 1) := by
   unfold fieldsFrom
@@ -1154,7 +1154,7 @@ theorem fieldsFrom_succ {Γ : List ITerm} {k nP nF j : Nat} (hj : j < nF) :
 /-- **The field chain is `FieldsOkB`-graded** from the gradings and
 the per-field bounds, at every valuation satisfying the parameters and
 the earlier fields. -/
-theorem fieldsOkB_of_frame {w : Nat} {Γ : List ITerm} {k nP nF : Nat}
+theorem fieldsOkB_of_frame {w : Nat} {Γ : List Term} {k nP nF : Nat}
     (hk : k = nP + nF) (hΓ : Γ.length = k)
     (okΓ : ∀ i, i < k → ∀ ρ : Nat → V, Sat V (Γ.drop (k - i)) ρ →
       WellDenotedTy V ρ (Γ.getD (k - 1 - i) default))
@@ -1196,7 +1196,7 @@ theorem fieldsOkB_of_frame {w : Nat} {Γ : List ITerm} {k nP nF : Nat}
 ambient context (the entries in binder order become the context's
 innermost-first prefix). -/
 theorem sat_of_spineFit :
-    ∀ {Ds : List ITerm} {as : List V} {Δ₀ : List ITerm} {ρ : Nat → V},
+    ∀ {Ds : List Term} {as : List V} {Δ₀ : List Term} {ρ : Nat → V},
       Sat V Δ₀ ρ → SpineFit ρ Ds as →
       Sat V (Ds.reverse ++ Δ₀) (consList as ρ)
   | [], [], _, _, h, _ => by simpa using h
@@ -1210,7 +1210,7 @@ theorem sat_of_spineFit :
 /-- `SpineFit` along the peel's domains from `Sat` of the peeled
 context (the converse, at the context's own valuation). -/
 theorem spineFit_of_sat :
-    ∀ {Ds : List ITerm} {Δ₀ : List ITerm} {ρ : Nat → V},
+    ∀ {Ds : List Term} {Δ₀ : List Term} {ρ : Nat → V},
       Sat V (Ds.reverse ++ Δ₀) ρ →
       SpineFit (fun j => ρ (j + Ds.length)) Ds
         ((List.range Ds.length).reverse.map ρ) := by
@@ -1267,9 +1267,9 @@ open ConLeche ConLeche.Semantics ConLeche.Term ConLeche.Verify SetTheory ConLech
 at or above `d`. -/
 theorem bvarsBelow_of_reading {m : EnvModel V env} {d : Nat} {e : Expr}
     (hw : Expr.WScoped d e) (hb : e.looseBVarsBounded 0 = true)
-    {ea : ITerm} (h : denoteMeta m.acval env φ d e = some ea) :
-    Term.bvarsBelow d ea.erase :=
-  denote_bvarsBelow m.cval_closed d e hw hb (denoteMeta_erase m.acval_erase d e h)
+    {ea : Term} (h : denote m.acval env φ d e = some ea) :
+    Term.bvarsBelow d ea :=
+  denote_bvarsBelow m.cval_closed d e hw hb h
 
 
 /-! ## The identification -/
@@ -1281,7 +1281,7 @@ former's have the same satisfying valuations, and below `nP` the
 theorem paramFrames {m : EnvModel V env} {F : Nat}
     (hc : ClaimsAt μ m φ F) {nP nF : Nat}
     {tty cty : Expr} {tfvs cfvs : List Expr} {trest crest : Expr}
-    {Γt Γc : List ITerm} {Rt Rc : ITerm}
+    {Γt Γc : List Term} {Rt Rc : Term}
     (hT : Opened m φ nP tty tfvs trest Γt Rt)
     (hC : Opened m φ (nP + nF) cty cfvs crest Γc Rc)
     (hpin : ∀ i, i < nP → ∃ a b, cfvs[i]? = some a ∧ tfvs[i]? = some b ∧
@@ -1387,7 +1387,7 @@ theorem paramFrames {m : EnvModel V env} {F : Nat}
         (Expr.fvarTypeD b) := hT.ctx (by omega) hwb hleafb
     -- the entries of the two depth-`(i+1)` contexts interpret alike
     -- under the constructor's: position `p` is binder `i - p`
-    have hent : ∀ (p : Nat) (A₁ A₂ : ITerm),
+    have hent : ∀ (p : Nat) (A₁ A₂ : Term),
         (Γt.drop (nP - (i + 1)))[p]? = some A₁ →
         (Γc.drop (nP + nF - (i + 1)))[p]? = some A₂ →
         ∀ ρ : Nat → V, Sat V (Γc.drop (nP + nF - (i + 1))) ρ →
@@ -1434,8 +1434,8 @@ open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps)
 
 /-- **A value spine fitting a Π-tower's domains is a `TeleFit` of the
 tower**, with the body at the extended frame as residual. -/
-theorem teleFit_mkPisAV_of_spineFit {B : ITerm} :
-    ∀ {tl : List ITerm} {ρ : Nat → V} {bs : List V},
+theorem teleFit_mkPisAV_of_spineFit {B : Term} :
+    ∀ {tl : List Term} {ρ : Nat → V} {bs : List V},
       SpineFit ρ tl bs →
       TeleFit V ρ (mkPisAV tl B) bs (interp V (consList bs ρ) B)
   | [], ρ, [], _ => by
@@ -1450,7 +1450,7 @@ theorem teleFit_mkPisAV_of_spineFit {B : ITerm} :
 /-- A value-level fit of a Π-tower reading, of the tower's own
 length, is a fit of its domains. -/
 theorem spineFit_of_teleFit :
-    ∀ {pds : List ITerm} {b : ITerm} {ρ : Nat → V}
+    ∀ {pds : List Term} {b : Term} {ρ : Nat → V}
       {ts : List V} {rest : V},
       ts.length = pds.length →
       TeleFit V ρ (mkPisAV pds b) ts rest →
@@ -1481,14 +1481,14 @@ the head's slot mentions none of them.
 
 /-- A Π-tower determines its domains and its body. -/
 theorem mkPisAV_inj :
-    ∀ {pps₁ pps₂ : List ITerm} {b₁ b₂ : ITerm},
+    ∀ {pps₁ pps₂ : List Term} {b₁ b₂ : Term},
       pps₁.length = pps₂.length → mkPisAV pps₁ b₁ = mkPisAV pps₂ b₂ →
       pps₁ = pps₂ ∧ b₁ = b₂
   | [], [], _, _, _, h => ⟨rfl, h⟩
   | [], _ :: _, _, _, hlen, _ => by simp at hlen
   | _ :: _, [], _, _, hlen, _ => by simp at hlen
   | d₁ :: pps₁, d₂ :: pps₂, b₁, b₂, hlen, h => by
-    simp only [mkPisAV, ITerm.pi.injEq] at h
+    simp only [mkPisAV, Term.pi.injEq] at h
     obtain ⟨hA, hB⟩ := h
     obtain ⟨h1, rfl⟩ := mkPisAV_inj (by simpa using hlen) hB
     exact ⟨by rw [hA, h1], rfl⟩
@@ -1496,9 +1496,9 @@ theorem mkPisAV_inj :
 /-- A `.pi` context is a successful peel, with the peel's domains
 reversed. -/
 theorem stripPisAV_of_piTeleAV :
-    ∀ {k : Nat} {T : ITerm} {Γ : List ITerm} {R : ITerm},
+    ∀ {k : Nat} {T : Term} {Γ : List Term} {R : Term},
       PiTeleAV k T Γ R →
-      ∃ pps : List ITerm,
+      ∃ pps : List Term,
         stripPisAV k T = some (pps, R) ∧ pps.reverse = Γ := by
   intro k T Γ R h
   induction h with
@@ -1510,7 +1510,7 @@ theorem stripPisAV_of_piTeleAV :
     · simp [hΓ]
 
 theorem DomsBelow.drop {k : Nat} :
-    ∀ {ds : List ITerm} (j : Nat), DomsBelow k ds →
+    ∀ {ds : List Term} (j : Nat), DomsBelow k ds →
       DomsBelow (k + j) (ds.drop j)
   | _, 0, h => by simpa using h
   | [], _ + 1, _ => trivial
@@ -1526,8 +1526,8 @@ the result sort, normalized, graded, bounded, and
 depending only on the block's level parameters. -/
 structure FormerData {env : Env} (m : EnvModel V env) (cvT : ConstantVal)
     (nP : Nat) (resSort : Level)
-    (pps : (Name → Nat) → List ITerm) : Prop where
-  read : ∀ ψ : Name → Nat, denoteMeta m.acval env ψ 0 cvT.type
+    (pps : (Name → Nat) → List Term) : Prop where
+  read : ∀ ψ : Name → Nat, denote m.acval env ψ 0 cvT.type
     = some (mkPisAV (pps ψ) (.sort (resSort.eval ψ)))
   len : ∀ ψ : Name → Nat, (pps ψ).length = nP
   okTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
@@ -1547,7 +1547,7 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     (hccv : cvTa = cvT ∧
       ConLeche.checkConstantVal (ConLeche.fueledOps μ F) env cvT = .ok ())
     (hstrip : cvTa.type.stripPis nP = some (bs, .sort resSort)) :
-    ∃ pps : (Name → Nat) → List ITerm,
+    ∃ pps : (Name → Nat) → List Term,
       FormerData mp.base2 cvTa nP resSort pps := by
   obtain ⟨rfl, hccv⟩ := hccv
   obtain ⟨-, -, -, -, hlbt, hitf, stype, u, htp', htr', hst, hens⟩ :=
@@ -1563,8 +1563,8 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   obtain rfl := inferTypeCore_sort_inv hib
   obtain rfl := ensureSortCore_sort_eq hensb
   -- per assignment: the reading, its peel, its grading
-  have hper : ∀ ψ : Name → Nat, ∃ pps : List ITerm,
-      denoteMeta mp.base2.acval env ψ 0 cvTa.type
+  have hper : ∀ ψ : Name → Nat, ∃ pps : List Term,
+      denote mp.base2.acval env ψ 0 cvTa.type
         = some (mkPisAV pps (.sort (resSort.eval ψ))) ∧
       pps.length = nP ∧
       (∀ ρ : Nat → V, WellDenoted V ρ (mkPisAV pps (.sort (resSort.eval ψ)))) ∧
@@ -1578,7 +1578,7 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
     obtain ⟨Γ, R, htele, hop'⟩ := opened_of hop hitf hlbt hTa hokT'
     have hR : R = .sort (resSort.eval ψ) := by
       have := hop'.body
-      rw [denoteMeta_sort] at this
+      rw [denote_sort] at this
       exact (Option.some.inj this).symm
     subst hR
     obtain ⟨pps, hst', -⟩ := stripPisAV_of_piTeleAV htele
@@ -1593,24 +1593,24 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   · exact fun ψ => (Classical.choose_spec (hper ψ)).2.2.2
   · intro ψ₁ ψ₂ hφ
     have h2 := (Classical.choose_spec (hper ψ₂)).1
-    have h1 : denoteMeta mp.base2.acval env ψ₂ 0 cvTa.type
+    have h1 : denote mp.base2.acval env ψ₂ 0 cvTa.type
         = some (mkPisAV (Classical.choose (hper ψ₁))
           (.sort (resSort.eval ψ₁))) := by
-      rw [← denoteMeta_params_ext mp.base2 hφ 0 cvTa.type htp']
+      rw [← denote_params_ext mp.base2 hφ 0 cvTa.type htp']
       exact (Classical.choose_spec (hper ψ₁)).1
     obtain ⟨hp, hb⟩ := mkPisAV_inj
       (by rw [(Classical.choose_spec (hper ψ₁)).2.1,
         (Classical.choose_spec (hper ψ₂)).2.1])
       (Option.some.inj (h1.symm.trans h2))
-    exact ⟨hp, ITerm.sort.inj hb⟩
+    exact ⟨hp, Term.sort.inj hb⟩
 
 /-- The former's data crosses a cons whose slot does not mention the
 stored type (any block cons after the former's). -/
 theorem FormerData.cross {m : EnvModel V env} {cvT : ConstantVal}
     {nP : Nat} {resSort : Level}
-    {pps : (Name → Nat) → List ITerm}
+    {pps : (Name → Nat) → List Term}
     (h : FormerData m cvT nP resSort pps)
-    {c₀ : ConstantInfo} {A : (Name → Nat) → ITerm}
+    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none) (hat : ConsCrossAt c₀ cvT.type)
     (hcb : ConstsBound env cvT.type)
     (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
@@ -1618,7 +1618,7 @@ theorem FormerData.cross {m : EnvModel V env} {cvT : ConstantVal}
     FormerData m₂ cvT nP resSort pps where
   read ψ := by
     rw [hac]
-    exact denoteMeta_cons_mono hfresh hat ψ 0 hcb (h.read ψ)
+    exact denote_cons_mono hfresh hat ψ 0 hcb (h.read ψ)
   len := h.len
   okTy := h.okTy
   below := h.below
@@ -1627,7 +1627,7 @@ theorem FormerData.cross {m : EnvModel V env} {cvT : ConstantVal}
 
 
 theorem stripPisAV_mkPisAV :
-    ∀ (pps : List ITerm) (b : ITerm),
+    ∀ (pps : List Term) (b : Term),
       stripPisAV pps.length (mkPisAV pps b) = some (pps, b)
   | [], _ => rfl
   | d :: pps, b => by

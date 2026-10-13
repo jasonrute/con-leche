@@ -51,7 +51,7 @@ open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
 open ConLeche.SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo FEnv BlockParts BlockShape
   TargetMajor)
 
@@ -80,7 +80,7 @@ caller's tuple added to the hypotheses. -/
 section Pres
 
 variable (envC : Env)
-  (acval : Name → (Name → Nat) → ITerm) (p : BlockShape)
+  (acval : Name → (Name → Nat) → Term) (p : BlockShape)
   (out : List (ConstantVal × TargetMajor × List Expr)) (d : BlockData V)
   (Dc : Nat → LfpDatum V) (mc : Nat → Nat) (cvc : Nat → ConstantVal)
   (ψ : Name → Nat) (ρ : Nat → V) (xs : List V)
@@ -149,7 +149,7 @@ end Pres
 section Build
 
 variable {envC : Env}
-  {acval : Name → (Name → Nat) → ITerm} {p : BlockShape}
+  {acval : Name → (Name → Nat) → Term} {p : BlockShape}
   {out : List (ConstantVal × TargetMajor × List Expr)} {d : BlockData V}
   {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
   {ψ : Name → Nat} {ρ : Nat → V} {xs : List V}
@@ -325,7 +325,7 @@ end Build
 prefix spine `xs` — outside majors included — is related to a node of
 the presentation. -/
 @[expose] def TgtNodeHex {envC : Env}
-    {acval : Name → (Name → Nat) → ITerm} {p : BlockShape}
+    {acval : Name → (Name → Nat) → Term} {p : BlockShape}
     {out : List (ConstantVal × TargetMajor × List Expr)} {d : BlockData V}
     {Dc : Nat → LfpDatum V} {mc : Nat → Nat} {cvc : Nat → ConstantVal}
     {ψ : Name → Nat} {ρ : Nat → V} {xs : List V}

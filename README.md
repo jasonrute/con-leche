@@ -25,7 +25,7 @@ There is an AI-written overview of the project in [OVERVIEW.md](./OVERVIEW.md).
 * Accelerated Nat operations are performed using Lean’s `Nat` type.
 * It accepts only the three standard Lean axioms in the input stream.
 
-  For practicality reasons, it silently *ignores* the [`sorryAx`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/ParsedC.lean#L218-L219) axiom declarations from the standard library, but will complain it is actually used. The (deprecated) `trustCompiler`, `ofReduceBool` and `ofReduceNat` axioms are replaced with simple definitions of the same type.
+  For practicality reasons, it silently *ignores* the [`sorryAx`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/ParsedC.lean#L215-L216) axiom declarations from the standard library, but will complain it is actually used. The (deprecated) `trustCompiler`, `ofReduceBool` and `ofReduceNat` axioms are replaced with simple definitions of the same type.
 
   The checker (at the moment) will reject any other axiom.
 * The checker processes files in three phases: *parsing* the input stream, *installing* all declarations into the environment and then *checking*. All stages can use parallelism with [`--jobs`](https://github.com/leanprover/con-leche/blob/master/Main.lean#L124).
@@ -55,7 +55,7 @@ theorem no_False_declaration (V : Type w) [SetTheory V]
 
 The meaning of [`False`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Basis/False.lean#L50-L51) is hard-coded, so no tricks involving odd definitions for `False` will confuse the checker. This is a meaningful theorem if you assume that worrisome kernel implementation bugs or flaws in the theory are those that can be used to prove anything, in particular `False`.
 
-The program's actual [`main`](https://github.com/leanprover/con-leche/blob/master/Main.lean#L478) and [`run`](https://github.com/leanprover/con-leche/blob/master/Main.lean#L364) function is of course more than this; in particular it performs IO (reading the input file in chunks, reporting progress, spawning threads). You are invited to follow the `main` function and convince yourself that the above theorem says something about the data flow through the actual driver.
+The program's actual [`main`](https://github.com/leanprover/con-leche/blob/master/Main.lean#L479) and [`run`](https://github.com/leanprover/con-leche/blob/master/Main.lean#L365) function is of course more than this; in particular it performs IO (reading the input file in chunks, reporting progress, spawning threads). You are invited to follow the `main` function and convince yourself that the above theorem says something about the data flow through the actual driver.
 
 ### The Main Theorem
 
@@ -68,9 +68,9 @@ theorem model_exists (V : Type w) [SetTheory V]
     Nonempty (Model V env)
 ```
 
-This is the interesting theorem if you want to be sure that con-leche interprets your Lean terms and types the way you intend them. The relation [`Model V env`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Denotes.lean#L266-L286) (in [ConLeche/Denotes.lean](./ConLeche/Denotes.lean)) states that every constant in the environment denotes a member of its type's denotation (and that `False` denotes the empty set and that `Eq` denotes set equality). In particular, every accepted theorem's statement is true in the model.
+This is the interesting theorem if you want to be sure that con-leche interprets your Lean terms and types the way you intend them. The relation [`Model V env`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Denotes.lean#L269-L289) (in [ConLeche/Denotes.lean](./ConLeche/Denotes.lean)) states that every constant in the environment denotes a member of its type's denotation (and that `False` denotes the empty set and that `Eq` denotes set equality). In particular, every accepted theorem's statement is true in the model.
 
-Denotation of terms and types is captured by the inductive relation [`Denotes`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Denotes.lean#L123-L124) in the same file. It depends on some set-theoretical constructions (e.g. function spaces).
+Denotation of terms and types is captured by the inductive relation [`Denotes`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Denotes.lean#L126-L127) in the same file. It depends on some set-theoretical constructions (e.g. function spaces).
 
 The `Model` relation is *not* the strongest property proven (and carried through the induction) about the environment, but a simplified one. For example, it does not contain the delta and iota equations – but since they can easily be added as an explicit `theorem : lhs = rhs := rfl`, this is hopefully not an oversimplification.
 

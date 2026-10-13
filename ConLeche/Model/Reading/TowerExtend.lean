@@ -6,9 +6,9 @@ public import ConLeche.Verify.ProjSlots
 public section
 
 /-!
-# `denoteMeta` across a tower-entry cons (task #175 wiring, W4c S6)
+# `denote` across a tower-entry cons (task #175 wiring, W4c S6)
 
-`denoteMeta_envExtend_mono` refutes a table head outright: its `hproj`
+`denote_envExtend_mono` refutes a table head outright: its `hproj`
 premise says the extension adds no entry at all, because a `.proj T i`
 node with *no* entry reads by the pair fallback and would move under
 an entry at `(T, i)`.  The direct install conses exactly such entries,
@@ -16,7 +16,7 @@ so its transport needs the refinement below: the extension may add
 **one** family's slots `(T, i)`, and the subject has no `.proj T i`
 node (`Expr.NoProjAt`, `Verify/ProjSlots.lean`, whose two dischargers
 cover every stored expression).  Every other clause is
-`denoteMeta_envExtend_mono`'s verbatim.
+`denote_envExtend_mono`'s verbatim.
 -/
 
 namespace ConLeche.Model
@@ -24,23 +24,23 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level PropWhen
   natLitSupported strLitSupported)
 
 /-- **The monotone crossing, tower-slot refined**: a successful prefix
 reading of a subject with no `.proj T i` node is reproduced at an
 extension whose only new tower slot is `(T, i)`. -/
-theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
-    {acval : Name → (Name → Nat) → ITerm} {φ : Name → Nat}
+theorem denote_envExtend_mono_at {env₀ env : Env}
+    {acval : Name → (Name → Nat) → Term} {φ : Name → Nat}
     {T : Name}
     (hF : FindPreserved env₀ env) (hG : LitGuardsMono env₀ env)
     (hproj : ∀ (sn : Name) (j : Nat) (entry : ConLeche.ProjEntry),
       env₀.findProj? sn j = none → env.findProj? sn j = some entry →
       sn = T) :
     ∀ (d : Nat) (e : Expr), ConstsBound env₀ e → (∀ j, Expr.NoProjAt T j e) →
-      ∀ {ea : ITerm}, denoteMeta acval env₀ φ d e = some ea →
-        denoteMeta acval env φ d e = some ea := by
+      ∀ {ea : Term}, denote acval env₀ φ d e = some ea →
+        denote acval env φ d e = some ea := by
   have hmono : ∀ (sn : Name) (j : Nat) (entry : ConLeche.ProjEntry),
       env₀.findProj? sn j = some entry →
       env.findProj? sn j = some entry := by
@@ -48,17 +48,17 @@ theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
     obtain ⟨tbl, hf0, hi, rfl⟩ := ConLeche.Env.findProj?_some h
     exact ConLeche.Env.findProj?_of_table (hF hf0) hi
   intro d e
-  induction d, e using denoteMeta.induct (env := env₀) with
-  | case1 d u => intro _ _ ea h; rw [denoteMeta] at h ⊢; exact h
-  | case2 d idx ty => intro _ _ ea h; rw [denoteMeta] at h ⊢; exact h
+  induction d, e using denote.induct (env := env₀) with
+  | case1 d u => intro _ _ ea h; rw [denote] at h ⊢; exact h
+  | case2 d idx ty => intro _ _ ea h; rw [denote] at h ⊢; exact h
   | case3 d n us ci hf hlen =>
     intro _ _ ea h
-    rw [denoteMeta, hf] at h
-    rw [denoteMeta, hF hf]
+    rw [denote, hf] at h
+    rw [denote, hF hf]
     exact h
   | case4 d n us ci hf hlen =>
     intro _ _ ea h
-    rw [denoteMeta, hf] at h
+    rw [denote, hf] at h
     dsimp only at h
     rw [ite_eq_right hlen] at h
     exact nomatch h
@@ -75,8 +75,8 @@ theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
         (by rw [constsBound_fvar]; exact hc.1) _ _ hc.2
     have hnpb : ∀ j, Expr.NoProjAt T j (body.instantiate1 (.fvar d ty)) :=
       fun j => Expr.NoProjAt.instantiate1 (Expr.noProjAt_fvar.mpr (hnp' j).1) _ _ (hnp' j).2
-    obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_forallE_inv h
-    rw [denoteMeta, ihty hc.1 (fun j => (hnp' j).1) hta, ihbody hcb hnpb hba]
+    obtain ⟨ta, ba, hta, hba, rfl⟩ := denote_forallE_inv h
+    rw [denote, ihty hc.1 (fun j => (hnp' j).1) hta, ihbody hcb hnpb hba]
     rfl
   | case7 d ty body ihty ihbody =>
     intro hc hnp ea h
@@ -87,15 +87,15 @@ theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
         (by rw [constsBound_fvar]; exact hc.1) _ _ hc.2
     have hnpb : ∀ j, Expr.NoProjAt T j (body.instantiate1 (.fvar d ty)) :=
       fun j => Expr.NoProjAt.instantiate1 (Expr.noProjAt_fvar.mpr (hnp' j).1) _ _ (hnp' j).2
-    obtain ⟨ta, ba, hta, hba, rfl⟩ := denoteMeta_lam_inv h
-    rw [denoteMeta, ihty hc.1 (fun j => (hnp' j).1) hta, ihbody hcb hnpb hba]
+    obtain ⟨ta, ba, hta, hba, rfl⟩ := denote_lam_inv h
+    rw [denote, ihty hc.1 (fun j => (hnp' j).1) hta, ihbody hcb hnpb hba]
     rfl
   | case8 d f a ihf iha =>
     intro hc hnp ea h
     rw [constsBound_app] at hc
     have hnp' := fun j => Expr.noProjAt_app.mp (hnp j)
-    obtain ⟨fa, aa, hfa, haa, rfl⟩ := denoteMeta_app_inv h
-    rw [denoteMeta, ihf hc.1 (fun j => (hnp' j).1) hfa, iha hc.2 (fun j => (hnp' j).2) haa]
+    obtain ⟨fa, aa, hfa, haa, rfl⟩ := denote_app_inv h
+    rw [denote, ihf hc.1 (fun j => (hnp' j).1) hfa, iha hc.2 (fun j => (hnp' j).2) haa]
     rfl
   | case9 d ty val body ihty ihv ihbody =>
     intro hc hnp ea h
@@ -107,8 +107,8 @@ theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
     have hnpb : ∀ j, Expr.NoProjAt T j (body.instantiate1 (.fvar d ty)) :=
       fun j => Expr.NoProjAt.instantiate1 (Expr.noProjAt_fvar.mpr (hnp' j).1) _ _
         (hnp' j).2.2
-    obtain ⟨ta, va, ba, hta, hva, hba, rfl⟩ := denoteMeta_letE_inv h
-    rw [denoteMeta, ihty hc.1 (fun j => (hnp' j).1) hta,
+    obtain ⟨ta, va, ba, hta, hva, hba, rfl⟩ := denote_letE_inv h
+    rw [denote, ihty hc.1 (fun j => (hnp' j).1) hta,
       ihv hc.2.1 (fun j => (hnp' j).2.1) hva, ihbody hcb hnpb hba]
     rfl
   | case10 d sn j e ihe =>
@@ -117,42 +117,42 @@ theorem denoteMeta_envExtend_mono_at {env₀ env : Env}
     have hnp' := fun j' => Expr.noProjAt_proj.mp (hnp j')
     have hnpe : ∀ j', Expr.NoProjAt T j' e := fun j' => (hnp' j').2
     have hsnT : sn ≠ T := fun hsn => (hnp' j).1 ⟨hsn, rfl⟩
-    obtain ⟨ea', hea', hcase⟩ := denoteMeta_proj_inv h
+    obtain ⟨ea', hea', hcase⟩ := denote_proj_inv h
     rcases hcase with ⟨entry, hfp0, rfl⟩ | ⟨hnt0, hdec⟩
     · -- a table entry at the prefix persists unchanged
-      rw [denoteMeta, ihe hc hnpe hea', hmono sn j entry hfp0]
+      rw [denote, ihe hc hnpe hea', hmono sn j entry hfp0]
       rfl
     · -- the table-free path: the slots the extension may have added
       -- are `T`'s, and the subject has no node there
-      rw [denoteMeta, ihe hc hnpe hea']
+      rw [denote, ihe hc hnpe hea']
       cases hfp : env.findProj? sn j with
       | none => exact hdec
       | some entry =>
         exact absurd (hproj sn j entry hnt0 hfp) hsnT
   | case11 d n hsup =>
     intro _ _ ea h
-    rw [denoteMeta, ite_eq_left hsup] at h
-    rw [denoteMeta, ite_eq_left (hG.1 hsup)]
+    rw [denote, ite_eq_left hsup] at h
+    rw [denote, ite_eq_left (hG.1 hsup)]
     exact h
   | case12 d n hsup =>
     intro _ _ ea h
-    rw [denoteMeta, ite_eq_right hsup] at h
+    rw [denote, ite_eq_right hsup] at h
     exact nomatch h
   | case13 d s hsup =>
     intro _ _ ea h
     obtain ⟨hnil, hcons⟩ := strLitSupported_listNames hsup
-    rw [denoteMeta, ite_eq_left hsup] at h
-    rw [denoteMeta, ite_eq_left (hG.2 hsup),
+    rw [denote, ite_eq_left hsup] at h
+    rw [denote, ite_eq_left (hG.2 hsup),
       ← levelParamsAt_congr hF hnil, ← levelParamsAt_congr hF hcons]
     exact h
   | case14 d s hsup =>
     intro _ _ ea h
-    rw [denoteMeta, ite_eq_right hsup] at h
+    rw [denote, ite_eq_right hsup] at h
     exact nomatch h
   | case15 d x hs hfv hc hpi hlam happ hlet hproj hnat hstr =>
     intro _ _ ea h
     cases x with
-    | bvar i => rw [denoteMeta.eq_def] at h; exact nomatch h
+    | bvar i => rw [denote.eq_def] at h; exact nomatch h
     | sort u => exact absurd rfl (hs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n us => exact absurd rfl (hc n us)

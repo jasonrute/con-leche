@@ -26,7 +26,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory ConLeche.SetTheory.Tower
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal IndCaps BlockShape)
 
 universe w'
@@ -107,11 +107,11 @@ member's leaf enters only through its FOLD at the fieldless shape
 vacuous. -/
 theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
     {p₁ : BlockShape} {mi : Nat} {isRec : Bool} {T : Name} {cvTa : ConstantVal}
-    {w : (Name → Nat) → Nat} {pps ds : (Name → Nat) → List ITerm}
-    {L : (Name → Nat) → ITerm}
+    {w : (Name → Nat) → Nat} {pps ds : (Name → Nat) → List Term}
+    {L : (Name → Nat) → Term}
     (hpar : ∀ ψ, p₁.nP = (pps ψ).length)
     (hleaf : ∀ ψ, m'.acval T ψ = L ψ)
-    (hread : ∀ ψ, denoteMeta m'.acval env' ψ 0 cvTa.type
+    (hread : ∀ ψ, denote m'.acval env' ψ 0 cvTa.type
       = some (mkPisAV (pps ψ) (.sort (w ψ))))
     (hokTy : ∀ (ψ : Name → Nat) (ρ : Nat → V),
       WellDenoted V ρ (mkPisAV (pps ψ) (.sort (w ψ))))
@@ -129,8 +129,8 @@ theorem blockCapsLawsAt {env' : Env} (m' : EnvModel V env')
       ∀ (cvC : ConstantVal) (nPc nFc : Nat),
         env'.find? (ConLeche.blockCapsAt p₁ mi isRec).etaCtor
           = some (.ctorInfo cvC nPc nFc) →
-        cvC.levelParams = cvTa.levelParams ∧ ∃ B : (Name → Nat) → ITerm,
-          ∀ ψ, denoteMeta m'.acval env' ψ 0 cvC.type = some (mkPisAV (ds ψ) (B ψ))) :
+        cvC.levelParams = cvTa.levelParams ∧ ∃ B : (Name → Nat) → Term,
+          ∀ ψ, denote m'.acval env' ψ 0 cvC.type = some (mkPisAV (ds ψ) (B ψ))) :
     CapsLawsAt m' T cvTa (ConLeche.blockCapsAt p₁ mi isRec) := by
   by_cases hu : (ConLeche.blockCapsAt p₁ mi isRec).unitlike = true
   · obtain ⟨-, hpE, hpU⟩ := blockCapsAt_unitlike hu

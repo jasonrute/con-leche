@@ -42,7 +42,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   ClassGen ClassCtor ClassRead FEnv GenRecRun)
 
@@ -58,7 +58,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
     {ctorsAsR : List (List (ConstantVal × Nat))}
     {out : List (ConstantVal × TargetMajor × List Expr)}
     {mpC : EnvModelM V μ envC} {dR : BlockData V} {isRecR : Bool}
-    {A : Nat → (Name → Nat) → ITerm}
+    {A : Nat → (Name → Nat) → Term}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : ConLeche.NestState}
     (hctx : GenRecCtx V μ F block envC envI pp cvTasR ctorsAsR out mpC dR isRecR A kindsR nfsR
@@ -231,7 +231,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
   have heqP := genRecHeqP hμ R hg h hsP hrowP
   have hdataS := genRecHdataS hμ R hg h hndM heqB heqP hpre hfind
     (genRulePrefRead hμ mpC R hg h) (genRuleFieldRead R hg mpC.base2.acval) hrow3
-  -- the ι licence's facts (task #342 L10)
+  -- the ι case split's facts (task #342 L10)
   have hseam := genRecCtor_seam R hN hcore hctorsAs ⟨pk, uOfD, ppsOf, hdRe⟩ hcov
   have hleaf := blockRecLeafOk_of hμ mpC h heqB heqP hpre
   have hextra : ∀ (Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) →
@@ -282,7 +282,7 @@ theorem genRecStage (hμ : μ.verifiedChecks = true) {F : Nat}
         show interp V ρ (ConLeche.Semantics.blockRecAV _ _ _ _ j) = pt
         rw [heq]
         exact eq_pt_of_mem_univZero (genRecTyZ hμ R hg h mpC j hj _ ρ hℓ) hmem
-      · rw [denoteMeta_instLevels (acvalParamsAt_of_core m₃) φ, hac] at hRa
+      · rw [denote_instLevels (acvalParamsAt_of_core m₃) φ, hac] at hRa
         exact genRuleRaZ hμ R hg h mpC hfind hlenEs hr hcA hrhs hRa hℓ ρ
     | some t =>
       have hmb' : (ConLeche.tgtMajorsOf out j).member = some t := hmb

@@ -2,6 +2,7 @@ module
 
 public import ConLeche.Verify.PropRead
 import ConLeche.Verify.InstLevels
+import ConLeche.Verify.PropWhen
 public import ConLeche.Verify.EnvWF
 import ConLeche.Kernel.PropWhen
 
@@ -10,7 +11,7 @@ public section
 /-!
 # The head-symbol prop-ness readers under substitution (task #342 L18)
 
-What the "a proof" arm's model licence (`prf_of_isProofFast`,
+What the "a proof" arm's model justification (`prf_of_isProofFast`,
 `ConLeche/Model/Rules/ProofFastSound.lean`) needs of the readers
 (`ConLeche/Kernel/PropRead.lean`): an answer they give on a term is
 still given after the term's loose bound variable is instantiated

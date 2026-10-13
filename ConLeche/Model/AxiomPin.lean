@@ -26,7 +26,7 @@ must supply is the leaf `A` with
   `.const`/`.prf` clauses are `True`, and an `acval` leaf carries it as
   an invariant field);
 * `hmemA` — **the semantic content**: `interp` of the leaf inhabits
-  `interp` of the *stored* type's `denoteMeta` reading.
+  `interp` of the *stored* type's `denote` reading.
 
 ## The stored type's reading is the pin's
 
@@ -44,7 +44,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal)
 
 universe w
@@ -67,7 +67,7 @@ theorem axiomSkip (mp : EnvModelM V μ env) :
 
 The pin fixes the axiom's type to the stored `True` *on the nose* —
 `ConstantVal.matchesPin` is plain equality — so this is the one pinned axiom
-whose `denoteMeta` reading is computable from the pin alone (see the
+whose `denote` reading is computable from the pin alone (see the
 module docstring).  The leaf is the stored `True.intro`'s
 leaf valuation, and the membership is that constant's own
 `mem_type`, whose type reads to the same `acval trueName ψ` the
@@ -124,7 +124,7 @@ theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
   -- the leaf: the stored `True.intro`'s leaf valuation
   refine harvestAxiom (V := V) hμ mp hcv
     (A := fun ψ => mp.base2.acval ConLeche.trueIntroName ψ)
-    (fun ψ => mp.base2.cval_closedL _ ψ) ?_ ?_ ?_ ?_
+    (fun ψ => mp.base2.cval_closed _ ψ) ?_ ?_ ?_ ?_
     -- `trustCompiler` is not a compiler-trust *operation*: the pin
     -- fixes the name, and the two operations are installed as opaques
     (by rw [hname]; decide)
@@ -140,12 +140,12 @@ theorem axiomTrustCompiler (hμ : μ.verifiedChecks = true)
     -- *same* bare constant, so they have the same reading, and the
     -- membership is that constant's own `mem_type`
     intro ψ ta hta ρ
-    rw [htyA, denoteMeta_levelless_const hfT hlpT] at hta
+    rw [htyA, denote_levelless_const hfT hlpT] at hta
     obtain rfl : ta = mp.base2.acval ConLeche.trueName ψ :=
       (Option.some.inj hta).symm
     have hmem := mp.mem_type ciTi (Env.find?_mem hfTi) ψ
       (mp.base2.acval ConLeche.trueName ψ)
-      (by rw [htyTi]; exact denoteMeta_levelless_const hfT hlpT) ρ
+      (by rw [htyTi]; exact denote_levelless_const hfT hlpT) ρ
     rwa [hnameTi] at hmem
 
 /-! ## The two standard axioms
@@ -201,7 +201,7 @@ theorem axiomStd (hμ : μ.verifiedChecks = true)
         (fun _ => trivial)
         (fun _ _ => rfl)
         (fun ψ₁ ψ₂ hp => by
-          show ITerm.const .choice [ψ₁ uN] = ITerm.const .choice [ψ₂ uN]
+          show Term.const .choice [ψ₁ uN] = Term.const .choice [ψ₂ uN]
           rw [huN ψ₁ ψ₂ hp])
         (fun _ _ => by simp) ?_
         (by rw [hn2]; decide)

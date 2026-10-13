@@ -152,7 +152,7 @@ theorem zeronessOf_paramsDefined {ps' : List Name} :
 /-- **The pushforward's semantic reading** (task #161 P3): the
 instantiated datum's bit at `φ` is the datum's bit at the composed
 valuation `Level.substFn φ ks vs` — the same composed valuation
-`denoteMeta`'s constant clause uses; its level crossing rides this. -/
+`denote`'s constant clause uses; its level crossing rides this. -/
 theorem holds_substPW (φ : Name → Nat) (ks : List Name)
     (vs : List Level) : ∀ pw : PropWhen,
     (substPW ks vs pw).holds φ = pw.holds (substFn φ ks vs) := by

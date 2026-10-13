@@ -52,7 +52,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal BlockShape BlockParts TargetMajor
   GenRecRun fueledOps mkFEnv NestState)
 
@@ -63,20 +63,20 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 /-- **A reading over the parameters, lifted**: a term whose free
 variables lie below the openers `pfvs` (each at its own index, scoped)
 reads at any longer spine as at the spine's first `|pfvs|` values. -/
-theorem readParams_lift {acval : Name → (Name → Nat) → ITerm} {env : Env} {φ : Name → Nat}
+theorem readParams_lift {acval : Name → (Name → Nat) → Term} {env : Env} {φ : Name → Nat}
     (hacl1 : ∀ (n : Name) (ψ : Name → Nat) (k : Nat), (acval n ψ).liftN 1 k = acval n ψ)
     {pfvs : List Expr} (hp : ∀ (i : Nat) (x : Expr), pfvs[i]? = some x → ∃ ty, x = .fvar i ty)
     (hpW : ∀ x ∈ pfvs, Expr.WScoped pfvs.length x) {a : Expr} (ha : a.fvarB ≤ pfvs.length)
     (xs : List V) (hle : pfvs.length ≤ xs.length) (ρ : Nat → V) :
-    (denoteMeta acval env φ xs.length a).map (interp V (consList xs ρ))
-      = (denoteMeta acval env φ pfvs.length a).map
+    (denote acval env φ xs.length a).map (interp V (consList xs ρ))
+      = (denote acval env φ pfvs.length a).map
           (interp V (consList (xs.take pfvs.length) ρ)) := by
   have haB : a.fvarsBelow pfvs.length :=
     ConLeche.Expr.fvarsBelow_iff.mpr (ConLeche.Expr.fvarB_eq a ▸ ha)
   have hE := canon_erasedEq hp a haB
-  rw [← denoteMeta_erasedEq (acval := acval) (env := env) (φ := φ) hE xs.length,
-    ← denoteMeta_erasedEq (acval := acval) (env := env) (φ := φ) hE pfvs.length,
-    denoteMeta_lift hacl1 (ConLeche.targetCanonParams_WScoped hpW a haB) xs.length hle,
+  rw [← denote_erasedEq (acval := acval) (env := env) (φ := φ) hE xs.length,
+    ← denote_erasedEq (acval := acval) (env := env) (φ := φ) hE pfvs.length,
+    denote_lift hacl1 (ConLeche.targetCanonParams_WScoped hpW a haB) xs.length hle,
     Option.map_map]
   congr 1
   funext T
@@ -88,7 +88,7 @@ theorem readParams_lift {acval : Name → (Name → Nat) → ITerm} {env : Env} 
   simp only [Function.comp_apply]
   rw [hsplit, hdl, interp_liftN_consList]
 
-theorem getD_eq_of_map_eq {α : Type _} {g : ITerm → α} {o₁ o₂ : Option ITerm}
+theorem getD_eq_of_map_eq {α : Type _} {g : Term → α} {o₁ o₂ : Option Term}
     (h : o₁.map g = o₂.map g) : g (o₁.getD default) = g (o₂.getD default) := by
   cases o₁ <;> cases o₂ <;> simp_all
 
@@ -97,7 +97,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
     {envC envI : Env} {pp : BlockParts} {cvTasR : List ConstantVal}
     {ctorsAsR : List (List (ConstantVal × Nat))}
     {out : List (ConstantVal × TargetMajor × List Expr)} {mpC : EnvModelM V μ envC}
-    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → ITerm}
+    {dR : BlockData V} {isRecR : Bool} {A : Nat → (Name → Nat) → Term}
     {kindsR : List (List (List ConLeche.NestFieldKind))} {nfsR : List (List Expr)}
     {posR : NestState} {nested : Bool}
     (hctx : RecCtxBase V μ F envC envI pp cvTasR ctorsAsR mpC dR isRecR A kindsR nfsR posR)
@@ -144,7 +144,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   obtain ⟨-, -, -, hfvT, hbndT, hFD⟩ := hmr.2.2.2.1 0 cvTa0 hcv0
   have hppsLen : (dR.ppsM 0 ψ).length = dR.nP + dR.nIdxAt 0 := hFD.len ψ
   obtain ⟨ppsT, bT, hstT, -, -, hbindT⟩ :=
-    denoteMeta_openPis (acval := mpC.base2.acval) (env := envC) (φ := ψ) pp.nP hop (hFD.read ψ)
+    denote_openPis (acval := mpC.base2.acval) (env := envC) (φ := ψ) pp.nP hop (hFD.read ψ)
   have hppsT : ppsT = (dR.ppsM 0 ψ).take pp.nP := by
     have := stripPisAV_mkPisAV_take pp.nP (dR.ppsM 0 ψ)
       (.sort (dR.resSort.eval ψ)) (by rw [hppsLen, hnPq]; omega)
@@ -153,7 +153,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   have hpl : (dR.params ψ).length = pp.nP := by
     rw [BlockData.params, List.length_take, hppsLen]; omega
   have hP : ∀ (l : Nat) (x : Expr), fvsP[l]? = some x →
-      denoteMeta mpC.base2.acval envC ψ l (Expr.fvarTypeD x) = some ((dR.params ψ).getD l default) := by
+      denote mpC.base2.acval envC ψ l (Expr.fvarTypeD x) = some ((dR.params ψ).getD l default) := by
     intro l x hx
     obtain ⟨pd, hpd, hreadD⟩ := hbindT l x hx
     rw [Nat.zero_add] at hreadD
@@ -208,7 +208,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   have hformer := memberHoles_formers (mpC := mpC) hmr ψ ρ (memberHoles_ty hmr ψ ρ hvget)
   have hacl : ∀ (n : Name) (ψ' : Name → Nat) (m k : Nat),
       (mpC.base2.acval n ψ').liftN m k = mpC.base2.acval n ψ' :=
-    fun n ψ' m k => liftN_eq_self_of_closed (mpC.base2.cval_closedL n ψ') k m
+    fun n ψ' m k => liftN_eq_self_of_closed (mpC.base2.cval_closed n ψ') k m
   have hacl1 : ∀ (n : Name) (ψ' : Name → Nat) (k : Nat),
       (mpC.base2.acval n ψ').liftN 1 k = mpC.base2.acval n ψ' := fun n ψ' k => hacl n ψ' 1 k
   have hp := fun i x (hx : fvsP[i]? = some x) => fvarList_rev_getElem hFr hx
@@ -247,7 +247,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
     rwa [hmap, List.take_left] at this
   have hparsL := hC.parsLen (mc c) hcl.hmm ψc
   -- the prefix's tail
-  have hkf : ∀ dsa : List ITerm, keyFrame dsa xs.length (consList xs ρ)
+  have hkf : ∀ dsa : List Term, keyFrame dsa xs.length (consList xs ρ)
       = consList (dsa.map (interp V (consList xs ρ))) ρ := by
     intro dsa
     unfold keyFrame
@@ -267,7 +267,7 @@ theorem genNodeFrameTie (hμ : μ.verifiedChecks = true) {F : Nat} {block : List
   have hsatN := hnodeSat t ht
   rw [hDsel, hψn] at hsatN
   unfold nodeFr at hsatN
-  rw [← denoteMetaSpine_eq_map hspK, ← substE_nodeImgX_trueVal mpC.base2 ψ ρ hnle, hxl,
+  rw [← denoteSpine_eq_map hspK, ← substE_nodeImgX_trueVal mpC.base2 ψ ρ hnle, hxl,
     ← hkfN, ← hxl] at hsatN
   unfold tgtOutDsa at hsatC hdsaC
   rw [← hxl] at hsatC hdsaC hebs ⊢

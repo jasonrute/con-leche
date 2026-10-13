@@ -58,7 +58,12 @@
 #     cone at all.
 #
 # USAGE
-#     scripts/selfcheck.sh [--trusted] [OUTDIR]
+#     scripts/selfcheck.sh [--trusted] [--fresh] [OUTDIR]
+#
+#   The script's exit code is the checker's (0 = the self-check accepts).
+#   `--fresh` deletes OUTDIR's root list and export first (the exporter
+#   build is kept), so the check is of THIS tree — what
+#   `tests/arena.sh --selfcheck` runs.
 #
 #   OUTDIR defaults to `_tmp/selfcheck`.  Steps are skipped when their
 #   output is already there, so a re-run only redoes the check:
@@ -79,16 +84,21 @@ ROOT=$PWD
 
 MODE=--verified
 OUTDIR=_tmp/selfcheck
+FRESH=no
 for a in "$@"; do
   case "$a" in
     --trusted)  MODE=--trusted ;;
     --verified) MODE=--verified ;;
-    -*) echo "usage: scripts/selfcheck.sh [--trusted] [OUTDIR]" >&2; exit 3 ;;
+    --fresh)    FRESH=yes ;;
+    -*) echo "usage: scripts/selfcheck.sh [--trusted] [--fresh] [OUTDIR]" >&2; exit 3 ;;
     *)  OUTDIR=$a ;;
   esac
 done
 mkdir -p "$OUTDIR"
 OUTDIR=$(cd "$OUTDIR" && pwd)
+if [ "$FRESH" = yes ]; then
+  rm -f "$OUTDIR/con-leche-decls.txt" "$OUTDIR/con-leche-export.ndjson"
+fi
 
 TOOLCHAIN=$(cat lean-toolchain)
 # The library roots (the lakefile's `defaultTargets` plus the certificate
@@ -145,11 +155,11 @@ echo "[selfcheck] checking ($MODE)"
 # space, which the worker threads' stack reservations exhaust long
 # before any real memory is used (`failed to create thread`, exit 134
 # at the default job count); the bound is the `timeout`.
-(
-  set +e
-  timeout 4h ./.lake/build/bin/con-leche "$MODE" --jobs=8 \
-    "$OUTDIR/con-leche-export.ndjson" \
-    2> >(while IFS= read -r l; do printf '%s %s\n' "$(date +%H:%M:%S)" "$l"; done \
-          | tee "$OUTDIR/check.log" >&2)
-  echo "[selfcheck] exit $?"
-)
+set +e
+timeout 4h ./.lake/build/bin/con-leche "$MODE" --jobs=8 \
+  "$OUTDIR/con-leche-export.ndjson" \
+  2> >(while IFS= read -r l; do printf '%s %s\n' "$(date +%H:%M:%S)" "$l"; done \
+        | tee "$OUTDIR/check.log" >&2)
+code=$?
+echo "[selfcheck] exit $code"
+exit $code

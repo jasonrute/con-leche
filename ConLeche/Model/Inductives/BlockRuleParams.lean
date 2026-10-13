@@ -12,7 +12,7 @@ agree on a recursor's own `levelParams` — needs each of its six
 components ψ-congruent there.  This file has the recursors' pinned
 level parameters, the congruence of `pdoms`, and the equation list's
 congruence in its components.  The opened residue `Rb0` carries `fvar`
-openers, whose type annotations `denoteMeta` never reads; its
+openers, whose type annotations `denote` never reads; its
 congruence goes through `lpDefF` (`Model/Reading/LpDefF.lean`), the
 `allLevelParamsDefined` footprint with `fvar` types ignored. -/
 
@@ -21,7 +21,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
@@ -65,8 +65,8 @@ theorem blockRulePdomsAV_params (hμ : μ.verifiedChecks = true) (mpC : EnvModel
 /-- **The equation list is congruent in its six components** below
 `K` and the rule counts. -/
 theorem blockIotaEqsAV_congr {K : Nat} {nCt : Nat → Nat}
-    {pdoms pdoms' : Nat → List ITerm} {fdoms fdoms' es es' ihs ihs' : Nat → Nat → List ITerm}
-    {mk mk' Rb Rb' : Nat → Nat → ITerm}
+    {pdoms pdoms' : Nat → List Term} {fdoms fdoms' es es' ihs ihs' : Nat → Nat → List Term}
+    {mk mk' Rb Rb' : Nat → Nat → Term}
     (hp : ∀ c, c < K → pdoms c = pdoms' c)
     (hrest : ∀ c, c < K → ∀ j, j < nCt c →
       fdoms c j = fdoms' c j ∧ es c j = es' c j ∧ ihs c j = ihs' c j ∧ mk c j = mk' c j ∧

@@ -208,7 +208,7 @@ The point is no type, so no sort holds it.
 #real[
   Con-leche's sorts denote the same sets:
   #src("ConLeche/SetTheory/Derive/Univ.lean", 34, 35)[a sort's universe]
-  is #src("ConLeche/SetTheory/Derive/TypeU.lean", 261, 263)[the universe of types],
+  is #src("ConLeche/SetTheory/Derive/TypeU.lean", 214, 216)[the universe of types],
   read off the same notions of a
   #src("ConLeche/SetTheory/Derive/TypeU.lean", 57, 58)[strict set] and a
   #src("ConLeche/SetTheory/Derive/TypeU.lean", 60, 61)[type].
@@ -637,9 +637,9 @@ from typing. The two checks are:
 
 #real[
   The checks are the checker's
-  #src("ConLeche/Kernel/Core.lean", 1249, 1255)[innermost λ level],
+  #src("ConLeche/Kernel/Core.lean", 1310, 1316)[innermost λ level],
   #src("ConLeche/Kernel/Core.lean", 475, 480)[its $eta$] and
-  #src("ConLeche/Kernel/Core.lean", 795, 806)[the case of ι]. On real
+  #src("ConLeche/Kernel/Core.lean", 843, 857)[the case of ι]. On real
   input neither kind ever fails: they never change a verdict on a
   stream the official kernel accepts. Both run at `--verified` only;
   `--trusted` skips them.
@@ -766,7 +766,7 @@ grade, and keeps the two grades' results apart.
 
 #real[
   The checker's cheap grade is
-  #src("ConLeche/Kernel/Core.lean", 1111, 1116)[`infer_only` exactly]. Like it, the
+  #src("ConLeche/Kernel/Core.lean", 1172, 1177)[`infer_only` exactly]. Like it, the
   grade does not check a let-binding's value against its type
   (the full grade does, @sec:infer); the soundness proof needs no
   such check, since the value is substituted.

@@ -5,6 +5,7 @@ public import ConLeche.Verify.ProjTele
 import ConLeche.Kernel.Inductives.StructParts
 import ConLeche.Verify.Cached.Erase
 import ConLeche.Verify.ProjSlots
+public import ConLeche.Verify.Level
 import ConLeche.Kernel.Inductives.SumInstall
 import ConLeche.Kernel.Inductives.FieldTele
 
@@ -657,7 +658,7 @@ theorem Expr.hasLooseBVarB_eq : ∀ (i : Nat) (e : Expr), e.hasLooseBVarB i = e.
 ## The recursor, opened
 
 The reading side (`Model/Inductives/StructRecKit.lean`) opens a
-structure recursor's telescope binder by binder as `denoteMeta` does;
+structure recursor's telescope binder by binder as `denote` does;
 the constructor telescope's residual is the `instPisAt` peel's
 (`instPisAt_of_stripPis`).
 -/

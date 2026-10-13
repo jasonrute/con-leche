@@ -35,7 +35,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantInfo ConstantVal FEnv BlockShape TargetMajor RecShape
   CheckMode)
 
@@ -44,28 +44,28 @@ universe w
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-- The target field domains, lifted past `K` chain binders. -/
-@[expose] def tgtFdomsK (K : Nat) (acval : Name → (Name → Nat) → ITerm) (envC : Env)
+@[expose] def tgtFdomsK (K : Nat) (acval : Name → (Name → Nat) → Term) (envC : Env)
     (p : BlockShape) (out : List (ConstantVal × TargetMajor × List Expr)) (ψ : Name → Nat)
-    (c i : Nat) : List ITerm :=
+    (c i : Nat) : List Term :=
   liftDomsK K (blockRulePdomsAV acval envC p (tgtRs out) ψ c).length
     (tgtFdomsAV p out acval envC ψ c i)
 
 /-- The target fired spine, lifted past `K` chain binders. -/
-@[expose] def tgtMkK (K : Nat) (acval : Name → (Name → Nat) → ITerm) (envC : Env)
+@[expose] def tgtMkK (K : Nat) (acval : Name → (Name → Nat) → Term) (envC : Env)
     (p : BlockShape) (out : List (ConstantVal × TargetMajor × List Expr)) (ψ : Name → Nat)
-    (c i : Nat) : ITerm :=
+    (c i : Nat) : Term :=
   (tgtMkAV p out acval envC ψ c i).liftN K
     ((blockRulePdomsAV acval envC p (tgtRs out) ψ c).length
       + (tgtFdomsAV p out acval envC ψ c i).length)
 
 /-- An index-expression list, lifted past `K` chain binders at depth `n`. -/
-@[expose] def liftEsK (K n : Nat) (es : List ITerm) : List ITerm :=
+@[expose] def liftEsK (K n : Nat) (es : List Term) : List Term :=
   es.map fun e => e.liftN K n
 
 /-- **The chain move**: a spine fitting the lifted prefix-and-field data
 at the chain frame fits the base data at the base frame, when the prefix
 domains are unchanged by the lift. -/
-theorem chainFit_base {K : Nat} {a ρ : Nat → V} {pd fd : List ITerm}
+theorem chainFit_base {K : Nat} {a ρ : Nat → V} {pd fd : List Term}
     (hpK : liftDomsK K 0 pd = pd) {xs fs : List V} (hxl : xs.length = pd.length)
     (h : SpineFit (chainFrame K a ρ) (pd ++ liftDomsK K pd.length fd) (xs ++ fs)) :
     SpineFit ρ (pd ++ fd) (xs ++ fs) := by

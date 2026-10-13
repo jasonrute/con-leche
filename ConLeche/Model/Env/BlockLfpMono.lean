@@ -25,10 +25,11 @@ frames read:
 -/
 
 namespace ConLeche.Model
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetTheory
 
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Name Level)
 
 universe w
@@ -39,7 +40,7 @@ variable {V : Type w} [SetTheory V]
 
 namespace LfpClause
 
-variable {acval : Name → (Name → Nat) → ITerm} {D : LfpDatum V}
+variable {acval : Name → (Name → Nat) → Term} {D : LfpDatum V}
 
 open Classical in
 /-- **The carrier below on a group, with the index sets agreeing on `G` only**:

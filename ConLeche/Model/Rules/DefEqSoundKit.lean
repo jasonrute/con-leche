@@ -1,7 +1,7 @@
 module
 
--- `RedSoundKit` is the SHARED kit: `DenoteMetaSpine`'s list algebra,
--- `hoist_spine`, `frame_spine`, `denoteMeta_mkAppN(_inv)`, the
+-- `RedSoundKit` is the SHARED kit: `DenoteSpine`'s list algebra,
+-- `hoist_spine`, `frame_spine`, `denote_mkAppN(_inv)`, the
 -- `PiChain` guard and the tower entry's reading live there
 public import ConLeche.Model.Rules.RedSoundKit
 import ConLeche.Model.Rules.IotaSoundKit
@@ -11,7 +11,6 @@ import ConLeche.Model.Reading.ErasedEq
 import ConLeche.Verify.PropRead
 import ConLeche.Model.Reading.Closed
 import ConLeche.Verify.InstLevels
-import ConLeche.Semantics.Hoist
 import ConLeche.Model.Reading.Levels
 import ConLeche.Rules.Rigid
 
@@ -22,7 +21,7 @@ public section
 
 The plumbing the per-rule lemmas of `Model/Rules/DefEqSound.lean`
 share: the frame/grading splitters at each node shape, the two `Nat`
-constant readings, and `projAV`'s congruence — stated at the rules
+constant readings, and `projNV`'s congruence — stated at the rules
 tier's `Frame`/`Graded` vocabulary, so that no `Model/Rules` module is
 stated over runs.
 -/
@@ -31,7 +30,7 @@ namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name)
 open ConLeche.Rules
 
@@ -117,43 +116,13 @@ theorem Frame.of_not_hasFvar {d : Nat} {e : Expr} (hf : e.hasFvar = false)
 
 /-! ## The grading splitters, at `Graded` -/
 
-theorem Graded.fst {Δa : List ITerm} {e : ITerm}
-    (h : Graded V Δa (.fst e)) : Graded V Δa e := fun ρ hρ =>
-  (cast (WellDenoted_fst V ρ e) (h ρ hρ)).1
-
-theorem Graded.snd {Δa : List ITerm} {e : ITerm}
-    (h : Graded V Δa (.snd e)) : Graded V Δa e := fun ρ hρ =>
-  (cast (WellDenoted_snd V ρ e) (h ρ hρ)).1
-
-/-- `WellDenoted.hoist_pi` at `Graded`. -/
-theorem Graded.pi {Δa : List ITerm} {A B : ITerm}
-    (h : Graded V Δa (.pi A B)) :
-    GradedTy V Δa A ∧ Graded V (A :: Δa) B := by
-  obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => h ρ hρ)
-  exact ⟨fun ρ hρ => ⟨h1 ρ hρ, (cast (WellDenoted_pi V ρ A B) (h ρ hρ)).2.1⟩,
-    fun ρ hρ => h2 ρ hρ⟩
-
-/-- `WellDenoted.hoist_lam` at `Graded`. -/
-theorem Graded.lam {Δa : List ITerm} {A b : ITerm}
-    (h : Graded V Δa (.lam A b)) :
-    GradedTy V Δa A ∧ Graded V (A :: Δa) b := by
-  obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => h ρ hρ)
-  exact ⟨fun ρ hρ => ⟨h1 ρ hρ, (cast (WellDenoted_lam V ρ A b) (h ρ hρ)).2.1⟩,
-    fun ρ hρ => h2 ρ hρ⟩
-
-/-- The head transport of a hoisted grading, at `Graded`. -/
-theorem Graded.head_congr {Δa : List ITerm} {A B e : ITerm}
-    (heq : ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ A = interp V ρ B)
-    (h : Graded V (B :: Δa) e) : Graded V (A :: Δa) e :=
-  fun ρ hρ => h ρ (Sat.head_congr heq hρ)
-
-theorem denoteMeta_open_rename {acval : Name → (Name → Nat) → ITerm}
-    {d : Nat} {bd ty ty' : Expr} {ba : ITerm}
-    (h : denoteMeta acval env φ (d + 1) (bd.instantiate1 (.fvar d ty))
+theorem denote_open_rename {acval : Name → (Name → Nat) → Term}
+    {d : Nat} {bd ty ty' : Expr} {ba : Term}
+    (h : denote acval env φ (d + 1) (bd.instantiate1 (.fvar d ty))
       = some ba) :
-    denoteMeta acval env φ (d + 1) (bd.instantiate1 (.fvar d ty'))
+    denote acval env φ (d + 1) (bd.instantiate1 (.fvar d ty'))
       = some ba := by
-  rw [denoteMeta_erasedEq (Expr.ErasedEq.instantiate1 (Expr.ErasedEq.rfl bd)
+  rw [denote_erasedEq (Expr.ErasedEq.instantiate1 (Expr.ErasedEq.rfl bd)
     (show Expr.ErasedEq (.fvar d ty') (.fvar d ty) from rfl))]
   exact h
 
@@ -162,12 +131,12 @@ theorem denoteMeta_open_rename {acval : Name → (Name → Nat) → ITerm}
 /-- The same constant at level-equivalent instantiations has one
 reading. -/
 theorem acval_const_congr' {m : EnvModel V env} (hap : AcvalParams m)
-    {d : Nat} {n : Name} {us us' : List Level} {aa ba : ITerm}
+    {d : Nat} {n : Name} {us us' : List Level} {aa ba : Term}
     (hlev : Level.isEquivList us us' = some true)
-    (hda : denoteMeta m.acval env φ d (.const n us) = some aa)
-    (hdb : denoteMeta m.acval env φ d (.const n us') = some ba) :
+    (hda : denote m.acval env φ d (.const n us) = some aa)
+    (hdb : denote m.acval env φ d (.const n us') = some ba) :
     aa = ba := by
-  rw [denoteMeta] at hda hdb
+  rw [denote] at hda hdb
   cases hf : env.find? n with
   | none => rw [hf] at hda; exact nomatch hda
   | some ci =>
@@ -183,26 +152,20 @@ theorem acval_const_congr' {m : EnvModel V env} (hap : AcvalParams m)
       · exact nomatch hdb
     · exact nomatch hda
 
-/-- The subject of a graded projection spine is graded (`ProjAV.hoistV`
-of `RedSoundKit`, at `Graded`). -/
-theorem Graded.projAV {Δa : List ITerm} {i : Nat} {e : ITerm}
-    (h : Graded V Δa (ConLeche.Semantics.projAV i e)) : Graded V Δa e :=
-  fun ρ hρ => ProjAV.hoistV (h ρ hρ)
-
 /-! ## The proof-irrelevance fast arm: the shared facts
 
-The licence itself (`prf_of_isProofFast`) is `ProofFastSound.lean`. -/
+The justification itself (`prf_of_isProofFast`) is `ProofFastSound.lean`. -/
 
 /-- Every application of `pt` is `pt` (`app_pt`, folded along a spine). -/
-theorem foldl_app_pt' {ρ : Nat → V} : ∀ (as : List ITerm),
+theorem foldl_app_pt' {ρ : Nat → V} : ∀ (as : List Term),
     as.foldl (fun r a => app r (interp V ρ a)) (pt : V) = pt
   | [] => rfl
   | a :: as => by rw [List.foldl_cons, app_pt]; exact foldl_app_pt' as
 
 /-- A spine on a `pt`-valued head interprets to `pt`. -/
-theorem interp_mkAppN_pt {ρ : Nat → V} {f : ITerm}
-    (hf : interp V ρ f = pt) (as : List ITerm) :
-    interp V ρ (ITerm.mkAppN f as) = pt := by
+theorem interp_mkAppN_pt {ρ : Nat → V} {f : Term}
+    (hf : interp V ρ f = pt) (as : List Term) :
+    interp V ρ (Term.mkAppN f as) = pt := by
   rw [interp_mkAppN, hf]
   exact foldl_app_pt' as
 
@@ -270,8 +233,8 @@ type are types). -/
 theorem propPt_of_mem {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
     (hsem : InferSemIO m φ d T tt) (hrs : RedSem m φ d tt (.sort w))
     (hr : Red env d tt (.sort w)) (hw0 : w.eval φ = 0)
-    (hfT : Frame d T) {Δa : List ITerm} {ta : ITerm}
-    (hCT : CtxOkS m φ d Δa T) (hT : denoteMeta m.acval env φ d T = some ta)
+    (hfT : Frame d T) {Δa : List Term} {ta : Term}
+    (hCT : CtxOkS m φ d Δa T) (hT : denote m.acval env φ d T = some ta)
     (ρ : Nat → V) (v : V) (hρ : Sat V Δa ρ) (hLT : LeavesGr m φ d T ρ)
     (hm : IOMem m φ d T ρ v) : v = pt := by
   obtain ⟨hwT, hvm⟩ := hm.of_reading hT
@@ -281,8 +244,8 @@ theorem propPt_of_mem {m : EnvModel V env} {d : Nat} {T tt : Expr} {w : Level}
     exact absurd h hwT.ne_pt
   · obtain ⟨hwtt, hTm⟩ := h.of_reading htta
     obtain ⟨-, -, sa, hsa, hs⟩ := hrs hftt (hCT.of_subset hsub) htta
-    rw [denoteMeta_sort] at hsa
-    obtain rfl : sa = ITerm.sort (w.eval φ) := (Option.some.inj hsa).symm
+    rw [denote_sort] at hsa
+    obtain rfl : sa = Term.sort (w.eval φ) := (Option.some.inj hsa).symm
     -- "not pt" source (1): the type's type is a type
     obtain ⟨-, heq⟩ := hs ρ hρ (hLT.of_subset hsub) hwtt.1 hwtt.ne_pt
     rw [heq, interp_sort, hw0] at hTm
@@ -316,9 +279,9 @@ theorem propPt_forallE {m : EnvModel V env} {d : Nat} {ty body tt : Expr}
     obtain ⟨tya, htya, hwT, -, ⟨x₀, hx₀, hne⟩, hall⟩ := h
     exact absurd (hbody (hfT.forallE_open hfT.forallE_ty)
       (CtxOkS.openS hCT.forallE_ty hCT.forallE_body htya)
-      (ta := (denoteMeta m.acval env φ (d + 1) (body.instantiate1 (.fvar d ty))).getD
+      (ta := (denote m.acval env φ (d + 1) (body.instantiate1 (.fvar d ty))).getD
         default) (by
-          obtain ⟨_, ba, -, hba, -⟩ := denoteMeta_forallE_inv hT
+          obtain ⟨_, ba, -, hba, -⟩ := denote_forallE_inv hT
           rw [hba]; rfl)
       (cons x₀ ρ) _ (Sat_cons V hρ hx₀)
       (LeavesGr.open hCT.forallE_ty hCT.forallE_body hLT.forallE_ty hLT.forallE_body

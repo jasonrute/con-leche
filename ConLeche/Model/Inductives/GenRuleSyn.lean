@@ -36,12 +36,12 @@ namespace ConLeche.Model
 open ConLeche.Term ConLeche.Verify
 open ConLeche (Env Expr Name Level ConstantVal ClassGen ClassCtor CheckMode
   closeLams TargetMajor ClassRead)
-open ConLeche.Semantics (ITerm)
+
 
 /-! ## The stored rule, opened and read -/
 
 /-- Open `n` leading λs at the variables `j, j+1, …` (each binder's domain
-instantiated at the earlier variables, exactly as `denoteMeta` reads a
+instantiated at the earlier variables, exactly as `denote` reads a
 λ): the binders and the body. -/
 @[expose] def openLamsM : Nat → Expr → Nat → Option (List Expr × Expr)
   | 0, e, _ => some ([], e)
@@ -52,10 +52,10 @@ instantiated at the earlier variables, exactly as `denoteMeta` reads a
 
 /-- An opened λ-telescope's binders (`openLamsM`, from depth `j`), read:
 each binder's domain read at its depth. -/
-@[expose] def readLamBs (acval : Name → (Name → Nat) → ITerm) (env : Env) (ψ : Name → Nat) :
-    Nat → List Expr → List ITerm
+@[expose] def readLamBs (acval : Name → (Name → Nat) → Term) (env : Env) (ψ : Name → Nat) :
+    Nat → List Expr → List Term
   | _, [] => []
-  | j, b :: bs => (denoteMeta acval env ψ j b).getD default ::
+  | j, b :: bs => (denote acval env ψ j b).getD default ::
       readLamBs acval env ψ (j + 1) bs
 
 /-- The arguments of the STORED rule's body at its frame (`D` binders
@@ -72,7 +72,7 @@ the graph's class index), the `ih` λ's telescope (its binders'
 domains), and its call's index arguments and major argument (the
 call's arguments past the prefix variables).  The recursor constant the
 call names is not read: the chain variable stands for it (`genIhAV`). -/
-@[expose] noncomputable def genIhdR (acval : Name → (Name → Nat) → ITerm) (env : Env)
+@[expose] noncomputable def genIhdR (acval : Name → (Name → Nat) → Term) (env : Env)
     (out : List (ConstantVal × TargetMajor × List Expr)) (g : ClassGen) (rd : ClassRead)
     (ψ : Name → Nat) (c j : Nat) : List IhDatum :=
   let x := genCtorAt g rd c j
@@ -85,14 +85,14 @@ call names is not read: the chain variable stands for it (`genIhAV`). -/
     let cargs := o.2.getAppArgs.drop rP
     let E := D + o.1.length
     (genRecIdx rd q.2.1, readLamBs acval env ψ D o.1,
-     cargs.dropLast.map fun e => (denoteMeta acval env ψ E e).getD default,
-     (denoteMeta acval env ψ E (cargs.getLastD default)).getD default)
+     cargs.dropLast.map fun e => (denote acval env ψ E e).getD default,
+     (denote acval env ψ E (cargs.getLastD default)).getD default)
 
 /-- **The `ih` terms** read off the STORED rule, in chain form (`genIhAV`:
 the callee its chain variable below the frame). -/
-@[expose] noncomputable def genIhsR (acval : Name → (Name → Nat) → ITerm) (env : Env)
+@[expose] noncomputable def genIhsR (acval : Name → (Name → Nat) → Term) (env : Env)
     (K : Nat) (out : List (ConstantVal × TargetMajor × List Expr)) (g : ClassGen)
-    (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) : List ITerm :=
+    (rd : ClassRead) (ψ : Name → Nat) (c j : Nat) : List Term :=
   (genIhdR acval env out g rd ψ c j).map
     (genIhAV K g.pre.length (g.pre.length + (genCtorAt g rd c j).nF))
 

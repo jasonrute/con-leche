@@ -11,7 +11,7 @@ in `ps` is zero" (`ifAllZero ps`; `ps = []` is "zero at every
 valuation").  The checker's head-symbol reader
 (`ConLeche/Kernel/PropRead.lean`, `proofPW`) and an inductive's stored
 `IndCaps.sortZ` carry it; the checker asks two questions of a datum
-only, `isNever` (`capsNeverZero`, the ι licence) and "is it
+only, `isNever` (`capsNeverZero`, the ι case split) and "is it
 `ifAllZero []`" (`PropWhen.isProp`), and compares data in no other way.
 
 The datum is a plain list: duplicates and order are kept, so equal

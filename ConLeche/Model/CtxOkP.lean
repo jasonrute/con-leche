@@ -30,7 +30,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name)
 
 universe w
@@ -39,22 +39,22 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name 
 
 /-- **The prefix-intrinsic context discipline** (see the module
 docstring). -/
-@[expose] def CtxOkP (m : EnvModel V env) (φ : Name → Nat) (d : Nat) (Δa : List ITerm)
+@[expose] def CtxOkP (m : EnvModel V env) (φ : Name → Nat) (d : Nat) (Δa : List Term)
     (e : Expr) : Prop :=
   Δa.length = d ∧ ∀ l ∈ e.fvarLeaves, l.1 < d ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl Aa,
-    denoteMeta m.acval env φ l.1 l.2 = some tl ∧ Δa[d - 1 - l.1]? = some Aa ∧
+    denote m.acval env φ l.1 l.2 = some tl ∧ Δa[d - 1 - l.1]? = some Aa ∧
     ∀ σ : Nat → V, Sat V (Δa.drop (d - l.1)) σ →
       interp V σ tl = interp V σ Aa ∧ WellDenotedTy V σ tl
 
 namespace CtxOkP
 
 /-- **The prefix discipline gives the whole-context one.** -/
-theorem toCtxOk {d : Nat} {Δa : List ITerm} {e : Expr} (h : CtxOkP m φ d Δa e) :
+theorem toCtxOk {d : Nat} {Δa : List Term} {e : Expr} (h : CtxOkP m φ d Δa e) :
     CtxOk m φ d Δa e := by
   refine ⟨h.1, fun l hl => ?_⟩
   obtain ⟨hlt, hws, tl, Aa, htl, hA, hk⟩ := h.2 l hl
   refine ⟨hlt, hws.fvarsBelow, tl.liftN (d - l.1) 0, Aa, ?_, hA, fun ρ hρ => ?_, fun ρ hρ => ?_⟩
-  · rw [denoteMeta_lift m.acval_closed hws d (Nat.le_of_lt hlt), htl]; rfl
+  · rw [denote_lift m.acval_closed hws d (Nat.le_of_lt hlt), htl]; rfl
   · have hs := Sat_drop hρ (d - l.1)
     rw [interp_liftN, show (fun j => ρ (j + (d - 1 - l.1) + 1)) = fun j => ρ (j + (d - l.1)) by
       funext j; congr 1; omega]
@@ -69,32 +69,32 @@ theorem toCtxOk {d : Nat} {Δa : List ITerm} {e : Expr} (h : CtxOkP m φ d Δa e
     rw [e]
     exact (hk _ hs).2
 
-theorem of_subset {d : Nat} {Δa : List ITerm} {e e' : Expr}
+theorem of_subset {d : Nat} {Δa : List Term} {e e' : Expr}
     (hC : CtxOkP m φ d Δa e) (hsub : ∀ l ∈ e'.fvarLeaves, l ∈ e.fvarLeaves) :
     CtxOkP m φ d Δa e' :=
   ⟨hC.1, fun l hl => hC.2 l (hsub l hl)⟩
 
-theorem forallE_ty {d : Nat} {Δa : List ITerm} {ty body : Expr}
+theorem forallE_ty {d : Nat} {Δa : List Term} {ty body : Expr}
     (hC : CtxOkP m φ d Δa (.forallE ty body)) : CtxOkP m φ d Δa ty :=
   hC.of_subset fun _ hl => by rw [Expr.fvarLeaves]; exact List.mem_append_left _ hl
 
-theorem forallE_body {d : Nat} {Δa : List ITerm} {ty body : Expr}
+theorem forallE_body {d : Nat} {Δa : List Term} {ty body : Expr}
     (hC : CtxOkP m φ d Δa (.forallE ty body)) : CtxOkP m φ d Δa body :=
   hC.of_subset fun _ hl => by rw [Expr.fvarLeaves]; exact List.mem_append_right _ hl
 
 /-- **Opening a binder** whose domain reads graded under the context. -/
-theorem openS {d : Nat} {Δa : List ITerm} {ty body : Expr} {ta : ITerm}
+theorem openS {d : Nat} {Δa : List Term} {ty body : Expr} {ta : Term}
     (ht : CtxOkP m φ d Δa ty) (hb : CtxOkP m φ d Δa body)
-    (hty : denoteMeta m.acval env φ d ty = some ta)
+    (hty : denote m.acval env φ d ty = some ta)
     (hok : ∀ ρ : Nat → V, Sat V Δa ρ → WellDenotedTy V ρ ta) :
     CtxOkP m φ (d + 1) (ta :: Δa) (body.instantiate1 (.fvar d ty)) := by
   have hwt : Expr.WScoped d ty := (toCtxOk ht).wScoped
   have hold : ∀ l : Nat × Expr, (l.1 < d ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl Aa,
-      denoteMeta m.acval env φ l.1 l.2 = some tl ∧ Δa[d - 1 - l.1]? = some Aa ∧
+      denote m.acval env φ l.1 l.2 = some tl ∧ Δa[d - 1 - l.1]? = some Aa ∧
       ∀ σ : Nat → V, Sat V (Δa.drop (d - l.1)) σ →
         interp V σ tl = interp V σ Aa ∧ WellDenotedTy V σ tl) →
       (l.1 < d + 1 ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl Aa,
-      denoteMeta m.acval env φ l.1 l.2 = some tl ∧ (ta :: Δa)[d + 1 - 1 - l.1]? = some Aa ∧
+      denote m.acval env φ l.1 l.2 = some tl ∧ (ta :: Δa)[d + 1 - 1 - l.1]? = some Aa ∧
       ∀ σ : Nat → V, Sat V ((ta :: Δa).drop (d + 1 - l.1)) σ →
         interp V σ tl = interp V σ Aa ∧ WellDenotedTy V σ tl) := by
     rintro l ⟨hlt, hws, tl, Aa, htl, hA, hk⟩
@@ -113,7 +113,7 @@ theorem openS {d : Nat} {Δa : List ITerm} {ty body : Expr} {ta : ITerm}
     · exact hold l (ht.2 l hl'')
 
 /-- **Truncation** at a depth `h` above every leaf of the subject. -/
-theorem drop {d h : Nat} {Δa : List ITerm} {e e' : Expr} (hC : CtxOkP m φ d Δa e)
+theorem drop {d h : Nat} {Δa : List Term} {e e' : Expr} (hC : CtxOkP m φ d Δa e)
     (hle : h ≤ d) (hsub : ∀ l ∈ e'.fvarLeaves, l ∈ e.fvarLeaves ∧ l.1 < h) :
     CtxOkP m φ h (Δa.drop (d - h)) e' := by
   refine ⟨by rw [List.length_drop, hC.1]; omega, fun l hl => ?_⟩
@@ -126,15 +126,15 @@ theorem drop {d h : Nat} {Δa : List ITerm} {e e' : Expr} (hC : CtxOkP m φ d Δ
 /-- **Extension by new top entries** `Ts` (innermost first): a leaf below
 `h` keeps its package; a leaf at `h + p` is a new variable whose
 annotation reads `tl`, which IS its entry and is graded below it. -/
-theorem extend {h g : Nat} {Δ Ts : List ITerm} {e : Expr} (hTs : Ts.length = g)
+theorem extend {h g : Nat} {Δ Ts : List Term} {e : Expr} (hTs : Ts.length = g)
     (hΔ : Δ.length = h)
     (hleaf : ∀ l ∈ e.fvarLeaves,
       (l.1 < h ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl Aa,
-        denoteMeta m.acval env φ l.1 l.2 = some tl ∧ Δ[h - 1 - l.1]? = some Aa ∧
+        denote m.acval env φ l.1 l.2 = some tl ∧ Δ[h - 1 - l.1]? = some Aa ∧
         ∀ σ : Nat → V, Sat V (Δ.drop (h - l.1)) σ →
           interp V σ tl = interp V σ Aa ∧ WellDenotedTy V σ tl) ∨
       (∃ p, p < g ∧ l.1 = h + p ∧ Expr.WScoped l.1 l.2 ∧ ∃ tl,
-        denoteMeta m.acval env φ l.1 l.2 = some tl ∧ Ts[g - 1 - p]? = some tl ∧
+        denote m.acval env φ l.1 l.2 = some tl ∧ Ts[g - 1 - p]? = some tl ∧
         ∀ σ : Nat → V, Sat V ((Ts ++ Δ).drop (g - p)) σ → WellDenotedTy V σ tl)) :
     CtxOkP m φ (h + g) (Ts ++ Δ) e := by
   refine ⟨by rw [List.length_append, hTs, hΔ]; omega, fun l hl => ?_⟩
@@ -154,7 +154,8 @@ end ConLeche.Model
 
 namespace ConLeche.Model
 open ConLeche.Semantics
-open ConLeche.Semantics (ITerm)
+open ConLeche.Term ConLeche.Verify
+
 open ConLeche (Env Expr Name)
 
 variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name → Nat}
@@ -162,12 +163,12 @@ variable {V : Type w} [SetTheory V] {env : Env} {m : EnvModel V env} {φ : Name 
 /-- **`CtxOkP` at an opened frame** (`ctxOk_of_openers`' prefix form): a
 context whose entries at the touched indices are the frame's own-depth
 annotation readings, each graded below itself. -/
-theorem ctxOkP_of_openers {k : Nat} {fvs : List Expr} {Aa : Nat → ITerm}
-    {Δa : List ITerm} (hΔlen : Δa.length = k)
+theorem ctxOkP_of_openers {k : Nat} {fvs : List Expr} {Aa : Nat → Term}
+    {Δa : List Term} (hΔlen : Δa.length = k)
     (hshape : ∀ (i : Nat) (x : Expr), fvs[i]? = some x → ∃ ty, x = Expr.fvar i ty)
     (hws : ∀ x ∈ fvs, Expr.WScoped k x)
     (hdoms : ∀ (i : Nat) (x : Expr), fvs[i]? = some x →
-      denoteMeta m.acval env φ i (Expr.fvarTypeD x) = some (Aa i))
+      denote m.acval env φ i (Expr.fvarTypeD x) = some (Aa i))
     {e : Expr} {n : Nat}
     (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ fvs)
     (hltE : ∀ l ∈ e.fvarLeaves, l.1 < n)

@@ -238,19 +238,19 @@ theorem installGuardsC_fresh (fe : FEnv) (cv : ConstantVal)
 
 /-- The record a definition's value check returns is the definition
 itself, at the checked constant and hint. -/
-theorem checkDefnValCI_shape (mode : CheckMode) (fe : FEnv) (cvA : ConstantVal)
+theorem checkDefnValCI_shape (mode : CheckMode) (fe : FEnv) (cv : ConstantVal)
     (value : Expr) (hint : ReducibilityHint) :
-    Yields (checkDefnValCI mode fe cvA value hint)
-      (fun ci => ∃ v, ci = .defnInfo cvA v hint) := by
+    Yields (checkDefnValCI mode fe cv value hint)
+      (fun ci => ∃ v, ci = .defnInfo cv v hint) := by
   unfold checkDefnValCI
   yields
   all_goals exact Yields.pure ⟨_, rfl⟩
 
 /-- The record an opaque's value check returns is the axiom at the
 checked constant. -/
-theorem checkOpaqueValCI_shape (mode : CheckMode) (fe : FEnv) (cvA : ConstantVal)
+theorem checkOpaqueValCI_shape (mode : CheckMode) (fe : FEnv) (cv : ConstantVal)
     (value : Expr) :
-    Yields (checkOpaqueValCI mode fe cvA value) (fun ci => ci = .axiomInfo cvA) := by
+    Yields (checkOpaqueValCI mode fe cv value) (fun ci => ci = .axiomInfo cv) := by
   unfold checkOpaqueValCI
   yields
   all_goals exact Yields.pure rfl
@@ -887,9 +887,9 @@ none of the pinned axiom guards can fire on it — so at `.axiomDecl` the
 *push-or-not* decision is a function of the header name alone, in both
 drivers. -/
 
-theorem tolerated_not_std (fe : FEnv) (cvA : ConstantVal)
-    (ht : cvA.name = sorryAxName) :
-    stdAxiomOkF fe cvA = false := by
+theorem tolerated_not_std (fe : FEnv) (cv : ConstantVal)
+    (ht : cv.name = sorryAxName) :
+    stdAxiomOkF fe cv = false := by
   rw [stdAxiomOkF, ite_eq_right, ite_eq_right] <;> rw [ht] <;> decide
 
 theorem tolerated_ne_trust {n : Name}

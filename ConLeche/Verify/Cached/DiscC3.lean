@@ -24,7 +24,7 @@ variable {env : Env} {f : Nat}
 
 private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
     (rules : List RecRule) (major : Expr) :
-    majorToCtor (fueledFns mode env) env d recName rules major =
+    majorToCtor mode (fueledFns mode env) env d recName rules major =
     (if isCtorApp env major then pure major else
     match rules with
     | [rl] =>
@@ -49,7 +49,9 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
                       (fueledFns mode env).inferIO d fab >>= fun tfab =>
                       (fueledFns mode env).defeq d tmaj tfab >>= fun rd =>
                       if rd then
-                        proofIrrel (fueledFns mode env) d fab major >>=
+                        (if mode.verifiedChecks then
+                          proofIrrel (fueledFns mode env) d fab major
+                        else pure true) >>=
                           fun r =>
                         if r then pure fab
                         else pure major
@@ -94,7 +96,9 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
                     (fueledFns mode env).inferIO d fab >>= fun tfab =>
                     (fueledFns mode env).defeq d tmaj tfab >>= fun rd =>
                     if rd then
-                      proofIrrel (fueledFns mode env) d fab major >>=
+                      (if mode.verifiedChecks then
+                        proofIrrel (fueledFns mode env) d fab major
+                      else pure true) >>=
                         fun r =>
                       if r then pure fab
                       else pure major
@@ -116,7 +120,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
     SimC mode env s₀ (RelEC d)
       (majorToCtorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName
         rules i)
-      (majorToCtor (fueledFns mode env) env d recName rules major) := by
+      (majorToCtor mode (fueledFns mode env) env d recName rules major) := by
   obtain rfl := CheckMode.eq_verified hμ
   show SimC .verified env s₀ (RelEC d)
     (pure (isCtorAppC (mkFEnv env) i) >>=
@@ -230,7 +234,7 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
           | _ => pure i
         | _ => pure i
       | _ => pure i)
-    (majorToCtor (fueledFns .verified env) env d recName rules major)
+    (majorToCtor .verified (fueledFns .verified env) env d recName rules major)
   rw [majorToCtor_unfold]
   refine SimC.pureB ?_
   obtain rfl := hden
@@ -733,7 +737,8 @@ private theorem iotaRec_fire_tail (henv : EnvWF env)
       · exact hmaj.getAppArgs x (List.mem_of_mem_drop hx)
 
 /-- Simulation of the major chain, in either order (the K flag is the
-single rule's stored bit, read identically on both sides). -/
+single rule's stored bit, read identically on both sides; off K, the
+rescue on the raw major, then, failing a constructor, the whnf chain). -/
 theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
     {d : Nat} {recName : Name} {rules : List RecRule} {i : Expr}
     {major : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
@@ -741,7 +746,7 @@ theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
     SimC mode env s₀ (RelEC d)
       (prepareMajorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName
         rules i)
-      (prepareMajor (fueledFns mode env) env d recName rules major) := by
+      (prepareMajor mode (fueledFns mode env) env d recName rules major) := by
   unfold prepareMajorI prepareMajor
   by_cases hk : recRuleK rules = true
   · rw [ite_eq_left hk, ite_eq_left hk]
@@ -754,17 +759,46 @@ theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
       exact litMajorToCtorC_sim ih hs₁ hd₁ hw₁
     · rw [ite_eq_right hca, ite_eq_right hca]
       exact SimC.pure hs₁ ⟨hd₁, hw₁⟩
-  · rw [ite_eq_right hk, ite_eq_right hk]
-    refine SimC.bind (ih.whnf hs hden hmaj) (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
-    obtain ⟨hd₁, hw₁⟩ := hP₁
-    refine SimC.bind (litMajorToCtorC_sim ih hs₁ hd₁ hw₁)
-      (fun s₂ m₂ m₂x hs₂ hP₂ => ?_)
-    obtain ⟨hd₂, hw₂⟩ := hP₂
-    exact majorToCtorC_sim hμ ih hs₂ hd₂ hw₂
+  · -- the structure rescues on the raw major first (task #342 R2)
+    rw [ite_eq_right hk, ite_eq_right hk]
+    obtain rfl := hden
+    by_cases hsl : i.isStrLit = true
+    · rw [ite_eq_left hsl, ite_eq_left hsl]
+      refine SimC.bind (SimC.pure (P := RelEC d) hs (show RelEC d i i from ⟨rfl, hmaj⟩))
+        (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
+      obtain ⟨hd₁, hw₁⟩ := hP₁
+      dsimp only
+      rw [isCtorAppC_spec' hd₁]
+      by_cases hca : isCtorApp env m₁x
+      · rw [ite_eq_left hca, ite_eq_left hca]
+        exact SimC.pure hs₁ ⟨hd₁, hw₁⟩
+      · rw [ite_eq_right hca, ite_eq_right hca]
+        refine SimC.bind (ih.whnf hs₁ hd₁ hw₁) (fun s₂ m₂ m₂x hs₂ hP₂ => ?_)
+        obtain ⟨hd₂, hw₂⟩ := hP₂
+        refine SimC.bind (litMajorToCtorC_sim ih hs₂ hd₂ hw₂)
+          (fun s₃ m₃ m₃x hs₃ hP₃ => ?_)
+        obtain ⟨hd₃, hw₃⟩ := hP₃
+        exact majorToCtorC_sim hμ ih hs₃ hd₃ hw₃
+    · rw [ite_eq_right hsl, ite_eq_right hsl]
+      refine SimC.bind (majorToCtorC_sim hμ ih hs rfl hmaj)
+        (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
+      obtain ⟨hd₁, hw₁⟩ := hP₁
+      dsimp only
+      rw [isCtorAppC_spec' hd₁]
+      by_cases hca : isCtorApp env m₁x
+      · rw [ite_eq_left hca, ite_eq_left hca]
+        exact SimC.pure hs₁ ⟨hd₁, hw₁⟩
+      · rw [ite_eq_right hca, ite_eq_right hca]
+        refine SimC.bind (ih.whnf hs₁ hd₁ hw₁) (fun s₂ m₂ m₂x hs₂ hP₂ => ?_)
+        obtain ⟨hd₂, hw₂⟩ := hP₂
+        refine SimC.bind (litMajorToCtorC_sim ih hs₂ hd₂ hw₂)
+          (fun s₃ m₃ m₃x hs₃ hP₃ => ?_)
+        obtain ⟨hd₃, hw₃⟩ := hP₃
+        exact majorToCtorC_sim hμ ih hs₃ hd₃ hw₃
 
 private theorem iotaRec_unfold (env : Env) (d : Nat)
     (e : Expr) :
-    iotaRec (fueledFns mode env) env d e =
+    iotaRec mode (fueledFns mode env) env d e =
     (match e.getAppFn with
     | .const c us =>
       match env.find? c with
@@ -772,7 +806,7 @@ private theorem iotaRec_unfold (env : Env) (d : Nat)
         if e.getAppArgs.length = mI + 1 ∧
             us.length = cv.levelParams.length ∧
             (Expr.peelPis (mI + 1) cv.type).isSome = true then
-          prepareMajor (fueledFns mode env) env d c rules
+          prepareMajor mode (fueledFns mode env) env d c rules
               (e.getAppArgs.getD mI (.bvar 0)) >>=
             fun major =>
           match major.getAppFn with
@@ -783,34 +817,36 @@ private theorem iotaRec_unfold (env : Env) (d : Nat)
               | some rl =>
                 if major.getAppArgs.length = rl.ctorParams + rl.nfields
                     then
-                    (if iotaCase3 env.find? rl cvj
-                        (recFireComparands rl cv.levelParams us
-                          cvj.levelParams e.getAppArgs rP).1 then
-                      liftFueled "level comparison" (Level.isEquivList usj
+                    (if mode.verifiedChecks then
+                      (if iotaCase3 env.find? rl cvj
                           (recFireComparands rl cv.levelParams us
-                            cvj.levelParams e.getAppArgs rP).1) >>=
-                        fun okl =>
-                      if okl then
-                        defEqList (fueledFns mode env) env d
-                            (major.getAppArgs.take rl.ctorParams)
+                            cvj.levelParams e.getAppArgs rP).1 then
+                        liftFueled "level comparison" (Level.isEquivList usj
                             (recFireComparands rl cv.levelParams us
-                              cvj.levelParams e.getAppArgs rP).2 >>=
-                          fun r₁ =>
-                        if r₁ then
-                          iotaCertsFull (fueledFns mode env) env d
-                              (cvj.type.instantiateLevelParams
-                                cvj.levelParams usj)
-                              major.getAppArgs >>= fun r₃ =>
-                          if r₃ then
-                            iotaIndexOk (fueledFns mode env) env d mI rP
-                                rl.ctorParams
+                              cvj.levelParams e.getAppArgs rP).1) >>=
+                          fun okl =>
+                        if okl then
+                          defEqList (fueledFns mode env) env d
+                              (major.getAppArgs.take rl.ctorParams)
+                              (recFireComparands rl cv.levelParams us
+                                cvj.levelParams e.getAppArgs rP).2 >>=
+                            fun r₁ =>
+                          if r₁ then
+                            iotaCertsFull (fueledFns mode env) env d
                                 (cvj.type.instantiateLevelParams
                                   cvj.levelParams usj)
-                                major.getAppArgs
-                                ((e.getAppArgs.take mI).drop rP)
+                                major.getAppArgs >>= fun r₃ =>
+                            if r₃ then
+                              iotaIndexOk (fueledFns mode env) env d mI rP
+                                  rl.ctorParams
+                                  (cvj.type.instantiateLevelParams
+                                    cvj.levelParams usj)
+                                  major.getAppArgs
+                                  ((e.getAppArgs.take mI).drop rP)
+                            else pure false
                           else pure false
                         else pure false
-                      else pure false
+                      else pure true)
                     else pure true) >>= fun r₄ =>
                     if r₄ then
                       pure (some (Expr.mkAppN
@@ -837,7 +873,7 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
     (hden : RelC i ex) (hw : Expr.WScoped d ex) :
     SimC mode env s₀ (RelOC d)
       (iotaRecI mi (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-      (iotaRec (fueledFns mode env) env d ex) := by
+      (iotaRec mode (fueledFns mode env) env d ex) := by
   obtain rfl := CheckMode.eq_verified hμ
   obtain rfl := CheckMode.eq_verified hmi
   unfold iotaRecI

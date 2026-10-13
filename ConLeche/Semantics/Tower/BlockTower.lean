@@ -34,6 +34,8 @@ to their own depth itself.
 -/
 
 namespace ConLeche.Semantics
+open ConLeche.Term (Term)
+open ConLeche.Verify (projNV)
 open ConLeche.SetModel
 
 open SetTheory
@@ -48,10 +50,10 @@ variable {V : Type uv} [SetTheory V]
 /-- The non-dependent tuple value at level `r`: `⟨G s, …, G (s+n-1)⟩`,
 with the component TYPES `Gty` at the base frame (the tail tower lifts
 its own components past the fibre binder). -/
-def ndMkTowerAV (r : Nat) (Gty G : Nat → ITerm) : Nat → Nat → ITerm
+def ndMkTowerAV (r : Nat) (Gty G : Nat → Term) : Nat → Nat → Term
   | _, 0 => .const .punitUnit [r]
   | s, n + 1 =>
-    ITerm.mkAppN (.const .psigmaMk [r, r])
+    Term.mkAppN (.const .psigmaMk [r, r])
       [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
        G s, ndMkTowerAV r Gty G (s + 1) n]
 
@@ -121,7 +123,7 @@ theorem psigmaMkV_rr_mem (r : Nat) :
 /-- **The tuple value reads back as the uniform tupler of its
 components, and is graded.**  Both halves at once: the grading's app
 slots need the value's own memberships. -/
-theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → ITerm} {F g : Nat → V}
+theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → Term} {F g : Nat → V}
     {ρ : Nat → V} :
     ∀ (n s : Nat),
       (∀ m, m < s + n → interp V ρ (Gty m) = F m) →
@@ -181,7 +183,7 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → ITerm} {F g 
     have hmk : interp V ρ (.const .psigmaMk [r, r]) = psigmaMkV V r r := rfl
     have hchain : AppChainOk (interp V ρ (.const .psigmaMk [r, r]))
         (([Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
-           G s, ndMkTowerAV r Gty G (s + 1) n] : List ITerm).map (interp V ρ)) := by
+           G s, ndMkTowerAV r Gty G (s + 1) n] : List Term).map (interp V ρ)) := by
       rw [hmk]
       have hstep := psigmaMkV_rr_mem (V := V) r
       have h1 := app_mem_piV hstep hAu
@@ -195,7 +197,7 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → ITerm} {F g 
       | 3, _ => exact piV_slot h3 hbmem (by
           rw [hBapp]; exact IsTy_of_mem_univ
             (ndTowerSet_mem_univ V n (s + 1) fun m hm => hF m (by omega)))
-    have hcl := mkAppN_wellDenoted_of_chain (f := (.const .psigmaMk [r, r] : ITerm))
+    have hcl := mkAppN_wellDenoted_of_chain (f := (.const .psigmaMk [r, r] : Term))
       (args := [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
         G s, ndMkTowerAV r Gty G (s + 1) n]) (σ := ρ) trivial
       (fun a ha => by
@@ -207,7 +209,7 @@ theorem ndMkTowerAV_facts {r : Nat} (hr : r ≠ 0) {Gty G : Nat → ITerm} {F g 
         · exact hbok)
       hchain
     refine ⟨?_, hcl.1⟩
-    show interp V ρ (ITerm.mkAppN (.const .psigmaMk [r, r])
+    show interp V ρ (Term.mkAppN (.const .psigmaMk [r, r])
       [Gty s, .lam (Gty s) (ndTowerAV r Gty (s + 1) 1 n),
        G s, ndMkTowerAV r Gty G (s + 1) n]) = _
     rw [hcl.2, hmk]
@@ -246,7 +248,7 @@ block's semantic operator, and the leaf's three laws
 
 
 open SetTheory SetTheory.Tower
-open ConLeche.Term (lv tupleIdxSort tupleFamSort)
+open ConLeche.Term (Term lv tupleIdxSort tupleFamSort)
 
 universe w
 
@@ -288,59 +290,59 @@ theorem blockS_ne_zero (k w : Nat) (uf : Nat → Nat) : blockS k w uf ≠ 0 :=
 
 /-- Member `m`'s arm of the block operator, under the family-tuple
 binder: `λ (t : I_m). Σ_j tower_{m,j}(Xs, t)`. -/
-def blockArmG (w : Nat) (uf : Nat → Nat) (Idss : Nat → List ITerm)
-    (Chs : Nat → List (List ITerm))
-    (m : Nat) : ITerm :=
+def blockArmG (w : Nat) (uf : Nat → Nat) (Idss : Nat → List Term)
+    (Chs : Nat → List (List Term))
+    (m : Nat) : Term :=
   .lam ((idxTyAV (uf m) (Idss m)).liftN 1 0)
     (sumBodyAV w (Chs m))
 
 /-- The family tuple's type, spelled at the block's own index sets
 (`Fams` at the concrete `⟨I_0, …⟩` rather than at a bound tuple). -/
-def famsTyBAV (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List ITerm) : ITerm :=
+def famsTyBAV (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List Term) : Term :=
   ndTowerAV (blockR k w uf) (fun m => famTyAV (uf m) w (Idss m)) 0 0 k
 
 /-- The index-set tuple `⟨I_0, …, I_{k-1}⟩`. -/
-def idxTupAV (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List ITerm) : ITerm :=
+def idxTupAV (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List Term) : Term :=
   ndMkTowerAV (blockS k w uf) (fun m => .sort (uf m)) (fun m => idxTyAV (uf m) (Idss m)) 0 k
 
 /-- **The block's operator**: ONE λ over the family tuple, the tuple of
 the members' arms. -/
-def blockFunG (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List ITerm)
-    (Chs : Nat → List (List ITerm)) :
-    ITerm :=
+def blockFunG (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List Term)
+    (Chs : Nat → List (List Term)) :
+    Term :=
   .lam (famsTyBAV k w uf Idss)
     (ndMkTowerAV (blockR k w uf) (fun m => (famTyAV (uf m) w (Idss m)).liftN 1 0)
       (fun m => blockArmG w uf Idss Chs m) 0 k)
 
 /-- The block's carrier tuple: `lfpTuple k` at the index-set tuple and
 the operator. -/
-def blockBodyG (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List ITerm)
-    (Chs : Nat → List (List ITerm)) :
-    ITerm :=
-  ITerm.mkAppN (.const (.lfpTuple k) (blockUs k w uf))
+def blockBodyG (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List Term)
+    (Chs : Nat → List (List Term)) :
+    Term :=
+  Term.mkAppN (.const (.lfpTuple k) (blockUs k w uf))
     [idxTupAV k w uf Idss, blockFunG k w uf Idss Chs]
 
 /-- **Member `m`'s type-former leaf**: the λ-tower over the parameter
 and index domains, the carrier tuple's `m`-th component at the tuple of
 the index variables. -/
-def blockTyG (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List ITerm)
-    (Chs : Nat → List (List ITerm))
-    (pps : List ITerm) (m : Nat) : ITerm :=
+def blockTyG (k w : Nat) (uf : Nat → Nat) (Idss : Nat → List Term)
+    (Chs : Nat → List (List Term))
+    (pps : List Term) (m : Nat) : Term :=
   mkLamsAV pps
-    (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
+    (.app (projNV m ((blockBodyG k w uf Idss Chs).liftN
         (Idss m).length 0))
       (mkTowerGo (uf m) (Idss m)))
 
 /-! ## The block's semantic operator -/
 
 /-- The members' index-tuple sets at a parameter frame. -/
-noncomputable def blockIdx (uf : Nat → Nat) (ρp : Nat → V) (Idss : Nat → List ITerm) :
+noncomputable def blockIdx (uf : Nat → Nat) (ρp : Nat → V) (Idss : Nat → List Term) :
     Nat → V := fun m => idxSet (uf m) ρp (Idss m)
 
 /-- The operator's fibre at `(Y, t)` for member `m`, with `Y` the
 family tuple AS A VALUE (the frame's family slot, which the chains read
 through `projS`). -/
-noncomputable def blockStepG (w : Nat) (ρp : Nat → V) (Chs : Nat → List (List ITerm))
+noncomputable def blockStepG (w : Nat) (ρp : Nat → V) (Chs : Nat → List (List Term))
     (m : Nat) (Y t : V) : V :=
   sumSet w (sumFibre w (cons t (cons Y ρp)) (Chs m))
 
@@ -350,7 +352,7 @@ to the chains as the uniform tupler of its components.  It is the
 spelled operator's value (`tupleOpV_blockFunVG`) at every index set, the
 empty one included, where both are the point. -/
 noncomputable def blockPhiG (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
-    (Idss : Nat → List ITerm) (Chs : Nat → List (List ITerm)) :
+    (Idss : Nat → List Term) (Chs : Nat → List (List Term)) :
     (Nat → V) → Nat → V :=
   fun Xs m => famOf (blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k))
     (idxSet (uf m) ρp (Idss m))
@@ -358,7 +360,7 @@ noncomputable def blockPhiG (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
 /-- **The block's carrier**: the least pre-fixed tuple of its
 operator. -/
 noncomputable def blockFamG (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
-    (Idss : Nat → List ITerm) (Chs : Nat → List (List ITerm)) :
+    (Idss : Nat → List Term) (Chs : Nat → List (List Term)) :
     Nat → V :=
   lfpTuple w k (blockIdx uf ρp Idss)
     (blockPhiG k w ρp uf Idss Chs)
@@ -366,18 +368,18 @@ noncomputable def blockFamG (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
 /-! ## The premises and the level bookkeeping -/
 
 /-- The members' index telescopes are graded, below `k`. -/
-def BlockIdxOk (k : Nat) (uf : Nat → Nat) (ρp : Nat → V) (Idss : Nat → List ITerm) : Prop :=
+def BlockIdxOk (k : Nat) (uf : Nat → Nat) (ρp : Nat → V) (Idss : Nat → List Term) : Prop :=
   ∀ m, m < k → IdxOk (uf m) ρp (Idss m)
 
 /-- The family tuple's carrier at the block's own index sets. -/
 noncomputable def famsSpaceB (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
-    (Idss : Nat → List ITerm) : V :=
+    (Idss : Nat → List Term) : V :=
   ndTowerSet V (blockR k w uf) (fun m => lfpFamSpace V w (idxSet (uf m) ρp (Idss m))) 0 k
 
 /-- **The X-chains are graded** at every family tuple of the tuple
 space and every index tuple of the member. -/
 def BlockChainsOkG (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
-    (Idss : Nat → List ITerm) (Chs : Nat → List (List ITerm)) :
+    (Idss : Nat → List Term) (Chs : Nat → List (List Term)) :
     Prop :=
   ∀ Y, Y ∈ˢ famsSpaceB k w ρp uf Idss → ∀ m, m < k → ∀ t, t ∈ˢ idxSet (uf m) ρp (Idss m) →
     SumFieldsOkB w (cons t (cons Y ρp))
@@ -413,8 +415,8 @@ end Levels
 
 section Facts
 
-variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List ITerm}
-  {Chs : Nat → List (List ITerm)}
+variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List Term}
+  {Chs : Nat → List (List Term)}
 
 /-- **The index-set tuple**: its value, its grading. -/
 theorem idxTupAV_facts (hI : BlockIdxOk (V := V) k uf ρp Idss) :
@@ -448,7 +450,7 @@ theorem IsTy_famsSpaceB (hI : BlockIdxOk (V := V) k uf ρp Idss) :
 /-- The family tuples are strict, with no premise: the block's tuple
 sort is positive (task #342, L6). -/
 theorem strict_famsSpaceB (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
-    (Idss : Nat → List ITerm) : Strict (famsSpaceB k w ρp uf Idss) := by
+    (Idss : Nat → List Term) : Strict (famsSpaceB k w ρp uf Idss) := by
   have h := Fib_ndTowerSet V (blockR k w uf)
     (fun m => lfpFamSpace V w (idxSet (uf m) ρp (Idss m))) 0 k
   simp only [blockR_ne_zero k w uf, decide_false, Fib_false] at h
@@ -467,15 +469,15 @@ end Facts
 /-- The block operator's value: one λ over the family tuple, the tuple
 of the members' families. -/
 noncomputable def blockFunVG (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
-    (Idss : Nat → List ITerm) (Chs : Nat → List (List ITerm)) :
+    (Idss : Nat → List Term) (Chs : Nat → List (List Term)) :
     V :=
   lamR (blockR k w uf) (famsSpaceB k w ρp uf Idss) fun Y =>
     ndMkTowerSet (fun m => famOf (blockStepG w ρp Chs m Y) (idxSet (uf m) ρp (Idss m))) 0 k
 
 section Operator
 
-variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List ITerm}
-  {Chs : Nat → List (List ITerm)}
+variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List Term}
+  {Chs : Nat → List (List Term)}
 
 theorem blockStepG_univ (hok : BlockChainsOkG k w ρp uf Idss Chs)
     {Y : V} (hY : Y ∈ˢ famsSpaceB k w ρp uf Idss) {m : Nat} (hm : m < k) {t : V}
@@ -587,8 +589,8 @@ end Operator
 
 section Body
 
-variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List ITerm}
-  {Chs : Nat → List (List ITerm)}
+variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List Term}
+  {Chs : Nat → List (List Term)}
 
 /-- The spelled index tuple inhabits the constant's first domain. -/
 theorem idxTup_mem (hI : BlockIdxOk (V := V) k uf ρp Idss) :
@@ -602,7 +604,7 @@ theorem idxTup_mem (hI : BlockIdxOk (V := V) k uf ρp Idss) :
 /-- At the spelled index tuple the constant's family-tuple space IS the
 block's own. -/
 theorem tupleFamsSpace_eq (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
-    (Idss : Nat → List ITerm) :
+    (Idss : Nat → List Term) :
     tupleFamsSpace V k (blockUs k w uf) (ndMkTowerSet (blockIdx uf ρp Idss) 0 k)
       = famsSpaceB k w ρp uf Idss := by
   unfold tupleFamsSpace famsSpaceB
@@ -686,7 +688,7 @@ theorem blockBodyG_interp (hI : BlockIdxOk (V := V) k uf ρp Idss)
 /-- **The carrier tuple is in the block's family-tuple space**, with
 no premise at all: the least pre-fixed tuple is total. -/
 theorem blockFamG_tuple_mem (k w : Nat) (ρp : Nat → V) (uf : Nat → Nat)
-    (Idss : Nat → List ITerm) (Chs : Nat → List (List ITerm)) :
+    (Idss : Nat → List Term) (Chs : Nat → List (List Term)) :
     ndMkTowerSet (blockFamG k w ρp uf Idss Chs) 0 k
       ∈ˢ famsSpaceB k w ρp uf Idss :=
   ndMkTowerSet_mem (blockR_ne_zero k w uf) k 0 fun m hm => by
@@ -734,8 +736,8 @@ end Body
 parameters AND the member's index binders: the block's index
 telescopes graded there, its X-chains graded there, and the frame's
 index tuple fitting the member's telescope. -/
-def BlockBaseG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → List ITerm)
-    (Chs : Nat → List (List ITerm))
+def BlockBaseG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → List Term)
+    (Chs : Nat → List (List Term))
     (m : Nat) : Prop :=
   BlockIdxOk k uf (shiftE (Idss m).length 0 ρ) Idss ∧
   BlockChainsOkG k w (shiftE (Idss m).length 0 ρ) uf Idss Chs ∧
@@ -743,9 +745,9 @@ def BlockBaseG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → L
 
 /-- `ParamsOkG`: member `m`'s leaf's one hereditary premise — the
 parameter and index telescope graded, `BlockBaseG` at the base. -/
-def ParamsOkG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → List ITerm)
-    (Chs : Nat → List (List ITerm))
-    (m : Nat) : List ITerm → Prop
+def ParamsOkG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → List Term)
+    (Chs : Nat → List (List Term))
+    (m : Nat) : List Term → Prop
   | [] => BlockBaseG k w ρ uf Idss Chs m
   | d :: pps => WellDenoted V ρ d ∧ IsTy (interp V ρ d) ∧
       ∀ a, a ∈ˢ interp V ρ d →
@@ -753,21 +755,21 @@ def ParamsOkG (k w : Nat) (ρ : Nat → V) (uf : Nat → Nat) (Idss : Nat → Li
 
 section Leaf
 
-variable {k w : Nat} {uf : Nat → Nat} {Idss : Nat → List ITerm}
-  {Chs : Nat → List (List ITerm)}
+variable {k w : Nat} {uf : Nat → Nat} {Idss : Nat → List Term}
+  {Chs : Nat → List (List Term)}
 
 /-- The leaf's body at the base frame: member `m`'s carrier at the
 frame's index tuple. -/
 theorem blockLeafBodyG_facts {ρ : Nat → V} {m : Nat} (hm : m < k)
     (h : BlockBaseG k w ρ uf Idss Chs m) :
-    interp V ρ (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
+    interp V ρ (.app (projNV m ((blockBodyG k w uf Idss Chs).liftN
           (Idss m).length 0)) (mkTowerGo (uf m) (Idss m)))
         = SetTheory.app
             (blockFamG k w (shiftE (Idss m).length 0 ρ) uf Idss Chs m)
             (tupW (uf m) (frameIdx (Idss m).length ρ)) ∧
-      interp V ρ (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
+      interp V ρ (.app (projNV m ((blockBodyG k w uf Idss Chs).liftN
           (Idss m).length 0)) (mkTowerGo (uf m) (Idss m))) ∈ˢ (univ w : V) ∧
-      WellDenoted V ρ (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
+      WellDenoted V ρ (.app (projNV m ((blockBodyG k w uf Idss Chs).liftN
           (Idss m).length 0)) (mkTowerGo (uf m) (Idss m))) := by
   obtain ⟨hI, hok, hsp⟩ := h
   have hρ : consList (frameIdx (Idss m).length ρ) (shiftE (Idss m).length 0 ρ) = ρ :=
@@ -785,11 +787,11 @@ theorem blockLeafBodyG_facts {ρ : Nat → V} {m : Nat} (hm : m < k)
       (Idss m).length 0)
       ∈ˢ famsSpaceB k w (shiftE (Idss m).length 0 ρ) uf Idss := by
     rw [hbv]; exact blockFamG_tuple_mem k w _ uf Idss Chs
-  have hpv : interp V ρ (projAV m ((blockBodyG k w uf Idss Chs).liftN (Idss m).length 0))
+  have hpv : interp V ρ (projNV m ((blockBodyG k w uf Idss Chs).liftN (Idss m).length 0))
       = blockFamG k w (shiftE (Idss m).length 0 ρ) uf Idss Chs m := by
-    rw [projAV_interp, hbv, projS_ndMkTowerSet k 0 m hm, Nat.zero_add]
-  have hpok : WellDenoted V ρ (projAV m ((blockBodyG k w uf Idss Chs).liftN (Idss m).length 0)) :=
-    projAV_wellDenoted_ndTower V (blockR_ne_zero k w uf) m k 0 _ ρ hm
+    rw [projNV_interp, hbv, projS_ndMkTowerSet k 0 m hm, Nat.zero_add]
+  have hpok : WellDenoted V ρ (projNV m ((blockBodyG k w uf Idss Chs).liftN (Idss m).length 0)) :=
+    projNV_wellDenoted_ndTower V (blockR_ne_zero k w uf) m k 0 _ ρ hm
       (fun c hc => famSpace_mem_blockR (by omega)
         (idxTyAV_facts (hI c (by omega))).2.1) hbok hbmem
   have htv : interp V ρ (mkTowerGo (uf m) (Idss m)) = tupW (uf m) (frameIdx (Idss m).length ρ) := by
@@ -825,7 +827,7 @@ the least fixed tuple, whose fibres are in `strictU w` — a truth value
 at `w = 0`, a strict set (of tagged tuples, or `∅`) above. -/
 theorem blockLeafBodyG_strictU {ρ : Nat → V} {m : Nat} (hm : m < k)
     (h : BlockBaseG k w ρ uf Idss Chs m) :
-    interp V ρ (.app (projAV m ((blockBodyG k w uf Idss Chs).liftN
+    interp V ρ (.app (projNV m ((blockBodyG k w uf Idss Chs).liftN
           (Idss m).length 0)) (mkTowerGo (uf m) (Idss m))) ∈ˢ (strictU w : V) := by
   rw [(blockLeafBodyG_facts hm h).1]
   exact famSpace_app (lfpTuple_mem w k _ _ m hm) (tupW_mem h.2.2)
@@ -835,7 +837,7 @@ spine fitting the parameter and index telescope, the leaf applied is
 a member of `strictU w` — so a truth value at `w = 0` and strict above
 (`Fib_of_mem_strictU`). -/
 theorem blockTyG_fold_strictU {m : Nat} (hm : m < k) :
-    ∀ {pps : List ITerm} {ρ : Nat → V} {as : List V},
+    ∀ {pps : List Term} {ρ : Nat → V} {as : List V},
       ParamsOkG k w ρ uf Idss Chs m pps → SpineFit ρ pps as →
       as.foldl SetTheory.app (interp V ρ (blockTyG k w uf Idss Chs pps m))
         ∈ˢ (strictU w : V)
@@ -852,7 +854,7 @@ theorem blockTyG_fold_strictU {m : Nat} (hm : m < k) :
 
 /-- **The leaf inhabits its type's reading.** -/
 theorem blockTyG_mem {m : Nat} (hm : m < k) :
-    ∀ {pps : List ITerm} {ρ : Nat → V},
+    ∀ {pps : List Term} {ρ : Nat → V},
       ParamsOkG k w ρ uf Idss Chs m pps →
       interp V ρ (blockTyG k w uf Idss Chs pps m)
         ∈ˢ interp V ρ (mkPisAV pps (.sort w))
@@ -867,7 +869,7 @@ theorem blockTyG_mem {m : Nat} (hm : m < k) :
 
 /-- **The leaf is graded.** -/
 theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
-    ∀ {pps : List ITerm} {ρ : Nat → V},
+    ∀ {pps : List Term} {ρ : Nat → V},
       ParamsOkG k w ρ uf Idss Chs m pps →
       WellDenoted V ρ (blockTyG k w uf Idss Chs pps m)
   | [], _, h => (blockLeafBodyG_facts hm h).2.2
@@ -882,7 +884,7 @@ theorem blockTyG_wellDenoted {m : Nat} (hm : m < k) :
 /-- **The leaf's application fold**: along a fitting parameter-and-index
 spine the leaf computes member `m`'s carrier at the spine's tuple. -/
 theorem blockTyG_fold {m : Nat} (hm : m < k)
-    {pps : List ITerm} {ρ : Nat → V} {as : List V}
+    {pps : List Term} {ρ : Nat → V} {as : List V}
     (hsp : SpineFit ρ pps as)
     (hbase : BlockBaseG k w (consList as ρ) uf Idss Chs m) :
     as.foldl SetTheory.app
@@ -911,7 +913,7 @@ override law (`Model/Inductives/BlockHoleFold.lean`).
 
 section Slot
 
-variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List ITerm}
+variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List Term}
 
 /-- **The target's component of a tuple of the family space** is a
 family over the target's index tuples. -/
@@ -927,10 +929,10 @@ end Slot
 
 section Functor
 
-variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List ITerm}
+variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List Term}
   {rsss : Nat → List (List Bool)} {tgtsss : Nat → List (List Nat)}
-  {tlsss : Nat → List (List (List ITerm))}
-  {Eisss : Nat → List (List (List ITerm))} {Fsss Esss : Nat → List (List ITerm)}
+  {tlsss : Nat → List (List (List Term))}
+  {Eisss : Nat → List (List (List Term))} {Fsss Esss : Nat → List (List Term)}
 
 /-- A tuple of the tuple space, tupled up, is in the family space. -/
 theorem ndMkTowerSet_mem_famsSpaceB {Xs : Nat → V}
@@ -943,14 +945,14 @@ theorem projS_ndMkTowerSet_zero {Xs : Nat → V} {c : Nat} (hc : c < k) :
     projS c (ndMkTowerSet Xs 0 k) = Xs c := by
   rw [projS_ndMkTowerSet k 0 c hc, Nat.zero_add]
 
-theorem app_blockPhi {Chs : Nat → List (List ITerm)} {Xs : Nat → V} {m : Nat} {t : V}
+theorem app_blockPhi {Chs : Nat → List (List Term)} {Xs : Nat → V} {m : Nat} {t : V}
     (ht : t ∈ˢ idxSet (uf m) ρp (Idss m)) :
     SetTheory.app (blockPhiG k w ρp uf Idss Chs Xs m) t
       = blockStepG w ρp Chs m (ndMkTowerSet Xs 0 k) t :=
   app_famOf ht
 
 /-- **The block's operator preserves the tuple space.** -/
-theorem blockPhi_maps_of {Chs : Nat → List (List ITerm)}
+theorem blockPhi_maps_of {Chs : Nat → List (List Term)}
     (hok : BlockChainsOkG k w ρp uf Idss Chs) :
     MapsTuple w k (blockIdx uf ρp Idss) (blockPhiG k w ρp uf Idss Chs) := by
   intro X hX m hm
@@ -982,7 +984,7 @@ value (`LfpDatum.holeVal`) at `Y`'s components: a hole stands for the
 member's whole application to the parameters.
 
 **The chains.**  Field `i` (below `i` earlier fields) is substituted in
-parallel (`ITerm.substAV`) at the cut `i`: hole
+parallel (`Term.substAV`) at the cut `i`: hole
 variables by the hole terms, the parameter frame's variables moved past
 `t` and `Y` (`holeTau`).  The result index readings likewise, below all
 fields, as the chain's index equations (`holeEqsAV`).  At a family tuple
@@ -998,42 +1000,42 @@ the operator's fibre is the injections of the spines fitting them
 /-- **A substituted term is graded** exactly when the subject is graded
 at the substituted valuation, provided the substituted terms are graded
 where they are read. -/
-theorem WellDenoted_substAV (τ : Nat → ITerm) :
-    ∀ (e : ITerm) (k : Nat) (ρ : Nat → V), (∀ j, WellDenoted V (shiftE k 0 ρ) (τ j)) →
-      (WellDenoted V ρ (ITerm.substAV τ e k) ↔ WellDenoted V (substE V τ k ρ) e) := by
+theorem WellDenoted_substAV (τ : Nat → Term) :
+    ∀ (e : Term) (k : Nat) (ρ : Nat → V), (∀ j, WellDenoted V (shiftE k 0 ρ) (τ j)) →
+      (WellDenoted V ρ (Term.substAV τ e k) ↔ WellDenoted V (substE V τ k ρ) e) := by
   intro e
   induction e with
   | bvar i =>
     intro k ρ hτ
     by_cases hi : i < k
-    · rw [ITerm.substAV_bvar_lt τ hi]; simp
-    · rw [ITerm.substAV_bvar_ge τ (by omega), WellDenoted_liftN]
+    · rw [Term.substAV_bvar_lt τ hi]; simp
+    · rw [Term.substAV_bvar_ge τ (by omega), WellDenoted_liftN]
       simp only [WellDenoted_bvar, iff_true]
       exact hτ _
-  | sort u => intro k ρ _; simp [ITerm.substAV]
-  | const c us => intro k ρ _; simp [ITerm.substAV]
-  | prf => intro k ρ _; simp [ITerm.substAV]
+  | sort u => intro k ρ _; simp [Term.substAV]
+  | const c us => intro k ρ _; simp [Term.substAV]
+  | prf => intro k ρ _; simp [Term.substAV]
   | app f a ihf iha =>
     intro k ρ hτ
-    rw [ITerm.substAV_app, WellDenoted_app, WellDenoted_app, ihf k ρ hτ, iha k ρ hτ,
+    rw [Term.substAV_app, WellDenoted_app, WellDenoted_app, ihf k ρ hτ, iha k ρ hτ,
       interp_substAV, interp_substAV]
   | lam A b ihA ihb =>
     intro k ρ hτ
     have hτ' : ∀ x, ∀ j, WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
       intro x j; rw [shiftE_succ_cons]; exact hτ j
-    rw [ITerm.substAV_lam, WellDenoted_lam, WellDenoted_lam, ihA k ρ hτ, interp_substAV]
+    rw [Term.substAV_lam, WellDenoted_lam, WellDenoted_lam, ihA k ρ hτ, interp_substAV]
     simp only [ihb (k + 1) _ (hτ' _), interp_substAV, cons_substE]
   | pi A B ihA ihB =>
     intro k ρ hτ
     have hτ' : ∀ x, ∀ j, WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
       intro x j; rw [shiftE_succ_cons]; exact hτ j
-    rw [ITerm.substAV_pi, WellDenoted_pi, WellDenoted_pi, ihA k ρ hτ, interp_substAV]
+    rw [Term.substAV_pi, WellDenoted_pi, WellDenoted_pi, ihA k ρ hτ, interp_substAV]
     simp only [ihB (k + 1) _ (hτ' _), interp_substAV, cons_substE]
   | letE v b ihv ihb =>
     intro k ρ hτ
     have hτ' : ∀ x, ∀ j, WellDenoted V (shiftE (k + 1) 0 (cons x ρ)) (τ j) := by
       intro x j; rw [shiftE_succ_cons]; exact hτ j
-    rw [ITerm.substAV_letE, WellDenoted_letE, WellDenoted_letE, ihv k ρ hτ, interp_substAV]
+    rw [Term.substAV_letE, WellDenoted_letE, WellDenoted_letE, ihv k ρ hτ, interp_substAV]
     simp only [ihb (k + 1) _ (hτ' _), cons_substE]
   | eqE a b iha ihb =>
     intro k ρ hτ
@@ -1041,10 +1043,10 @@ theorem WellDenoted_substAV (τ : Nat → ITerm) :
     rw [WellDenoted_eqE, WellDenoted_eqE, iha k ρ hτ, ihb k ρ hτ]
   | fst e ih =>
     intro k ρ hτ
-    rw [ITerm.substAV_fst, WellDenoted_fst, WellDenoted_fst, ih k ρ hτ, interp_substAV]
+    rw [Term.substAV_fst, WellDenoted_fst, WellDenoted_fst, ih k ρ hτ, interp_substAV]
   | snd e ih =>
     intro k ρ hτ
-    rw [ITerm.substAV_snd, WellDenoted_snd, WellDenoted_snd, ih k ρ hτ, interp_substAV]
+    rw [Term.substAV_snd, WellDenoted_snd, WellDenoted_snd, ih k ρ hτ, interp_substAV]
 
 /-! ## The hole terms -/
 
@@ -1052,48 +1054,48 @@ theorem WellDenoted_substAV (τ : Nat → ITerm) :
 (then the parameter frame): the λ-tower over its index telescope `Is`
 (read at the parameter frame), of `Y`'s component `m` at the tuple of the
 index variables. -/
-def holeTmAV (u m : Nat) (Is : List ITerm) : ITerm :=
+def holeTmAV (u m : Nat) (Is : List Term) : Term :=
   mkLamsAV (liftFields 2 0 Is)
-    (.app (projAV m (.bvar (Is.length + 1))) (mkTowerGo u (liftFields 2 0 Is)))
+    (.app (projNV m (.bvar (Is.length + 1))) (mkTowerGo u (liftFields 2 0 Is)))
 
 /-- **The hole substitution**: variable `j < k` (member `k - 1 - j`'s
 hole: the last member is innermost) by that member's hole term, a
 parameter-frame variable `k + j` moved past `t` and `Y`. -/
-def holeTau (k : Nat) (H : Nat → ITerm) : Nat → ITerm :=
+def holeTau (k : Nat) (H : Nat → Term) : Nat → Term :=
   fun j => if j < k then H (k - 1 - j) else .bvar (j - k + 2)
 
 /-- A constructor's fields with holes as chain entries: field `i`
 substituted at the cut `i`. -/
-def holeEntsAV (k : Nat) (H : Nat → ITerm) : Nat → List ITerm → List ITerm
+def holeEntsAV (k : Nat) (H : Nat → Term) : Nat → List Term → List Term
   | _, [] => []
-  | i, F :: Fs => ITerm.substAV (holeTau k H) F i :: holeEntsAV k H (i + 1) Fs
+  | i, F :: Fs => Term.substAV (holeTau k H) F i :: holeEntsAV k H (i + 1) Fs
 
 /-- A constructor's result index readings with holes as the chain's
 index equations (below its `nF` fields). -/
-def holeEqsAV (k : Nat) (H : Nat → ITerm) (nIdx nF : Nat) (Es : List ITerm) :
-    List (ITerm × ITerm) :=
+def holeEqsAV (k : Nat) (H : Nat → Term) (nIdx nF : Nat) (Es : List Term) :
+    List (Term × Term) :=
   (List.range nIdx).map fun l =>
-    (ITerm.substAV (holeTau k H) (Es.getD l default) nF, projAV l (.bvar nF))
+    (Term.substAV (holeTau k H) (Es.getD l default) nF, projNV l (.bvar nF))
 
 /-- **Terminated chains**: per member, per constructor, the entries and
 then the index equations. -/
-def termChs (Ents : Nat → List (List ITerm))
-    (Eqs : Nat → List (List (ITerm × ITerm))) : Nat → List (List ITerm) :=
+def termChs (Ents : Nat → List (List Term))
+    (Eqs : Nat → List (List (Term × Term))) : Nat → List (List Term) :=
   fun m => (List.range (Ents m).length).map fun j =>
     (Ents m).getD j [] ++ [idxEqAV ((Eqs m).getD j [])]
 
 /-- **The block's hole chains**: member `m`'s constructors' fields with
 holes `Fsss m` and result index readings `Esss m`, member `m` having
 `nIdxs m` indices, the holes the terms `H`. -/
-def holeChs (k : Nat) (H : Nat → ITerm) (nIdxs : Nat → Nat)
-    (Fsss Esss : Nat → List (List ITerm)) : Nat → List (List ITerm) :=
+def holeChs (k : Nat) (H : Nat → Term) (nIdxs : Nat → Nat)
+    (Fsss Esss : Nat → List (List Term)) : Nat → List (List Term) :=
   termChs (fun m => (Fsss m).map (holeEntsAV k H 0))
     (fun m => (List.range (Fsss m).length).map fun j =>
       holeEqsAV k H (nIdxs m) ((Fsss m).getD j []).length ((Esss m).getD j []))
 
 omit [SetTheory V] in
-theorem holeEntsAV_length (k : Nat) (H : Nat → ITerm) :
-    ∀ (i : Nat) (Fs : List ITerm), (holeEntsAV k H i Fs).length = Fs.length
+theorem holeEntsAV_length (k : Nat) (H : Nat → Term) :
+    ∀ (i : Nat) (Fs : List Term), (holeEntsAV k H i Fs).length = Fs.length
   | _, [] => rfl
   | i, _ :: Fs => by simp [holeEntsAV, holeEntsAV_length k H (i + 1) Fs]
 
@@ -1103,7 +1105,7 @@ theorem holeEntsAV_length (k : Nat) (H : Nat → ITerm) :
 /-- **The substituted valuation IS the hole frame**: at the operator's
 frame, position `j < k` holds member `k - 1 - j`'s hole term's value,
 the rest is the parameter frame. -/
-theorem substE_holeTau {k : Nat} {H : Nat → ITerm} {ρp : Nat → V} {t Y : V}
+theorem substE_holeTau {k : Nat} {H : Nat → Term} {ρp : Nat → V} {t Y : V}
     {hv : Nat → V} (hH : ∀ m, m < k → interp V (cons t (cons Y ρp)) (H m) = hv m) :
     substE V (holeTau k H) 0 (cons t (cons Y ρp)) = consList ((List.range k).map hv) ρp := by
   funext j
@@ -1125,15 +1127,15 @@ theorem substE_holeTau {k : Nat} {H : Nat → ITerm} {ρp : Nat → V} {t Y : V}
 
 /-- **The entries fit where the fields with holes fit** at the frame the
 substitution produces, below any common prefix. -/
-theorem spineFit_holeEntsAV (k : Nat) (H : Nat → ITerm) :
-    ∀ (Fs : List ITerm) (as : List V) (σ : Nat → V) (fs : List V),
+theorem spineFit_holeEntsAV (k : Nat) (H : Nat → Term) :
+    ∀ (Fs : List Term) (as : List V) (σ : Nat → V) (fs : List V),
       SpineFit (consList as σ) (holeEntsAV k H as.length Fs) fs ↔
         SpineFit (consList as (substE V (holeTau k H) 0 σ)) Fs fs
   | [], _, _, [] => Iff.rfl
   | [], _, _, _ :: _ => Iff.rfl
   | _ :: _, _, _, [] => Iff.rfl
   | F :: Fs, as, σ, f :: fs => by
-    show (f ∈ˢ interp V (consList as σ) (ITerm.substAV (holeTau k H) F as.length) ∧ _) ↔
+    show (f ∈ˢ interp V (consList as σ) (Term.substAV (holeTau k H) F as.length) ∧ _) ↔
       (f ∈ˢ interp V _ F ∧ _)
     have hs : substE V (holeTau k H) as.length (consList as σ)
         = consList as (substE V (holeTau k H) 0 σ) := by
@@ -1149,8 +1151,8 @@ theorem spineFit_holeEntsAV (k : Nat) (H : Nat → ITerm) :
 /-- **The index equations hold** exactly when the result index readings
 with holes, at the hole frame and the fields, are the index tuple's
 components. -/
-theorem eqAll_holeEqsAV {k : Nat} {H : Nat → ITerm} {ρp : Nat → V} {t Y : V}
-    {n nF : Nat} {Es : List ITerm} {fs : List V} (hlen : fs.length = nF) :
+theorem eqAll_holeEqsAV {k : Nat} {H : Nat → Term} {ρp : Nat → V} {t Y : V}
+    {n nF : Nat} {Es : List Term} {fs : List V} (hlen : fs.length = nF) :
     EqAll (consList fs (cons t (cons Y ρp))) (holeEqsAV k H n nF Es) ↔
       ∀ l, l < n → interp V (consList fs (substE V (holeTau k H) 0 (cons t (cons Y ρp))))
         (Es.getD l default) = projS l t := by
@@ -1159,11 +1161,11 @@ theorem eqAll_holeEqsAV {k : Nat} {H : Nat → ITerm} {ρp : Nat → V} {t Y : V
     subst hlen
     have := substE_consList V (holeTau k H) fs 0 (cons t (cons Y ρp))
     rwa [Nat.add_zero] at this
-  have hproj : ∀ l, interp V (consList fs (cons t (cons Y ρp))) (projAV l (.bvar nF))
+  have hproj : ∀ l, interp V (consList fs (cons t (cons Y ρp))) (projNV l (.bvar nF))
       = projS l t := by
     intro l
     subst hlen
-    rw [projAV_interp, interp_bvar, Xframe_t]
+    rw [projNV_interp, interp_bvar, Xframe_t]
   unfold EqAll holeEqsAV
   constructor
   · intro h l hl
@@ -1172,7 +1174,7 @@ theorem eqAll_holeEqsAV {k : Nat} {H : Nat → ITerm} {ρp : Nat → V} {t Y : V
     exact this
   · intro h e he
     obtain ⟨l, hl, rfl⟩ := List.mem_map.mp he
-    show interp V _ (ITerm.substAV _ _ _) = interp V _ (projAV _ _)
+    show interp V _ (Term.substAV _ _ _) = interp V _ (projNV _ _)
     rw [interp_substAV, hs, hproj]
     exact h l (List.mem_range.mp hl)
 
@@ -1184,7 +1186,7 @@ equations hold — the tag the chain's position, the point at a
 `Prop`-valued sort.  No premise: the chains' grading is not needed to
 read the union. -/
 theorem sumSet_termChs_mem_iff {w : Nat} {σ : Nat → V}
-    {Ents : List (List ITerm)} {Eqs : List (List (ITerm × ITerm))} {x : V} :
+    {Ents : List (List Term)} {Eqs : List (List (Term × Term))} {x : V} :
     x ∈ˢ sumSet w (sumFibre w σ ((List.range Ents.length).map fun j =>
         Ents.getD j [] ++ [idxEqAV (Eqs.getD j [])])) ↔
       ∃ j fs, j < Ents.length ∧ SpineFit σ (Ents.getD j []) fs ∧
@@ -1247,7 +1249,7 @@ entries whose index equations hold — the tag member-local, the point at
 a `Prop`-valued block (`sumSet_termChs_mem_iff` at the operator's
 frame). -/
 theorem blockStepG_termChs_mem_iff {w : Nat} {ρp : Nat → V}
-    {Ents : Nat → List (List ITerm)} {Eqs : Nat → List (List (ITerm × ITerm))}
+    {Ents : Nat → List (List Term)} {Eqs : Nat → List (List (Term × Term))}
     {m : Nat} {Y t x : V} :
     x ∈ˢ blockStepG w ρp (termChs Ents Eqs) m Y t ↔
       ∃ j fs, j < (Ents m).length ∧ SpineFit (cons t (cons Y ρp)) ((Ents m).getD j []) fs ∧
@@ -1259,8 +1261,8 @@ theorem blockStepG_termChs_mem_iff {w : Nat} {ρp : Nat → V}
 /-- **The fibre of the operator at the hole chains**: the injections of
 the spines fitting a constructor's fields with holes at the hole frame,
 whose result index readings there are the index tuple's components. -/
-theorem blockStepG_holeChs_mem_iff {w k : Nat} {ρp : Nat → V} {H : Nat → ITerm}
-    {nIdxs : Nat → Nat} {Fsss Esss : Nat → List (List ITerm)}
+theorem blockStepG_holeChs_mem_iff {w k : Nat} {ρp : Nat → V} {H : Nat → Term}
+    {nIdxs : Nat → Nat} {Fsss Esss : Nat → List (List Term)}
     {m : Nat} {Y t x : V} :
     x ∈ˢ blockStepG w ρp (holeChs k H nIdxs Fsss Esss) m Y t ↔
       ∃ j fs, j < (Fsss m).length ∧
@@ -1304,7 +1306,7 @@ theorem blockStepG_holeChs_mem_iff {w k : Nat} {ρp : Nat → V} {H : Nat → IT
 
 /-- The hole substitution's terms are graded at the operator's frame when
 the hole terms are. -/
-theorem holeTau_wellDenoted {k : Nat} {H : Nat → ITerm} {σ : Nat → V}
+theorem holeTau_wellDenoted {k : Nat} {H : Nat → Term} {σ : Nat → V}
     (hH : ∀ m, m < k → WellDenoted V σ (H m)) (as : List V) (j : Nat) :
     WellDenoted V (shiftE as.length 0 (consList as σ)) (holeTau k H j) := by
   rw [shiftE_consList]
@@ -1315,9 +1317,9 @@ theorem holeTau_wellDenoted {k : Nat} {H : Nat → ITerm} {σ : Nat → V}
 
 /-- **The entries are graded** exactly when the fields with holes are,
 at the frame the substitution produces. -/
-theorem FieldsOkB_holeEntsAV {w k : Nat} {H : Nat → ITerm} {σ : Nat → V}
+theorem FieldsOkB_holeEntsAV {w k : Nat} {H : Nat → Term} {σ : Nat → V}
     (hH : ∀ m, m < k → WellDenoted V σ (H m)) :
-    ∀ (Fs : List ITerm) (as : List V),
+    ∀ (Fs : List Term) (as : List V),
       FieldsOkB w (consList as σ) (holeEntsAV k H as.length Fs) ↔
         FieldsOkB w (consList as (substE V (holeTau k H) 0 σ)) Fs
   | [], _ => Iff.rfl
@@ -1326,7 +1328,7 @@ theorem FieldsOkB_holeEntsAV {w k : Nat} {H : Nat → ITerm} {σ : Nat → V}
         = consList as (substE V (holeTau k H) 0 σ) := by
       have := substE_consList V (holeTau k H) as 0 σ
       rwa [Nat.add_zero] at this
-    show (WellDenoted V _ (ITerm.substAV _ F _) ∧ _ ∧ _ ∧ _) ↔ (WellDenoted V _ F ∧ _ ∧ _ ∧ _)
+    show (WellDenoted V _ (Term.substAV _ F _) ∧ _ ∧ _ ∧ _) ↔ (WellDenoted V _ F ∧ _ ∧ _ ∧ _)
     rw [WellDenoted_substAV (holeTau k H) F as.length _ (holeTau_wellDenoted hH as),
       interp_substAV, hs]
     refine and_congr Iff.rfl (and_congr Iff.rfl (and_congr Iff.rfl
@@ -1337,10 +1339,10 @@ theorem FieldsOkB_holeEntsAV {w k : Nat} {H : Nat → ITerm} {σ : Nat → V}
 
 /-- **The index equations are graded** at the operator's frame, at a
 fitting field spine. -/
-theorem holeEqsAV_ok {u k : Nat} {H : Nat → ITerm} {ρp : Nat → V} {Ids : List ITerm}
+theorem holeEqsAV_ok {u k : Nat} {H : Nat → Term} {ρp : Nat → V} {Ids : List Term}
     (hI : IdxOk u ρp Ids) {Y t : V} (ht : t ∈ˢ idxSet u ρp Ids)
     (hH : ∀ m, m < k → WellDenoted V (cons t (cons Y ρp)) (H m)) {bs : List V} {nF : Nat}
-    (hlen : bs.length = nF) {Es : List ITerm}
+    (hlen : bs.length = nF) {Es : List Term}
     (hEok : ∀ E ∈ Es, WellDenoted V (consList bs (substE V (holeTau k H) 0 (cons t (cons Y ρp)))) E)
     (hEs : Es.length = Ids.length) :
     EqsOk (consList bs (cons t (cons Y ρp))) (holeEqsAV k H Ids.length nF Es) := by
@@ -1353,18 +1355,18 @@ theorem holeEqsAV_ok {u k : Nat} {H : Nat → ITerm} {ρp : Nat → V} {Ids : Li
     have := substE_consList V (holeTau k H) bs 0 (cons t (cons Y ρp))
     rwa [Nat.add_zero] at this
   refine ⟨?_, ?_⟩
-  · show WellDenoted V _ (ITerm.substAV _ _ _)
+  · show WellDenoted V _ (Term.substAV _ _ _)
     rw [WellDenoted_substAV (holeTau k H) _ bs.length _ (holeTau_wellDenoted hH bs), hs]
     exact hEok _ (getD_mem_of_lt (by omega))
-  · show WellDenoted V _ (projAV l (.bvar bs.length))
-    refine projAV_wellDenoted_tower (w := u) (Fs := Ids) (ρ := ρp) (by simp) ?_ hI.2 hl'
+  · show WellDenoted V _ (projNV l (.bvar bs.length))
+    refine projNV_wellDenoted_tower (w := u) (Fs := Ids) (ρ := ρp) (by simp) ?_ hI.2 hl'
     rw [interp_bvar, Xframe_t]
     exact ht
 
 /-- A λ-tower of graph-regime binders over a graded telescope with a
 body graded at every fitting spine is graded. -/
-theorem mkLamsAV_one_wellDenoted {b : ITerm} :
-    ∀ {Ts : List ITerm} {ρ : Nat → V}, FieldsOkB 0 ρ Ts →
+theorem mkLamsAV_one_wellDenoted {b : Term} :
+    ∀ {Ts : List Term} {ρ : Nat → V}, FieldsOkB 0 ρ Ts →
       (∀ vs, SpineFit ρ Ts vs → WellDenoted V (consList vs ρ) b) →
       WellDenoted V ρ (mkLamsAV Ts b)
   | [], _, _, hb => hb [] trivial
@@ -1379,13 +1381,13 @@ theorem mkLamsAV_one_wellDenoted {b : ITerm} :
       fun x _ => (Classical.choose_spec (hT' x)).1⟩
 
 theorem FieldsOkB_zero_of {w : Nat} :
-    ∀ {Ts : List ITerm} {ρ : Nat → V}, FieldsOkB w ρ Ts → FieldsOkB 0 ρ Ts
+    ∀ {Ts : List Term} {ρ : Nat → V}, FieldsOkB w ρ Ts → FieldsOkB 0 ρ Ts
   | [], _, _ => trivial
   | _ :: _, _, h => ⟨h.1, h.2.1, fun h0 => absurd rfl h0,
       fun a ha => FieldsOkB_zero_of (h.2.2.2 a ha)⟩
 
 theorem FieldsOkB_append_iff {w : Nat} :
-    ∀ {A B : List ITerm} {ρ : Nat → V},
+    ∀ {A B : List Term} {ρ : Nat → V},
       FieldsOkB w ρ A → (∀ vs, SpineFit ρ A vs → FieldsOkB w (consList vs ρ) B) →
       FieldsOkB w ρ (A ++ B)
   | [], _, _, _, hB => hB [] trivial
@@ -1393,7 +1395,7 @@ theorem FieldsOkB_append_iff {w : Nat} :
       FieldsOkB_append_iff (hA.2.2.2 a ha) fun vs hvs => hB (a :: vs) ⟨ha, hvs⟩⟩
 
 theorem fieldsBound_liftFields {w n : Nat} :
-    ∀ {Fs : List ITerm} {k : Nat} {σ : Nat → V},
+    ∀ {Fs : List Term} {k : Nat} {σ : Nat → V},
       FieldsBound w σ (liftFields n k Fs) ↔ FieldsBound w (shiftE n k σ) Fs
   | [], _, _ => Iff.rfl
   | F :: Fs, k, σ => by
@@ -1404,7 +1406,7 @@ theorem fieldsBound_liftFields {w n : Nat} :
 
 section Hole
 
-variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List ITerm}
+variable {k w : Nat} {ρp : Nat → V} {uf : Nat → Nat} {Idss : Nat → List Term}
 
 /-- **The hole term is graded** at the operator's frame at every family
 tuple of the tuple space: its index binders by the member's index
@@ -1441,10 +1443,10 @@ theorem holeTmAV_wellDenoted (hIall : BlockIdxOk (V := V) k uf ρp Idss) {m : Na
     · have hFu : ∀ c, c < 0 + k → lfpFamSpace V w (idxSet (uf c) ρp (Idss c))
           ∈ˢ (univ (blockR k w uf) : V) := fun c hc =>
         famSpace_mem_blockR (by omega) (idxTyAV_facts (hIall c (by omega))).2.1
-      exact projAV_wellDenoted_ndTower V (blockR_ne_zero k w uf) m k 0 _ _ hm hFu trivial
+      exact projNV_wellDenoted_ndTower V (blockR_ne_zero k w uf) m k 0 _ _ hm hFu trivial
         (by rw [interp_bvar, hY']; exact hY)
     · exact mkTowerGo_wellDenoted hok his
-    · rw [projAV_interp, interp_bvar, hY']; exact hXm
+    · rw [projNV_interp, interp_bvar, hY']; exact hXm
     · rw [htv]
       exact tupW_mem (u := uf m) hisR
 

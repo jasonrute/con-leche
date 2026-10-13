@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Kernel.PropWhen
+public import ConLeche.Kernel.Name
 public import ConLeche.Kernel.Exclusive
 /- `withPtrEq` is `public` but not `@[expose]`, and its whole point here
 is that it is *definitionally* `k ()` — which is what

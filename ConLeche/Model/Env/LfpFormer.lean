@@ -3,7 +3,8 @@ module
 public import ConLeche.Model.Env.EnvModelM
 import ConLeche.Model.Env.BlockLfpTup
 import ConLeche.Model.NatEqs
-import ConLeche.Model.Reading.DenoteMeta
+import ConLeche.Semantics.Tower.TowerKit
+import ConLeche.Verify.Denote
 
 public section
 
@@ -21,11 +22,12 @@ clause's `leaf`, and `holeVal_app`).
 -/
 
 namespace ConLeche.Model
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.SetTheory
 
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Name Level CheckMode)
 
 universe w
@@ -34,24 +36,24 @@ variable {V : Type w} [SetTheory V]
 
 /-! ## Π-towers in the graph regime -/
 
-theorem mkPisAV_append' (B : ITerm) :
-    ∀ (ab₁ ab₂ : List ITerm),
+theorem mkPisAV_append' (B : Term) :
+    ∀ (ab₁ ab₂ : List Term),
       mkPisAV (ab₁ ++ ab₂) B = mkPisAV ab₁ (mkPisAV ab₂ B)
   | [], _ => rfl
   | d :: ab₁, ab₂ => by
-    show ITerm.pi _ (mkPisAV (ab₁ ++ ab₂) B) = ITerm.pi _ _
+    show Term.pi _ (mkPisAV (ab₁ ++ ab₂) B) = Term.pi _ _
     rw [mkPisAV_append' B ab₁ ab₂]
 
 /-- An application along a Π-tower lands in its body. -/
-theorem foldl_app_mem_mkPisAV_pos {B : ITerm} {ab : List ITerm}
+theorem foldl_app_mem_mkPisAV_pos {B : Term} {ab : List Term}
     {ρ : Nat → V} {bs : List V} {f : V} (h : SpineFit ρ ab bs)
     (hf : f ∈ˢ interp V ρ (mkPisAV ab B)) : bs.foldl app f ∈ˢ interp V (consList bs ρ) B :=
   foldl_app_mem_mkPisAV h hf
 
 /-- **Extensionality along a graph-regime Π-tower**: two inhabitants
 agreeing on every fitting spine are equal. -/
-theorem eq_of_mem_mkPisAV_pos {B : ITerm} :
-    ∀ {ab : List ITerm} {ρ : Nat → V} {f g : V},
+theorem eq_of_mem_mkPisAV_pos {B : Term} :
+    ∀ {ab : List Term} {ρ : Nat → V} {f g : V},
       f ∈ˢ interp V ρ (mkPisAV ab B) → g ∈ˢ interp V ρ (mkPisAV ab B) →
       (∀ bs, SpineFit ρ ab bs → bs.foldl app f = bs.foldl app g) → f = g
   | [], _, _, _, _, _, h => h [] trivial

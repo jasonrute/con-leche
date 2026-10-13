@@ -43,6 +43,7 @@ comparison, not by construction.
 -/
 
 namespace ConLeche
+open ConLeche.Term (Term)
 
 variable {μ : CheckMode}
 
@@ -133,11 +134,12 @@ theorem erasedEq_mkAppN_args :
 end ConLeche
 
 namespace ConLeche.Model
+open ConLeche.Term (Term)
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtFvars closeTelescope
   ClassGen ClassGenScoped SameDoms classGenRecTy classBinder GenRecRun ClassRecTyRun
   FEnv mkFEnv NestState TargetMajor RecShape BlockShape BlockParts instPisWith)
@@ -534,16 +536,16 @@ variable {envT : Env} (hμ : μ.verifiedChecks = true)
   {tyA : Expr} {fvsA : List Expr} {oA : Expr}
   (hopA : openPisAtFvars rP tyA 0 = some (fvsA, oA))
   (hwA : Expr.WScoped 0 tyA) (hbA : tyA.looseBVarsBounded 0 = true)
-  {domsA domsB : List ITerm}
+  {domsA domsB : List Term}
   (hlenA : domsA.length = rP) (hlenB : domsB.length = rP)
   (hdA : ∀ (i : Nat) (x : Expr), fvsA[i]? = some x →
-    denoteMeta mp.base2.acval envT ψ i (Expr.fvarTypeD x) = some (domsA.getD i default))
+    denote mp.base2.acval envT ψ i (Expr.fvarTypeD x) = some (domsA.getD i default))
   {bs : List Expr}
   (hwbs : ∀ i, i < rP → Expr.WScoped i (bs.getD i default))
   (hbbs : ∀ i, i < rP → (bs.getD i default).looseBVarsBounded 0 = true)
   (hleafbs : ∀ i, i < rP → ∀ lf ∈ (bs.getD i default).fvarLeaves, Expr.fvar lf.1 lf.2 ∈ fvsA)
   (hdB : ∀ i, i < rP →
-    denoteMeta mp.base2.acval envT ψ i (bs.getD i default) = some (domsB.getD i default))
+    denote mp.base2.acval envT ψ i (bs.getD i default) = some (domsB.getD i default))
   (hokA : ∀ i, i < rP → ∀ (ρ : Nat → V) (ys : List V),
     SpineFit ρ (domsA.take i) ys → WellDenotedTy V (consList ys ρ) (domsA.getD i default))
   (hokB : ∀ i, i < rP → ∀ (ρ : Nat → V) (ys : List V),
@@ -601,15 +603,15 @@ theorem prefixDoms_agree_inst :
       rw [Nat.zero_add] at this
       exact this.mono (by omega)
     have hwsB : Expr.WScoped rP (bs.getD l default) := (hwbs l hl).mono (by omega)
-    have hrdA : denoteMeta mp.base2.acval envT ψ rP (Expr.fvarTypeD xA)
+    have hrdA : denote mp.base2.acval envT ψ rP (Expr.fvarTypeD xA)
         = some ((domsA.getD l default).liftN (rP - l) 0) := by
       have hw := openPisAtFvars_typeWScoped rP hopA hwA l xA hxA
       rw [Nat.zero_add] at hw
-      rw [denoteMeta_lift mp.base2.acval_closed hw rP (by omega), hdA l xA hxA]
+      rw [denote_lift mp.base2.acval_closed hw rP (by omega), hdA l xA hxA]
       rfl
-    have hrdB : denoteMeta mp.base2.acval envT ψ rP (bs.getD l default)
+    have hrdB : denote mp.base2.acval envT ψ rP (bs.getD l default)
         = some ((domsB.getD l default).liftN (rP - l) 0) := by
-      rw [denoteMeta_lift mp.base2.acval_closed (hwbs l hl) rP (by omega), hdB l hl]
+      rw [denote_lift mp.base2.acval_closed (hwbs l hl) rP (by omega), hdB l hl]
       rfl
     -- the gradings at the opening's own depth
     have hokAl : ∀ ρ : Nat → V, Sat V domsA.reverse ρ →
@@ -751,7 +753,7 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
   have hlenA : (pdoms.take pp.nP).length = pp.nP := by
     rw [List.length_take, hlenPd]; omega
   have hdA : ∀ (i : Nat) (x : Expr), xs0[i]? = some x →
-      denoteMeta mpC.base2.acval envC ψ i (Expr.fvarTypeD x)
+      denote mpC.base2.acval envC ψ i (Expr.fvarTypeD x)
         = some ((pdoms.take pp.nP).getD i default) := by
     intro i x hx
     have hi : i < pp.nP := by
@@ -776,14 +778,14 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
   have hppsLen : (dR.ppsM rc0.tgt ψ).length = dR.nP + dR.nIdxAt rc0.tgt := hFD.len ψ
   obtain ⟨tfvs, trest, hopT⟩ := ConLeche.SameDoms.open_isSome pp.nP (d := 0) hsdT
   obtain ⟨ppsT, bT, hstT, -, -, hbindT⟩ :=
-    denoteMeta_openPis (acval := mpC.base2.acval) (env := envC) (φ := ψ) pp.nP hopT (hFD.read ψ)
+    denote_openPis (acval := mpC.base2.acval) (env := envC) (φ := ψ) pp.nP hopT (hFD.read ψ)
   have hppsT : ppsT = (dR.ppsM rc0.tgt ψ).take pp.nP := by
     have := stripPisAV_mkPisAV_take pp.nP (dR.ppsM rc0.tgt ψ)
       (.sort (dR.resSort.eval ψ)) (by rw [hppsLen, hnPq']; omega)
     rw [this] at hstT
     exact congrArg Prod.fst (Option.some.inj hstT.symm)
   have hdBT : ∀ (i : Nat) (x : Expr), tfvs[i]? = some x →
-      denoteMeta mpC.base2.acval envC ψ i (Expr.fvarTypeD x)
+      denote mpC.base2.acval envC ψ i (Expr.fvarTypeD x)
         = some (((dR.ppsM rc0.tgt ψ).take dR.nP).getD i default) := by
     intro i x hx
     obtain ⟨pd, hpd, hreadD⟩ := hbindT i x hx
@@ -832,7 +834,7 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
     (fun l hl => by
       rw [hbsget l hl]
       obtain ⟨x, hx, hE⟩ := (hfacts l hl).2.2.2
-      rw [← denoteMeta_erasedEq hE, hdBT l x hx])
+      rw [← denote_erasedEq hE, hdBT l x hx])
     hokA hokB (fun l hl => by
       rw [hbsget l hl]
       obtain ⟨_, -, hde⟩ := hDof l hl

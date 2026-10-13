@@ -231,8 +231,8 @@ def natOpStoredOkF (fe : FEnv) (n : Name) : Bool :=
   | _ => false
 
 /-- `stdAxiomOk` through the index. -/
-def stdAxiomOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
-  if cvA.name = propextName then
+def stdAxiomOkF (fe : FEnv) (cv : ConstantVal) : Bool :=
+  if cv.name = propextName then
     decide (fe.find? eqName = some eqA) &&
     (match fe.find? iffName with
      | some (.indInfo cvI _) => ConstantVal.matchesPin cvI iffA.toConstantVal
@@ -245,8 +245,8 @@ def stdAxiomOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
      | some (.recInfo cvIr 4 4 _) =>
        ConstantVal.matchesPin cvIr iffRecA.toConstantVal
      | _ => false) &&
-    ConstantVal.matchesPin cvA propextA
-  else if cvA.name = choiceName then
+    ConstantVal.matchesPin cv propextA
+  else if cv.name = choiceName then
     (match fe.find? nonemptyName with
      | some (.indInfo cvN _) =>
        ConstantVal.matchesPin cvN nonemptyA.toConstantVal
@@ -259,18 +259,18 @@ def stdAxiomOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
      | some (.recInfo cvNr 3 3 _) =>
        ConstantVal.matchesPin cvNr nonemptyRecA.toConstantVal
      | _ => false) &&
-    ConstantVal.matchesPin cvA choiceA
+    ConstantVal.matchesPin cv choiceA
   else false
 
 /-- `trustCompilerOk` through the index. -/
-def trustCompilerOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
+def trustCompilerOkF (fe : FEnv) (cv : ConstantVal) : Bool :=
   (match fe.find? trueName with
    | some (.indInfo cvT _) => ConstantVal.matchesPin cvT trueCvA
    | _ => false) &&
   (match fe.find? trueIntroName with
    | some (.ctorInfo cvTi 0 0) => ConstantVal.matchesPin cvTi trueIntroCvA
    | _ => false) &&
-  ConstantVal.matchesPin cvA trustCompilerA
+  ConstantVal.matchesPin cv trustCompilerA
 
 /-- `reduceStoredOk` through the index. -/
 def reduceStoredOkF (fe : FEnv) (c : Name) : Bool :=
@@ -287,12 +287,12 @@ def reduceElemOkF (fe : FEnv) (c : Name) : Bool :=
     | _ => false
 
 /-- `ofReduceAxOk` through the index. -/
-def ofReduceAxOkF (fe : FEnv) (cvA : ConstantVal) : Bool :=
-  let c := ofReduceOp cvA.name
+def ofReduceAxOkF (fe : FEnv) (cv : ConstantVal) : Bool :=
+  let c := ofReduceOp cv.name
   decide (fe.find? eqName = some eqA) &&
   reduceElemOkF fe c &&
   reduceStoredOkF fe c &&
-  ConstantVal.matchesPin cvA (ofReducePinA cvA.name)
+  ConstantVal.matchesPin cv (ofReducePinA cv.name)
 
 /-- `reducePinGuard` through the index. -/
 def reducePinGuardF (fe : FEnv) (c : Name) : Bool :=

@@ -40,9 +40,9 @@ equations (which are what make delta steps invisible — design §7.2).
 
 Every field is V-free and mode-independent. -/
 structure EnvFacts (env : Env) where
-  /-- The type-theory term of each constant (the same `TConstVal` the
+  /-- The type-theory term of each constant (the same `(Name → (Name → Nat) → Term)` the
   denotation uses). -/
-  cval : TConstVal
+  cval : (Name → (Name → Nat) → Term)
   /-- Every constant denotes to a closed term.  Consumed by every
   lifting step. -/
   cval_closed : ∀ (n : Name) (ψ : Name → Nat), Term.Closed (cval n ψ)

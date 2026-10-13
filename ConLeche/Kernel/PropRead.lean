@@ -30,7 +30,7 @@ proof-irrelevance shortcut is always sound; its obligation is
 kernel-level agreement with the slow path, which the landing census
 records (DESIGN.md, task #168).  The **"definitely a proof" arm** is
 justified by the squash regime (`prf_of_isProofFast`,
-`ConLeche/Model/Rules/DefEqSoundKit.lean`).
+`ConLeche/Model/Rules/ProofFastSound.lean`).
 -/
 
 namespace ConLeche

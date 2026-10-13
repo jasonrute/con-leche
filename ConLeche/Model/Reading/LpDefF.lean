@@ -7,12 +7,12 @@ public section
 /-!
 # The level footprint the reading reads (`lpDefF`)
 
-`denoteMeta_params_ext` asks `allLevelParamsDefined` of the read term,
+`denote_params_ext` asks `allLevelParamsDefined` of the read term,
 and that predicate looks INSIDE an `fvar`'s type annotation — which
-`denoteMeta` never reads (an opener reads as its de Bruijn slot).
+`denote` never reads (an opener reads as its de Bruijn slot).
 `lpDefF` is the same footprint with the `fvar` types ignored: an
 opening at fvars keeps it, and the reading is ψ-congruent under it
-(`denoteMeta_params_extF`).  (Moved from `BlockRuleParams.lean`: the
+(`denote_params_extF`).  (Moved from `BlockRuleParams.lean`: the
 uniform block's datum reads its fields with holes under it too.)
 -/
 
@@ -21,16 +21,16 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo)
 
 variable {V : Type w} [SetTheory V]
 
-/-! ## 1. `lpDefF` — the level footprint `denoteMeta` reads -/
+/-! ## 1. `lpDefF` — the level footprint `denote` reads -/
 
 section LpDefF
 
-/-- Are the level parameters `denoteMeta` can read among `ps`?
+/-- Are the level parameters `denote` can read among `ps`?
 `Expr.allLevelParamsDefined` with the `fvar` type annotations
 IGNORED (an `fvar` reads as its de Bruijn slot). -/
 @[expose] def lpDefF (ps : List Name) : Expr → Bool
@@ -92,7 +92,7 @@ end LpDefF
 
 /-! ## 2. The reading is ψ-congruent at the `lpDefF` footprint
 
-`denoteMeta_params_ext` (`Model/Reading/Levels.lean`) with the one
+`denote_params_ext` (`Model/Reading/Levels.lean`) with the one
 difference in the binder cases: the body is opened at an `fvar`, and
 `lpDefF` of an opened body needs nothing of the fvar's annotation. -/
 
@@ -100,21 +100,21 @@ section Ext
 
 variable {env : Env}
 
-theorem denoteMeta_params_extF (m : EnvModel V env)
+theorem denote_params_extF (m : EnvModel V env)
     {ps : List Name} {φ₁ φ₂ : Name → Nat}
     (hφ : ∀ p ∈ ps, φ₁ p = φ₂ p) :
     ∀ (d : Nat) (e : Expr), lpDefF ps e = true →
-      denoteMeta m.acval env φ₁ d e = denoteMeta m.acval env φ₂ d e := by
+      denote m.acval env φ₁ d e = denote m.acval env φ₂ d e := by
   intro d e
-  induction d, e using denoteMeta.induct (env := env) with
+  induction d, e using denote.induct (env := env) with
   | case1 d u =>
     intro hd
-    rw [denoteMeta, denoteMeta,
+    rw [denote, denote,
       Level.eval_ext (by simpa [lpDefF] using hd) hφ]
-  | case2 d idx ty => intro _; rw [denoteMeta, denoteMeta]
+  | case2 d idx ty => intro _; rw [denote, denote]
   | case3 d n us ci h1 h2 =>
     intro hd
-    rw [denoteMeta, denoteMeta, h1]
+    rw [denote, denote, h1]
     dsimp only
     rw [ite_eq_left h2, ite_eq_left h2]
     refine congrArg _ (m.acval_params n ci h1 _ _ fun p hpm => ?_)
@@ -124,44 +124,44 @@ theorem denoteMeta_params_extF (m : EnvModel V env)
     exact hd u hu
   | case4 d n us ci h1 h2 =>
     intro _
-    rw [denoteMeta, denoteMeta, h1]
+    rw [denote, denote, h1]
     dsimp only
     rw [ite_eq_right h2, ite_eq_right h2]
-  | case5 d n us h1 => intro _; rw [denoteMeta, denoteMeta, h1]
+  | case5 d n us h1 => intro _; rw [denote, denote, h1]
   | case6 d ty body ihty ihbody =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
-    rw [denoteMeta, denoteMeta, ← ihty hd.1,
+    rw [denote, denote, ← ihty hd.1,
       ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.2)]
   | case7 d ty body ihty ihbody =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
-    rw [denoteMeta, denoteMeta, ← ihty hd.1,
+    rw [denote, denote, ← ihty hd.1,
       ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.2)]
   | case8 d fe a ihf iha =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
-    rw [denoteMeta, denoteMeta, ← ihf hd.1, ← iha hd.2]
+    rw [denote, denote, ← ihf hd.1, ← iha hd.2]
   | case9 d ty val body ihty ihv ihbody =>
     intro hd
     simp only [lpDefF, Bool.and_eq_true] at hd
-    rw [denoteMeta, denoteMeta, ← ihty hd.1.1, ← ihv hd.1.2,
+    rw [denote, denote, ← ihty hd.1.1, ← ihv hd.1.2,
       ← ihbody (lpDefF_instantiate1 rfl _ 0 hd.2)]
   | case10 d sn i e ihe =>
     intro hd
-    rw [denoteMeta, denoteMeta, ← ihe (by simpa [lpDefF] using hd)]
+    rw [denote, denote, ← ihe (by simpa [lpDefF] using hd)]
   | case11 d k hsup =>
     intro _
-    rw [denoteMeta, denoteMeta, ite_eq_left hsup, ite_eq_left hsup]
+    rw [denote, denote, ite_eq_left hsup, ite_eq_left hsup]
     obtain ⟨ez, es⟩ := acval_natPair m hsup
       (Level.substFn φ₁ [] []) (Level.substFn φ₂ [] [])
     rw [ez, es]
   | case12 d k hsup =>
     intro _
-    rw [denoteMeta, denoteMeta, ite_eq_right hsup, ite_eq_right hsup]
+    rw [denote, denote, ite_eq_right hsup, ite_eq_right hsup]
   | case13 d s hsup =>
     intro _
-    rw [denoteMeta, denoteMeta, ite_eq_left hsup, ite_eq_left hsup]
+    rw [denote, denote, ite_eq_left hsup, ite_eq_left hsup]
     have hg := hsup
     simp only [ConLeche.strLitSupported, Bool.and_eq_true] at hg
     obtain ⟨⟨⟨⟨⟨⟨⟨h0, -⟩, h2⟩, -⟩, h4⟩, h5⟩, h6⟩, h7⟩ := hg
@@ -199,11 +199,11 @@ theorem denoteMeta_params_extF (m : EnvModel V env)
     rw [ez, es, esol, echar, eofn, enil, econs]
   | case14 d s hsup =>
     intro _
-    rw [denoteMeta, denoteMeta, ite_eq_right hsup, ite_eq_right hsup]
+    rw [denote, denote, ite_eq_right hsup, ite_eq_right hsup]
   | case15 d x hxs hfv hc hpi hlam happ hlet hproj hnat hstr =>
     intro _
     cases x with
-    | bvar i => rw [denoteMeta.eq_def, denoteMeta.eq_def]
+    | bvar i => rw [denote.eq_def, denote.eq_def]
     | sort u => exact absurd rfl (hxs u)
     | fvar i ty => exact absurd rfl (hfv i ty)
     | const n vs => exact absurd rfl (hc n vs)

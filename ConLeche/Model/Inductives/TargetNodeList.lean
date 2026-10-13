@@ -41,7 +41,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level NestCtx NestHole NestKey PosTree TargetMajor
   ConstantVal BlockShape)
 
@@ -84,7 +84,7 @@ end Data
 
 section Rel
 
-variable {envC : Env} (acval : Name → (Name → Nat) → ITerm) (ctx : NestCtx)
+variable {envC : Env} (acval : Name → (Name → Nat) → Term) (ctx : NestCtx)
   (d : BlockData V) (p : BlockShape) (out : List (ConstantVal × TargetMajor × List Expr))
   (ns : List PosTree) (ψ : Name → Nat) (ρ : Nat → V) (xs : List V)
 
@@ -106,9 +106,9 @@ telescope). -/
   ∀ c, c < (tgtRs out).length → ∀ t ∈ ns, NodeMajor F envC p formerTys ctx (tgtMajor out c) t →
     SpineFit ρ (blockRulePdomsAV acval envC p (tgtRs out) ψ c) xs →
     (tgtMajor out c).ds.map (fun x => interp V (consList xs ρ)
-        ((denoteMeta acval envC ψ (tgtRP p c) x).getD default))
+        ((denote acval envC ψ (tgtRP p c) x).getD default))
       = (t.key.ds.map (nodeRb ctx t.occ)).map (fun x => interp V (consList xs ρ)
-        ((denoteMeta acval envC ψ (tgtRP p c) x).getD default))
+        ((denote acval envC ψ (tgtRP p c) x).getD default))
 
 end Rel
 
@@ -160,13 +160,13 @@ structure NodeListFacts {envC : Env} (mpC : EnvModelM V μ envC) (ctx : NestCtx)
   /-- the key's parameters are scoped at the stack's depth -/
   ws : ∀ t ∈ ns, ∀ x ∈ t.key.ds, Expr.WScoped (ctx.hiAt t.occ.length) x
   /-- and read there, at every level assignment -/
-  sp : ∀ t ∈ ns, ∀ ψ : Name → Nat, ∃ dsa, DenoteMetaSpine mpC.base2.acval envC ψ
+  sp : ∀ t ∈ ns, ∀ ψ : Name → Nat, ∃ dsa, DenoteSpine mpC.base2.acval envC ψ
     (ctx.hiAt t.occ.length) t.key.ds dsa
 
 /-- **Coverage in `NodeMajor` form** (`outsideClass_reachedNode`'s
 shape): every guarded outside class's major matches some listed
 node's key read back. -/
-@[expose] def NodeListCover (acval : Name → (Name → Nat) → ITerm) (envC : Env)
+@[expose] def NodeListCover (acval : Name → (Name → Nat) → Term) (envC : Env)
     (ctx : NestCtx) (d : BlockData V) (p : BlockShape)
     (out : List (ConstantVal × TargetMajor × List Expr)) (ns : List PosTree) (ψ : Name → Nat)
     (ρ : Nat → V) (xs : List V) (F : Nat) (formerTys : List Expr) : Prop :=
@@ -226,7 +226,7 @@ structure TgtNodeDyn (μ : CheckMode) (F : Nat) {envC : Env} (mpC : EnvModelM V 
 
 section Dyn
 
-variable {acval : Name → (Name → Nat) → ITerm} {D : LfpDatum V} {ψ : Name → Nat}
+variable {acval : Name → (Name → Nat) → Term} {D : LfpDatum V} {ψ : Name → Nat}
 
 /-- **`trans` at the TRUE frame itself** (node `0`, whose only admissible
 frame is its true one): the clause's `fitsMono` along `Y ≤ carrier`. -/

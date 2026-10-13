@@ -114,15 +114,15 @@ def installHeaderC (fe : FEnv) (cv : ConstantVal) :
 
 /-- The value's syntactic guards (those of `checkDefnValCI`, without its
 inference) — `installValueGuards`'s cached twin. -/
-def installValueGuardsC (fe : FEnv) (cvA : ConstantVal) (value : Expr) : CheckCM Unit := do
+def installValueGuardsC (fe : FEnv) (cv : ConstantVal) (value : Expr) : CheckCM Unit := do
   unless Expr.looseBVarsBounded 0 value do
-    throw (.invalid s!"loose bound variable in value of {cvA.name}")
+    throw (.invalid s!"loose bound variable in value of {cv.name}")
   if value.hasFvar then
-    throw (.invalid s!"unexpected free variable in value of {cvA.name}")
-  unless Expr.allLevelParamsDefinedC cvA.levelParams value do
-    throw (.invalid s!"undeclared universe parameter in value of {cvA.name}")
+    throw (.invalid s!"unexpected free variable in value of {cv.name}")
+  unless Expr.allLevelParamsDefinedC cv.levelParams value do
+    throw (.invalid s!"undeclared universe parameter in value of {cv.name}")
   unless constsResolveFC fe value do
-    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cvA.name}" value)
+    throw (unresolvedConstsErrorL (strLitSupportedF fe) s!"value of {cv.name}" value)
 
 /-- Phase A's guards of a separable value declaration: the
 per-declaration flush, then the header's and the value's guards. -/
@@ -259,17 +259,17 @@ the cached core at the view. -/
 def checkPending (fe : FEnv) (pc : PendingCheck) : CheckCM Unit := do
   flushC
   let fe := fe.restrictTo pc.vis
-  let jsty ← (coreKnotI mode fe checkFuel).infer 0 pc.vg.cvA.type
+  let jsty ← (coreKnotI mode fe checkFuel).infer 0 pc.vg.cv.type
   let u ← opSIxC mode fe 0 jsty
   if pc.vg.kind = .thm then do
       unless (← liftFueled "level comparison" (Level.isEquiv u .zero)) do
-        throw (.invalid s!"type of theorem {pc.vg.cvA.name} is not a proposition")
+        throw (.invalid s!"type of theorem {pc.vg.cv.name} is not a proposition")
       -- a theorem's value arrives raw: its guards run
       -- here, at the view (`installValueGuardsC` — `installValueGuards`'s twin)
-      installValueGuardsC fe pc.vg.cvA pc.vg.jv
+      installValueGuardsC fe pc.vg.cv pc.vg.jv
   let jvt ← (coreKnotI mode fe checkFuel).infer 0 pc.vg.jv
-  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt pc.vg.cvA.type do
-    throw (.invalid s!"type mismatch in {pc.vg.kind.word} {pc.vg.cvA.name}")
+  unless ← (coreKnotI mode fe checkFuel).defeq 0 jvt pc.vg.cv.type do
+    throw (.invalid s!"type mismatch in {pc.vg.kind.word} {pc.vg.cv.name}")
 
 /-- **In a properly installed environment, record `i` has been
 checked**: its check against the prefix view, from a fresh memo state,

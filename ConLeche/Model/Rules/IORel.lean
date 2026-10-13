@@ -30,14 +30,14 @@ not on its reading: two ∀s with equal values need not have equal
 domains, and a stored constant may read as a Π.  It is carried along a
 reduction of the type by `Red.rigid` (a ∀ reduces only to itself), and
 through the substitution of an application's argument by
-`denoteMeta_substFvarAt`.
+`denote_substFvarAt`.
 -/
 
 namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name)
 
 universe w
@@ -48,7 +48,7 @@ variable {V : Type w} [SetTheory V] {env : Env}
 the value. -/
 @[expose] def IOMem (m : EnvModel V env) (φ : Name → Nat) (d : Nat) (T : Expr)
     (ρ : Nat → V) (v : V) : Prop :=
-  ∃ ta, denoteMeta m.acval env φ d T = some ta ∧ WellDenotedTy V ρ ta ∧
+  ∃ ta, denote m.acval env φ d T = some ta ∧ WellDenotedTy V ρ ta ∧
     v ∈ˢ interp V ρ ta
 
 /-- **The hereditary half**, by recursion on the type's syntax: at a
@@ -59,7 +59,7 @@ other type. -/
 @[expose] def IOHered (m : EnvModel V env) (φ : Name → Nat) :
     Nat → Expr → (Nat → V) → V → Prop
   | d, .forallE ty body, ρ, v =>
-    ∃ tya, denoteMeta m.acval env φ d ty = some tya ∧ WellDenotedTy V ρ tya ∧
+    ∃ tya, denote m.acval env φ d ty = some tya ∧ WellDenotedTy V ρ tya ∧
       (∃ B' : V → V, v ∈ˢ piSet (interp V ρ tya) B') ∧
       (∃ x, x ∈ˢ interp V ρ tya ∧ SetTheory.app v x ≠ pt) ∧
       ∀ x, x ∈ˢ interp V ρ tya →
@@ -89,7 +89,7 @@ variable {m : EnvModel V env} {φ : Name → Nat}
 theorem IOHered_forallE {d : Nat} {ty body : Expr}
     {ρ : Nat → V} {v : V} :
     IOHered m φ d (.forallE ty body) ρ v ↔
-      ∃ tya, denoteMeta m.acval env φ d ty = some tya ∧ WellDenotedTy V ρ tya ∧
+      ∃ tya, denote m.acval env φ d ty = some tya ∧ WellDenotedTy V ρ tya ∧
         (∃ B' : V → V, v ∈ˢ piSet (interp V ρ tya) B') ∧
         (∃ x, x ∈ˢ interp V ρ tya ∧ SetTheory.app v x ≠ pt) ∧
         ∀ x, x ∈ˢ interp V ρ tya →
@@ -106,16 +106,16 @@ theorem IOHered.forallE {d : Nat} {T : Expr} {ρ : Nat → V} {v : V}
   | _ => simp [IOHered] at h
 
 /-- The member half at a known reading. -/
-theorem IOMem.of_reading {d : Nat} {T : Expr} {ta : ITerm} {ρ : Nat → V} {v : V}
-    (hT : denoteMeta m.acval env φ d T = some ta) (h : IOMem m φ d T ρ v) :
+theorem IOMem.of_reading {d : Nat} {T : Expr} {ta : Term} {ρ : Nat → V} {v : V}
+    (hT : denote m.acval env φ d T = some ta) (h : IOMem m φ d T ρ v) :
     WellDenotedTy V ρ ta ∧ v ∈ˢ interp V ρ ta := by
   obtain ⟨ta', hta', hw, hmem⟩ := h
   obtain rfl : ta' = ta := Option.some.inj (hta'.symm.trans hT)
   exact ⟨hw, hmem⟩
 
 /-- A membership is the io claim, neutral clause included. -/
-theorem IORelN.of_mem {d : Nat} {e T : Expr} {ta : ITerm} {ρ : Nat → V} {v : V}
-    (hT : denoteMeta m.acval env φ d T = some ta) (hw : WellDenotedTy V ρ ta)
+theorem IORelN.of_mem {d : Nat} {e T : Expr} {ta : Term} {ρ : Nat → V} {v : V}
+    (hT : denote m.acval env φ d T = some ta) (hw : WellDenotedTy V ρ ta)
     (hmem : v ∈ˢ interp V ρ ta) : IORelN m φ d e T ρ v :=
   ⟨Or.inr (Or.inl ⟨ta, hT, hw, hmem⟩), fun _ => Or.inr ⟨ta, hT, hw, hmem⟩⟩
 
@@ -125,8 +125,8 @@ theorem IORelN.pt {d : Nat} {e T : Expr} {ρ : Nat → V} :
   ⟨Or.inl rfl, fun _ => Or.inl rfl⟩
 
 /-- A membership is the io claim. -/
-theorem IORel.of_mem {d : Nat} {T : Expr} {ta : ITerm} {ρ : Nat → V} {v : V}
-    (hT : denoteMeta m.acval env φ d T = some ta) (hw : WellDenotedTy V ρ ta)
+theorem IORel.of_mem {d : Nat} {T : Expr} {ta : Term} {ρ : Nat → V} {v : V}
+    (hT : denote m.acval env φ d T = some ta) (hw : WellDenotedTy V ρ ta)
     (hmem : v ∈ˢ interp V ρ ta) : IORel m φ d T ρ v :=
   Or.inr (Or.inl ⟨ta, hT, hw, hmem⟩)
 
@@ -168,9 +168,9 @@ is the claim at the body instantiated with the argument.  One direction
 suffices: a type that is not a ∀ may become one (a variable
 instantiated with a ∀), and a member of the variable's value is then a
 member of the ∀'s. -/
-theorem IOMem_substFvarAt {p : Nat} {a : Expr} {x : ITerm}
+theorem IOMem_substFvarAt {p : Nat} {a : Expr} {x : Term}
     (hwa : Expr.WScoped p a) (hba : a.looseBVarsBounded 0 = true)
-    (ha : denoteMeta m.acval env φ p a = some x)
+    (ha : denote m.acval env φ p a = some x)
     {e : Expr} {D : Nat} {ρ : Nat → V} {v : V} (hpD : p ≤ D)
     (hfb : Expr.fvarsBelow (D + 1) e)
     (hwx : WellDenoted V (shiftE (D - p) 0 ρ) x)
@@ -178,15 +178,15 @@ theorem IOMem_substFvarAt {p : Nat} {a : Expr} {x : ITerm}
     IOMem m φ D (Expr.substFvarAt p a e) ρ v := by
   obtain ⟨ta, hta, hwT, hmem⟩ := h
   refine ⟨ta.inst x (D - p), ?_, ?_, ?_⟩
-  · rw [denoteMeta_substFvarAt m.acval_closed (acval_inst_self m) hwa hba ha e D hpD hfb,
+  · rw [denote_substFvarAt m.acval_closed (acval_inst_self m) hwa hba ha e D hpD hfb,
       hta]; rfl
   · refine ⟨(WellDenoted_inst V ta x (D - p) ρ hwx).mpr hwT.1, ?_⟩
     rw [interp_inst]; exact hwT.2
   · rw [interp_inst]; exact hmem
 
-theorem IORel_substFvarAt {p : Nat} {a : Expr} {x : ITerm}
+theorem IORel_substFvarAt {p : Nat} {a : Expr} {x : Term}
     (hwa : Expr.WScoped p a) (hba : a.looseBVarsBounded 0 = true)
-    (ha : denoteMeta m.acval env φ p a = some x) :
+    (ha : denote m.acval env φ p a = some x) :
     ∀ (e : Expr) (D : Nat) (ρ : Nat → V) (v : V), p ≤ D →
       Expr.fvarsBelow (D + 1) e →
       WellDenoted V (shiftE (D - p) 0 ρ) x →
@@ -209,7 +209,7 @@ theorem IORel_substFvarAt {p : Nat} {a : Expr} {x : ITerm}
       refine ⟨tya.inst x (D - p), ?_,
         ⟨(WellDenoted_inst V tya x (D - p) ρ hwx).mpr hwT.1, by rw [hint]; exact hwT.2⟩,
         ⟨B', by rw [hint]; exact hB'⟩, ⟨x₀, by rw [hint]; exact hx₀, hne⟩, fun y hy => ?_⟩
-      · rw [denoteMeta_substFvarAt m.acval_closed (acval_inst_self m) hwa hba ha ty D hpD
+      · rw [denote_substFvarAt m.acval_closed (acval_inst_self m) hwa hba ha ty D hpD
           hfb'.1, htya]; rfl
       rw [hint] at hy
       have hrec := IORel_substFvarAt hwa hba ha (body.instantiate1 (.fvar (D + 1) ty))

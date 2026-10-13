@@ -22,7 +22,7 @@ namespace ConLeche.Model
 open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (Env Expr Name Level ConstantVal CheckMode)
 
 /-- **The major's parameters, scoped at the rule prefix**:

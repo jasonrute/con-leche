@@ -12,8 +12,8 @@ Simulation walks relating the cached binder-telescope loops
 (`inferLamsI`/`inferPisI`, `ConLeche/Cached/CoreC.lean`) to the pure
 mirrors (`ConLeche/Verify/BinderLoop.lean`) at the fueled record, plus
 the two *tail compositions* against `inferBody`'s own λ/∀ tails.  The
-relations are `SimC` and `RelC`; binder metas and levels are trees, so
-the stack relations' meta and level legs are equations.
+relations are `SimC` and `RelC`; a stack entry is an opened domain, related
+by `RelC`.
 
 **The peel fuel is not a parameter of these walks.**  Every loop
 theorem quantifies over the fuel, so the constant `peelFuel` is an
@@ -53,9 +53,9 @@ theorem toListRev_empty {α} :
 /-! ## Stack relations -/
 
 /-- Pointwise relation of `inferLamsI` stack entries. -/
-def RelILE : InferLamEntry → InferLamEntryX → Prop := RelC
+def RelILE : Expr → Expr → Prop := RelC
 
-def RelILStk : List InferLamEntry → List InferLamEntryX → Prop
+def RelILStk : List Expr → List Expr → Prop
   | [], [] => True
   | e :: r, ex :: rx => RelILE e ex ∧ RelILStk r rx
   | _, _ => False
@@ -63,7 +63,7 @@ def RelILStk : List InferLamEntry → List InferLamEntryX → Prop
 /-! ## The infer-λ loop walks -/
 
 theorem inferLamsOutC_sim {d : Nat} :
-    ∀ {stk : List InferLamEntry} {stkx : List InferLamEntryX} {j : Nat}
+    ∀ {stk : List Expr} {stkx : List Expr} {j : Nat}
       {cur : Expr} {curx : Expr} {s₀ : CState},
       CSOK mode env s₀ → RelILStk stk stkx → RelC cur curx →
       SimC mode env s₀ RelDC (inferLamsOutI d stk j cur)
@@ -103,7 +103,7 @@ theorem inferLamsOutC_sim {d : Nat} :
 
 theorem inferLamsLeafC_sim (ih : SSimC mode env f) {d : Nat}
     {t : Expr} {tx : Expr} {k : Nat} {fvs : Array Expr} {ws : List Expr}
-    {stk : List InferLamEntry} {stkx : List InferLamEntryX} {s₀ : CState}
+    {stk : List Expr} {stkx : List Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (ht : RelC t tx)
     (hfvs : RelCL fvs.toList.reverse ws) (hstk : RelILStk stk stkx)
     (hw : Expr.WScoped (d + k) (tx.instantiateList ws)) :
@@ -123,7 +123,7 @@ theorem inferLamsLeafC_sim (ih : SSimC mode env f) {d : Nat}
 theorem inferLamsC_sim (ih : SSimC mode env f) {d : Nat} :
     ∀ (fuel : Nat) {t : Expr} {tx : Expr} {k : Nat}
       {fvs : Array Expr} {ws : List Expr}
-      {stk : List InferLamEntry} {stkx : List InferLamEntryX}
+      {stk : List Expr} {stkx : List Expr}
       {s₀ : CState},
       CSOK mode env s₀ → RelC t tx →
       RelCL fvs.toList.reverse ws → RelILStk stk stkx →

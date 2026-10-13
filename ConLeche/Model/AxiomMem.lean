@@ -31,7 +31,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantInfo ConstantVal
  )
 
@@ -43,7 +43,7 @@ variable {μ : CheckMode} {env : Env}
 /-! ## Elimination at a reading -/
 
 /-- Elimination at a `pi` reading: no side condition. -/
-theorem app_mem_pi {ρ : Nat → V} {Aa Ba : ITerm}
+theorem app_mem_pi {ρ : Nat → V} {Aa Ba : Term}
     {f a : V} (hf : f ∈ˢ interp V ρ (.pi Aa Ba))
     (ha : a ∈ˢ interp V ρ Aa) :
     SetTheory.app f a ∈ˢ interp V (cons a ρ) Ba := by
@@ -120,13 +120,13 @@ theorem iffVal_app₂_memP (mp : EnvModelM V μ env)
         (interp V ρ (mp.base2.acval iffName ψ)) A) B
       ∈ˢ (univ 0 : V) := by
   have hsh := iff_shapeS htyI
-  have hden : denoteMeta mp.base2.acval env ψ 0
+  have hden : denote mp.base2.acval env ψ 0
       (ConstantInfo.indInfo cvI caps).toConstantVal.type
       = some (.pi (.sort 0)
           (.pi (.sort 0) (.sort 0))) := by
-    show denoteMeta mp.base2.acval env ψ 0 cvI.type = _
+    show denote mp.base2.acval env ψ 0 cvI.type = _
     rw [hsh]
-    simp [denoteMeta_forallE, denoteMeta_sort, Expr.instantiate1, Level.eval]
+    simp [denote_forallE, denote_sort, Expr.instantiate1, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfI) ψ _ hden ρ
   rw [Env.find?_name hfI] at hmem
   have h1 := app_mem_pi hmem (by rw [interp_sort]; exact hA)
@@ -183,19 +183,19 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
       rw [show (ConstantInfo.indInfo cvI caps).toConstantVal = cvI
         from rfl, hlpI]
       intro p hp; cases hp)
-  have hI : ∀ d, denoteMeta mp.base2.acval env (fun _ => 0) d
+  have hI : ∀ d, denote mp.base2.acval env (fun _ => 0) d
       (.const iffName []) = some (mp.base2.acval iffName (fun _ => 0)) :=
-    fun d => denoteMeta_levelless_const hfI (by
+    fun d => denote_levelless_const hfI (by
       rw [show (ConstantInfo.indInfo cvI caps).toConstantVal = cvI
         from rfl, hlpI])
-  have hIi : ∀ d, denoteMeta mp.base2.acval env (fun _ => 0) d
+  have hIi : ∀ d, denote mp.base2.acval env (fun _ => 0) d
       (.const iffIntroName [])
         = some (mp.base2.acval iffIntroName (fun _ => 0)) :=
-    fun d => denoteMeta_levelless_const hfIi (by
+    fun d => denote_levelless_const hfIi (by
       rw [show (ConstantInfo.ctorInfo cvIi 2 2).toConstantVal = cvIi
         from rfl, hlpIi])
   -- the recursor's stored type, read at the zero assignment
-  have hden : denoteMeta mp.base2.acval env (fun _ => 0) 0
+  have hden : denote mp.base2.acval env (fun _ => 0) 0
       (ConstantInfo.recInfo cvIr mI rP rules).toConstantVal.type
       = some (.pi (.sort 0)
         (.pi (.sort 0)
@@ -210,9 +210,9 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
               (.pi (.app (.app (mp.base2.acval iffName (fun _ => 0))
                   (.bvar 3)) (.bvar 2))
                 (.app (.bvar 2) (.bvar 0))))))) := by
-    show denoteMeta mp.base2.acval env (fun _ => 0) 0 cvIr.type = _
+    show denote mp.base2.acval env (fun _ => 0) 0 cvIr.type = _
     rw [hsh]
-    simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+    simp [denote_forallE, denote_sort, denote_app, denote_fvar,
       Expr.instantiate1, hI, hIi, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfIr) _ _ hden ρ
   rw [Env.find?_name hfIr] at hmem
@@ -223,10 +223,10 @@ theorem iff_forces_eq (mp : EnvModelM V μ env)
         = interp V ρ (mp.base2.acval iffName ψ) :=
     fun ρ' => acval_interp_closed mp.base2 _ ψ ρ' ρ
   -- ARG 1 and 2: the two propositions
-  have hAd : A ∈ˢ interp V ρ (ITerm.sort 0) := by
+  have hAd : A ∈ˢ interp V ρ (Term.sort 0) := by
     rw [interp_sort]; exact hA
   have h1 := app_mem_pi hmem hAd
-  have hBd : B ∈ˢ interp V (cons A ρ) (ITerm.sort 0) := by
+  have hBd : B ∈ˢ interp V (cons A ρ) (Term.sort 0) := by
     rw [interp_sort]; exact hB
   have h2 := app_mem_pi h1 hBd
   -- ARG 3: the constantly-`eqv A B` motive
@@ -296,16 +296,16 @@ value is `eq_law`'s (the field, at the pin's own level instantiation
 
 /-- **`propext` inhabits its stored type's reading.** -/
 theorem propext_mem (mp : EnvModelM V μ env)
-    {cvA : ConstantVal} (hok : ConLeche.stdAxiomOk env cvA = true)
-    (hn : cvA.name = propextName)
-    (ψ : Name → Nat) (ta : ITerm)
-    (hta : denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta)
+    {cv : ConstantVal} (hok : ConLeche.stdAxiomOk env cv = true)
+    (hn : cv.name = propextName)
+    (ψ : Name → Nat) (ta : Term)
+    (hta : denote mp.base2.acval env ψ 0 cv.type = some ta)
     (ρ : Nat → V) :
     interp V ρ (.const .propext []) ∈ˢ interp V ρ ta := by
   obtain ⟨hEq, ⟨cvI, caps, hfI, hlpI, htyI⟩, ⟨cvIi, hfIi, hlpIi, htyIi⟩,
     ⟨cvIr, mI, rP, rules, hfIr, hlpIr, htyIr⟩, hApin⟩ :=
     iff_shapes hok hn
-  have hApinT : cvA.type
+  have hApinT : cv.type
       = propextA.type := by
     simp only [ConstantVal.matchesPin, Bool.and_eq_true,
       beq_iff_eq] at hApin
@@ -315,18 +315,18 @@ theorem propext_mem (mp : EnvModelM V μ env)
   -- the `Eq` former's one level parameter is pinned to `1`
   have heqψ : Level.substFn ψ eqA.toConstantVal.levelParams
       [Level.zero.succ] uN = 1 := rfl
-  have hI : ∀ e, denoteMeta mp.base2.acval env ψ e (.const iffName [])
+  have hI : ∀ e, denote mp.base2.acval env ψ e (.const iffName [])
       = some (mp.base2.acval iffName ψ) :=
-    fun e => denoteMeta_levelless_const hfI (by
+    fun e => denote_levelless_const hfI (by
       rw [show (ConstantInfo.indInfo cvI caps).toConstantVal = cvI
         from rfl, hlpI])
-  have hQ : ∀ e, denoteMeta mp.base2.acval env ψ e
+  have hQ : ∀ e, denote mp.base2.acval env ψ e
       (.const eqName [Level.zero.succ])
       = some (mp.base2.acval eqName (Level.substFn ψ
           eqA.toConstantVal.levelParams [Level.zero.succ])) :=
-    fun e => denoteMeta_const hEq rfl
+    fun e => denote_const hEq rfl
   -- the stored type's reading
-  have hden : denoteMeta mp.base2.acval env ψ 0
+  have hden : denote mp.base2.acval env ψ 0
       (.forallE (.sort .zero)
         (.forallE (.sort .zero)
           (.forallE
@@ -339,7 +339,7 @@ theorem propext_mem (mp : EnvModelM V μ env)
                 (Level.substFn ψ eqA.toConstantVal.levelParams
                   [Level.zero.succ])) (.sort 0)) (.bvar 2))
               (.bvar 1))))) := by
-    simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+    simp [denote_forallE, denote_sort, denote_app, denote_fvar,
       Expr.instantiate1, hI, hQ, Level.eval]
   obtain rfl : ta = _ := Option.some.inj (hta.symm.trans hden)
   -- the leaves' interpretations do not read the environment
@@ -414,15 +414,15 @@ theorem nonemptyRec_shapeS {ty : Expr}
 
 /-- A member of the `Nonempty` family, referenced at its own level
 parameter, reads to its leaf at the plain assignment. -/
-theorem denoteMeta_selfParam_constS {acval : Name → (Name → Nat) → ITerm}
+theorem denote_selfParam_constS {acval : Name → (Name → Nat) → Term}
     {ψ : Name → Nat} {d : Nat} {n : Name} {ci : ConstantInfo}
     (hf : env.find? n = some ci)
     (hlp : ci.toConstantVal.levelParams = [uN]) :
-    denoteMeta acval env ψ d (.const n [.param uN]) = some (acval n ψ) := by
-  have h : denoteMeta acval env ψ d (.const n [.param uN])
+    denote acval env ψ d (.const n [.param uN]) = some (acval n ψ) := by
+  have h : denote acval env ψ d (.const n [.param uN])
       = some (acval n (Level.substFn ψ
           ci.toConstantVal.levelParams [Level.param uN])) :=
-    denoteMeta_const hf (by rw [hlp]; rfl)
+    denote_const hf (by rw [hlp]; rfl)
   rwa [hlp, show Level.substFn ψ [uN] [Level.param uN] = ψ from
     funext fun _ => Level.substFn_map_param] at h
 
@@ -436,12 +436,12 @@ theorem nonemptyVal_app_mem (mp : EnvModelM V μ env)
     SetTheory.app (interp V ρ (mp.base2.acval nonemptyName ψ)) A
       ∈ˢ (univ 0 : V) := by
   have hsh := nonempty_shapeS htyN
-  have hden : denoteMeta mp.base2.acval env ψ 0
+  have hden : denote mp.base2.acval env ψ 0
       (ConstantInfo.indInfo cvN capsN).toConstantVal.type
       = some (.pi (.sort (ψ uN)) (.sort 0)) := by
-    show denoteMeta mp.base2.acval env ψ 0 cvN.type = _
+    show denote mp.base2.acval env ψ 0 cvN.type = _
     rw [hsh]
-    simp [denoteMeta_forallE, denoteMeta_sort, Expr.instantiate1, Level.eval]
+    simp [denote_forallE, denote_sort, Expr.instantiate1, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfN) ψ _ hden ρ
   rw [Env.find?_name hfN] at hmem
   have h1 := app_mem_pi hmem (by rw [interp_sort]; exact hA)
@@ -461,19 +461,19 @@ theorem nonemptyIntroVal_app₂_memP (mp : EnvModelM V μ env)
         (interp V ρ (mp.base2.acval nonemptyIntroName ψ)) A) a
       ∈ˢ SetTheory.app (interp V ρ (mp.base2.acval nonemptyName ψ)) A := by
   have hsh := nonemptyIntro_shapeS htyNi
-  have hN : ∀ e, denoteMeta mp.base2.acval env ψ e
+  have hN : ∀ e, denote mp.base2.acval env ψ e
       (.const nonemptyName [.param uN])
       = some (mp.base2.acval nonemptyName ψ) :=
-    fun e => denoteMeta_selfParam_constS hfN (by
+    fun e => denote_selfParam_constS hfN (by
       show cvN.levelParams = [uN]; rw [hlpN]; rfl)
-  have hden : denoteMeta mp.base2.acval env ψ 0
+  have hden : denote mp.base2.acval env ψ 0
       (ConstantInfo.ctorInfo cvNi 1 1).toConstantVal.type
       = some (.pi (.sort (ψ uN))
           (.pi (.bvar 0)
             (.app (mp.base2.acval nonemptyName ψ) (.bvar 1)))) := by
-    show denoteMeta mp.base2.acval env ψ 0 cvNi.type = _
+    show denote mp.base2.acval env ψ 0 cvNi.type = _
     rw [hsh]
-    simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+    simp [denote_forallE, denote_sort, denote_app, denote_fvar,
       Expr.instantiate1, hN, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfNi) ψ _ hden ρ
   rw [Env.find?_name hfNi] at hmem
@@ -481,10 +481,10 @@ theorem nonemptyIntroVal_app₂_memP (mp : EnvModelM V μ env)
       interp V ρ' (mp.base2.acval nonemptyName ψ)
         = interp V ρ (mp.base2.acval nonemptyName ψ) :=
     fun ρ' => acval_interp_closed mp.base2 _ ψ ρ' ρ
-  have hAd : A ∈ˢ interp V ρ (ITerm.sort (ψ uN)) := by
+  have hAd : A ∈ˢ interp V ρ (Term.sort (ψ uN)) := by
     rw [interp_sort]; exact hA
   have h1 := app_mem_pi hmem hAd
-  have had : a ∈ˢ interp V (cons A ρ) (ITerm.bvar 0) := ha
+  have had : a ∈ˢ interp V (cons A ρ) (Term.bvar 0) := ha
   have h2 := app_mem_pi h1 had
   simpa only [interp_app, interp_bvar, cons_zero, cons_succ, hNc]
     using h2
@@ -513,17 +513,17 @@ theorem nonemptyVal_forces (mp : EnvModelM V μ env)
     ∃ x, x ∈ˢ A := by
   refine Classical.byContradiction fun hno => ?_
   have hsh := nonemptyRec_shapeS htyNr
-  have hN : ∀ e, denoteMeta mp.base2.acval env ψ e
+  have hN : ∀ e, denote mp.base2.acval env ψ e
       (.const nonemptyName [.param uN])
       = some (mp.base2.acval nonemptyName ψ) :=
-    fun e => denoteMeta_selfParam_constS hfN (by
+    fun e => denote_selfParam_constS hfN (by
       show cvN.levelParams = [uN]; rw [hlpN]; rfl)
-  have hNi : ∀ e, denoteMeta mp.base2.acval env ψ e
+  have hNi : ∀ e, denote mp.base2.acval env ψ e
       (.const nonemptyIntroName [.param uN])
       = some (mp.base2.acval nonemptyIntroName ψ) :=
-    fun e => denoteMeta_selfParam_constS hfNi (by
+    fun e => denote_selfParam_constS hfNi (by
       show cvNi.levelParams = [uN]; rw [hlpNi]; rfl)
-  have hden : denoteMeta mp.base2.acval env ψ 0
+  have hden : denote mp.base2.acval env ψ 0
       (ConstantInfo.recInfo cvNr mI rP rulesN).toConstantVal.type
       = some (.pi (.sort (ψ uN))
         (.pi (.pi (.app (mp.base2.acval nonemptyName ψ) (.bvar 0)) (.sort 0))
@@ -533,9 +533,9 @@ theorem nonemptyVal_forces (mp : EnvModelM V μ env)
                   (.bvar 2)) (.bvar 0))))
             (.pi (.app (mp.base2.acval nonemptyName ψ) (.bvar 2))
               (.app (.bvar 2) (.bvar 0)))))) := by
-    show denoteMeta mp.base2.acval env ψ 0 cvNr.type = _
+    show denote mp.base2.acval env ψ 0 cvNr.type = _
     rw [hsh]
-    simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+    simp [denote_forallE, denote_sort, denote_app, denote_fvar,
       Expr.instantiate1, hN, hNi, Level.eval]
   have hmem := mp.mem_type _ (Env.find?_mem hfNr) ψ _ hden ρ
   rw [Env.find?_name hfNr] at hmem
@@ -544,7 +544,7 @@ theorem nonemptyVal_forces (mp : EnvModelM V μ env)
         = interp V ρ (mp.base2.acval nonemptyName ψ) :=
     fun ρ' => acval_interp_closed mp.base2 _ ψ ρ' ρ
   -- ARG 1: the type
-  have hAd : A ∈ˢ interp V ρ (ITerm.sort (ψ uN)) := by
+  have hAd : A ∈ˢ interp V ρ (Term.sort (ψ uN)) := by
     rw [interp_sort]; exact hA
   have h1 := app_mem_pi hmem hAd
   -- ARG 2: the constantly-`∅` motive
@@ -633,28 +633,28 @@ leaf is the layer's own `choice` constant; `dneg_eq_nonempty`
 identifies the witness's double-negation domain with the checker's
 stored `Nonempty`. -/
 theorem choice_mem (mp : EnvModelM V μ env)
-    {cvA : ConstantVal} (hok : ConLeche.stdAxiomOk env cvA = true)
-    (hn : cvA.name = choiceName)
-    (ψ : Name → Nat) (ta : ITerm)
-    (hta : denoteMeta mp.base2.acval env ψ 0 cvA.type = some ta)
+    {cv : ConstantVal} (hok : ConLeche.stdAxiomOk env cv = true)
+    (hn : cv.name = choiceName)
+    (ψ : Name → Nat) (ta : Term)
+    (hta : denote mp.base2.acval env ψ 0 cv.type = some ta)
     (ρ : Nat → V) :
     interp V ρ (.const .choice [ψ uN]) ∈ˢ interp V ρ ta := by
   obtain ⟨⟨cvN, capsN, hfN, hlpN, htyN⟩, ⟨cvNi, hfNi, hlpNi, htyNi⟩,
     ⟨cvNr, mI, rP, rulesN, hfNr, hlpNr, htyNr⟩, hApin⟩ :=
     nonempty_shapes hok hn
-  have hApinT : cvA.type
+  have hApinT : cv.type
       = choiceA.type := by
     simp only [ConstantVal.matchesPin, Bool.and_eq_true,
       beq_iff_eq] at hApin
     exact hApin.2
   have hsh := choice_shapeS hApinT
   rw [hsh] at hta
-  have hN : ∀ e, denoteMeta mp.base2.acval env ψ e
+  have hN : ∀ e, denote mp.base2.acval env ψ e
       (.const nonemptyName [.param uN])
       = some (mp.base2.acval nonemptyName ψ) :=
-    fun e => denoteMeta_selfParam_constS hfN (by
+    fun e => denote_selfParam_constS hfN (by
       show cvN.levelParams = [uN]; rw [hlpN]; rfl)
-  have hden : denoteMeta mp.base2.acval env ψ 0
+  have hden : denote mp.base2.acval env ψ 0
       (.forallE (.sort (.param uN))
         (.forallE
           (.app (.const nonemptyName [.param uN]) (.bvar 0))
@@ -662,7 +662,7 @@ theorem choice_mem (mp : EnvModelM V μ env)
       = some (.pi (.sort (ψ uN))
           (.pi (.app (mp.base2.acval nonemptyName ψ) (.bvar 0))
             (.bvar 1))) := by
-    simp [denoteMeta_forallE, denoteMeta_sort, denoteMeta_app, denoteMeta_fvar,
+    simp [denote_forallE, denote_sort, denote_app, denote_fvar,
       Expr.instantiate1, hN, Level.eval]
   obtain rfl : ta = _ := Option.some.inj (hta.symm.trans hden)
   have hNc : ∀ ρ' : Nat → V,

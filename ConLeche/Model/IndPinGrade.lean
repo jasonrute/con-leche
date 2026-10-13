@@ -13,7 +13,7 @@ public section
 # The nested-pin grading, produced (task #161, IND TIER part 7)
 
 `RecRuleLaw`'s nested-pin conjunct grades
-`ITerm.instRevChain zs vpa` — the term the equality half already
+`Term.instRevChain zs vpa` — the term the equality half already
 names — under the prefix telescope's own fit.  This file establishes
 exactly that, from the certificate the checker runs on the
 instantiated pins.
@@ -59,7 +59,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level)
 
 universe w
@@ -74,7 +74,7 @@ entries *and* be **graded**.  `.prf` fails the first
 (`pt_not_mem_univZero`); a reflexive equation does both. -/
 
 /-- The reading tier's spine padding: a closed truth value. -/
-def padA : ITerm := .eqE (.sort 0) (.sort 0)
+def padA : Term := .eqE (.sort 0) (.sort 0)
 
 @[simp] theorem interp_padA (ρ : Nat → V) :
     interp V ρ padA = eqv (univ 0 : V) (univ 0) := by
@@ -87,7 +87,7 @@ theorem wellDenoted_padA (ρ : Nat → V) : WellDenoted V ρ padA := by
 /-! ## The chain's ambient environment -/
 
 /-- Shifting past a whole reading chain cancels it. -/
-theorem shiftE_chain (ρ : Nat → V) (ws : List ITerm) :
+theorem shiftE_chain (ρ : Nat → V) (ws : List Term) :
     shiftE ws.length 0 (chain V ρ ws) = ρ := by
   funext i
   show (if i < 0 then _ else chain V ρ ws (i + ws.length)) = ρ i
@@ -105,10 +105,10 @@ the ambient one, is graded at the ambient one.
 *is* the `instE` the substitution lemma produces — and
 `shiftE_chain` cancels the lift each argument carries. -/
 theorem wellDenoted_instSeq {ρ : Nat → V} :
-    ∀ (ws : List ITerm) {X : ITerm},
+    ∀ (ws : List Term) {X : Term},
       (∀ w ∈ ws, WellDenoted V ρ w) →
       WellDenoted V (chain V ρ ws) X →
-      WellDenoted V ρ (ConLeche.Model.ITerm.instSeq ws (ws.length - 1) X) := by
+      WellDenoted V ρ (Term.instSeq ws (ws.length - 1) X) := by
   intro ws
   induction ws with
   | nil => intro X _ hX; exact hX
@@ -123,7 +123,7 @@ theorem wellDenoted_instSeq {ρ : Nat → V} :
       rw [hshift, ← chain_cons_eq_instE]
       exact hX
     have h := ih (fun x hx => hoks x (List.mem_cons_of_mem _ hx)) hstep
-    show WellDenoted V ρ (ConLeche.Model.ITerm.instSeq ws
+    show WellDenoted V ρ (Term.instSeq ws
       ((w :: ws).length - 1 - 1) (X.inst w ((w :: ws).length - 1)))
     simpa using h
 
@@ -135,9 +135,9 @@ occupy `0 … rP - 1`, so the context is `cnF` padding slots below the
 recursor tower's own `rP`.  The chain of `zs ++ replicate cnF padA`
 satisfies it: above the padding it is the prefix chain (the fit's own
 `Sat`), and each padding slot holds a truth value. -/
-theorem sat_padded_chain {rP cnF : Nat} {TVa RP : ITerm}
-    {ΓP : List ITerm} (htowerP : PiTeleAV rP TVa ΓP RP)
-    {zs : List ITerm} {ρ : Nat → V} {restR : ITerm}
+theorem sat_padded_chain {rP cnF : Nat} {TVa RP : Term}
+    {ΓP : List Term} (htowerP : PiTeleAV rP TVa ΓP RP)
+    {zs : List Term} {ρ : Nat → V} {restR : Term}
     (hzslen : zs.length = rP) (hfit : TeleFitPA V ρ TVa zs restR) :
     Sat V (List.replicate cnF (.sort 0) ++ ΓP)
       (chain V ρ (zs ++ List.replicate cnF padA)) := by
@@ -163,7 +163,7 @@ theorem sat_padded_chain {rP cnF : Nat} {TVa RP : ITerm}
             hzslen, List.getElem?_replicate_of_lt (by omega)]
           rfl]
       rw [interp_padA]
-    show _ ∈ˢ interp V _ (ITerm.sort 0)
+    show _ ∈ˢ interp V _ (Term.sort 0)
     rw [interp_sort, hval]
     exact eqv_mem_univ _ _
   · -- a tower slot: the chain is the prefix chain, shifted
@@ -214,14 +214,12 @@ frame's padded context, on the *instantiated* pin `Expr.instSpine os (rP - 1) p`
 
 The conclusion is `RecRuleLaw`'s conjunct verbatim, at the
 chain the equality half names. -/
-theorem nestedPinGrade {acval : Name → (Name → Nat) → ITerm}
-    {cval : TConstVal}
+theorem nestedPinGrade {acval : Name → (Name → Nat) → Term}
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (k : Nat),
       (acval n ψ).liftN 1 k = acval n ψ)
-    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : ITerm) (k : Nat),
+    (hainst : ∀ (n : Name) (ψ : Name → Nat) (y : Term) (k : Nat),
       (acval n ψ).inst y k = acval n ψ)
-    (hlink : ∀ n ψ, (acval n ψ).erase = cval n ψ)
-    (hcl : ∀ n ψ, Term.Closed (cval n ψ))
+    (hcl : ∀ n ψ, Term.Closed (acval n ψ))
     {rP cnF : Nat} {os : List Expr} (hoslen : os.length = rP)
     (hshape : ∀ (i : Nat) (x : Expr), os[i]? = some x →
       ∃ ty, x = Expr.fvar i ty)
@@ -229,27 +227,27 @@ theorem nestedPinGrade {acval : Name → (Name → Nat) → ITerm}
     (hbOs : ∀ x ∈ os, x.looseBVarsBounded 0 = true)
     {p : Expr} (hpw : p.hasFvar = false)
     (hpb : p.looseBVarsBounded rP = true)
-    {vpa : ITerm}
-    (hvpden : denoteMeta acval env φ rP (openRev 0 rP p) = some vpa)
+    {vpa : Term}
+    (hvpden : denote acval env φ rP (openRev 0 rP p) = some vpa)
     -- the recursor's own tower, and the ambient context the
     -- certificate's conversion is guarded by
-    {TVa RP : ITerm} {ΓP : List ITerm}
+    {TVa RP : Term} {ΓP : List Term}
     (htowerP : PiTeleAV rP TVa ΓP RP)
     -- the certificate, in claims-layer form, on the INSTANTIATED pin
-    (hcert : ∀ w0 : ITerm,
-      denoteMeta acval env φ (rP + cnF)
+    (hcert : ∀ w0 : Term,
+      denote acval env φ (rP + cnF)
         (Expr.instSpine os (rP - 1) p) = some w0 →
       ∀ σ : Nat → V,
         Sat V (List.replicate cnF (.sort 0) ++ ΓP) σ →
         WellDenoted V σ w0)
     -- the repaired conjunct's own hypotheses
-    {ρ : Nat → V} {zs : List ITerm} {restR : ITerm}
+    {ρ : Nat → V} {zs : List Term} {restR : Term}
     (hzslen : zs.length = rP)
     (hzsOk : ∀ z ∈ zs, WellDenoted V ρ z)
     (hfit : TeleFitPA V ρ TVa zs restR) :
-    WellDenoted V ρ (ConLeche.Model.ITerm.instRevChain zs vpa) := by
-  obtain ⟨w0, hw0, hcross⟩ := pinCross (acval := acval) (cval := cval)
-    (env := env) (φ := φ) (cnF := cnF) hacl hainst hlink hcl padA hoslen
+    WellDenoted V ρ (Term.instRevChain zs vpa) := by
+  obtain ⟨w0, hw0, hcross⟩ := pinCross (acval := acval)
+    (env := env) (φ := φ) (cnF := cnF) hacl hainst hcl padA hoslen
     hshape hwsOs hbOs hpw hpb hvpden hzslen (vals := zs) (n := rP)
     hzslen (Nat.le_refl _) (by omega)
     (List.take_of_length_le (Nat.le_of_eq hzslen))

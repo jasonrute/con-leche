@@ -138,7 +138,7 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 open SetTheory
 open ConLeche.Term ConLeche.Verify
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo BlockParts TargetMajor)
 
 universe w
@@ -284,7 +284,7 @@ theorem storedMajorSub_ctx (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V �
   have hlenPd : pdoms.length = rP := by
     rw [hPdE, List.length_take, hlenRds]; omega
   have hAa : ∀ i, i < rP → ∀ y, fvs[i]? = some y →
-      denoteMeta mpC.base2.acval envC ψ i (Expr.fvarTypeD y) = some (pdoms.getD i default) := by
+      denote mpC.base2.acval envC ψ i (Expr.fvarTypeD y) = some (pdoms.getD i default) := by
     intro i hi y hy
     obtain ⟨pd, hpd, hrd⟩ := hdomsR i y hy
     rw [hrd, hPdE, List.getD_eq_getElem?_getD, List.getElem?_take,
@@ -345,7 +345,7 @@ theorem storedMajorSub_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     {x : Expr} (hxA : x ∈ maj.fvarTypeD.getAppArgs ∨
       ∃ args, maj.fvarTypeD = Expr.mkAppN x args)
     (hlt : ∀ l ∈ x.fvarLeaves, l.1 < pp.toBlockShape.rulePrefixAt j) :
-    ∃ w, denoteMeta mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
+    ∃ w, denote mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
       ∀ σ : Nat → V,
         Sat V (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).reverse σ →
         WellDenoted V σ w := by
@@ -368,7 +368,7 @@ theorem storedMajorArg_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     (hmaj : fvs[pp.toBlockShape.majorIdxAt j]? = some maj)
     {x : Expr} (hxA : x ∈ maj.fvarTypeD.getAppArgs)
     (hlt : ∀ l ∈ x.fvarLeaves, l.1 < pp.toBlockShape.rulePrefixAt j) :
-    ∃ w, denoteMeta mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
+    ∃ w, denote mpC.base2.acval envC ψ (pp.toBlockShape.rulePrefixAt j) x = some w ∧
       ∀ σ : Nat → V,
         Sat V (blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape rs ψ j).reverse σ →
         WellDenoted V σ w :=
@@ -395,7 +395,7 @@ type. -/
 theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
         (h : ConLeche.RecStageG μ F envC pp cvTas (tgtRs out))
     {Rr : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List ConLeche.RecRule}
-    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List ITerm}
+    {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term}
     (m₃ : EnvModel V (ConLeche.consBlockRecsR Rr pp.toBlockShape 0 (tgtRs out) envC))
     (hac : m₃.acval = blockRecAcv mpC.base2.acval envC (tgtRs out) s eqs)
     (φ : Name → Nat) (j : Nat) (r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat))
@@ -496,20 +496,20 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
   obtain ⟨w, hw, hwGr⟩ := hgradeAt ψ hxA hxlt
   -- the opened pin's reading, at the constructors' environment
   have hacl := mpC.base2.acval_closed
-  have hainst : ∀ (n : Name) (ψ' : Name → Nat) (y : ITerm) (k : Nat),
+  have hainst : ∀ (n : Name) (ψ' : Name → Nat) (y : Term) (k : Nat),
       (mpC.base2.acval n ψ').inst y k = mpC.base2.acval n ψ' :=
     fun n ψ' y k => AVExprSubst.inst_eq_self_of_closed (mpC.base2.acval_closed n ψ') y k
-  have hw' : denoteMeta mpC.base2.acval envC ψ (rP + 0)
+  have hw' : denote mpC.base2.acval envC ψ (rP + 0)
       (Expr.instSpine (TE.fvs.take rP) (rP - 1) (pins.getD q default)) = some w := by
-    rw [denoteMeta_erasedEq hround, Nat.add_zero]; exact hw
-  obtain ⟨vpa, hvpden⟩ := pinOpenRevReads (acval := mpC.base2.acval) (cval := mpC.base2.cvalE)
-    (env := envC) (φ := ψ) hacl hainst mpC.base2.acval_erase mpC.base2.cval_closed hoslen hshape
+    rw [denote_erasedEq hround, Nat.add_zero]; exact hw
+  obtain ⟨vpa, hvpden⟩ := pinOpenRevReads (acval := mpC.base2.acval)
+    (env := envC) (φ := ψ) hacl hainst mpC.base2.cval_closed hoslen hshape
     hwsOs hbOs hpF hpB hw'
   -- carried to the recursors' environment and valuation
   have hcbP : ConstsBound envC (pins.getD q default) := constsBound_of_constsResolve _ hpR
   refine ⟨vpa, ?_, ?_⟩
   · rw [ConLeche.openRev_instantiateLevelParams,
-      denoteMeta_instLevels (acvalParamsAt_of_core m₃) φ, ← hψ]
+      denote_instLevels (acvalParamsAt_of_core m₃) φ, ← hψ]
     exact blockRecDenote_cross h hac ψ rP _ (constsBound_openRev hcbP 0 rP) hvpden
   · intro ρ zs TVa restR hzslen hzsOk hTVa hfit
     obtain rfl := blockRuleTVa_run hμ mpC h hac hr φ us hTVa
@@ -537,8 +537,8 @@ theorem recStagePinsOk (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ en
           pp.toBlockShape (tgtRs out) ψ j).drop rP)
           (blockRecConclAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ j))
       rwa [htake] at this
-    refine nestedPinGrade (acval := mpC.base2.acval) (cval := mpC.base2.cvalE) (env := envC)
-      (φ := ψ) (cnF := 0) hacl hainst mpC.base2.acval_erase mpC.base2.cval_closed hoslen hshape
+    refine nestedPinGrade (acval := mpC.base2.acval) (env := envC)
+      (φ := ψ) (cnF := 0) hacl hainst mpC.base2.cval_closed hoslen hshape
       hwsOs hbOs hpF hpB hvpden htower ?_ hzslen hzsOk hfit
     intro w0 hw0' σ hσ
     rw [hw'] at hw0'

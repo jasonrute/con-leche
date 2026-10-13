@@ -105040,3 +105040,546 @@ relations (six).
 diagnostics, synced to `_out/whitepaper/`), and the full
 `tests/arena.sh` on the final tree: arena 90/92, e2e 473/473, trusted,
 `--jobs=1`/`--jobs=4` sweeps as the default, every gate green.
+
+## TASK #342 — R3: `ITerm` folded into `Term` (2026-10-13, agent/342-r3)
+
+Ruling (maintainer, final review): `ITerm` existed only because it once
+carried the binder numerals; since L14a its constructors are `Term`'s,
+`ITerm.erase` maps every node to itself and `denoteMeta` is `denote`.
+Fold one into the other.
+
+**Where the one type lives.**  `Term` (`ConLeche/Term/Syntax.lean`),
+unchanged in shape.  The base tier is the right home: three tiers read
+the type — `Verify/Denote/*` (the denotation and its model-free
+metatheory, which may not import `Semantics/*`), `Semantics/*` (the
+interpretation) and `Model/*` — and `Term/*` imports nothing of them.
+`Term.lift` and the four `projPair?` lemmas moved there from
+`Semantics/Syntax.lean`.
+
+**One reading.**  `denote` (`Verify/Denote.lean`) keeps its name and
+home and takes `denoteMeta`'s body: the binder clauses in `do` form, and
+a `let` whose type must read (its constants resolve) and is dropped —
+`constsBound_of_read` derives `ConstsBound` of stored terms from
+readability, `let` types included, so the stricter clause is the one the
+model uses.  The string literal is written out in the clause
+(`strLitT` is gone).  The clause equations moved from
+`Model/Reading/Lemmas.lean` to `Verify/Denote.lean`;
+`denote_bvarsBelow` was re-proved on the new induction principle.
+`Model/Reading/*` stays the reading's metatheory, now about `denote`.
+
+**Deleted.**  `Semantics/Syntax.lean` (`ITerm`, `erase`, its `liftN`/
+`inst`/`mkAppN` copies and their clause lemmas, `erase_liftN`/
+`erase_inst`/`erase_mkAppN`/`erase_eq_const`), `Semantics/Canon.lean`
+(`natLitAV`/`charListAV` and their `_erase` laws, `erase_projAV`),
+`Semantics/DenoteClosed.lean` (`ITerm.liftN_eq_self`/`inst_eq_self`,
+twins of `Verify/Denote/VClosed.lean`'s), `Model/Reading/DenoteMeta.lean`
+(`denoteMeta`, `denoteMeta_erase`); `TConstVal`, `EnvModel.cvalE`,
+`EnvModel.acval_erase` (48 uses), the `cval_closedL`/`basis_pinnedL`
+spellings (the fields are now `cval_closed`/`basis_pinned` on `acval`
+itself), the `hlink : (acval n ψ).erase = cval n ψ` premises and their
+second valuation (`pinCross`, `pinOpenRevReads`, `nestedPinGrade`,
+`denote_openRev_base`), `strLitT`, the twin definitions `projAV` (=
+`projNV`), `eqValAV`/`eqReflValAV`/`eqRecValAV` (= `Semantics/EqTower`'s
+`…T`), `emptyAV` (= `emptyT`), `Model.ITerm.instSeq` (= `Term.instSeq`),
+Verify's `ctxInstAt` and `ctxInstAt_nil` (no consumer; `ctxInstAtAV` is
+the one in use), and a local `denote_bvar` twin in `BlockRecRule`.
+`denoteMeta_closed` became `denote_liftN_eq_self` (one line from
+`denote_closed`).  Names that said `iTerm`/`erase` were renamed
+(`Term.mkAppN_append`, `Term.liftN_mkAppN`, `numeralAV_below`).
+
+**Kept.**  `interp`, `WellDenoted`, the claims, `Denotes`,
+`MainTheorem` and `Challenge` are textually the same statements over
+`Term`; `Denotes_of_denoteMeta` is `Denotes_of_denote`.  No checker
+code changed (one comment in `Kernel/ExprOps.lean`).
+
+**Size.**  292 files, +8863/−9811 (`ConLeche/` +8219/−9150); the four
+deleted modules were 787 lines.
+
+**Imports.**  Shake re-gated: the edges the deleted modules carried
+moved to `TowerKit`/`Verify/Denote`; 14 compensated or not-reproduced
+proposals allowlisted with their `--only` evidence, 11 stale lines
+dropped, 10 `public import`s demoted, one dot-notation fallback in
+`pub-import-plan.py` repointed (`BlockHoleRead` ← `TowerKit`).
+
+**Documents.**  OVERVIEW (§4 "Terms", the `AV` suffix row, the module
+map) and the whitepaper (§7 "An intermediate term language", the
+fragment's two comments) name `Term`/`denote`; anchors that moved with
+added `open` lines were repointed mechanically and the citing
+paragraphs re-read; both link gates regenerated.
+
+**Left for later (report, not done).**  `EnvModel.acval_closed` (the
+lift-invariance of every leaf) is now derivable from `cval_closed`
+(`Term.liftN_eq_self`), and so is every `hAclosed` premise threaded
+from `coreCons` through the install step (~40 call sites, the sum
+tower's "`hAclosed` packages").  `acval_basis_pinned` and
+`EnvModel.acval_pinned` are two spellings of `basis_pinned`'s second
+component.  `Model/Reading/*` needs no model in most modules and could
+move to `Verify/Denote/*`.  The `…AV` names now only mark the model
+tier's spellings of `Term`s.
+
+## TASK #342 — R2: two findings of the full Lean Kernel Arena run (2026-10-13, agent/342-r2)
+
+The full arena run (`_tmp/arena-full`, arena checkout `c6d13ac`)
+compared `master` with the port.  Two findings were left for this lane.
+
+**Finding 1: `bugs/proj-of-subst-prop` — not a regression.**  Expected
+reject; both binaries reject, `master` at `observe` (position 116,
+"projection from a propositional structure must be a proposition"),
+the port one declaration earlier at `proposition` (115, "application
+type mismatch").  `proposition := asProp witness` needs `Q ≡ P`, i.e.
+`c ≡ b`.
+
+- *Neither binary finds `Q ≡ P`.*  Exporting the test with
+  `proposition` as the only target, `master` rejects it with the same
+  "application type mismatch".  In the full stream `master` reported
+  `observe` because its annotate pass ran at install, and the
+  projection guard there fired before the check phase ran; the port
+  moved that guard into inference (S4 L-ck), so the earliest failing
+  check in fold order, `proposition`, is reported.  No conversion path
+  was lost: not an annotation gate, not the β certificate, not the io
+  licence, not the order of proof irrelevance and whnf.
+- *Why `c ≢ b` here.*  The elaborator abstracts `b`'s `Acc` proof
+  (`Acc.intro 1 fun _ => Acc.inv seed`) into the theorem
+  `PR14806Subst.b._proof_1`, so `b` unfolds to
+  `run false 1 b._proof_1`.  Theorems are opaque to con-leche's δ
+  (`unfoldDefinition`, anticipating lean4#14896), so the case-3 ι step
+  of `Acc.rec` never sees `Acc.intro`, and `b` gets stuck at index 1
+  while `c` is at index 0.  Written with the constructor in place
+  (scratch variants `run false 1 (Acc.intro 1 …) ≡ c`), the chain is
+  found by both binaries: ι (with the case-3 certificate), `step`'s
+  match, and proof irrelevance on the two `Acc … 0` proofs.
+- *The official kernel.*  v4.34.1 unfolds the theorem and accepts
+  `proposition` (checked with `addDeclCore … (doCheck := true)`);
+  the lean4#14896 kernel (`pr-release-14896`, theorems opaque) rejects
+  it with "(kernel) application type mismatch", exactly as con-leche.
+- *Can it be found soundly?*  Only by unfolding theorems, which is a
+  deliberate design choice (a declaration's verdict never depends on a
+  theorem's value), not a rule of the port; no change.  Pinned as the
+  e2e fixture `proj_of_subst_prop` (reject, the arena's stream).
+
+**Finding 2: `corner-cases/eta-struct-major-no-whnf`,
+`…-and-no-whnf` — exit 134.**  Both majors are proofs built from
+Coquand's paradox (no weak head normal form): `Prod.rec f loopPair`
+with `loopPair` an `Acc.rec` over such a proof, and `And.rec f (Ω _ ⟨⟩)`.
+`prepareMajor` head-normalized the major *before* trying the
+structure rescues, and the reduction did not terminate.  It did not
+time out either: every step of the cached `whnf` loop called its
+continuation through a closure (`whnfStepI` passed `whnfLoopI … n` as
+`k`, called with `lean_apply_2`), so each δ step added native frames,
+and the worker's 1 GiB stack overflowed after about 1.8 s (`gdb`:
+`whnfLoopI`/`whnfLoopI___boxed`/`lean_apply_2` repeating).
+
+- *The order (lean4#15351).*  `prepareMajor`, off K, now runs the
+  rescues on the major **as found**: the structure-η rescue (never-`Prop`
+  structures) and the `And` rescue read only the major's type and
+  build `S.mk ps (S.p₀ x) …`; only if that gives no constructor is the
+  major head-normalized, its literal converted and the rescue tried on
+  the reduct (a `String` literal skips the first attempt, as lean4#15351
+  does).  Both rescues are `Red` steps on any major (`Red.rescueEta`,
+  `Red.rescueAnd`), so no rule, no claim and no model lemma changes;
+  #350's proviso (expand as found, never after reducing) is what the
+  new order does.  Proofs repaired: `prepareMajorFueled_ind`,
+  `prepareMajor_shift`, `prepareMajor_atF`, the `PairM` projections,
+  `prepareMajorC_sim`.  Both arena tests now **accept** (14 ms / 11 ms),
+  as the planned official kernel does.
+- *The δ loop.*  `whnfStepI` is `@[inline]` (a compiler attribute; the
+  term is unchanged): inlined into `whnfLoopI`, the continuation call
+  becomes the loop's own tail call and compiles to `goto _start`.
+- *The β/ι loop.*  The same overflow is reachable without δ: `Ω`
+  written inline (β and the K-like `Eq.rec` only) as the major of an
+  `Acc.rec` into data.  There the cached `whnfCoreLoopI` grew the stack
+  through non-tail continuation calls: a fired ι with arguments left
+  over (`let v' ← k e''; whnfAppI v' rest`) and a peel stopping with
+  arguments left over.  `whnfAppI`, `betaPeelI` and `whnfCoreStepI`
+  now return a `WhnfStep` (`done v`, or `cont e` with the reduct
+  applied to the rest of the spine), and `whnfCoreLoopI` continues with
+  it as its own tail call.  The specification (`whnfCoreBody`, chained)
+  is unchanged; in `Verify/BetaSpine.lean` the mirrors gain the
+  step-returning `whnfAppW`/`betaPeelW`/`whnfCoreStepW` (simulated by
+  `DiscC4`), the continuation-passing `whnfApp`/`betaPeel` take the
+  tail form and equal the step-returning ones followed by
+  `WhnfStep.run` (`whnfApp_run`, `betaPeel_run`, `whnfCoreStepM_run`),
+  and the snoc/ksound proofs split the ι and peel cases by the spec's
+  own app clause (`whnfCore_app_split`).
+- *What remains native recursion.*  Checked in the generated C: the
+  `whnf`, `whnfCore`, lazy-delta and lazy-delta-projection loops and
+  the argument loop of `whnfAppI` jump (`goto _start`); the spine walks
+  recurse over a spine's length.  Nesting (a head, a scrutinee, a
+  type) goes through the knot and is bounded by `checkFuel` (an exit-3
+  error when exhausted).  A non-terminating reduction in a position
+  nothing lets the checker skip now runs until the external timeout in
+  constant memory (20 MB), as the official kernel does not terminate
+  either; pinned by `whnf_delta_loop` and `whnf_core_loop` (exit 124 at
+  a 5 s budget; both were 134 before).  Deep *terms* (structural
+  recursion over a term's depth: substitution, hashing, equality) are
+  outside this lane: the parser and reduction can build them, and their
+  depth is not budgeted.
+
+**What the planned kernel does that con-leche still does not.**
+lean4#15371 eta-expands the major of every large-eliminating
+structure in `Prop` and every sort-polymorphic structure at a `Prop`
+instance; con-leche rescues `And` (by name) and never-`Prop`
+structures only, so for another such structure (`PUnit.{0}`, a
+user-declared `structure S : Prop` of proofs, a `PSigma'`-like one at
+level 0) the major is still head-normalized first.  #350 proved the
+general η path sound with no certificate, as theorems on the claims;
+making it a `Red` rule needs the `StructEtaLaw`/`ProjLaw` environment
+laws (post-port lane, §11.7).
+
+**The other new η tests** (arena, port binary of this lane, all
+"either"): `eta-struct-major-and` accept; `eta-rec-struct`,
+`eta-ctor-alias` (bugs, expected reject), `eta-unit-like-nested`,
+`-pi`, `-proof-field`, `-struct` reject — unchanged from `master` and
+the port before this lane.
+
+**Numbers** (`instructions:u`, `--verified --jobs=1`, one run each,
+under the RSS guard; base = the port binary of the arena run,
+`b4a5e4edc`'s checker): init-full 408.34 G → 400.55 G (−1.91 %),
+mathlib-prefix 557.49 G → 547.91 G (−1.72 %); peak RSS 0.31 / 0.46 GiB.  The gain is not attributed by a profile; the two loops no longer allocate a continuation closure per step nor call it indirectly.
+
+**Fixtures.**  `eta_struct_major_no_whnf`, `eta_struct_major_and_no_whnf`
+(accept), `whnf_delta_loop`, `whnf_core_loop` (124 at 5 s),
+`proj_of_subst_prop` (reject).  Sources in `tests/e2e/src/` (the
+arena's, exported with the pinned v4.29.1 toolchain), except
+`proj_of_subst_prop`, the arena's own stream.
+
+**Documents.**  OVERVIEW §3: the structure rescues come before the
+major's head normalization; the reduction loops iterate in constant
+stack.  Line-anchored citations that moved with the code were
+repointed (OVERVIEW 5, whitepaper 5; `overview-links`, `links-gate`
+regenerated, text unchanged).  For R4: the whitepaper's §6 says the η
+rescue fires on "a recursor stuck on a non-constructor `s`"; it now
+fires on the major as found, before any reduction.
+## TASK #348 — the openai/math completeness run, parked; the let-fold fixtures (2026-10-12, agent/348-letfold)
+
+The checker is about to be rewritten, so the openai/math investigation
+is parked here, for a re-run after the rewrite, rather than fixed now.
+This record collects the run (2026-10-10), the memory investigation
+that followed it (2026-10-11), and this task's minimised fixtures for
+the one mechanism that investigation found.
+
+**Method.** `https://github.com/openai/math` at `fd4aeeb2e` (2026-10-07):
+one Lean project (`lean/`), Lean v4.34.1, Mathlib `d13f23b` (the
+arena's mathlib rev), 30+ git dependencies. The "main theorems" are
+its 416 Comparator challenges (537 theorems, 65 definitions; 393 need
+only Mathlib). Their import closure (~108k modules) was built with the
+Mathlib cache in a slimmed copy of the project. Each challenge was
+exported with the arena's v4.34.1 `lean4export` (`05d43a2`), as
+`lean4export <solution_module> -- <theorem and definition names>` from
+the challenge's JSON (`_tmp/ref/openai-math-work/export.sh`): 4.05·10⁹
+NDJSON lines in all, a median of 61k declarations per export, at most
+1.28M (MUBSix). Checkers: con-leche `master` at `ca75f61` with
+`--verified --jobs=8`, and the arena's official v4.34.1 kernel
+(`_tmp/ref/openai-math-work/official/`, single-threaded), each with a
+1 h timeout and a 25 GB resident-memory watchdog polling VmRSS by PID
+(`check.sh`; `guard.sh CAP_KB TIMEOUT_S cmd…` is the standalone form).
+An address-space cap (`prlimit --as`, `ulimit -v`) is no measure here:
+the first runs under one reported "memlimit" for exports that accept
+under the RSS watchdog.
+
+**Verdicts** (con-leche / official, 416 challenges):
+
+| Outcome | Count | Challenges |
+|---|---|---|
+| both accept | 401 | |
+| con-leche exit 3, official accepts | 7 | below |
+| con-leche accepts, official times out (1 h) | 5 | AtomicGaussian, TriangularGaussian, TriangularEnergy, SKRatio, MUBSix |
+| both time out | 1 | PlanarPacking |
+| con-leche over 25 GB, official times out | 1 | UniversalTensorSquares (also times out at `--jobs=1`, at 14 GB) |
+| con-leche over 25 GB, official accepts (8.2 GB) | 1 | TamingCompatibility (accepts at `--jobs=1`: 11.4 GB, 390 s) |
+
+No rejects, no declines. Accepted, but with a large memory gap
+(con-leche `--jobs=8` / official): AuslanderReiten 20.0 / 3.2 GB,
+LaughlinFock 22.1 / 3.5, ArnoldCounterexample 23.0 / 9.9,
+SnakyCertificate 21.2 (10.2 at `--jobs=1`) / 9.1, SnakyConditional
+18.7 / 6.3, LaughlinGap 13.7 / 2.2, Catalan 13.3 / 2.5.
+
+**The seven exit-3 failures**, all `fuel exhausted: whnfCore`, three
+causes:
+
+- **A. `defeqSpine` compares arguments first to last** (RandomizedMeanPayoff
+  `OAI.MeanPayoff.DetRealizer.total_formula`, UniformFourier
+  `OAI.PowerSaving.Cluster.certificate`). Official `is_def_eq_args`
+  compares last to first. On `Nat.add (M+1) 1 =?= Nat.add M 2` official
+  fails `1 =?= 2` at once and unfolds; con-leche first decides
+  `M+1 =?= M` by unary succ descent (two knot levels per `succ`) and
+  exhausts `checkFuel`. Reversing both spine walks (`defeqSpine` and its
+  twin `defeqSpineI`) accepts both, in an exe-only experiment
+  (`bin/con-leche-revargs`; the proofs were not rebuilt). Fixture
+  `spine_arg_order` (exit 3, target 0).
+- **B. `checkFuel` (100000 knot levels) against a deep recursion**
+  (PeriodicGroup `OAI.SourceBurnside.RawNumberPrep.seed_run`,
+  LogspaceEquality `…Vessel.Basket.Sack.Ground.advances._proof_1_2`,
+  MatchingFPRAS `OAI.MatchingFPRAS.ExecutableEstimator.upperRealizer`).
+  ι on a major like `W*200033` head-normalises it through
+  `reduceNat`'s first-argument recursion, one level per unit; official
+  does the same on its native stack. `checkFuel = 2000000`
+  (`bin/con-leche-fuel2m`) accepts all three, but overflows the native
+  stack on cause A, so a fuel raise needs a stack-size policy with it.
+  Fixture `natmul_deep_major` (exit 3, target 0).
+- **C. Closed-term evaluation.** SquareDifference
+  (`OAI.SquareDifference.source_ordered_contraction`) is now explained:
+  the let ζ-fold below. ContinuumCoulombHardness
+  (`OAI.ContinuumCoulomb.MediatorUnaryProgram.secondDelta`) is a depth
+  limit where official, too, works hard: 62 s, 10.5 GB, 13.6M unfolds of
+  unary `Nat.rec`/`Nat.add._f`; on the declaration's cone con-leche exits
+  3 after 8.6 s at 0.76 GB (the 25–37 GB of the whole export were not
+  reproduced on the cone). With 2M fuel the whole SquareDifference
+  export grew past 37 GB and ContinuumCoulombHardness past 25 GB.
+
+**Memory findings** (the investigation of `_tmp/mem-blowup/`):
+
+- TamingCompatibility and AuslanderReiten do the same reduction work as
+  official, to within a few percent: δ+ι on
+  `valid_false_t._proof_1_1` 4,054,268 (con-leche) against 4,052,880
+  (official); unfolds on `hodge_raw_square_energy` 12.13M against
+  14.42M; per-constant profiles alike (`DFunLike.coe` 3.53M / 3.95M).
+  `--trusted` gives identical memo sizes, so certificates are not the
+  cause.
+- Their memory is memos × concurrency. Taming: 11.2 GB at `--jobs=1`,
+  over 26.4 GB at `--jobs=8`; three sibling theorems
+  (`hodge_raw_square_energy_smooth`, `hodge_raw_square_energy`,
+  `hodge_resolvent_distribution`) cost 9–10.5 GB each and sit next to
+  each other in record order, so eight workers claim them together
+  (official: 7.3 / 3.1 / 3.2 GB, one after another). Auslander: 4.1 GB
+  at `--jobs=1`, 19.8 GB at `--jobs=8`, dozens of
+  `CocycleData.valid_*._proof_1_1` at 1–3.5 GB each.
+- Two memos official does not keep: at the end of one Taming
+  declaration the memos hold 41.6M entries — cheap `whnfCore` 17.9M
+  (official skips its cache in cheap mode), full `whnfCore` 11.7M,
+  bulk instantiation `instC` 5.8M (no official counterpart), defeq 4.7M
+  (official caches successes and some failures), `inferIO` 1.3M.
+  Probes, not proposals: without the cheap-`whnfCore` memo that
+  declaration takes 3.2 GB less (init-full +4.1 % instructions);
+  without `instC`, 1.45 GB less (+1.4 %). Per-declaration memos stay
+  uncapped (the standing ruling); admission control by RSS would not
+  help, since the heavy siblings are claimed while RSS is still low.
+
+**The let ζ-fold (SquareDifference).** Inferring a `ring` `pow_congr`
+step reaches `npowRec … =?= npowRec …` whose exponents differ only in
+Nat instances, then `Nat.add X 0 =?= Nat.add X' 0`, where X is the value
+of `let d := Fintype.card TupleVertex`. Official checks `d` as a
+let-fvar, so the lazy-delta Nat-literal fold's `has_fvar` guard blocks
+the fold (16 ms, 0.84 GB, 2,268 unfolds; it never touches
+`Fintype.card`). con-leche's annotate pass returns the ζ-reduct (tasks
+#217/#241), the term is closed, and the fold head-normalises X: every
+permutation of `Fin tupleH` through `permsOfList`/`List.rec`, over
+6 GB (`--trusted` likewise). ζ-reducing that one `let` in the export
+(`_tmp/mem-blowup/zeta/zeta.py`) makes official blow up as well (over
+6.3 GB). The S0 prototype (`_tmp/port/s0-proto-logs/bin/s0m-4`), which
+has no annotate pass but substitutes lets in inference, blows up too.
+Two fixes were sketched, neither built: (A) let-fvars in the checked
+term, as official (reverses part of #241, the expensive option on the
+proof side); (B) annotate records the ζ-substituted value nodes
+(`inst1M` substitutes by reference, so their pointers survive) and the
+fold treats a side containing one as open. Fold and no-fold are both
+sound paths, so (B) changes strategy, not what is proved.
+
+**This task's fixtures** (`tests/e2e/src/letfold_*.lean`): `bits n 0`
+makes 2^n distinct calls (depth n) before it is a literal.
+`letfold_let` checks `let d := bits 14 0; @id (d + 0 = Nat.add d 0) rfl`,
+`letfold_pair_let` the same with `let p : Nat × Nat := (bits 14 0, 1)`
+and `p.1`, `letfold_inline` the control with the closed term inline.
+All accept today; the e2e harness pins verdicts only, so the cost is
+recorded here. Instructions:u (×10⁹), one run each; the n = 0 rows are
+each checker's fixed cost (Init's cone):
+
+| n | official let | official inline | con-leche let = inline | nanoda let = inline | S0 `s0m-4` let = inline |
+|---|---|---|---|---|---|
+| 0 | 0.345 | 0.345 | 0.746 | 0.087 | 0.742 |
+| 8 | 0.345 | 0.393 | 0.847 | 0.143 | 0.844 |
+| 12 | 0.345 | 1.10 | 2.36 | 1.08 | 2.36 |
+| 14 | 0.345 | 3.38 | 7.22 | 4.59 | 7.21 |
+| 16 | 0.345 | 12.5 | 26.6 | 22.2 | 26.6 |
+
+The pair variant matches the let row in every checker (official 0.347
+at n = 0, 14, 16; con-leche 7.22 / 26.6 at 14 / 16). Peak RSS at
+n = 16: official 0.07 GB under the let, 0.59 GB inline; con-leche
+0.72 GB both ways; nanoda 0.59 GB. Wall at n = 14: con-leche 1.0 s,
+official 0.04 s (let) / 0.45 s (inline); at n = 16: 4.4 s against
+0.05 s / 2.3 s. n = 18 does not elaborate within the default heartbeats.
+The committed size is 14: about a second per run, 0.2 GB.
+
+**nanoda** (`ammkrn/nanoda_lib` `4c544ed`, the arena's rev, built with
+the arena's 256 MiB thread-stack patch, the arena's config: stdin,
+`nat_extension`, all axioms permitted, 4 threads) does not handle the
+case. On the real reproducer (`repro/soc.ndjson.zst`, the
+SquareDifference export cut at `source_ordered_contraction`) the 8 GB
+guard kills it after 38 s (6.7·10¹¹ instructions). It also fails
+without that theorem: the same file minus its last record is killed at
+8 GB too, and at 2 threads under a 16 GB cap it aborts on a native
+stack overflow (15.6 GB, 1.0·10¹² instructions), so another declaration
+of that export defeats nanoda as well. On the fixtures it folds under a
+`let` as con-leche does (let = inline, table above). From its source:
+`infer_let` (`src/tc.rs`) instantiates the body with the value before
+inferring it, the same ζ as con-leche's, and its fold
+(`delta_try_nat` → `try_reduce_nat`) has the same `has_fvars` guard,
+which then never sees a let-variable.
+
+**To re-run after the rewrite:** the seven failures (SquareDifference,
+ContinuumCoulombHardness, RandomizedMeanPayoff, UniformFourier,
+PeriodicGroup, LogspaceEquality, MatchingFPRAS); the memory-heavy
+accepts (TamingCompatibility, UniversalTensorSquares, AuslanderReiten,
+LaughlinFock, ArnoldCounterexample, SnakyCertificate, SnakyConditional,
+LaughlinGap, Catalan); the official timeouts that con-leche accepts
+(AtomicGaussian, TriangularGaussian, TriangularEnergy, SKRatio,
+MUBSix) and PlanarPacking; and the five fixtures above
+(`spine_arg_order`, `natmul_deep_major`, `letfold_*`).
+
+**Where the material lives.** `_tmp/ref/openai-math-work/`:
+`results.tsv` (every run: challenge, checker, exit, verdict line, peak
+RSS; `results-superseded.tsv` holds superseded rows, among them
+watchdog kills since re-run),
+`exports/` (zstd exports of the nine discrepancies: the seven failures,
+TamingCompatibility, UniversalTensorSquares; the other exports were
+deleted, and the build trees too — re-exporting needs a rebuild from
+the kept clone `_tmp/ref/openai-math/` with `export.sh`), `repro/`
+(single-declaration cuts: `soc` = SquareDifference, `seed_run`,
+`total_formula`), `bin/` (the run's `con-leche`, built from `ca75f61`, and the
+experiments `-revargs`, `-fuel2m`, `-rev-fuel1m`), `check.sh`,
+`guard.sh`, `export.sh`, `gdb/leanpp.py` (a gdb Expr printer), `logs/`.
+`_tmp/mem-blowup/`: `instr-count-trace.patch` and `Count.lean.scratch`
+(the counter, trace and stack instrumentation), `offdiag/` (the
+official-kernel unfold diagnostics tool), `zeta/zeta.py`,
+`axiomize.py`, the run scripts and logs. This task's scaling logs, the
+generators and the patched nanoda build: `_tmp/348-logs/`.
+
+**Gates** (this tree): `lake build` and `lake test` warning-free;
+`tests/arena.sh` green in every sub-gate but one environmental failure:
+pindump's nightly-2026-09-10 pinner does not link, because that
+toolchain's `ld.lld` wrapper calls an elan nix-store path that no longer
+exists on this machine (no file of this task is involved). Arena 90/92,
+e2e 475/475, annot 15/15, the trusted, `--jobs=1` and `--jobs=4` sweeps
+as expected.
+
+
+## TASK #342 — R1: the post-review fixes (2026-10-13, agent/342-r1)
+
+The leftovers review's fixes on `port-342`, with the maintainer's
+rulings of 2026-10-13 (drop the legacy `pw` parsing; `MainTheorem.lean`'s
+fold comment may change).  Verdicts unchanged apart from one new
+fixture; checker cost unchanged.
+
+**1. Master merged** (the task #348 commits: the let-fold fixtures,
+`spine_arg_order`, `natmul_deep_major`, the #348 record).  One conflict,
+DESIGN.md's tail (both records kept).  The port's verdicts are master's:
+the three letfold fixtures accept, `spine_arg_order` and
+`natmul_deep_major` exit 3 (fuel exhausted in `whnfCore`, as on master).
+The letfold comment now says why the port folds: inference substitutes
+the `let` value (no let-variables, §11.x); `instructions:u` at n = 14 is
+6.8e9 for each of the three (master 7.2e9).
+
+**2. The legacy `pw` field is gone from the parser** (sub-lane R1-PW).
+`PwRec` and `badPw` (`Frontend/Scan/Types.lean`), `scanPw`/`kPw`
+(`Scan/Fast.lean`), `naivePw` and `binderFields`' slot
+(`Scan/Naive.lean`), their equivalence lemmas (`Scan/Equiv/Keys`,
+`Objects`; repaired to the four-slot shape `axiomFields` already has, not
+duplicated), `naivePw_local` (`Verify/Frontend/Local.lean`) and the
+`Good`/`ExportC` arms; `ExprRec.lam`/`.forallE` are binary.
+`tests/mode/split_{good,bad,bad2}.ndjson` lost their 8 `pw` members
+each (verdicts unchanged); the `pw` scan tests are deleted.  New fixture
+`binder_pw_field.ndjson`: a stream carrying `pw` is malformed (unknown
+key) — **exit 3**, the exit code of every malformed stream
+(`CheckError.exitCode`; `malformed_midstream` is the precedent), not 1,
+which is a reject of a well-formed stream.  No other fixture carries `pw`.
+
+**3. `MainTheorem.lean`'s fold comment**: "annotated and pushed" →
+"guarded and pushed".  `tests/challenge.sh` green.
+
+**4. Stale prose.**  OVERVIEW (`installStepC`; the K/`And` rescues are
+typed at the io grade and compared by proof irrelevance, not certified);
+`majorToCtor`'s docstring; `--help` (install runs the syntactic guards;
+a theorem's are its type's); `Rules/Rel.lean`'s `defeqLams`/`lamPair?`
+pointer; `prf_of_isProofFast` lives in `ProofFastSound.lean`;
+`Semantics/Kit.lean` and `Semantics/Univ.lean` describe what is left;
+the Model docstrings citing `pwBit_substPW`, `BlockRuleCerts`,
+`ResidueOk` (only ever in a docstring's code block), `certs_sound`, the
+"numeral" and "graph-regime" readings (`Levels`, `BasisQuot`,
+`Env/Laws`, `BlockRecRule`, `BlockRecTyping` (its header rewritten),
+`BlockRecPreRun` §1/§39/§40, `ClassRecKit` §0, `SetModel/Ops`);
+`BinderLoop`/`BinderLoopC`; `SetTheory/Derive/README.md`; the
+`Denotes.lean` comments (`Sort u` denotes `univ u`, the types at level
+`u`; the `Denotes` text itself unchanged); the e2e prose (`let_rec_rhs`,
+`str_lit`, `str_proj`, `tower_axiom_nonstd`, the OMEGA and K7 entries,
+`yolo_decline_vs_accept`, `unit_sizeof_rescue`, the `let_bad_*`,
+`str_lit`, `uh_let_erase_type` and `nested_pin_prop_cod` headers);
+`natop_booltrue_alias` (official REJECTS it: exit 1, "unknown constant
+'Bool.true'" while replaying `bleEx`); `CLAUDE.md`'s battery line;
+`tests/shake.sh`'s `#stored_basis`.
+
+**5. Renames.**  `Certs.licensed_sound`/`CertsSem` →
+`teleArity_sound`/`TeleAritySem`; `InferLamEntry`/`InferLamEntryX`
+inlined (`Expr`); `cvA` → `cv` throughout (the identity `let cvA := cv`
+bindings gone; `ConstChecked`'s user in `BlockRecRead` reads
+`cv0`/`cv`); `bconst_app_dataAV` → `bconst_app_data2`;
+`iotaCtorLicensed` → `iotaCtorNeverProp`, `quotMk_licensed_ne_zero` →
+`quotMk_neverProp_ne_zero`.  "licence"/"licensed" is gone from code,
+tests and scripts: the ι licence is "the ι case split", a licensed
+(arity-only) walk is "arity-checked", a model licence is a
+"justification".
+
+**6. Dead proof code** (census-confirmed, build-confirmed):
+`OneElimLevel`/`blockRecOneElimLevel`; `genPdoms` (inlined: it was
+`pre c`); `SetModel/Ops`' `app_lamR`, `app_lamR_of_not_mem`,
+`app_off_dom_piR_pos`, `eq_of_mem_piR_app_eq`, `lamV_eq_zero`,
+`not_pt_mem_piR_pos`, `piR_subset_mono`, `piR_zero_subsingleton`,
+`subsingleton_of_mem_univZero`; `Semantics/Univ`'s four regime lemmas
+(`interp_sort_mem` is all that is left) and `Kit`'s four value-read
+lemmas; the six `Graded.*` of `DefEqSoundKit`; `mkLamsAV_pt_body`;
+`Derive/TypeU`'s nine `strictU`/`Strict`/`Fib` lemmas; `ctxInstAt` (+
+`_nil`); `Expr.isLam`.  The census re-run afterwards
+(`_tmp/port/r1-logs/deadcode/`) lists 176 deletable owners elsewhere
+(e.g. `Verify/Knot`, `CtxOkKit`, the whole `Verify/ProjVerdict`); not in
+this lane's list, left for a census lane (R3 owns the `ITerm` files).
+
+**7. Import gates.**  `Kernel/Expr.lean` and `Verify/InstLevels.lean`
+no longer import `PropWhen`: the edges moved to their users
+(`Kernel/Level`, `Kernel/Env`, `PinGen` take `Kernel.PropWhen`;
+`PropReadInst` and `BasisQuot` `Verify.PropWhen`; `SimCEff` and
+`DirectGen` `Verify.Level`), and their two allowlist lines went.
+`DefEqSoundKit`'s `Semantics.Hoist` import (used only by the deleted
+`Graded.*`) went.  Allowlist lines for `AxiomMem`, `AxiomReduce`,
+`BasisEq`, `Harvest`, `ReduceOps` re-measured with the #223 criterion:
+still compensated, reasons now name live modules.
+`pub-import-plan.py`'s `AxiomMem→StdAxiomPin` fallback is gone (the
+model keeps the edge public without it); its comments name the
+`Reading.*` modules for the deleted `Bit*` ones.  `dead-census.py`'s
+`ANNOTATE_RE` is `STORED_BASIS_RE`.
+
+**8. Spec and shipped core agree at `--trusted`** (sub-lane R1-SPEC).
+`majorToCtor`'s K and `And` branches gate their `proofIrrel` check, and
+`iotaRec` its whole case-3 decision, on `mode.verifiedChecks`, as the
+cached core's `certAtI` does; official's type check on the fabrication
+stays in both modes.  `majorToCtor`/`prepareMajor`/`iotaRec` take
+`mode`; the simulation and bridge proofs thread it (`Knot`, `Fueled`,
+`PairM`, `Deep`, `BetaSpine`, `RedBridge`, `DiscC3`), and
+`majorToCtor_inv`/`iotaRec_inv` state each certificate conjunct under
+`mode.verifiedChecks = true`.  Trusted sweep: 0 recorded divergences.
+
+**9. The self-check is a sub-gate of `tests/arena.sh`**, on by default
+(`--no-selfcheck` skips it): `scripts/selfcheck.sh --fresh
+_tmp/selfcheck-gate` exports the tree and checks it, 43 s wall with the
+export (2 CPU-minutes; a fresh checkout first builds `lean4export`,
+which needs the network once).  `selfcheck.sh` now exits with the
+checker's code.  CI runs it through `arena.sh`.  This tree: exit 0,
+47 512 declarations accepted.
+
+**Measurements** (`instructions:u`, `--verified --jobs=1`, one run
+each, `ulimit -v 22000000`): init-full 408.372G → 408.339G (−0.01 %),
+mathlib-prefix 557.508G → 557.438G (−0.01 %), against `port-342`
+b4a5e4edc; 57 977 / 131 902 declarations accepted; peak RSS 0.30 /
+0.47 GiB.
+
+**Links.**  OVERVIEW, README (anchors only: `Denotes`, `Model`, `main`,
+`run`, `sorryAx`) and the whitepaper's `src` calls repointed; the
+whitepaper's ι citation now spans the mode gate.
+
+**Process note.**  The R1-SPEC sub-agent once ran `pkill -f "lake
+build"` (forbidden by CLAUDE.md); one R1 build died with exit 144 at
+that time, and R2/R3 builds running then may have been killed too.
+
+**Gates** (final tree): `lake build`, `lake test` warning-free; the
+full `tests/arena.sh` green — links (136 + 473), quote, challenge,
+shake (690 proposals, all allowlisted; pub-imports none demotable),
+the self-check (47 512 accepted), axioms, arena 90/92, e2e 479/479,
+the trusted sweep (0 divergences), the `--jobs=1`/`--jobs=4` sweeps.

@@ -37,7 +37,7 @@ term has at most one denotation — in `ConLeche/Denotes.lean`.
 
 * `checkDecls` (`ConLeche/Cached/Installed.lean`) is the declaration
   fold: it installs every parsed declaration — a definition, theorem
-  or opaque annotated and pushed with its check recorded, everything
+  or opaque guarded and pushed with its check recorded, everything
   else checked in full as it is installed — and then checks every
   recorded declaration against the prefix of the environment it was
   installed at.  The binary's driver (`Main.lean`) runs this fold with a

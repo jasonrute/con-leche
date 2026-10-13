@@ -12,7 +12,7 @@ public section
 `BConst` has no such constructors, so `acval_basis_pinned` — which
 unlocks the other blocks' leaves — is *empty* on `eqK`.  The leaves are
 built by hand: `Semantics/EqTower.lean`'s `eqValT`/`eqReflValT`/
-`eqRecValT`, and here their semantic-syntax towers.
+`eqRecValT`, and here are their laws.
 
 The binders carry no regime: `interp` reads it off the values
 (`lamV`).  `Eq`'s innermost body is a truth value, never the point, so
@@ -26,88 +26,51 @@ open ConLeche.Semantics
 open ConLeche.SetModel
 
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm eqValT eqReflValT eqRecValT)
+open ConLeche.Semantics (eqValT eqReflValT eqRecValT)
 open ConLeche (Name)
 
 universe w
 
 variable {V : Type w} [SetTheory V]
 
-/-! ## The towers -/
-
-/-- `Eq`'s valuation: `eqValT` in the semantic syntax. -/
-@[expose] def eqValAV (ψ : Name → Nat) : ITerm :=
-  .lam (.sort (ψ uN)) (.lam (.bvar 0) (.lam (.bvar 1)
-    (.eqE (.bvar 1) (.bvar 0))))
-
-/-- `Eq.refl`'s valuation: `.prf` under two binders (`Eq α a a` is a
-proposition, so the tower reads as the point). -/
-@[expose] def eqReflValAV (ψ : Name → Nat) : ITerm :=
-  .lam (.sort (ψ uN)) (.lam (.bvar 0) .prf)
-
-/-- `Eq.rec`'s valuation: the minor premise, returned, under six
-binders. -/
-@[expose] def eqRecValAV (ψ : Name → Nat) : ITerm :=
-  .lam (.sort (ψ uN))
-    (.lam (.bvar 0)
-      (.lam (.pi (.bvar 1)
-          (.pi (ITerm.mkAppN (eqValAV ψ) [.bvar 2, .bvar 1, .bvar 0])
-            (.sort (ψ u1N))))
-        (.lam (.app (.app (.bvar 0) (.bvar 1))
-            (ITerm.mkAppN (eqReflValAV ψ) [.bvar 2, .bvar 1]))
-          (.lam (.bvar 3)
-            (.lam (ITerm.mkAppN (eqValAV ψ) [.bvar 4, .bvar 3, .bvar 0])
-              (.bvar 2))))))
-
-/-! ### Erasure: the towers project onto the `Term` towers -/
-
-@[simp] theorem eqValAV_erase (ψ : Name → Nat) :
-    (eqValAV ψ).erase = eqValT ψ := rfl
-
-@[simp] theorem eqReflValAV_erase (ψ : Name → Nat) :
-    (eqReflValAV ψ).erase = eqReflValT ψ := rfl
-
-@[simp] theorem eqRecValAV_erase (ψ : Name → Nat) :
-    (eqRecValAV ψ).erase = eqRecValT ψ := rfl
-
 /-! ### The towers read the assignment only at their own level names -/
 
-theorem eqValAV_congr {ψ₁ ψ₂ : Name → Nat} (h : ψ₁ uN = ψ₂ uN) :
-    eqValAV ψ₁ = eqValAV ψ₂ := by rw [eqValAV, eqValAV, h]
+theorem eqValT_congr {ψ₁ ψ₂ : Name → Nat} (h : ψ₁ uN = ψ₂ uN) :
+    eqValT ψ₁ = eqValT ψ₂ := by rw [eqValT, eqValT, h]
 
-theorem eqReflValAV_congr {ψ₁ ψ₂ : Name → Nat} (h : ψ₁ uN = ψ₂ uN) :
-    eqReflValAV ψ₁ = eqReflValAV ψ₂ := by rw [eqReflValAV, eqReflValAV, h]
+theorem eqReflValT_congr {ψ₁ ψ₂ : Name → Nat} (h : ψ₁ uN = ψ₂ uN) :
+    eqReflValT ψ₁ = eqReflValT ψ₂ := by rw [eqReflValT, eqReflValT, h]
 
 /-! ## `Eq`'s tower, interpreted -/
 
 /-- **`Eq`'s tower, interpreted**: a three-deep `lamV` over the
 truth-set former. -/
-theorem eqValAV_interp (ψ : Name → Nat) (ρ : Nat → V) :
-    interp V ρ (eqValAV ψ)
+theorem eqValT_interp (ψ : Name → Nat) (ρ : Nat → V) :
+    interp V ρ (eqValT ψ)
       = lamV (univ (ψ uN))
         (fun a => lamV a (fun x => lamV a (fun y => eqv x y))) := by
-  simp [eqValAV, cons]
+  simp [eqValT, cons]
 
 /-- **The full spine's value** — `EqLaw`'s first conjunct at the tower:
 three `app_lamV`, one per binder, each on its domain. -/
-theorem eqValAV_app₃ (ψ : Name → Nat) (ρ : Nat → V) (A a b : V)
+theorem eqValT_app₃ (ψ : Name → Nat) (ρ : Nat → V) (A a b : V)
     (hA : A ∈ˢ (univ (ψ uN) : V)) (ha : a ∈ˢ A) (hb : b ∈ˢ A) :
     SetTheory.app (SetTheory.app (SetTheory.app
-        (interp V ρ (eqValAV ψ)) A) a) b = eqv a b := by
-  rw [eqValAV_interp, app_lamV hA, app_lamV ha, app_lamV hb]
+        (interp V ρ (eqValT ψ)) A) a) b = eqv a b := by
+  rw [eqValT_interp, app_lamV hA, app_lamV ha, app_lamV hb]
 
 /-- The tower inhabits the `Eq` former's function-space tower. -/
-theorem eqValAV_mem (ψ : Name → Nat) (ρ : Nat → V) :
-    interp V ρ (eqValAV ψ) ∈ˢ piV (univ (ψ uN) : V)
+theorem eqValT_mem (ψ : Name → Nat) (ρ : Nat → V) :
+    interp V ρ (eqValT ψ) ∈ˢ piV (univ (ψ uN) : V)
       (fun a => piV a (fun _ => piV a (fun _ => univZero))) := by
-  rw [eqValAV_interp]
+  rw [eqValT_interp]
   exact lamV_mem (fun _a _ => lamV_mem (fun _x _ =>
     lamV_mem (fun _y _ => eqv_mem_univZero _ _) (fun _ _ => IsTy_univZero))
     (fun _ _ => IsTy_piV)) (fun _ _ => IsTy_piV)
 
 /-- The tower is graded (`WellDenoted`), at every environment. -/
-theorem eqValAV_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
-    WellDenoted V ρ (eqValAV ψ) := by
+theorem eqValT_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
+    WellDenoted V ρ (eqValT ψ) := by
   refine ⟨trivial, IsTy_univ _, fun A hA => ⟨trivial, IsTy_of_mem_univ hA,
     fun a _ => ⟨trivial, IsTy_of_mem_univ hA,
     fun b _ => ⟨trivial, trivial⟩, ?_⟩, ?_⟩, ?_⟩
@@ -126,25 +89,25 @@ theorem eqValAV_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
 
 /-- **`Eq.refl`'s tower, interpreted**: `pt`, because its body is the
 proof at every value. -/
-theorem eqReflValAV_interp (ψ : Name → Nat) (ρ : Nat → V) :
-    interp V ρ (eqReflValAV ψ) = (pt : V) := by
-  simp only [eqReflValAV, interp_lam, interp_prf]
+theorem eqReflValT_interp (ψ : Name → Nat) (ρ : Nat → V) :
+    interp V ρ (eqReflValT ψ) = (pt : V) := by
+  simp only [eqReflValT, interp_lam, interp_prf]
   exact lamV_eq_pt fun A _ => lamV_eq_pt fun _ _ => rfl
 
 /-- The tower inhabits `Eq.refl`'s function-space tower: both fibres
 are truth values, so it is `pt_mem_piR_zero_of` twice, bottoming at
 `pt_mem_eqv_self`. -/
-theorem eqReflValAV_mem (ψ : Name → Nat) (ρ : Nat → V) :
-    interp V ρ (eqReflValAV ψ) ∈ˢ piV (univ (ψ uN) : V)
+theorem eqReflValT_mem (ψ : Name → Nat) (ρ : Nat → V) :
+    interp V ρ (eqReflValT ψ) ∈ˢ piV (univ (ψ uN) : V)
       (fun a => piV a (fun x => eqv x x)) := by
-  rw [eqReflValAV_interp, piV_eq_zero fun A _ => by
+  rw [eqReflValT_interp, piV_eq_zero fun A _ => by
     rw [piV_eq_zero fun x _ => eqv_mem_univZero x x]; exact piR_zero_mem_univZero]
   exact pt_mem_piR_zero_of fun A _ => by
     rw [piV_eq_zero fun x _ => eqv_mem_univZero x x]
     exact pt_mem_piR_zero_of fun x _ => pt_mem_eqv_self x
 
-theorem eqReflValAV_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
-    WellDenoted V ρ (eqReflValAV ψ) := by
+theorem eqReflValT_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
+    WellDenoted V ρ (eqReflValT ψ) := by
   refine ⟨trivial, IsTy_univ _, fun A hA => ⟨trivial, IsTy_of_mem_univ hA,
     fun _a _ => trivial, ?_⟩, ?_⟩
   · exact ⟨fun x => eqv x x, fun x _ => pt_mem_eqv_self x,
@@ -157,34 +120,34 @@ theorem eqReflValAV_wellDenoted (ψ : Name → Nat) (ρ : Nat → V) :
 
 `eqK`'s whole content, and the reason `eqLaw_cons_fresh` is structurally unavailable at this block
 (its side condition is `eqName ≠ c₀.name` and the cons *is* `Eq`).
-Both conjuncts come off `eqValAV` directly:
+Both conjuncts come off `eqValT` directly:
 
-* the **value** clause is `eqValAV_app₃` — three `app_lamV`, one
+* the **value** clause is `eqValT_app₃` — three `app_lamV`, one
   per binder, each on its own domain (the consumers read the
   three-fold form);
 * the **grading** clause is the `WellDenoted` `.app` chain over
-  `eqValAV_mem` (each slot read off the `piV` membership), plus
+  `eqValT_mem` (each slot read off the `piV` membership), plus
   `eqv_mem_univZero` for the propositionhood half. -/
 
 /-- **The `Eq` spine over the tower is graded, and is a proposition.**
 `EqLaw`'s second conjunct, factored out: the `Eq.refl` and `Eq.rec`
 type readings both mention the spine directly, not through the
 field. -/
-theorem eqValAV_app₃_okP (ψ : Name → Nat) (ρ : Nat → V)
-    {Aa la ra : ITerm} (hAa : WellDenoted V ρ Aa) (hla : WellDenoted V ρ la)
+theorem eqValT_app₃_okP (ψ : Name → Nat) (ρ : Nat → V)
+    {Aa la ra : Term} (hAa : WellDenoted V ρ Aa) (hla : WellDenoted V ρ la)
     (hra : WellDenoted V ρ ra)
     (hA : interp V ρ Aa ∈ˢ (univ (ψ uN) : V))
     (ha : interp V ρ la ∈ˢ interp V ρ Aa)
     (hb : interp V ρ ra ∈ˢ interp V ρ Aa) :
-    WellDenoted V ρ (.app (.app (.app (eqValAV ψ) Aa) la) ra) ∧
-      interp V ρ (.app (.app (.app (eqValAV ψ) Aa) la) ra)
+    WellDenoted V ρ (.app (.app (.app (eqValT ψ) Aa) la) ra) ∧
+      interp V ρ (.app (.app (.app (eqValT ψ) Aa) la) ra)
         ∈ˢ (univZero : V) := by
-  have hmem := eqValAV_mem (V := V) ψ ρ
-  have h1 : SetTheory.app (interp V ρ (eqValAV ψ)) (interp V ρ Aa)
+  have hmem := eqValT_mem (V := V) ψ ρ
+  have h1 : SetTheory.app (interp V ρ (eqValT ψ)) (interp V ρ Aa)
       ∈ˢ piV (interp V ρ Aa)
         (fun _ => piV (interp V ρ Aa) (fun _ => univZero)) :=
     app_mem_piV hmem hA
-  have h2 : SetTheory.app (SetTheory.app (interp V ρ (eqValAV ψ))
+  have h2 : SetTheory.app (SetTheory.app (interp V ρ (eqValT ψ))
         (interp V ρ Aa)) (interp V ρ la)
       ∈ˢ piV (interp V ρ Aa) (fun _ => univZero) :=
     app_mem_piV h1 ha
@@ -194,22 +157,22 @@ theorem eqValAV_app₃_okP (ψ : Name → Nat) (ρ : Nat → V)
       ∃ (v : Nat) (A' : V) (B' : V → V), f ∈ˢ piR v A' B' ∧ a ∈ˢ A' ∧
         (v = 0 → ∀ x, x ∈ˢ A' → B' x ∈ˢ (univZero : V)) ∧ (v ≠ 0 → IsTy A') :=
     fun {_ _ A B} hf ha hT => ⟨propN A B, A, B, hf, ha, propN_eq_zero.mp, fun _ => hT⟩
-  refine ⟨⟨⟨⟨eqValAV_wellDenoted ψ ρ, hAa, slot hmem hA (IsTy_univ _)⟩,
+  refine ⟨⟨⟨⟨eqValT_wellDenoted ψ ρ, hAa, slot hmem hA (IsTy_univ _)⟩,
       hla, slot h1 ha hAty⟩, hra, slot h2 hb hAty⟩, ?_⟩
   rw [interp_app, interp_app, interp_app,
-    eqValAV_app₃ ψ ρ _ _ _ hA ha hb]
+    eqValT_app₃ ψ ρ _ _ _ hA ha hb]
   exact eqv_mem_univZero _ _
 
 /-- **`EqLaw` from the tower.**  Any environment carrier whose `Eq`
-leaf is the tower `eqValAV` satisfies the field. -/
+leaf is the tower `eqValT` satisfies the field. -/
 theorem eqLaw_of_tower {env : ConLeche.Env} (m : EnvModel V env)
-    (hleaf : ∀ ψ : Name → Nat, m.acval eqName ψ = eqValAV ψ) :
+    (hleaf : ∀ ψ : Name → Nat, m.acval eqName ψ = eqValT ψ) :
     EqLaw m := by
   intro _hf ψ
   refine ⟨fun ρ A a b hA ha hb => ?_, fun ρ Aa la ra hAa hla hra
     hA ha hb => ?_⟩
-  · rw [hleaf]; exact eqValAV_app₃ ψ ρ A a b hA ha hb
+  · rw [hleaf]; exact eqValT_app₃ ψ ρ A a b hA ha hb
   · rw [hleaf]
-    exact eqValAV_app₃_okP ψ ρ hAa hla hra hA ha hb
+    exact eqValT_app₃_okP ψ ρ hAa hla hra hA ha hb
 
 end ConLeche.Model

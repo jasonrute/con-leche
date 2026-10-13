@@ -313,7 +313,7 @@ generated type a well-denoted type.
 The block #src("whitepaper/Fragment/Decl.lean", 531, 572)[adds three kinds of constant] to the
 environment, the ones @sec:defs left to this section
 (#src("whitepaper/Fragment/Env.lean", 63, 80)[the kinds],
-#src("ConLeche/Kernel/Env.lean", 124, 141)[as in con-leche]). Written
+#src("ConLeche/Kernel/Env.lean", 125, 142)[as in con-leche]). Written
 with the notation of @sec:defs, a stored declaration is one of
 
 - $(c.\{arrow(p)\} : T := v)$ — a definition (@sec:defs);
@@ -533,26 +533,26 @@ which holds in both regimes, is used there only for monotonicity.
 #real[
   The operator is read off the stored constructor types with the
   positivity check's variable — a _hole_ — standing for the family
-  (#src("ConLeche/Model/Env/LfpHoleOp.lean", 114, 116)[the hole operator]),
+  (#src("ConLeche/Model/Env/LfpHoleOp.lean", 115, 117)[the hole operator]),
   and monotonicity and accessibility are read off the positivity
   check's run, case by case: a reading that mentions no hole is
-  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 70, 72)[constant]
+  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 71, 73)[constant]
   (the ordinary field); a function space over a hole-free domain,
   its fibres types, is
-  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 139, 148)[positive when its body is]
-  and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 236, 246)[accessible with its body's bound glued over the domain]
+  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 140, 149)[positive when its body is]
+  and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 237, 247)[accessible with its body's bound glued over the domain]
   (the reflexive field); a hole applied to hole-free arguments is
-  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 167, 171)[positive]
-  and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 324, 327)[accessible with the bound ${pt}$]
+  #src("ConLeche/Semantics/Inductives/HoleMono.lean", 168, 172)[positive]
+  and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 325, 328)[accessible with the bound ${pt}$]
   (the recursive field). Assembled along the fields, that is
   #src("ConLeche/Model/Inductives/BlockAccRunCont.lean", 310, 315)[the fit's accessibility, in both regimes, with a bound in the universe in the type-valued one]
   (#src("ConLeche/SetModel/Access.lean", 56, 63)[the notion above]), and
-  #src("ConLeche/Model/Env/BlockLfp.lean", 510, 514)[the operator's monotonicity] follows from it, as in the fragment.
+  #src("ConLeche/Model/Env/BlockLfp.lean", 511, 515)[the operator's monotonicity] follows from it, as in the fragment.
   The fragment's simplification is to take the field kinds from the
   specification instead of the run. The universe bound on the fields the real proof records
   from a check made for the proof alone, the constructor type-checked
   with the holes in context
-  (#src("ConLeche/Model/Env/BlockLfp.lean", 449, 455)[the recorded bound]);
+  (#src("ConLeche/Model/Env/BlockLfp.lean", 450, 456)[the recorded bound]);
   the fragment reads it off the constructor's ordinary typing.
 ]
 
@@ -648,16 +648,16 @@ every constructor denotes the point.
   graph over an index set. What the model records of an installed
   block is one clause: the operator maps the universe to itself and
   its fit is accessible, in both regimes
-  (#src("ConLeche/Model/Env/BlockLfp.lean", 387, 394)[the operator]),
+  (#src("ConLeche/Model/Env/BlockLfp.lean", 388, 395)[the operator]),
   so it has a closed family
   (#src("ConLeche/SetModel/Access.lean", 298, 303)[the constant family at a proposition, and from accessibility in the type-valued regime])
   and is
-  #src("ConLeche/Model/Env/BlockLfp.lean", 510, 514)[monotone];
+  #src("ConLeche/Model/Env/BlockLfp.lean", 511, 515)[monotone];
   its fibres are the tagged tuples of fitting fields
-  (#src("ConLeche/Model/Env/BlockLfp.lean", 395, 400)[the fibres]),
+  (#src("ConLeche/Model/Env/BlockLfp.lean", 396, 401)[the fibres]),
   and the type former denotes
-  #src("ConLeche/Model/Env/BlockLfp.lean", 180, 182)[the least fixed point]
-  (#src("ConLeche/Model/Env/BlockLfp.lean", 516, 519)[the fixed-point equation]).
+  #src("ConLeche/Model/Env/BlockLfp.lean", 181, 183)[the least fixed point]
+  (#src("ConLeche/Model/Env/BlockLfp.lean", 517, 520)[the fixed-point equation]).
   Its constructors are
   #src("ConLeche/SetModel/TaggedSum.lean", 65)[tagged pairs] of
   #src("ConLeche/SetModel/TupleTower.lean", 93)[nested pairs], the
@@ -832,7 +832,7 @@ reduced major's value for the argument's, and
   Every rule of the recursor of an accepted block
   #src("whitepaper/Fragment/InstallIota.lean", 822, 828)[satisfies its $iota$ law] in the model of @sec:ind-model.
   (Via #src("whitepaper/Fragment/IndRec.lean", 280, 290)[the equation on the semantic recursor]\; in con-leche,
-  #src("ConLeche/Model/Inductives/BlockRecLaw.lean", 876, 882)[the graph's equation], lifted to the law of @def:iota-law.)
+  #src("ConLeche/Model/Inductives/BlockRecLaw.lean", 877, 883)[the graph's equation], lifted to the law of @def:iota-law.)
 ] <thm:iota>
 
 #proof[

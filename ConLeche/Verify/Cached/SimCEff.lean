@@ -1,6 +1,7 @@
 module
 
 import ConLeche.Verify.EnvBound
+import ConLeche.Verify.Level
 public import ConLeche.Verify.Cached.SimC
 /- `withPtrEq` (`Init.Util`) is `public` but not `@[expose]`, and the
 pointer-guarded `Expr.exprPtrBEq`/`beq` identities below are exactly the

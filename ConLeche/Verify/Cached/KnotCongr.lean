@@ -279,42 +279,27 @@ theorem iotaRecI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     constTyAtM_congr hfe, iotaCertsFullI_congr hfe,
     iotaIndexOkI_congr hfe, ruleRhsAtM_congr hfe]
 
-/-- The bulk-beta spine loop and its peel loop read `fe` only through
-`find?` (one mutual functional induction for the pair). -/
-theorem whnfAppI_betaPeelI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI)
-    (depth : Nat) (k : Expr → CheckCM Expr) :
-    (∀ v args, whnfAppI mode r fe₁ depth k v args
-        = whnfAppI mode r fe₂ depth k v args) ∧
-      (∀ t acc args, betaPeelI mode r fe₁ depth k t acc args
-        = betaPeelI mode r fe₂ depth k t acc args) := by
-  refine whnfAppI.mutual_induct
-    (fun v args => whnfAppI mode r fe₁ depth k v args
-      = whnfAppI mode r fe₂ depth k v args)
-    (fun t acc args => betaPeelI mode r fe₁ depth k t acc args
-      = betaPeelI mode r fe₂ depth k t acc args)
-    ?_ ?_ ?_ ?_ ?_ ?_
-  · intro v; rw [whnfAppI.eq_def, whnfAppI.eq_def]
-  · intro a rest ty body ih
-    rw [whnfAppI.eq_def, whnfAppI.eq_def]; simp only [ih]
-  · intro v a rest hnl ih
-    rw [whnfAppI.eq_def, whnfAppI.eq_def]
-    cases v with
-    | lam ty body => exact (hnl _ _ rfl).elim
-    | _ => simp only [iotaArityOk_congr hfe, iotaRecI_congr hfe, ih]
-  · intro t acc; rw [betaPeelI.eq_def, betaPeelI.eq_def]
-  · intro acc arg rest ty body ih
-    rw [betaPeelI.eq_def, betaPeelI.eq_def]; simp only [ih]
-  · intro ty acc arg rest hnl ih
+/-- The peel loop only threads `fe`: it reads none of it. -/
+theorem betaPeelI_congr (r : CoreFnsI) (depth : Nat) :
+    betaPeelI r fe₁ depth = betaPeelI r fe₂ depth := by
+  funext t acc args
+  induction args generalizing t acc with
+  | nil => rw [betaPeelI.eq_def, betaPeelI.eq_def]
+  | cons a rest ih =>
     rw [betaPeelI.eq_def, betaPeelI.eq_def]
-    cases ty with
-    | lam ty body => exact (hnl _ _ rfl).elim
-    | _ => simp only [ih]
+    cases t <;> simp only [ih]
 
 /-- `whnfAppI` reads `fe` only through `find?`. -/
 theorem whnfAppI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI)
-    (depth : Nat) (k : Expr → CheckCM Expr) :
-    whnfAppI mode r fe₁ depth k = whnfAppI mode r fe₂ depth k := by
-  funext v args; exact (whnfAppI_betaPeelI_congr hfe r depth k).1 v args
+    (depth : Nat) :
+    whnfAppI mode r fe₁ depth = whnfAppI mode r fe₂ depth := by
+  funext v args
+  induction args generalizing v with
+  | nil => rw [whnfAppI.eq_def, whnfAppI.eq_def]
+  | cons a rest ih =>
+    rw [whnfAppI.eq_def, whnfAppI.eq_def]
+    cases v <;> simp only [betaPeelI_congr (fe₁ := fe₁) (fe₂ := fe₂), iotaArityOk_congr hfe,
+      iotaRecI_congr hfe, ih]
 
 /-- `reduceProjCoreI` reads `fe` only through `find?`. -/
 theorem reduceProjCoreI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
@@ -325,7 +310,7 @@ theorem reduceProjCoreI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
 /-- `whnfCoreStepI` reads `fe` only through `find?`. -/
 theorem whnfCoreStepI_congr (hfe : fe₁.find? = fe₂.find?) (r : CoreFnsI) :
     whnfCoreStepI mode r fe₁ = whnfCoreStepI mode r fe₂ := by
-  funext cheap depth k e; unfold whnfCoreStepI
+  funext cheap depth e; unfold whnfCoreStepI
   simp only [whnfAppI_congr hfe, reduceProjCoreI_congr hfe]
 
 /-- `whnfCoreLoopI` reads `fe` only through `find?`. -/

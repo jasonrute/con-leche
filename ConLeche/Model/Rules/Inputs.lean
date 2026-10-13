@@ -34,14 +34,14 @@ ARGUMENTS of `ofEnvModelM` because that file sits above this one
 
 The row for the `Red.natLit` step (`lit n ↦ natLitToConstructor n`)
 needs no input: the reading is invisible to the step
-(`denoteMeta_natLitToConstructor`); the string expansion likewise
-(`denoteMeta_strLitToConstructor`).
+(`denote_natLitToConstructor`); the string expansion likewise
+(`denote_strLitToConstructor`).
 -/
 namespace ConLeche.Model.Rules
 open ConLeche.Semantics
 open ConLeche.SetModel
 open ConLeche.Term ConLeche.Verify SetTheory
-open ConLeche.Semantics (ITerm)
+
 open ConLeche (CheckMode Env Expr Name)
 open ConLeche.Rules
 
@@ -54,11 +54,11 @@ reading of `w` interprets as the packed literal, which reads and is
 graded. -/
 @[expose] def NatSuccRow {env : Env} (m : EnvModel V env) (φ : Name → Nat) :
     Prop :=
-  ∀ {d : Nat} {w : Expr} {n : Nat} {ea : ITerm},
+  ∀ {d : Nat} {w : Expr} {n : Nat} {ea : Term},
     ConLeche.natLitSupported env = true →
     ConLeche.rawNatLit? w = some n →
-    denoteMeta m.acval env φ d (.app (.const natSuccName []) w) = some ea →
-    ∃ ra, denoteMeta m.acval env φ d (.lit (.natVal (n + 1))) = some ra ∧
+    denote m.acval env φ d (.app (.const natSuccName []) w) = some ea →
+    ∃ ra, denote m.acval env φ d (.lit (.natVal (n + 1))) = some ra ∧
       ∀ ρ : Nat → V, WellDenoted V ρ ea →
         WellDenoted V ρ ra ∧ interp V ρ ea = interp V ρ ra
 
@@ -67,12 +67,12 @@ two literal readings interprets as `natOpResult`, which reads and is
 graded. -/
 @[expose] def NatOpRow {env : Env} (m : EnvModel V env) (φ : Name → Nat) :
     Prop :=
-  ∀ {d : Nat} {c : Name} {wa wb r : Expr} {n₁ n₂ : Nat} {ea : ITerm},
+  ∀ {d : Nat} {c : Name} {wa wb r : Expr} {n₁ n₂ : Nat} {ea : Term},
     c ∈ natBinOpNames → ConLeche.natOpStored env c = true →
     ConLeche.rawNatLit? wa = some n₁ → ConLeche.rawNatLit? wb = some n₂ →
     ConLeche.natOpResult c n₁ n₂ = some r →
-    denoteMeta m.acval env φ d (.app (.app (.const c []) wa) wb) = some ea →
-    ∃ ra, denoteMeta m.acval env φ d r = some ra ∧
+    denote m.acval env φ d (.app (.app (.const c []) wa) wb) = some ea →
+    ∃ ra, denote m.acval env φ d r = some ra ∧
       ∀ ρ : Nat → V, WellDenoted V ρ ea →
         WellDenoted V ρ ra ∧ interp V ρ ea = interp V ρ ra
 
@@ -86,8 +86,8 @@ not the point, so neither is the head, whose graph fixes its domain
     Prop :=
   ∀ {c : Name}, c ∈ natBinOpNames → ConLeche.natOpStored env c = true →
     ConLeche.natLitSupported env = true ∧
-    ∀ {d : Nat} {ca : ITerm},
-      denoteMeta m.acval env φ d (.const c []) = some ca →
+    ∀ {d : Nat} {ca : Term},
+      denote m.acval env φ d (.const c []) = some ca →
       ∀ ρ : Nat → V, ∃ (b₁ b₂ : Nat) (X : V),
         interp V ρ ca ∈ˢ piR b₁ (interp V ρ (m.acval natName (Level.substFn φ [] [])))
           (fun _ => piR b₂ (interp V ρ (m.acval natName (Level.substFn φ [] [])))
@@ -111,7 +111,7 @@ structure RulesInputs (V : Type w) [SetTheory V] {env : Env}
   caps_ok : CapsOk m
   /-- iota tier: the stored families' fibres — truth values where the
   stored sort is `0`, strict elsewhere (task #342 L7; the case-2 ι
-  licence's input) -/
+  case split's input) -/
   ind_fib : IndFibLaw m φ
   /-- literal tier: successor packing -/
   nat_succ : NatSuccRow m φ

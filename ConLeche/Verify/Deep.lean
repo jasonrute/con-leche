@@ -856,9 +856,9 @@ private theorem projCertAt_shift {p : Nat} (v : Bool) (c : Name) (args : List Ex
 private theorem majorToCtor_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) (recName : Name)
     (rules : List RecRule) {major : Expr} (hwmaj : WScoped d major) :
-    majorToCtor (pureFns mode env fuel) env (d + 1) recName rules
+    majorToCtor mode (pureFns mode env fuel) env (d + 1) recName rules
         (shiftFrom p major) =
-      (majorToCtor (pureFns mode env fuel) env d recName rules major).map
+      (majorToCtor mode (pureFns mode env fuel) env d recName rules major).map
         (shiftFrom p) := by
   simp only [majorToCtor]
   rw [isCtorApp_shiftFrom]
@@ -925,7 +925,12 @@ private theorem majorToCtor_shift (henv : EnvWF env)
             refine bind_rel_eq _ (ih.defeq hpd hwtmaj hwtfab) ?_
             intro bde _
             refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
-            refine bind_rel_eq _ (proofIrrel_shift henv ih hpd hwfab hwmaj) ?_
+            -- Task #342 (r1): proof irrelevance is now gated on
+            -- `mode.verifiedChecks`; the gate itself shifts trivially
+            -- (`ite_congr'`, both arms unconditionally `rfl`/`proofIrrel_shift`).
+            refine bind_rel_eq _
+                (ite_congr' (fun _ => proofIrrel_shift henv ih hpd hwfab hwmaj)
+                  (fun _ => rfl)) ?_
             intro bb _
             exact ite_rel _ (fun _ => rfl) (fun _ => rfl)
           · -- the structure-eta rescue, then the `And`-only rescue
@@ -1030,7 +1035,11 @@ private theorem majorToCtor_shift (henv : EnvWF env)
               refine bind_rel_eq _ (ih.defeq hpd hwtmaj hwtfab) ?_
               intro bde _
               refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
-              refine bind_rel_eq _ (proofIrrel_shift henv ih hpd hwfab hwmaj) ?_
+              -- Task #342 (r1): the `And` branch's proof irrelevance,
+              -- gated the same way as the K branch's.
+              refine bind_rel_eq _
+                  (ite_congr' (fun _ => proofIrrel_shift henv ih hpd hwfab hwmaj)
+                    (fun _ => rfl)) ?_
               intro bb _
               exact ite_rel _ (fun _ => rfl) (fun _ => rfl)
 
@@ -1038,7 +1047,7 @@ private theorem majorToCtor_shift (henv : EnvWF env)
 `whnfPres_WScoped` proof, factored for the bisimulation). -/
 theorem iotaRec_WScoped (henv : EnvWF env)
     {d : Nat} {e e'' : Expr}
-    (h : iotaRec (pureFns mode env fuel) env d e = .ok (some e''))
+    (h : iotaRec mode (pureFns mode env fuel) env d e = .ok (some e''))
     (hw : WScoped d e) : WScoped d e'' := by
   obtain ⟨c, us, cv, mI, rP, rules, major, cj, usj,
     cvj, cnP, cnF, r, hfn, hfc, hlen, -, hprep,
@@ -1214,13 +1223,17 @@ private theorem iotaIndexOk_shift (henv : EnvWF env)
       rw [← getAppArgs_shiftFrom] at h4
       exact h4
 
+private theorem isStrLit_shiftFrom {p : Nat} {e : Expr} :
+    (shiftFrom p e).isStrLit = e.isStrLit := by
+  cases e <;> first | rfl | (rw [shiftFrom_fvar]; done) | (rw [shiftFrom_fvar]; rfl)
+
 /-- The major chain commutes with the shift, in either order. -/
 private theorem prepareMajor_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) (recName : Name)
     (rules : List RecRule) {major : Expr} (hwmaj : WScoped d major) :
-    prepareMajor (pureFns mode env fuel) env (d + 1) recName rules
+    prepareMajor mode (pureFns mode env fuel) env (d + 1) recName rules
         (shiftFrom p major) =
-      (prepareMajor (pureFns mode env fuel) env d recName rules major).map
+      (prepareMajor mode (pureFns mode env fuel) env d recName rules major).map
         (shiftFrom p) := by
   simp only [prepareMajor]
   by_cases hk : recRuleK rules = true
@@ -1233,23 +1246,51 @@ private theorem prepareMajor_shift (henv : EnvWF env)
       · exact WScoped.of_wscopedB hwsc
     rw [isCtorApp_shiftFrom]
     exact ite_rel _ (fun _ => litMajorToCtor_shift henv ih hpd hw₁) (fun _ => rfl)
-  · rw [ite_eq_right hk, ite_eq_right hk]
-    refine bind_rel _ _ (ih.whnf hpd hwmaj) ?_
-    intro m₀ hm₀
-    have hw₀ : WScoped d m₀ := whnf_WScoped henv fuel hm₀ hwmaj
-    refine bind_rel _ _ (litMajorToCtor_shift henv ih hpd hw₀) ?_
-    intro m₁ hm₁
-    have hw₁ : WScoped d m₁ := by
-      rcases litMajorToCtorFueled_inv hm₁ with rfl | ⟨s, -, -, hred⟩
-      · exact litToCtorIfNat_WScoped hw₀
-      · exact whnf_WScoped henv fuel hred (strLitToConstructor_WScoped s d)
-    exact majorToCtor_shift henv ih hpd recName rules hw₁
+  · rw [ite_eq_right hk, ite_eq_right hk, isStrLit_shiftFrom]
+    -- the chain after the first rescue attempt (task #342 R2), at any
+    -- scoped intermediate major
+    have tail : ∀ {mE : Expr}, WScoped d mE →
+        (if isCtorApp env (shiftFrom p mE) = true then pure (shiftFrom p mE)
+          else do
+            let major₀ ← (pureFns mode env fuel).whnf (d + 1) (shiftFrom p mE)
+            let major₁ ← litMajorToCtor (pureFns mode env fuel) env (d + 1) major₀
+            majorToCtor mode (pureFns mode env fuel) env (d + 1) recName rules major₁) =
+          (if isCtorApp env mE = true then pure mE
+            else do
+              let major₀ ← (pureFns mode env fuel).whnf d mE
+              let major₁ ← litMajorToCtor (pureFns mode env fuel) env d major₀
+              majorToCtor mode (pureFns mode env fuel) env d recName rules major₁).map
+            (shiftFrom p) := by
+      intro mE hwE
+      rw [isCtorApp_shiftFrom]
+      refine ite_rel _ (fun _ => rfl) (fun _ => ?_)
+      refine bind_rel _ _ (ih.whnf hpd hwE) ?_
+      intro m₀ hm₀
+      have hw₀ : WScoped d m₀ := whnf_WScoped henv fuel hm₀ hwE
+      refine bind_rel _ _ (litMajorToCtor_shift henv ih hpd hw₀) ?_
+      intro m₁ hm₁
+      have hw₁ : WScoped d m₁ := by
+        rcases litMajorToCtorFueled_inv hm₁ with rfl | ⟨s, -, -, hred⟩
+        · exact litToCtorIfNat_WScoped hw₀
+        · exact whnf_WScoped henv fuel hred (strLitToConstructor_WScoped s d)
+      exact majorToCtor_shift henv ih hpd recName rules hw₁
+    by_cases hs : major.isStrLit = true
+    · rw [ite_eq_left hs, ite_eq_left hs]
+      exact tail hwmaj
+    · rw [ite_eq_right hs, ite_eq_right hs]
+      refine bind_rel _ _ (majorToCtor_shift henv ih hpd recName rules hwmaj) ?_
+      intro m₁ hm₁
+      have hw₁ : WScoped d m₁ := by
+        rcases majorToCtor_inv hm₁ with rfl | ⟨hwsc, -, -, -⟩
+        · exact hwmaj
+        · exact WScoped.of_wscopedB hwsc
+      exact tail hw₁
 
 private theorem iotaRec_shift (henv : EnvWF env)
     (ih : ShiftClaims mode env fuel) {p d : Nat} (hpd : p ≤ d) {e : Expr}
     (hwe : WScoped d e) :
-    iotaRec (pureFns mode env fuel) env (d + 1) (shiftFrom p e) =
-      (iotaRec (pureFns mode env fuel) env d e).map
+    iotaRec mode (pureFns mode env fuel) env (d + 1) (shiftFrom p e) =
+      (iotaRec mode (pureFns mode env fuel) env d e).map
         (Option.map (shiftFrom p)) := by
   simp only [iotaRec]
   rw [getAppFn_shiftFrom]
@@ -1316,35 +1357,42 @@ private theorem iotaRec_shift (henv : EnvWF env)
           rw [hasFvar_instantiateLevelParams]
           exact (henv _ (find?_mem hfj)).1
         refine bind_rel_eq _ ?_ ?_
-        · by_cases h3 : iotaCase3 env.find? rl cvj (recFireComparands rl cv.levelParams us
-              cvj.levelParams e.getAppArgs rP).1 = true
-          · rw [ite_eq_left h3, ite_eq_left h3]
-            refine bind_congr_eq rfl ?_
-            intro b₀ _
-            refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-            refine bind_congr_eq h1 ?_
-            intro b₁ _
-            refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-            have h3c := iotaCertsFull_shift henv ih hpd
-              (ty := cvj.type.instantiateLevelParams cvj.levelParams usj)
-              (WScoped.of_not_hasFvar htel₂)
-              (args := major.getAppArgs)
-              (fun x hx => hwmaj.getAppArgs x hx)
-            rw [shiftFrom_eq_self_of_not_hasFvar htel₂] at h3c
-            refine bind_congr_eq h3c ?_
-            intro b₃ _
-            refine ite_congr' (fun _ => ?_) (fun _ => rfl)
-            -- the index comparison (only where indices exist): the closed
-            -- telescope peeled along the shifted spines
-            have hidx := iotaIndexOk_shift henv ih hpd htel₂
-              (mI := mI) (rP := rP) (cnP := rl.ctorParams)
-              (margs := major.getAppArgs) (idx := (e.getAppArgs.take mI).drop rP)
-              (fun x hx => hwmaj.getAppArgs x hx)
-              (fun x hx => hwe.getAppArgs x
-                (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
-            simp only [List.map_drop, List.map_take] at hidx
-            exact hidx
-          · rw [ite_eq_right h3, ite_eq_right h3]
+        · -- Task #342 (r1): the whole case-3 decision is now gated on
+          -- `mode.verifiedChecks`, one `by_cases` outside the existing
+          -- `iotaCase3` one; at the trusted mode both sides are
+          -- `pure true`, closed by the `rw` alone.
+          by_cases hμ : mode.verifiedChecks = true
+          · rw [ite_eq_left hμ, ite_eq_left hμ]
+            by_cases h3 : iotaCase3 env.find? rl cvj (recFireComparands rl cv.levelParams us
+                cvj.levelParams e.getAppArgs rP).1 = true
+            · rw [ite_eq_left h3, ite_eq_left h3]
+              refine bind_congr_eq rfl ?_
+              intro b₀ _
+              refine ite_congr' (fun _ => ?_) (fun _ => rfl)
+              refine bind_congr_eq h1 ?_
+              intro b₁ _
+              refine ite_congr' (fun _ => ?_) (fun _ => rfl)
+              have h3c := iotaCertsFull_shift henv ih hpd
+                (ty := cvj.type.instantiateLevelParams cvj.levelParams usj)
+                (WScoped.of_not_hasFvar htel₂)
+                (args := major.getAppArgs)
+                (fun x hx => hwmaj.getAppArgs x hx)
+              rw [shiftFrom_eq_self_of_not_hasFvar htel₂] at h3c
+              refine bind_congr_eq h3c ?_
+              intro b₃ _
+              refine ite_congr' (fun _ => ?_) (fun _ => rfl)
+              -- the index comparison (only where indices exist): the closed
+              -- telescope peeled along the shifted spines
+              have hidx := iotaIndexOk_shift henv ih hpd htel₂
+                (mI := mI) (rP := rP) (cnP := rl.ctorParams)
+                (margs := major.getAppArgs) (idx := (e.getAppArgs.take mI).drop rP)
+                (fun x hx => hwmaj.getAppArgs x hx)
+                (fun x hx => hwe.getAppArgs x
+                  (List.mem_of_mem_take (List.mem_of_mem_drop hx)))
+              simp only [List.map_drop, List.map_take] at hidx
+              exact hidx
+            · rw [ite_eq_right h3, ite_eq_right h3]
+          · rw [ite_eq_right hμ, ite_eq_right hμ]
         intro b₄ _
         refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
         have hrhs : (rl.rhs.instantiateLevelParams cv.levelParams
@@ -1404,12 +1452,12 @@ private theorem whnfCore_step (henv : EnvWF env)
     intro f' hf'
     have hwf' : WScoped d f' := whnfCore_WScoped henv fuel hf' hw.1
     have hiota : ∀ (f'' : Expr), WScoped d f'' →
-        (iotaRec (pureFns mode env fuel) env (d + 1)
+        (iotaRec mode (pureFns mode env fuel) env (d + 1)
             (.app (shiftFrom p f'') (shiftFrom p a)) >>= fun o =>
           match o with
           | some e'' => (pureFns mode env fuel).whnfCore c (d + 1) e''
           | none => pure (.app (shiftFrom p f'') (shiftFrom p a))) =
-        ((iotaRec (pureFns mode env fuel) env d (.app f'' a) >>= fun o =>
+        ((iotaRec mode (pureFns mode env fuel) env d (.app f'' a) >>= fun o =>
           match o with
           | some e'' => (pureFns mode env fuel).whnfCore c d e''
           | none => pure (.app f'' a)).map (shiftFrom p)) := by
