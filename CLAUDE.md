@@ -16,8 +16,8 @@ current fact changed.
   does not build it, so a warning there is invisible to the build gate.
 * `tests/arena.sh` is the standard battery (CI runs it): the gates below,
   the arena tutorial tests, the end-to-end fixtures (`tests/e2e/`,
-  verdicts pinned in `tests/e2e-expected.txt`) and the trusted-mode
-  sweep. Each gate also runs on its own:
+  verdicts pinned in `tests/e2e-expected.txt`), the trusted-mode sweep
+  and the self-check (`scripts/selfcheck.sh`). Each gate also runs on its own:
   - `tests/layering.sh` — the import fence (see Layering below).
   - `tests/shake.sh` — `lake shake` proposals against
     `tests/shake-allowlist.txt`, and `scripts/pub-import-plan.py --check`

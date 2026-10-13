@@ -10,7 +10,7 @@
 # The expectations file additionally pins the current accept/decline status
 # so that progress and regressions are both visible; update it consciously.
 #
-# Usage: tests/arena.sh [--no-sweeps] [--selfcheck] [tests-dir]
+# Usage: tests/arena.sh [--no-sweeps] [--no-selfcheck] [tests-dir]
 #
 # An <expectation> is a single exit code.
 #
@@ -27,8 +27,8 @@
 #     stops or starts detecting differently).
 #
 # `--no-sweeps` skips the extra pass for a tight edit loop; a landing
-# gate runs it.  `--selfcheck` adds the self-check sub-gate (below; a
-# few minutes): CI and an integration branch's final battery pass it.
+# gate runs it.  `--no-selfcheck` skips the self-check sub-gate (below)
+# likewise.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -45,12 +45,12 @@ export TMPDIR="${TMPDIR:-$PWD/_tmp/tmp}"
 mkdir -p "$TMPDIR"
 
 MODE_SWEEPS=on
-SELFCHECK=off
+SELFCHECK=on
 args=()
 for a in "$@"; do
   case "$a" in
     --no-sweeps) MODE_SWEEPS=off;;
-    --selfcheck) SELFCHECK=on;;
+    --no-selfcheck) SELFCHECK=off;;
     *) args+=("$a");;
   esac
 done
@@ -217,14 +217,13 @@ if tests/challenge.sh; then :; else fail=1; fi
 # built tree; ~1 min, most of it the two olean dumps the fixpoint reads.
 if tests/shake.sh; then :; else fail=1; fi
 
-# THE SELF-CHECK (task #199; a sub-gate since task #342 R1), behind
-# `--selfcheck`: CI and the final battery of an integration branch pass
-# it, a lane's per-change run need not.  `scripts/selfcheck.sh --fresh`
-# exports this tree's own development (every con-leche declaration and
-# its dependency cone, ~0.7 GB of NDJSON) and runs the checker on it at
-# `--verified --jobs=8`: about 2 minutes plus the export, and the first
-# run also clones and builds `lean4export` at the tree's toolchain (it
-# needs the network once).  The gate is the checker's exit 0.
+# THE SELF-CHECK (task #199; a sub-gate since task #342 R1).
+# `scripts/selfcheck.sh --fresh` exports this tree's own development
+# (every con-leche declaration and its dependency cone, ~0.7 GB of
+# NDJSON) and runs the checker on it at `--verified --jobs=8`: under a
+# minute with the export (2 CPU-minutes); the first run in a checkout
+# also clones and builds `lean4export` at the tree's toolchain (it needs
+# the network once).  The gate is the checker's exit 0.
 if [ "$SELFCHECK" = on ]; then
   if scripts/selfcheck.sh --fresh _tmp/selfcheck-gate > _tmp/selfcheck-gate.log 2>&1; then
     echo "selfcheck: $(grep -o 'accepted [0-9]* declarations' _tmp/selfcheck-gate.log | tail -1)"
