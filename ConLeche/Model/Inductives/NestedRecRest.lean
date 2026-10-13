@@ -3,7 +3,6 @@ module
 import ConLeche.Verify.Cached.PushChain
 import Std.Data.String.ToNat
 public import ConLeche.Model.Inductives.BlockDeclRun
-public import ConLeche.Verify.Inductives.NestedRead
 
 public section
 
