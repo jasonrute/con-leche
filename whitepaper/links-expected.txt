@@ -139,7 +139,7 @@
     40    | lam (A b : Expr)
     41    /-- The Π-type `(x : A) → B`. -/
     42    | pi (A B : Expr)
-    43    /-- `let x : ty := v; b` (task #342, F4).  Kept as Lean stores it: the
+    43    /-- `let x : ty := v; b`.  Kept as Lean stores it: the
     44    checker substitutes the value (`Red.zeta`, `Infer.letE`), and the
     45    interpretation reads the body at the value's value, ignoring the type
     46    (`Interp.lean`), as con-leche's `Denotes` `let` rule does. -/
@@ -264,7 +264,7 @@
     78    -/
     79    | beta {Γ : List Expr} {A b a : Expr} :
     80        Red env Γ (app (lam A b) a) (b.inst a)
-    81    /-- **ζ** (task #342, F4): a `let` reduces to its body with the value
+    81    /-- **ζ**: a `let` reduces to its body with the value
     82    substituted, with no certificate, as β (con-leche's `whnfCore` on
     83    `.letE`, S0's `inst1M b v`; official `whnf_core`).  Unlike β it
     84    needs no case split on the point: the `let` and its reduct denote
@@ -338,7 +338,7 @@
    152        usj.length = cij.lparams.length →
    153        margs.length = numParams + rl.nfields →
    154        cij.type.hasPis (numParams + rl.nfields) = true →
-   155        -- the major's slot certificate (the recursor's spine before it needs none, task #347)
+   155        -- the major's slot certificate (the recursor's spine before it needs none)
    156        piResidual (ci.type.instL ci.lparams us)
    157          (args.take (numParams + numMotives + numMinors + numIndices)) = some (pi dM bM) →
    158        Infer env Γ major tM → DefEq env Γ tM dM →
@@ -358,14 +358,14 @@
    172        Red env Γ (mkAppN (const c us) args)
    173          (mkAppN (rl.rhs.instL ci.lparams us)
    174            (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
-   175    /-- **ι on a family in `Prop`, with no major-slot certificate** (task
-   176    #342 F3; #342 v2 §11.4 case 3).  `Red.iota` without the reduced
+   175    /-- **ι on a family in `Prop`, with no major-slot certificate**
+   176    (the checker's certified case of ι).  `Red.iota` without the reduced
    177    major's slot certificate, for a constructor whose family's sort
    178    evaluates to zero at every valuation: the family `I` the
    179    constructor's residual type is headed by is stored, its type walked
    180    along the residual's parameters and indices leaves `Sort u`, and the
    181    oracle decides `u = 0`.  The constructor's telescope certificate stays
-   182    at the full grade (every parameter and field, #349), and so do the
+   182    at the full grade (every parameter and field), and so do the
    183    three comparisons.  Why the slot needs nothing: the unreduced major
    184    lies in the slot whenever the redex is not the point, and where it is
    185    the point so is the reduced constructor application
@@ -373,7 +373,7 @@
    187    families that are always propositions (`Acc`); a family that may be
    188    a proposition at some valuations only (`Quot.{u}`, `PUnit.{u}`) also
    189    goes by `Red.iotaSlot`, which reads the environment's fibre law at the
-   190    others (lane F1). -/
+   190    others. -/
    191    | iotaProp {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
    192        {numParams numMotives numMinors numIndices : Nat} {rules : List RecRule}
    193        {args : List Expr} {major : Expr} {cj : Name} {usj : List Level}
@@ -475,22 +475,22 @@
    289          (mkAppN (rl.rhs.instL ci.lparams us)
    290            (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
    291  
-   292    /-- **ι with no major-slot certificate and no level test** (task #342
-   293    F1, completing F3's `Red.iotaProp`; #342 v2 §11.4 case 3).  `Red.iota`
+   292    /-- **ι with no major-slot certificate and no level test** (the
+   293    checker's certified case of ι).  `Red.iota`
    294    without the reduced major's slot certificate, for any family: the
    295    constructor's telescope certificate stays at the full grade (every
-   296    parameter and field, #349), and so do the three comparisons; nothing
+   296    parameter and field), and so do the three comparisons; nothing
    297    else is tested.  Why the slot needs nothing: where the unreduced
    298    major is not the point its reduction claim gives the reduct; where it
-   299    is, the environment's slot law (`EnvModel.rec_rules_slot`, F2) makes
+   299    is, the environment's slot law (`EnvModel.rec_rules_slot`) makes
    300    the constructor application the point too, given the redex is not
    301    (`Sound.lean`, `slot_of_law`, `iota_core_slot`).  On the generated
    302    recursors that law holds because the major's domain is the
    303    constructor's own family at the recursor's levels, a fibre holding the
    304    point is a truth value there, and the constructor of a family in
-   305    `Prop` is the point (`IndSpec.rec_rule_slot`).  F1's version of this
-   306    rule had a premise linking the major's domain to the constructor's
-   307    family; F2 proved the link as an installer fact and dropped it.  This
+   305    `Prop` is the point (`IndSpec.rec_rule_slot`).  No premise links the
+   306    major's domain to the constructor's family: the installation proves
+   307    the slot law of every generated rule (`InstallIota.lean`).  This
    308    is the rule for a family that is a proposition at some valuations
    309    only (`Quot.{u}`, `PUnit.{u}`). -/
    310    | iotaSlot {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
@@ -531,7 +531,7 @@
    345        Red env Γ (mkAppN (const c us) args)
    346          (mkAppN (rl.rhs.instL ci.lparams us)
    347            (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
-   348    /-- **ι, nested, with no major-slot certificate** (task #342 F1):
+   348    /-- **ι, nested, with no major-slot certificate**:
    349    `Red.iotaNested` without the reduced major's slot certificate, with
    350    no further premise: the slot law of an auxiliary recursor's rule
    351    (`IndSpec.rec_rule_slot1N`) holds because a nested block is a
@@ -577,7 +577,7 @@
    391        Red env Γ (mkAppN (const c us) args)
    392          (mkAppN (rl.rhs.instL ci.lparams us)
    393            (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
-   394    /-- **ι, case 2** (task #342 F1; #347's ι case test, #342 v2 §11.4): `Red.iota`
+   394    /-- **ι, case 2** (the checker's ι case test): `Red.iota`
    395    with **no certificate at all** — no major slot, no constructor
    396    telescope — where the major's domain (what the recursor's telescope
    397    leaves after the spine, `Expr.piResidual`) is a stored inductive
@@ -629,7 +629,7 @@
    443        Red env Γ (mkAppN (const c us) args)
    444          (mkAppN (rl.rhs.instL ci.lparams us)
    445            (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
-   446    /-- **ι, nested, case 2** (task #342 F1): `Red.iotaNested` with no
+   446    /-- **ι, nested, case 2**: `Red.iotaNested` with no
    447    certificate, under `Red.iotaStrict`'s level test on the major's
    448    domain. -/
    449    | iotaNestedStrict {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
@@ -676,7 +676,7 @@
    490        Red env Γ (mkAppN (const c us) args)
    491          (mkAppN (rl.rhs.instL ci.lparams us)
    492            (args.take (numParams + numMotives + numMinors) ++ margs.drop nPc))
-   493    /-- **ι by K** (task #342 F2; #342 v2 §11.4's K row; Lean's
+   493    /-- **ι by K** (Lean's
    494    `to_cnstr_when_K`): a recursor whose rule is flagged K
    495    (`RecRule.k`: one family, always a proposition, one constructor
    496    with no fields — `Eq`, `HEq`, `True`) reduces on its major **as it
@@ -715,8 +715,8 @@
    529  /-- **Definitional equality**: the verdict `true` of the checker's
    530  `isDefEq`.
    531  
-   532  **There is no `trans` rule, deliberately** (`Rel.lean:334-357`, task
-   533  #309).  The relation is the checker's verdict on two terms that are
+   532  **There is no `trans` rule, deliberately** (`Rel.lean:334-357`).
+   533  The relation is the checker's verdict on two terms that are
    534  well-formed *together*, a fact no rule states because well-formedness
    535  is semantic (`WellDenoted`) and may not enter this inductive.  Every
    536  rule respects one discipline instead: **the subject of each `DefEq`
@@ -751,7 +751,7 @@
    565    | const {Γ : List Expr} {c : Name} {ls ls' : List Level} :
    566        Level.eqList ls ls' = true → DefEq env Γ (const c ls) (const c ls')
    567    /-- `∀`-congruence (`DefEq.forallE`, `Rel.lean:399`): domains, then
-   568    bodies under the RIGHT domain, and nothing else (task #344).  A
+   568    bodies under the RIGHT domain, and nothing else.  A
    569    `∀`'s value is a function of its domain's and its fibres' values
    570    (`SetLib.piV`: the propositional function space exactly when every fibre is
    571    a truth value), and both are types, never the point, so the
@@ -760,7 +760,7 @@
    574        DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) B₁ B₂ →
    575        DefEq env Γ (pi A₁ B₁) (pi A₂ B₂)
    576    /-- λ-congruence (`DefEq.lams`, `Rel.lean:407`): domains, then
-   577    bodies under the RIGHT domain — and, **typed** (task #344), the two
+   577    bodies under the RIGHT domain — and, **typed**, the two
    578    bodies' inferred types under that domain are definitionally equal.
    579    A λ's value is the point exactly when every body value is
    580    (`SetLib.lamV`), and a body may be a proof at some values of the
@@ -769,12 +769,12 @@
    583    says nothing where one of them is the point, so the two bodies must
    584    lie in one type, whose members are all the point or none
    585    (`Sound.lean`, `DefEq.lam_sound`; without the premise the rule is
-   586    unsound in this model, `Unannot.lean`, `lam_congr_untyped_unsound`). -/
+   586    unsound in this model, `ValueReading.lean`, `lam_congr_untyped_unsound`). -/
    587    | lam {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr} :
    588        DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
    589        Infer env (A₂ :: Γ) b₁ t₁ → Infer env (A₂ :: Γ) b₂ t₂ → DefEq env (A₂ :: Γ) t₁ t₂ →
    590        DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
-   591    /-- **λ-congruence over a propositional domain** (task #345): no
+   591    /-- **λ-congruence over a propositional domain**: no
    592    comparison of the bodies' types.  The domain is a truth value, so it
    593    has at most one member, and a body's point-ness cannot vary with
    594    the variable: a λ that is not the point has its one body value not
@@ -785,7 +785,7 @@
    599        DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
    600        Infer env Γ A₂ s → Red env Γ s (sort u) → LevelOracle.eq u .zero = true →
    601        DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
-   602    /-- **λ-congruence of two constant bodies** (task #345): neither body
+   602    /-- **λ-congruence of two constant bodies**: neither body
    603    uses the bound variable, so each body's value, and its point-ness,
    604    is the same at every value of the variable; a λ that is not the
    605    point has a body that is not the point anywhere (`Sound.lean`,
@@ -795,7 +795,7 @@
    609        DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
    610        b₁.usesVar 0 = false → b₂.usesVar 0 = false →
    611        DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
-   612    /-- **η over a propositional domain** (task #345): `DefEq.eta`
+   612    /-- **η over a propositional domain**: `DefEq.eta`
    613    without the λ's body's type, for the reason of `lamProp`: over a
    614    domain with at most one member, the λ and `b` that are not the point
    615    have their one body value not the point (`Sound.lean`,
@@ -806,7 +806,7 @@
    620        DefEq env (A₁ :: Γ) b₁ (app (b.liftN 1) (bvar 0)) →
    621        Infer env Γ A₁ s → Red env Γ s (sort u) → LevelOracle.eq u .zero = true →
    622        DefEq env Γ (lam A₁ b₁) b
-   623    /-- **Application congruence at the head's type** (task #345): the
+   623    /-- **Application congruence at the head's type**: the
    624    heads are equal and the head's type reduces to a `∀` whose domain
    625    `S` is the arguments' common type, so the arguments are compared
    626    *at* `S` (`DefEqIn`) — λ-congruence and η between them need neither
@@ -826,7 +826,7 @@
    640    /-- **η** (`DefEq.eta`, `Rel.lean:430`): a λ against a term `b`
    641    whose inferred type reduces to a `∀` with a definitionally equal
    642    domain, when the λ's body is `b` applied to the variable — and,
-   643    **typed** as λ-congruence is (task #344), the λ's body's inferred
+   643    **typed** as λ-congruence is, the λ's body's inferred
    644    type is definitionally equal to the `∀`'s body, so that the λ's body
    645    and `b` applied lie in one type.  Sound because a member of a
    646    function space is the abstraction of its applications
@@ -847,14 +847,14 @@
    661        Infer env Γ b tb → Infer env Γ tb ttb → Red env Γ ttb (sort v) →
    662        LevelOracle.eq v .zero = true →
    663        DefEq env Γ a b
-   664    /-- **λ-telescope congruence** (task #349): a pair of λ-telescopes
+   664    /-- **λ-telescope congruence**: a pair of λ-telescopes
    665    compared level by level, the bodies' types compared only at the
    666    innermost level (`DefEqLams`).  The checker's two-λ arm skips the
    667    bodies' types exactly when both opened bodies are syntactically λs. -/
    668    | lams {Γ : List Expr} {a b : Expr} : DefEqLams env Γ a b → DefEq env Γ a b
    669  
-   670  /-- **λ-telescope congruence, typed at the innermost level only**
-   671  (task #349).  Two λ-telescopes are compared level by level: the domains
+   670  /-- **λ-telescope congruence, typed at the innermost level only**.
+   671  Two λ-telescopes are compared level by level: the domains
    672  at every level, the bodies' types only where the comparison stops
    673  descending through two λs.
    674  
@@ -879,7 +879,7 @@
    693  comparison ends in η, or in any other rule, possibly after δ or whnf
    694  steps — that level is the innermost one (`inner`), and its bodies'
    695  types are inferred and compared at the full grade.  A δ or whnf step
-   696  between levels therefore resets the accounting: #345's δ-witness `d :=
+   696  between levels therefore resets the accounting: the δ-witness `d :=
    697  fun x => (fun h => h) n` (`Probe.lean`, `lam_congr_sorts_unsound`)
    698  puts the reduction inside `inner`'s untyped premise `DefEq … b₁ b₂`,
    699  where the type comparison is still required.  Syntactically equal
@@ -899,7 +899,7 @@
    713        DefEq env Γ A₁ A₂ → DefEqLams env (A₂ :: Γ) b₁ b₂ →
    714        DefEqLams env Γ (lam A₁ b₁) (lam A₂ b₂)
    715  
-   716  /-- **Comparison at a known type** (task #345): `a` and `b` are both
+   716  /-- **Comparison at a known type**: `a` and `b` are both
    717  members of `T` — the caller knows it, the relation does not check it —
    718  and the checker calls them definitionally equal.  Its claim is
    719  unconditional (`DefEqInSem`): a type's members are all the point or
@@ -965,9 +965,9 @@
    779        Infer env Γ f tf → Red env Γ tf (pi A B) →
    780        Infer env Γ a ta → DefEq env Γ ta A →
    781        Infer env Γ (app f a) (B.inst a)
-   782    /-- **`let`, by substitution** (task #342, F4; official `infer_let`
+   782    /-- **`let`, by substitution** (official `infer_let`
    783    with the body instantiated rather than opened at a let-variable, as
-   784    the checker does, design #342 v2 §11.x): the type's type reduces to a
+   784    the checker does): the type's type reduces to a
    785    sort, the value's inferred type is definitionally equal to the type,
    786    and the result is the inferred type of the body with the value
    787    substituted.  The two checks on the value are Lean's (they reject
@@ -1037,7 +1037,7 @@
     80        Red env Γ (app (lam A b) a) (b.inst a)
 
 == whitepaper/Fragment/Rules.lean#L81-L87
-    81    /-- **ζ** (task #342, F4): a `let` reduces to its body with the value
+    81    /-- **ζ**: a `let` reduces to its body with the value
     82    substituted, with no certificate, as β (con-leche's `whnfCore` on
     83    `.letE`, S0's `inst1M b v`; official `whnf_core`).  Unlike β it
     84    needs no case split on the point: the `let` and its reduct denote
@@ -1074,7 +1074,7 @@
 
 == whitepaper/Fragment/Rules.lean#L567-L575
    567    /-- `∀`-congruence (`DefEq.forallE`, `Rel.lean:399`): domains, then
-   568    bodies under the RIGHT domain, and nothing else (task #344).  A
+   568    bodies under the RIGHT domain, and nothing else.  A
    569    `∀`'s value is a function of its domain's and its fibres' values
    570    (`SetLib.piV`: the propositional function space exactly when every fibre is
    571    a truth value), and both are types, never the point, so the
@@ -1083,28 +1083,35 @@
    574        DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) B₁ B₂ →
    575        DefEq env Γ (pi A₁ B₁) (pi A₂ B₂)
 
-== whitepaper/Fragment/Rules.lean#L576-L590
-   576    /-- λ-congruence (`DefEq.lams`, `Rel.lean:407`): domains, then
-   577    bodies under the RIGHT domain — and, **typed** (task #344), the two
-   578    bodies' inferred types under that domain are definitionally equal.
-   579    A λ's value is the point exactly when every body value is
-   580    (`SetLib.lamV`), and a body may be a proof at some values of the
-   581    variable and not at others (a large elimination into a family whose
-   582    fibres are truth values at some indices); the claim on the bodies
-   583    says nothing where one of them is the point, so the two bodies must
-   584    lie in one type, whose members are all the point or none
-   585    (`Sound.lean`, `DefEq.lam_sound`; without the premise the rule is
-   586    unsound in this model, `Unannot.lean`, `lam_congr_untyped_unsound`). -/
-   587    | lam {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr} :
-   588        DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
-   589        Infer env (A₂ :: Γ) b₁ t₁ → Infer env (A₂ :: Γ) b₂ t₂ → DefEq env (A₂ :: Γ) t₁ t₂ →
-   590        DefEq env Γ (lam A₁ b₁) (lam A₂ b₂)
+== whitepaper/Fragment/Rules.lean#L701-L714
+   701  inductive DefEqLams (env : Env) : List Expr → Expr → Expr → Prop where
+   702    /-- Syntactically equal sides (the checker's `a == b` fast path). -/
+   703    | refl {Γ : List Expr} {a : Expr} : DefEqLams env Γ a a
+   704    /-- The innermost level: `DefEq.lam`'s premises — domains, bodies,
+   705    and the bodies' inferred types. -/
+   706    | inner {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr} :
+   707        DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
+   708        Infer env (A₂ :: Γ) b₁ t₁ → Infer env (A₂ :: Γ) b₂ t₂ → DefEq env (A₂ :: Γ) t₁ t₂ →
+   709        DefEqLams env Γ (lam A₁ b₁) (lam A₂ b₂)
+   710    /-- An outer level: the domains, and the bodies by this relation —
+   711    no inference, no type comparison. -/
+   712    | outer {Γ : List Expr} {A₁ b₁ A₂ b₂ : Expr} :
+   713        DefEq env Γ A₁ A₂ → DefEqLams env (A₂ :: Γ) b₁ b₂ →
+   714        DefEqLams env Γ (lam A₁ b₁) (lam A₂ b₂)
+
+== whitepaper/Fragment/Rules.lean#L704-L709
+   704    /-- The innermost level: `DefEq.lam`'s premises — domains, bodies,
+   705    and the bodies' inferred types. -/
+   706    | inner {Γ : List Expr} {A₁ b₁ A₂ b₂ t₁ t₂ : Expr} :
+   707        DefEq env Γ A₁ A₂ → DefEq env (A₂ :: Γ) b₁ b₂ →
+   708        Infer env (A₂ :: Γ) b₁ t₁ → Infer env (A₂ :: Γ) b₂ t₂ → DefEq env (A₂ :: Γ) t₁ t₂ →
+   709        DefEqLams env Γ (lam A₁ b₁) (lam A₂ b₂)
 
 == whitepaper/Fragment/Rules.lean#L640-L653
    640    /-- **η** (`DefEq.eta`, `Rel.lean:430`): a λ against a term `b`
    641    whose inferred type reduces to a `∀` with a definitionally equal
    642    domain, when the λ's body is `b` applied to the variable — and,
-   643    **typed** as λ-congruence is (task #344), the λ's body's inferred
+   643    **typed** as λ-congruence is, the λ's body's inferred
    644    type is definitionally equal to the `∀`'s body, so that the λ's body
    645    and `b` applied lie in one type.  Sound because a member of a
    646    function space is the abstraction of its applications
@@ -1132,8 +1139,8 @@
    529  /-- **Definitional equality**: the verdict `true` of the checker's
    530  `isDefEq`.
    531  
-   532  **There is no `trans` rule, deliberately** (`Rel.lean:334-357`, task
-   533  #309).  The relation is the checker's verdict on two terms that are
+   532  **There is no `trans` rule, deliberately** (`Rel.lean:334-357`).
+   533  The relation is the checker's verdict on two terms that are
    534  well-formed *together*, a fact no rule states because well-formedness
    535  is semantic (`WellDenoted`) and may not enter this inductive.  Every
    536  rule respects one discipline instead: **the subject of each `DefEq`
@@ -1261,9 +1268,9 @@
    621        Infer env g d (.app f a) (body.instantiate1 a)
 
 == whitepaper/Fragment/Rules.lean#L782-L796
-   782    /-- **`let`, by substitution** (task #342, F4; official `infer_let`
+   782    /-- **`let`, by substitution** (official `infer_let`
    783    with the body instantiated rather than opened at a let-variable, as
-   784    the checker does, design #342 v2 §11.x): the type's type reduces to a
+   784    the checker does): the type's type reduces to a
    785    sort, the value's inferred type is definitionally equal to the type,
    786    and the result is the inferred type of the body with the value
    787    substituted.  The two checks on the value are Lean's (they reject
@@ -1559,10 +1566,10 @@
    305  `univ n` that are types above. -/
    306  def typeU (n : Nat) : V := if n = 0 then univ 0 else sep (univ n) IsTy
 
-== whitepaper/Fragment/Unannot.lean#L58-L63
-    58  /-- A function space over an empty domain is `{pt}`, which is no strict set:
-    59  a positive sort holding only strict sets could not hold `False → Nat`
-    60  under the value-driven reading. -/
+== whitepaper/Fragment/ValueReading.lean#L58-L63
+    58  /-- A function space over an empty domain is `{pt}`, which is no strict set;
+    59  so a positive sort, which holds `False → Nat`, holds a set that is not
+    60  strict. -/
     61  theorem piV_empty_not_strict {A : V} {B : V → V} (h : ∀ x, ¬ x ∈ˢ A) :
     62      ¬ Strict (piV A B) := by
     63    rw [piV_of_empty h]; exact fun hs => hs.2 (mem_one.mpr rfl)
@@ -1686,8 +1693,8 @@
 
 == whitepaper/Fragment/EtaIota.lean#L707-L724
    707  open EtaWit in
-   708  /-- **Eta on the reduct of the major is outside the claims** (task
-   709  #350).  The major `maj := (fun x : A => g (k x)) a` is well-denoted
+   708  /-- **Eta on the reduct of the major is outside the claims**.
+   709  The major `maj := (fun x : A => g (k x)) a` is well-denoted
    710  and the point (a λ that is the point constrains nothing, so `a` may
    711  lie outside `A`), and it β-reduces to `maj' := g (k a)`, which is not
    712  well-denoted (`k` is a graph over `A`).  The redex `rec minor maj` is
@@ -1726,7 +1733,7 @@
     55    ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ e → interp m.M φ ρ e ≠ pt →
     56      WellDenoted m.M φ ρ e' ∧ interp m.M φ ρ e = interp m.M φ ρ e'
     57  
-    58  /-- **`DefEqLams`' claim** (task #349): two well-denoted sides have
+    58  /-- **`DefEqLams`' claim**: two well-denoted sides have
     59  equal denotations — unconditionally, the point included. -/
     60  def LamsSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (a b : Expr) : Prop :=
     61    ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ a → WellDenoted m.M φ ρ b →
@@ -1738,7 +1745,7 @@
     67    ∀ ρ : Nat → V, Sat m.M φ Γ ρ → WellDenoted m.M φ ρ a → WellDenoted m.M φ ρ b →
     68      interp m.M φ ρ a ≠ pt → interp m.M φ ρ b ≠ pt → interp m.M φ ρ a = interp m.M φ ρ b
     69  
-    70  /-- **`DefEqIn`'s claim** (task #345): two well-denoted members of one
+    70  /-- **`DefEqIn`'s claim**: two well-denoted members of one
     71  well-denoted type have equal denotations — unconditionally, since a
     72  type's members are all the point or none. -/
     73  def DefEqInSem (m : EnvModel V env) (φ : Name → Nat) (Γ : List Expr) (T a b : Expr) : Prop :=
@@ -1911,7 +1918,7 @@
    132    rw [interp_app, interp_lam, app_lamV haA, interp_inst0]
 
 == whitepaper/Fragment/Sound.lean#L134-L142
-   134  /-- **ζ, with no certificate** (task #342, F4): the `let` and its
+   134  /-- **ζ, with no certificate**: the `let` and its
    135  reduct denote alike at every environment (`interp_zeta`), so neither
    136  the point hypothesis nor the context is used; the reduct's invariant is
    137  the `let`'s, through the substitution lemma. -/
@@ -1936,8 +1943,8 @@
    175    fun _ _ _ _ _ _ => by simp [eval_eq_of_oracle h]
 
 == whitepaper/Fragment/Sound.lean#L181-L198
-   181  /-- **`∀`-congruence, with no premise beyond domains and bodies** (task
-   182  #344): a `∀`'s value is a function of its domain's and fibres' values
+   181  /-- **`∀`-congruence, with no premise beyond domains and bodies**:
+   182  a `∀`'s value is a function of its domain's and fibres' values
    183  (`SetLib.piV_congr`), and both are types, never the point. -/
    184  theorem pi_sound {Γ : List Expr} {A₁ B₁ A₂ B₂ : Expr}
    185      (hA : DefEqSem m φ Γ A₁ A₂) (hB : DefEqSem m φ (A₂ :: Γ) B₁ B₂) :
@@ -1956,7 +1963,7 @@
    198    exact piV_congr hfib
 
 == whitepaper/Fragment/Sound.lean#L200-L220
-   200  /-- **λ-congruence, typed** (task #344): the two bodies lie in one type
+   200  /-- **λ-congruence, typed**: the two bodies lie in one type
    201  at every value of the variable — their inferred types are equal there
    202  — so they are both the point or neither is, and where neither is the
    203  bodies' claim makes them equal.  Neither λ need be a graph. -/
@@ -2003,7 +2010,7 @@
    254    rw [heF, heA]
 
 == whitepaper/Fragment/Sound.lean#L391-L436
-   391  /-- **η, typed** (task #344): at every value of the variable the λ's
+   391  /-- **η, typed**: at every value of the variable the λ's
    392  body and `b` applied lie in one type — the body's inferred type is the
    393  `∀`'s fibre — so they are both the point or neither is, and where
    394  neither is the body's claim makes them equal; a member of a function space is
@@ -2141,7 +2148,7 @@
    349      exact app_mem_piV hmemf hmema
 
 == whitepaper/Fragment/Sound.lean#L351-L367
-   351  /-- **`let`, by substitution** (task #342, F4): the body with the value
+   351  /-- **`let`, by substitution**: the body with the value
    352  substituted carries the claim, and the `let` denotes what it denotes
    353  (`interp_zeta`); its invariant is the `let`'s (`WellDenoted_letE`
    354  against `WellDenoted_inst0`).  The type checks on the value (`hT`,
@@ -2160,7 +2167,7 @@
    367    · rw [interp_zeta]; exact hmem
 
 == whitepaper/Fragment/Sound.lean#L369-L385
-   369  /-- **What the value checks give** (task #342, F4): the value's value is
+   369  /-- **What the value checks give**: the value's value is
    370  a member of the type's, so the value extends a satisfying environment
    371  to one satisfying the context extended by the type.  The substitution
    372  version does not need it (`letE_sound`); a version that opens the body
@@ -2226,8 +2233,8 @@
    529  /-- **Definitional equality**: the verdict `true` of the checker's
    530  `isDefEq`.
    531  
-   532  **There is no `trans` rule, deliberately** (`Rel.lean:334-357`, task
-   533  #309).  The relation is the checker's verdict on two terms that are
+   532  **There is no `trans` rule, deliberately** (`Rel.lean:334-357`).
+   533  The relation is the checker's verdict on two terms that are
    534  well-formed *together*, a fact no rule states because well-formedness
    535  is semantic (`WellDenoted`) and may not enter this inductive.  Every
    536  rule respects one discipline instead: **the subject of each `DefEq`
@@ -2276,7 +2283,7 @@
    856                      else pure true)
    857                    else pure true) then
 
-== whitepaper/Fragment/Unannot.lean#L177-L184
+== whitepaper/Fragment/ValueReading.lean#L177-L184
    177  /-- **Untyped λ-congruence is unsound** in the value-driven model: the
    178  rule's two premises are checker derivations — the domains by `refl`,
    179  the bodies by β then `refl` — yet in a model of the empty environment
@@ -2286,28 +2293,9 @@
    183      DefEq Env.empty [.sort .zero] mixedBody (.const nName []) ∧
    184      ¬ DefEqSem (EnvModel.empty (mixedM (V := V))) φ [] lamMixed lamConst := by
 
-== whitepaper/Fragment/Probe.lean#L378-L394
-   378  /-- **Comparing the bodies' sorts is not enough.**  In a model of
-   379  `sortEnv`: both λs are typed in the empty context; the premises of
-   380  λ-congruence hold — the domains by `refl`, the bodies by δ, β, β and
-   381  `refl` — and so do the bodies' inferences, under the binder; the
-   382  bodies' types `F x` and `Prop` both have sort `Type`, so a check of
-   383  their sorts' zero-ness passes; the λs are well-denoted, not the point,
-   384  and different.  Only the comparison `F x ≡ Prop` fails. -/
-   385  theorem lam_congr_sorts_unsound [LevelOracle] (φ : Name → Nat) :
-   386      Infer sortEnv [] lamD (.pi (.sort .zero) fx) ∧
-   387      Infer sortEnv [] lamConst (.pi (.sort .zero) (.sort .zero)) ∧
-   388      DefEq sortEnv [] (.sort .zero) (.sort .zero) ∧
-   389      DefEq sortEnv [.sort .zero] dx (.const nName []) ∧
-   390      Infer sortEnv [.sort .zero] dx fx ∧
-   391      Infer sortEnv [.sort .zero] (.const nName []) (.sort .zero) ∧
-   392      Infer sortEnv [.sort .zero] fx (.sort (.succ .zero)) ∧
-   393      Infer sortEnv [.sort .zero] (.sort .zero) (.sort (.succ .zero)) ∧
-   394      ¬ DefEqSem (sortModel (V := V)) φ [] lamD lamConst := by
-
 == whitepaper/Fragment/Rules.lean#L670-L714
-   670  /-- **λ-telescope congruence, typed at the innermost level only**
-   671  (task #349).  Two λ-telescopes are compared level by level: the domains
+   670  /-- **λ-telescope congruence, typed at the innermost level only**.
+   671  Two λ-telescopes are compared level by level: the domains
    672  at every level, the bodies' types only where the comparison stops
    673  descending through two λs.
    674  
@@ -2332,7 +2320,7 @@
    693  comparison ends in η, or in any other rule, possibly after δ or whnf
    694  steps — that level is the innermost one (`inner`), and its bodies'
    695  types are inferred and compared at the full grade.  A δ or whnf step
-   696  between levels therefore resets the accounting: #345's δ-witness `d :=
+   696  between levels therefore resets the accounting: the δ-witness `d :=
    697  fun x => (fun h => h) n` (`Probe.lean`, `lam_congr_sorts_unsound`)
    698  puts the reduction inside `inner`'s untyped premise `DefEq … b₁ b₂`,
    699  where the type comparison is still required.  Syntactically equal
@@ -2353,7 +2341,7 @@
    714        DefEqLams env Γ (lam A₁ b₁) (lam A₂ b₂)
 
 == whitepaper/Fragment/Sound.lean#L722-L739
-   722  /-- **An outer level needs no type** (task #349): the bodies are equal
+   722  /-- **An outer level needs no type**: the bodies are equal
    723  at every value of the variable, unconditionally, so the λs are; the
    724  domains are types, never the point, so their conditional claim
    725  applies.  This is why the type comparison is owed only at the
@@ -2416,8 +2404,8 @@
     85    | app {Γ : List Expr} {f a tf A B : Expr} :
     86        InferIO env Γ f tf → Red env Γ tf (pi A B) →
     87        InferIO env Γ (app f a) (B.inst a)
-    88    /-- **`let`, by substitution** (task #342, F4; maintainer's ruling of
-    89    2026-10-12): as official `infer_only`, the value is not checked
+    88    /-- **`let`, by substitution**:
+    89    as official `infer_only`, the value is not checked
     90    against the type — the full grade (`Infer.letE`) checks it — and the
     91    body with the value substituted is inferred at the io grade.  The
     92    soundness proof needs no check on the value (`InferIO.letE_sound`). -/
@@ -2455,16 +2443,6 @@
 == whitepaper/Fragment/IOGrade.lean#L368-L369
    368  theorem inferIO_sound : ∀ {Γ : List Expr} {e T : Expr},
    369      InferIO env Γ e T → InferIOSem m φ Γ e T
-
-== whitepaper/Fragment/IOWitness.lean#L506-L513
-   506  /-- **An io-inferred type whose value is a truth value, inhabited by a
-   507  term that is not the point.**  `fun (x : Prop) => (fun (h : E x) => h) n`
-   508  io-infers `(x : Prop) → E x` (its sort is `Type`); that `∀` has an
-   509  empty fibre, so its value is empty — a truth value. -/
-   510  theorem io_type_value_collision [LevelOracle] (φ : Name → Nat) (ρ : Nat → V) :
-   511      InferIO sortEnv [] lamMixed (.pi (.sort .zero) ex) ∧
-   512      interp sortM φ ρ (.pi (.sort .zero) ex) ∈ˢ univ 0 ∧
-   513      interp sortM φ ρ lamMixed ≠ pt := by
 
 == whitepaper/Fragment/IOGrade.lean#L425-L428
    425  theorem proofIrrelIO_sound {Γ : List Expr} {a ta tta b : Expr} {u : Level}
@@ -2786,14 +2764,14 @@
    335          RecRuleLawN M c ci nPc (numParams + numMotives + numMinors)
    336            (numParams + numMotives + numMinors + numIndices) rl cij
    337    /-- Every stored inductive family's fibres are truth values where its
-   338    stored sort evaluates to zero and strict where it does not (task #342
-   339    F1).  No guard is needed: the stage of an installation that gives the
+   338    stored sort evaluates to zero and strict where it does not.
+   339    No guard is needed: the stage of an installation that gives the
    340    former an arbitrary family (`mIndF`) takes it in the universe and
    341    admissible, which is strict above a proposition. -/
    342    ind_fib : ∀ (I : Name) (ci : ConstInfo) (nP nI : Nat) (ctors : List Name) (S : IndSpec),
    343      env.find? I = some ci → ci.kind = .induct nP nI ctors S → IndFibLaw M I ci nP nI S
-   344    /-- Every rule of every stored recursor satisfies the slot law (task
-   345    #342 F2): where the major is the point, the recursor's application or
+   344    /-- Every rule of every stored recursor satisfies the slot law:
+   345    where the major is the point, the recursor's application or
    346    the rule's constructor is. -/
    347    rec_rules_slot : ∀ (c : Name) (ci : ConstInfo) (numParams numMotives numMinors numIndices : Nat)
    348      (rules : List RecRule),
@@ -2801,8 +2779,8 @@
    350      ci.kind = .recursor numParams numMotives numMinors numIndices rules →
    351      ∀ rl ∈ rules, ∀ cij : ConstInfo, env.find? rl.ctor = some cij →
    352        RecRuleSlotLaw M c ci (numParams + numMotives + numMinors + numIndices) rl cij
-   353    /-- Every rule flagged K of every stored recursor satisfies the K law
-   354    (task #342 F2): inversion of the least fixed point plus the plain law
+   353    /-- Every rule flagged K of every stored recursor satisfies the K law:
+   354    inversion of the least fixed point plus the plain law
    355    at the recursor's own parameters (`IndSpec.rec_rule_lawK`). -/
    356    rec_rules_k : ∀ (c : Name) (ci : ConstInfo) (numParams numMotives numMinors numIndices : Nat)
    357      (rules : List RecRule),
@@ -3414,7 +3392,7 @@
    142    /-- **The η-rescue bit** (install-computed, parse placeholder
 
 == whitepaper/Fragment/Env.lean#L53-L60
-    53    /-- **The K flag** (task #342 F2; Lean's `RecursorVal.k`): the rule
+    53    /-- **The K flag** (Lean's `RecursorVal.k`): the rule
     54    belongs to a K-like family — one family (not mutual, not nested),
     55    always a proposition, with one constructor and no fields (`Eq`,
     56    `HEq`, `True`).  Such a rule fires on any major whose type is the
@@ -3688,7 +3666,7 @@
 
 == whitepaper/Fragment/IndCommon.lean#L278-L286
    278  /-- **The body of a reflexive field's function space**: the family's fibre —
-   279  its admissible part under at least one binder (task #344).  The
+   279  its admissible part under at least one binder.  The
    280  function space is read by values (`SetLib.piV`), and over an arbitrary family
    281  in the universe a fibre `{pt}` would put a Type-sorted field's function space
    282  in the propositional regime; the admissible part, a strict set above a
@@ -4221,6 +4199,12 @@
    561      S.M₃ m.M S.name (ls.map (Level.eval φ)) ∈ˢ
    562        interp (S.M₃ m.M) φ ρ (S.indInfo.type.instL S.indInfo.lparams ls) := by
 
+== whitepaper/Fragment/IndSem.lean#L1561-L1564
+  1561  /-- **The fibre is a type of the result sort** (`typeU`): at a
+  1562  proposition a truth value; above it a set of tagged values, which is
+  1563  strict (no tagged value is the point or a member of it). -/
+  1564  theorem Fam_mem_typeU {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps)
+
 == whitepaper/Fragment/IndSem.lean#L1471-L1477
   1471  /-- **The fixed-point equation**: the operator at the family is the
   1472  family.  Con-leche: `LfpClause.carrier_eq`. -/
@@ -4356,12 +4340,6 @@
     61  noncomputable def sumSet (w : Nat) (f : Nat → V) : V :=
     62    sigmaSet w omega (natFibre f)
 
-== whitepaper/Fragment/IndSem.lean#L1561-L1564
-  1561  /-- **The fibre is a type of the result sort** (`typeU`): at a
-  1562  proposition a truth value; above it a set of tagged values, which is
-  1563  strict (no tagged value is the point or a member of it). -/
-  1564  theorem Fam_mem_typeU {ps : List V} (hnr : S.NoRecDep) (hb : S.DomsBounded M ls ps)
-
 == whitepaper/Fragment/IndRec.lean#L89-L92
     89  /-- **The recursor's graph**: the least fixed point of `rstep`.
     90  Con-leche: `gGraph`. -/
@@ -4448,8 +4426,8 @@
    396  parameters, the motive, the minors, the indices, the major — of the
    397  recursor's semantic value, the family read at the block's levels.
    398  Into `Prop` (`qv`) the body is the point outright: the motive's fibres
-   399  are truth values, and the abstraction is read by its values (task
-   400  #344), so a body that is not the point would make it a graph. -/
+   399  are truth values, and the abstraction is read by its values,
+   400  so a body that is not the point would make it a graph. -/
    401  noncomputable def recSet (lsr : List Nat) : V :=
    402    let ψr := valOf S.recLparams lsr
    403    let ls := S.lparams.map ψr
@@ -4581,7 +4559,7 @@
    152        usj.length = cij.lparams.length →
    153        margs.length = numParams + rl.nfields →
    154        cij.type.hasPis (numParams + rl.nfields) = true →
-   155        -- the major's slot certificate (the recursor's spine before it needs none, task #347)
+   155        -- the major's slot certificate (the recursor's spine before it needs none)
    156        piResidual (ci.type.instL ci.lparams us)
    157          (args.take (numParams + numMotives + numMinors + numIndices)) = some (pi dM bM) →
    158        Infer env Γ major tM → DefEq env Γ tM dM →
@@ -4664,7 +4642,7 @@
 
 == whitepaper/Fragment/Sound.lean#L821-L835
    821  /-- **A spine that is not the point fits its head's telescope, with no
-   822  certificate** (task #347, the §5.2 argument iterated).  At each step
+   822  certificate** (the argument of the paper's ι rule, iterated).  At each step
    823  the application is not the point, so neither is its head
    824  (`app_pt`); the invariant's slot then puts the head in a function space
    825  (`piR false`), and the head's membership in its type — a function space, not
@@ -4680,7 +4658,7 @@
    835        TeleFit m.M φ ρ T xs
 
 == ConLeche/Model/Env/Laws.lean#L521-L556
-   521  /-- **The ι case split's environment facts, one rule** (task #342 L10, S5c).
+   521  /-- **The ι case split's environment facts, one rule**.
    522  `RecRuleLaw`'s main clause takes the levels, parameters and index
    523  comparisons as equations; under the conditional claims the ι step has
    524  them only where neither side is the point, and at a K rule or a family
@@ -4689,8 +4667,8 @@
    527  recursor's levels:
    528  
    529  * **K** (`RecRule.k`): the rule's law at the recursor's own
-   530    parameters, for any major value in the major's domain (#349's
-   531    `RecRuleLawK`, the fragment's F2: inversion of the family's least
+   530    parameters, for any major value in the major's domain (the
+   531    fragment's `RecRuleLawK`: inversion of the family's least
    532    fixed point) — the reduct, the minor, does not mention the major;
    533  * **the constructor's arity**: its stored type binds the spine
    534    syntactically, so a graded application of it that is not the point
@@ -4707,12 +4685,12 @@
    545    main law applies at the comparand levels;
    546  * **(P) the slot at the point**: where the major domain holds the
    547    point, every fitting constructor application is the point (the
-   548    family is `Prop` there; F3/F2's slot law);
+   548    family is `Prop` there; the fragment's slot law);
    549  * **(U) coherence**: at a fired spine where the constructor application
    550    is the point (case 3, where the step compares the levels and
    551    parameters with the rule's comparands and the indices), the
-   552    conditional index comparison is an equation (L7's
-   553    `blockRule_coherent`, read off the parameters' conditional
+   552    conditional index comparison is an equation
+   553    (`blockRule_coherent`, read off the parameters' conditional
    554    comparison).
    555  
    556  (P) and (U) are read only at case 3, so they take the level equation. -/
@@ -4788,7 +4766,7 @@
    186      SpineOk (interp M φ ρ (rl.rhs.instL ci.lparams us)) (xs.take numBefore ++ ys.drop numParams)
 
 == whitepaper/Fragment/Sound.lean#L1057-L1067
-  1057  /-- **ι, the semantic core** (task #347) of `iota_core` and
+  1057  /-- **ι, the semantic core** of `iota_core` and
   1058  `iota_core_strict`, at the constructor's parameter count `nP` and a
   1059  right-hand side `rhs`, given the environment's law in the form both ι
   1060  laws take once instantiated (`hlaw`), and — at every valuation where
@@ -4855,7 +4833,7 @@
   1486  
 
 == whitepaper/Fragment/Rules.lean#L394-L445
-   394    /-- **ι, case 2** (task #342 F1; #347's ι case test, #342 v2 §11.4): `Red.iota`
+   394    /-- **ι, case 2** (the checker's ι case test): `Red.iota`
    395    with **no certificate at all** — no major slot, no constructor
    396    telescope — where the major's domain (what the recursor's telescope
    397    leaves after the spine, `Expr.piResidual`) is a stored inductive
@@ -4909,8 +4887,8 @@
    445            (args.take (numParams + numMotives + numMinors) ++ margs.drop numParams))
 
 == whitepaper/Fragment/EnvModel.lean#L278-L296
-   278  /-- **The fibres' regime follows the stored sort** (task #342 F1,
-   279  the ι case test of #347 and §11.4): for a stored inductive type former
+   278  /-- **The fibres' regime follows the stored sort** (used by
+   279  the ι case test): for a stored inductive type former
    280  `I` (stored as `ci`, with `nP` parameters and `nI` indices and its
    281  block's specification `S`), the family applied to any values fitting
    282  its telescope is a **truth value** where the family's stored sort
@@ -4930,7 +4908,7 @@
    296      Fib (Level.eval φ (S.sort.subst ci.lparams ls) == 0) (appList (M I (ls.map (Level.eval φ))) vs)
 
 == whitepaper/Fragment/InstallInd.lean#L150-L163
-   150  /-- **The fibre law of a former read by readers** (task #342 F1): an
+   150  /-- **The fibre law of a former read by readers**: an
    151  assignment that reads the block at every valuation, with a family in
    152  the result universe (`Reader.adm` makes it admissible), satisfies
    153  `IndFibLaw` at the former — at the use's levels the reader's valuation
@@ -4947,7 +4925,7 @@
 
 == whitepaper/Fragment/Sound.lean#L1309-L1323
   1309  /-- **ι with no telescope certificate at all, where the major's domain
-  1310  is strict** (task #347, the ι case test of #342 v2 §5.3 case 2).  If the
+  1310  is strict** (the case of a family that is never a proposition).  If the
   1311  domain the major meets holds no point at the valuation — the case of an
   1312  inductive family whose sort is never `Prop` at the instance, whose
   1313  fibres are sets of tagged tuples — then a redex that is not the point
@@ -4963,22 +4941,22 @@
   1323  theorem iota_core_strict {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
 
 == whitepaper/Fragment/Rules.lean#L292-L347
-   292    /-- **ι with no major-slot certificate and no level test** (task #342
-   293    F1, completing F3's `Red.iotaProp`; #342 v2 §11.4 case 3).  `Red.iota`
+   292    /-- **ι with no major-slot certificate and no level test** (the
+   293    checker's certified case of ι).  `Red.iota`
    294    without the reduced major's slot certificate, for any family: the
    295    constructor's telescope certificate stays at the full grade (every
-   296    parameter and field, #349), and so do the three comparisons; nothing
+   296    parameter and field), and so do the three comparisons; nothing
    297    else is tested.  Why the slot needs nothing: where the unreduced
    298    major is not the point its reduction claim gives the reduct; where it
-   299    is, the environment's slot law (`EnvModel.rec_rules_slot`, F2) makes
+   299    is, the environment's slot law (`EnvModel.rec_rules_slot`) makes
    300    the constructor application the point too, given the redex is not
    301    (`Sound.lean`, `slot_of_law`, `iota_core_slot`).  On the generated
    302    recursors that law holds because the major's domain is the
    303    constructor's own family at the recursor's levels, a fibre holding the
    304    point is a truth value there, and the constructor of a family in
-   305    `Prop` is the point (`IndSpec.rec_rule_slot`).  F1's version of this
-   306    rule had a premise linking the major's domain to the constructor's
-   307    family; F2 proved the link as an installer fact and dropped it.  This
+   305    `Prop` is the point (`IndSpec.rec_rule_slot`).  No premise links the
+   306    major's domain to the constructor's family: the installation proves
+   307    the slot law of every generated rule (`InstallIota.lean`).  This
    308    is the rule for a family that is a proposition at some valuations
    309    only (`Quot.{u}`, `PUnit.{u}`). -/
    310    | iotaSlot {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
@@ -5022,19 +5000,19 @@
 
 == whitepaper/Fragment/Sound.lean#L1003-L1012
   1003  /-- **A constructor of a family whose sort evaluates to zero denotes the
-  1004  point** (task #342 F3, the lemma #349 named as missing).  The
+  1004  point**.  The
   1005  constructor applied to arguments that fit its stored type, whose
   1006  residual is the family `I` at some parameters and indices, at a level
   1007  where `I`'s sort evaluates to zero: the application lies in that
   1008  residual, a type of `Sort 0`, so it is the point
   1009  (`eq_pt_of_mem_sortZero`).  No argument of the application is read
   1010  beyond its fit: at such a level the constructor's arguments are not
-  1011  constrained by its value (#345). -/
+  1011  constrained by its value. -/
   1012  theorem ctorApp_eq_pt_of_sortZero {ρ : Nat → V} {cj : Name} {usj : List Level} {cij : ConstInfo}
 
 == whitepaper/Fragment/EtaIota.lean#L681-L692
-   681  /-- **#349's counterexample, on values, and the eta path's answer to
-   682  it** (task #350).  At a valuation where the structure is a
+   681  /-- **The field counterexample, on values, and the eta path's answer to
+   682  it**.  At a valuation where the structure is a
    683  proposition, the redex `rec minor (mk n)` with an ill-slotted field
    684  `n` is well-denoted and not the point.  Plain ι's reduct `minor n` is
    685  not well-denoted, so plain ι without a certificate on the field
@@ -5047,7 +5025,7 @@
    692      RedSem (EnvModel.empty (witM (V := V))) φ [] redex1 eta1 := by
 
 == whitepaper/Fragment/EnvModel.lean#L250-L276
-   250  /-- **The point in the major's slot** (task #342 F2, the installer fact
+   250  /-- **The point in the major's slot** (the installer fact
    251  behind `Red.iotaSlot`/`Red.iotaNestedSlot`): for a recursor `c` and its
    252  rule `rl` firing on the constructor stored as `cij`, wherever the
    253  recursor's telescope holds the point as the major (after values `xs`
@@ -5076,8 +5054,8 @@
    276        appList (M rl.ctor (usj.map (Level.eval φ))) ys = pt
 
 == whitepaper/Fragment/InstallIota.lean#L1046-L1056
-  1046  /-- **The slot law of a generated rule** (`RecRuleSlotLaw`, task #342
-  1047  F2): where the recursor's telescope holds the point as the major, the
+  1046  /-- **The slot law of a generated rule** (`RecRuleSlotLaw`):
+  1047  where the recursor's telescope holds the point as the major, the
   1048  fibre it lies in — the family at the recursor's own parameters,
   1049  indices and levels (`fits_recCtx_iff`) — holds the point, so the
   1050  family's sort is zero there (above it the fibre is a set of tagged
@@ -5089,7 +5067,7 @@
   1056        ⟨c.name, c.fields.length, S.ruleRhs c j, none, S.isK⟩ (S.ctorInfo c) := by
 
 == whitepaper/Fragment/Rules.lean#L493-L527
-   493    /-- **ι by K** (task #342 F2; #342 v2 §11.4's K row; Lean's
+   493    /-- **ι by K** (Lean's
    494    `to_cnstr_when_K`): a recursor whose rule is flagged K
    495    (`RecRule.k`: one family, always a proposition, one constructor
    496    with no fields — `Eq`, `HEq`, `True`) reduces on its major **as it
@@ -5126,8 +5104,8 @@
    527          (mkAppN (rl.rhs.instL ci.lparams us) (args.take (numParams + numMotives + numMinors)))
 
 == whitepaper/Fragment/EnvModel.lean#L188-L214
-   188  /-- **The ι law of a K rule** (task #349; the `EnvModel` field
-   189  `rec_rules_k` since #342 F2, proved by the installer as
+   188  /-- **The ι law of a K rule** (the `EnvModel` field
+   189  `rec_rules_k`, proved by the installer as
    190  `IndSpec.rec_rule_lawK`).
    191  For a recursor `c` whose one rule `rl` fires on a constructor with no
    192  fields of a family of sort `Prop` (Lean's K: `Eq`, `HEq`, `True`): at
@@ -5155,7 +5133,7 @@
    214        SpineOk (interp M φ ρ (rl.rhs.instL ci.lparams us)) (vs.take numBefore)
 
 == whitepaper/Fragment/InstallIota.lean#L981-L1002
-   981  /-- **The K law of a generated rule** (`RecRuleLawK`, task #342 F2):
+   981  /-- **The K law of a generated rule** (`RecRuleLawK`):
    982  for a block with one constructor `c`, which has no fields, at ANY
    983  values fitting the recursor's telescope — the major's value whatever
    984  term produced it — the recursor is the rule's right-hand side at the
@@ -5177,68 +5155,6 @@
   1000  theorem rec_rule_lawK {c : CtorSpec} (hK : S.ctors = [c]) (hnf : c.fields = []) :
   1001      RecRuleLawK (S.M₃ m.M) S.recName S.recInfo (S.nP + 1 + S.n) (S.nP + 1 + S.n + S.nI)
   1002        ⟨c.name, c.fields.length, S.ruleRhs c 0, none, S.isK⟩ := by
-
-== whitepaper/Fragment/EtaIota.lean#L242-L260
-   242  /-- **ι through the projections, the semantic core** (task #350): given
-   243  the plain ι law and the structure-η law, the redex
-   244  `rec ps motive minor x` reduces to `minor (p₀ ps x) … (pₖ ps x)` with
-   245  no certificate — no slot certificate on the major, no constructor
-   246  telescope, no level, parameter or index comparison, and no reduction
-   247  of the major.  The redex is not the point, so its whole spine fits
-   248  the recursor's telescope (`teleFit_of_ne_pt`); everything else is the
-   249  laws'. -/
-   250  theorem iotaEta_core_sem {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
-   251      {args : List Expr} {numParams numBefore d : Nat} {rl : RecRule} {cij : ConstInfo}
-   252      {projs : List Name}
-   253      (hfind : env.find? c = some ci)
-   254      (hus : us.length = ci.lparams.length)
-   255      (hlen : args.length = numBefore + 1)
-   256      (hpis : ci.type.hasPis (numBefore + 1) = true)
-   257      (hlaw : RecRuleLaw m.M c ci numParams numBefore numBefore rl cij)
-   258      (heta : StructEtaLaw m.M ci numParams numBefore d rl.ctor cij projs)
-   259      (hnP : numParams ≤ numBefore) (hnf : projs.length = rl.nfields)
-   260      (hd : d + cij.lparams.length = ci.lparams.length) :
-
-== whitepaper/Fragment/EtaIota.lean#L402-L410
-   402  /-- **The projection of the point is the point**, from the field's
-   403  sort: if the projection's type, walked along the parameters, is
-   404  `(x : D) → B` and `B` is a proposition at every member of `D` whenever
-   405  `D` holds the point — the field's sort is at most the structure's, so
-   406  it is `Prop` wherever the structure is (non-impredicativity) — then the
-   407  projection at the point is the point.  This is what fails for an
-   408  impredicative structure (a data field of a `Prop` structure), which
-   409  after the renovation has no projections. -/
-   410  theorem projPt_of_fieldSort {M : Name → List Nat → V} {T : Expr} {ρ : Nat → V} {f : V}
-
-== whitepaper/Fragment/EtaIota.lean#L707-L724
-   707  open EtaWit in
-   708  /-- **Eta on the reduct of the major is outside the claims** (task
-   709  #350).  The major `maj := (fun x : A => g (k x)) a` is well-denoted
-   710  and the point (a λ that is the point constrains nothing, so `a` may
-   711  lie outside `A`), and it β-reduces to `maj' := g (k a)`, which is not
-   712  well-denoted (`k` is a graph over `A`).  The redex `rec minor maj` is
-   713  well-denoted and not the point.  Eta-expanding the major's reduct,
-   714  `minor (p0 maj')`, breaks the reduction claim; eta-expanding the major
-   715  as it stands, `minor (p0 maj)`, satisfies it.  So the checker's eta
-   716  path must not reduce the major first (lean4#15371 expands before the
-   717  major's `whnf`). -/
-   718  theorem etaIota_reduced_major_witness [LevelOracle] (φ : Name → Nat) (env : Env)
-   719      (Γ : List Expr) :
-   720      Red env Γ maj maj' ∧
-   721      (∀ ρ : Nat → V, WellDenoted (witM (V := V)) φ ρ redex2 ∧ interp witM φ ρ redex2 ≠ pt ∧
-   722        interp witM φ ρ maj = pt) ∧
-   723      ¬ RedSem (EnvModel.empty (witM (V := V))) φ [] redex2 etaRed2 ∧
-   724      RedSem (EnvModel.empty (witM (V := V))) φ [] redex2 eta2 := by
-
-== whitepaper/Fragment/EtaIota.lean#L349-L356
-   349  /-- **A structure with no fields: the eta reduct is the K reduct**,
-   350  syntactically — the minor at the recursor's parameters, motives and
-   351  minors (`True`, `PUnit`). -/
-   352  theorem iotaEta_noFields (rhs : Expr) (args : List Expr) (numBefore numParams : Nat)
-   353      (ls : List Level) (x : Expr) :
-   354      Expr.mkAppN rhs (args.take numBefore ++ projApps [] ls (args.take numParams) x)
-   355        = Expr.mkAppN rhs (args.take numBefore) := by
-   356    simp [projApps]
 
 == ConLeche/Kernel/CoreDefs.lean#L85-L93
     85  def iotaCtorNeverProp (find? : Name → Option ConstantInfo) (cvj : ConstantVal)
@@ -5673,31 +5589,6 @@
    662    EMPTY stack (`nestWalkStack`) is still in progress for the cycle check
    663    (`nestContKey`) -/
    664    active : List NestKey := []
-
-== ConLeche/Kernel/Inductives/Positivity.lean#L1364-L1382
-  1364  def nestContNew (ctx : NestCtx) (ops : CheckerOps m) (env : Env)
-  1365      (rec : List NestHole → Nat → Nat → Expr → NestState → m (NestFieldKind × Expr × NestState))
-  1366      (prog : List NestHole) (kb : Nat) (n : Name) (us : List Level) (ds : List Expr) (nPc : Nat)
-  1367      (cty : Expr) (st : NestState) : m (NestFieldKind × NestState) := do
-  1368    -- an instantiation whose parameters mention no frame hole is walked at
-  1369    -- the EMPTY frame stack: its frame
-  1370    -- reads nothing of the frames it was met under, so every cached frame
-  1371    -- is derived at the root and a hit's subtree owns all its holes
-  1372    let wp := nestWalkStack ctx prog ds
-  1373    let grp ← nestGrowGroup ctx (ctx.hiAt wp.length) us ds (nestFrameMates ctx n) [(n, cty)]
-  1374    let act := st.active
-  1375    let st := { st with active := grp.map (fun p => ({ cname := p.1, lvls := us, ds := ds } : NestKey)) ++ act }
-  1376    let st ← nestFrame ctx ops env rec wp (ctx.hiAt wp.length) us ds nPc grp st
-  1377    -- the group is accepted with it — cached only when its parameters
-  1378    -- mention no frame hole: only such a key can ever hit (`nestContKey`)
-  1379    return (.nested (kb != 0),
-  1380      { st with active := act,
-  1381                keys := if ds.all (fun x => x.fvarB ≤ ctx.hiAt 0) then
-  1382                  nestAcceptGroup us ds grp st.keys else st.keys })
-
-== ConLeche/Kernel/Inductives/Positivity.lean#L1356-L1357
-  1356  def nestWalkStack (ctx : NestCtx) (prog : List NestHole) (ds : List Expr) : List NestHole :=
-  1357    if ds.all (fun x => x.fvarB ≤ ctx.hiAt 0) then [] else prog
 
 == ConLeche/Kernel/Inductives/GenRec.lean#L138-L158
    138  /-- Constructor `x`'s minor premise type at depth `d`, of class `c`: its
@@ -6169,6 +6060,68 @@
    303      (ρ : Nat → V) :
    304      interp V ρ (.const .propext []) ∈ˢ interp V ρ ta := by
 
+== whitepaper/Fragment/EtaIota.lean#L242-L260
+   242  /-- **ι through the projections, the semantic core**: given
+   243  the plain ι law and the structure-η law, the redex
+   244  `rec ps motive minor x` reduces to `minor (p₀ ps x) … (pₖ ps x)` with
+   245  no certificate — no slot certificate on the major, no constructor
+   246  telescope, no level, parameter or index comparison, and no reduction
+   247  of the major.  The redex is not the point, so its whole spine fits
+   248  the recursor's telescope (`teleFit_of_ne_pt`); everything else is the
+   249  laws'. -/
+   250  theorem iotaEta_core_sem {Γ : List Expr} {c : Name} {us : List Level} {ci : ConstInfo}
+   251      {args : List Expr} {numParams numBefore d : Nat} {rl : RecRule} {cij : ConstInfo}
+   252      {projs : List Name}
+   253      (hfind : env.find? c = some ci)
+   254      (hus : us.length = ci.lparams.length)
+   255      (hlen : args.length = numBefore + 1)
+   256      (hpis : ci.type.hasPis (numBefore + 1) = true)
+   257      (hlaw : RecRuleLaw m.M c ci numParams numBefore numBefore rl cij)
+   258      (heta : StructEtaLaw m.M ci numParams numBefore d rl.ctor cij projs)
+   259      (hnP : numParams ≤ numBefore) (hnf : projs.length = rl.nfields)
+   260      (hd : d + cij.lparams.length = ci.lparams.length) :
+
+== whitepaper/Fragment/EtaIota.lean#L402-L410
+   402  /-- **The projection of the point is the point**, from the field's
+   403  sort: if the projection's type, walked along the parameters, is
+   404  `(x : D) → B` and `B` is a proposition at every member of `D` whenever
+   405  `D` holds the point — the field's sort is at most the structure's, so
+   406  it is `Prop` wherever the structure is (non-impredicativity) — then the
+   407  projection at the point is the point.  This is what fails for an
+   408  impredicative structure (a data field of a `Prop` structure), which
+   409  after the renovation has no projections. -/
+   410  theorem projPt_of_fieldSort {M : Name → List Nat → V} {T : Expr} {ρ : Nat → V} {f : V}
+
+== whitepaper/Fragment/EtaIota.lean#L707-L724
+   707  open EtaWit in
+   708  /-- **Eta on the reduct of the major is outside the claims**.
+   709  The major `maj := (fun x : A => g (k x)) a` is well-denoted
+   710  and the point (a λ that is the point constrains nothing, so `a` may
+   711  lie outside `A`), and it β-reduces to `maj' := g (k a)`, which is not
+   712  well-denoted (`k` is a graph over `A`).  The redex `rec minor maj` is
+   713  well-denoted and not the point.  Eta-expanding the major's reduct,
+   714  `minor (p0 maj')`, breaks the reduction claim; eta-expanding the major
+   715  as it stands, `minor (p0 maj)`, satisfies it.  So the checker's eta
+   716  path must not reduce the major first (lean4#15371 expands before the
+   717  major's `whnf`). -/
+   718  theorem etaIota_reduced_major_witness [LevelOracle] (φ : Name → Nat) (env : Env)
+   719      (Γ : List Expr) :
+   720      Red env Γ maj maj' ∧
+   721      (∀ ρ : Nat → V, WellDenoted (witM (V := V)) φ ρ redex2 ∧ interp witM φ ρ redex2 ≠ pt ∧
+   722        interp witM φ ρ maj = pt) ∧
+   723      ¬ RedSem (EnvModel.empty (witM (V := V))) φ [] redex2 etaRed2 ∧
+   724      RedSem (EnvModel.empty (witM (V := V))) φ [] redex2 eta2 := by
+
+== whitepaper/Fragment/EtaIota.lean#L349-L356
+   349  /-- **A structure with no fields: the eta reduct is the K reduct**,
+   350  syntactically — the minor at the recursor's parameters, motives and
+   351  minors (`True`, `PUnit`). -/
+   352  theorem iotaEta_noFields (rhs : Expr) (args : List Expr) (numBefore numParams : Nat)
+   353      (ls : List Level) (x : Expr) :
+   354      Expr.mkAppN rhs (args.take numBefore ++ projApps [] ls (args.take numParams) x)
+   355        = Expr.mkAppN rhs (args.take numBefore) := by
+   356    simp [projApps]
+
 == ConLeche/Rules/Rel.lean#L458-L469
    458    /-- **Structure η** (`structEtaCert` → `structEtaCertWith`,
    459    `Kernel/Core.lean`): `a` is a fully applied constructor of an
@@ -6436,22 +6389,6 @@
    498        env.find? T = some (.indInfo cvT caps) →
    499        caps.unitlike = true →
 
-== ConLeche/Kernel/Inductives/BlockInstall.lean#L67-L80
-    67  def blockCapsAt (p : BlockShape) (mi : Nat) (isRec : Bool) : IndCaps :=
-    68    match (p.members.getD mi default).ctors, (p.members.getD mi default).nIdx with
-    69    | [c], nIdx =>
-    70      { eta := nIdx == 0 && !p.isProp && !isRec
-    71        etaCtor := c.1.name
-    72        etaParams := p.nP
-    73        etaFields := c.2
-    74        unitlike := nIdx == 0 && c.2 == 0 && !isRec
-    75        unitParams := p.nP
-    76        ruleK := p.k == 1 && c.2 == 0 && p.isProp
-    77        sortZ := Level.zeronessOf p.resSort
-    78        all := p.memberNames
-    79        nparams := p.nP
-    80        ctors := [c.1.name] }
-
 == ConLeche/Rules/Rel.lean#L307-L332
    307    /-- **The `And` rescue** (`majorToCtor`'s `And` branch,
    308    `Kernel/Core.lean`; `And` only, by ruling): `And.intro a b
@@ -6479,20 +6416,6 @@
    330        Infer env .io d major tp → Infer env .io d tp ttp →
    331        Red env d ttp (.sort v) → Level.isEquiv v .zero = some true →
    332        Red env d major fab
-
-== ConLeche/Verify/Rules/Bridge.lean#L26-L29
-    26  theorem bridge (env : Env) :
-    27      ∀ fuel : Nat,
-    28        WhnfCoreBridge env fuel ∧ WhnfBridge env fuel ∧ DefEqBridge env fuel ∧
-    29          InferBridge env fuel ∧ InferIOBridge env fuel := by
-
-== ConLeche/Verify/Cached/SimC.lean#L10-L15
-    10  # The cached-core faithfulness kit (task #163, batch 5)
-    11  
-    12  The relation and combinators for proving that the cached clone core
-    13  (`ConLeche/Cached/CoreC.lean`) simulates the pure fueled families.  The
-    14  cached and pure sides are *the same terms*, so the value relation is
-    15  equality.
 
 == ConLeche/Cached/Installed.lean#L443-L448
    443  def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)
@@ -6550,9 +6473,9 @@
    202    | letE (val body : Term)
    203    /-- `@Eq _ lhs rhs`, **without the type**: the interpretation is
    204    `⟦eqE a b⟧ = eqv ⟦a⟧ ⟦b⟧`, so soundness never constrains the type,
-   205    and a census (task #237) found no definition and no theorem in any
-   206    tier reading the slot the former used to carry.  It is gone; a
-   207    producer that knows the type simply drops it. -/
+   205    and no definition and no theorem in any tier reads the type, so
+   206    the constructor does not carry it; a producer that knows the type
+   207    simply drops it. -/
    208    | eqE (lhs rhs : Term)
    209    /-- First field of a pair.  Carries **only** the subject: the pair's
    210    type arguments come from the typing premise `Γ ⊢ p : Σ A B`,

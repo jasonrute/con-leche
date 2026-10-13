@@ -50,8 +50,10 @@ are recorded here so every lane works from the same spec. Task #324.
   `{ptTag}` in con-leche. The claims of reduction and equality say
   nothing about the point.
 * **The colour** marks the certification tax: the checks con-leche
-  makes that the official kernel does not (the λ/η body-type premises,
-  the case-3 constructor certificate of ι). A reader who ignores the
+  makes that the official kernel does not (the λ/η body-type premises;
+  in the certified case of ι, the comparisons of the constructor's
+  levels, parameters and index expressions with the recursor's, and the
+  check of the constructor application's parameters and fields). A reader who ignores the
   colour sees the official kernel's rules.
 * **Levels**: zero, succ, max, imax, param. Universe polymorphism stays
   (declarations have level parameters). The

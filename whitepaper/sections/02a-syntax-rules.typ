@@ -6,10 +6,11 @@
 #let imax = $op("imax")$
 #let red = sym.arrow.r.squiggly
 #let elet = $sans("let")$
+#let eqlam = $scripts(equiv)_lambda$
 
 == Terms <sec:terms>
 
-The terms of the fragment are Lean's kernel terms, minus what @sec:left-out
+The terms of the fragment are the official kernel's terms, minus what @sec:left-out
 leaves out:
 
 $
@@ -21,10 +22,12 @@ $
 A #src("whitepaper/Fragment/Syntax.lean", 29, 48)[term] is a variable $x$; a sort $Sort u$ at a universe level $u$
 (@sec:levels), with $sans("Prop") = Sort 0$; an application
 $f thick a$; a function
-$lambda x : A. thin b$; a dependent function type
+$lambda x : A. thin b$; a dependent function type, or Π-type,
 $forall x : A. thin B$, written $A -> B$ when $x$ does not
 occur in $B$; or a let-expression $elet x : T := v; thin b$.
-Types are terms; there is no separate class.
+Types are terms; there is no separate class. A sequence of binders,
+such as the $lambda$s of $lambda x : A. thin lambda y : B. thin e$,
+is a _telescope_.
 
 The paper writes named variables, with the usual conventions: terms
 are taken up to renaming of bound variables, and $B[x := a]$ is the
@@ -35,9 +38,9 @@ variables in scope carries a _context_ $Gamma$, a list of those types.
 No rule in this paper needs index arithmetic in its named form.
 
 #real[
-  Neither device is used: the checker opens a binder with a fresh
+  The checker uses neither device. It opens a binder with a fresh
   free variable that carries its own type, so it keeps no context at
-  all — a performance device that changes nothing below.
+  all. This is a performance device and changes nothing below.
 ]
 
 == Levels <sec:levels>
@@ -80,22 +83,21 @@ with their types.  The complete rule sets are
 #src("whitepaper/Fragment/Rules.lean", 56, 798)[one mutual inductive definition],
 #src("ConLeche/Rules/Rel.lean", 97, 101)[as in con-leche].
 
-*How to read them.*  The three relations describe _what the checker
-does_, not what is true.  $Gamma tack a equiv b$ means: on the terms
-$a$ and $b$, the checker's equality test answers yes.  $Gamma tack e
-=> T$ means: asked for the type of $e$, the checker returns $T$ —
-we write $=>$ rather than the customary colon so that it is not read
-as a typing judgement, which this paper does not have.  Every relation
-is stated in the accepting direction only; nothing says what the
-checker rejects.  A rule's premises are exactly what the checker did at that
+*How to read them.*  The three relations describe what the checker
+does. $Gamma tack a equiv b$ means that on the terms $a$ and $b$ the
+checker's equality test answers yes. $Gamma tack e => T$ means that,
+asked for the type of $e$, the checker returns $T$. We write $=>$
+rather than the customary colon so that it is not read as a typing
+judgement, which this paper does not have. Every relation is stated
+in the accepting direction only; nothing says what the checker
+rejects. A rule's premises are exactly what the checker did at that
 site: the recursive calls it made, and the tests whose outcome fixes
-the shape of the conclusion.  We call these the checker's
-_certificates_.
+the shape of the conclusion.
 
 A convention: a chain
 such as $Gamma tack a => T red e$ abbreviates consecutive premises in
 the same context, one per arrow, the right end of each arrow being the
-subject of the next — here $Gamma tack a => T$ and $Gamma tack T red
+subject of the next; here $Gamma tack a => T$ and $Gamma tack T red
 e$.  Chains of any length are read the same way.
 
 === Reduction <sec:red>
@@ -122,21 +124,19 @@ let-binding's value into its body; neither has a premise.
     $Gamma tack (elet x : T := v; thin b) red b[x := v]$),
 )
 
-This is what the official kernel does, and it is worth a remark only
-because a semantic proof might be expected to need more: the soundness
-of a $beta$ step needs the argument to lie in the domain of the
-$lambda$, and no premise says so.  @sec:inv explains why the model
-supplies it for every redex whose value matters, and why the others
-need nothing.  $zeta$ is simpler still: a let-expression denotes
-what its body with the value substituted denotes, always.
+As in the official kernel, $beta$ has no premise, although its
+soundness needs the argument to lie in the domain of the $lambda$;
+@sec:inv shows where that comes from. $zeta$ is simpler: a
+let-expression always denotes what its body with the value
+substituted denotes.
 
 === Definitional equality
 
-The checker's #src("whitepaper/Fragment/Rules.lean", 547, 566)[equality test] is reflexive and symmetric (the checker never
-takes a symmetry step; the rule is there so that each one-sided rule
-below — red-l, $eta$ — need be written once and its mirror image
-follows), and it interleaves with
-reduction in one way: reduce the left side, then continue.  Sorts
+The checker's #src("whitepaper/Fragment/Rules.lean", 547, 566)[equality test] is reflexive and symmetric. The checker
+never takes a symmetry step; the rule is there so that each one-sided
+rule below (red-l, $eta$) need be written once, and its mirror image
+follows. The test interleaves with reduction in one way: reduce the
+left side, then continue.  Sorts
 are #src("ConLeche/Rules/Rel.lean", 372, 374)[compared through the level oracle].
 
 #rules(
@@ -149,12 +149,7 @@ are #src("ConLeche/Rules/Rel.lean", 372, 374)[compared through the level oracle]
 
 The congruences descend into the two binders and into applications.
 Domains are compared first, then the bodies, under the right-hand
-domain.  #src("whitepaper/Fragment/Rules.lean", 567, 575)[For $forall$] that is all; #src("whitepaper/Fragment/Rules.lean", 576, 590)[for $lambda$] the checker also
-infers the types of the two bodies under the binder and compares
-them — a check the official kernel does not make.  Such checks are
-typeset in one colour, #tax[like this], throughout the paper; a reader
-who ignores the coloured premises sees the official kernel's rule.
-@sec:tax explains why they are there.
+domain.  #src("whitepaper/Fragment/Rules.lean", 567, 575)[For $forall$] that is all.
 
 #rules(
   rule(name: "pi",
@@ -164,19 +159,39 @@ who ignores the coloured premises sees the official kernel's rule.
     $Gamma tack f_1 equiv f_2$, $Gamma tack a_1 equiv a_2$,
     $Gamma tack f_1 thick a_1 equiv f_2 thick a_2$),
 )
+
+Two $lambda$s are compared as two $lambda$-telescopes, by an auxiliary
+relation $Gamma tack a eqlam b$. The checker
+#src("whitepaper/Fragment/Rules.lean", 701, 714)[descends level by level]
+while both bodies are $lambda$s, comparing the domains at each level
+(lam-outer). At the innermost level, where the descent stops,
+#src("whitepaper/Fragment/Rules.lean", 704, 709)[it also infers the types of the two bodies]
+under the binder and compares them (lam). That comparison is a check
+the official kernel does not make. Such checks are typeset in one
+colour, #tax[like this], throughout the paper; a reader who ignores
+the coloured premises sees the official kernel's rule. @sec:tax
+explains why they are there, and why the outer levels need none.
+
 #rules(
   rule(name: "lam",
     $Gamma tack A_1 equiv A_2 \ Gamma\, x : A_2 tack b_1 equiv b_2$,
     tax($Gamma\, x : A_2 tack b_1 => t_1 quad Gamma\, x : A_2 tack b_2 => t_2 \ Gamma\, x : A_2 tack t_1 equiv t_2$),
-    $Gamma tack lambda x : A_1. thin b_1 equiv lambda x : A_2. thin b_2$),
+    $Gamma tack lambda x : A_1. thin b_1 eqlam lambda x : A_2. thin b_2$),
+)
+#rules(
+  rule(name: "lam-outer",
+    $Gamma tack A_1 equiv A_2$, $Gamma\, x : A_2 tack b_1 eqlam b_2$,
+    $Gamma tack lambda x : A_1. thin b_1 eqlam lambda x : A_2. thin b_2$),
+  rule(name: "lams", $Gamma tack a eqlam b$, $Gamma tack a equiv b$),
 )
 
-A $lambda$ against a non-$lambda$ term $b$ is #src("whitepaper/Fragment/Rules.lean", 640, 653)[tried by $eta$]: the
+(Two syntactically equal terms are also related by $eqlam$.)
+A $lambda$ against a non-$lambda$ term $b$ is #src("whitepaper/Fragment/Rules.lean", 640, 653)[tried by $eta$]. The
 type of $b$ is inferred and reduced to a $forall$, its domain is
 compared with the $lambda$'s, and the body is compared with $b$
-applied to the bound variable — and, as at λ-congruence, the type of
-the $lambda$'s body is inferred and compared with the $forall$'s
-body.  Two terms are
+applied to the bound variable. As at the innermost level of
+λ-congruence, the type of the $lambda$'s body is inferred and compared
+with the $forall$'s body.  Two terms are
 #src("whitepaper/Fragment/Rules.lean", 654, 663)[equal by proof irrelevance] when both are proofs: each one's type has type
 $Sort u$ with $u$ oracle-equal to $0$.
 
@@ -194,28 +209,21 @@ $Sort u$ with $u$ oracle-equal to $0$.
     $Gamma tack a equiv b$),
 )
 
-*Proof irrelevance.*  The rule compares the two _sorts_ of the two
-types and never the two types.  The official kernel demands more: it
-also compares $T_a$ with $T_b$, so that $a$ and $b$ are proofs of the
-same proposition.  This checker never compares them, and so accepts
-strictly more than Lean at this one site.  The model
-justifies it: every proof denotes the one canonical point, so two
-proofs of two propositions denote the same set outright.
+*Proof irrelevance.*  The rule compares the sorts of the two types,
+and never the two types. The official kernel also compares $T_a$ with
+$T_b$, so that $a$ and $b$ are proofs of the same proposition. This
+checker does not, and so accepts strictly more than Lean at this one
+site. The model justifies it: every proof denotes the point, so two
+proofs of two propositions denote the same set.
 
-*No transitivity.*  #src("whitepaper/Fragment/Rules.lean", 529, 546)[The list has no rule] "$a equiv b$ and $b equiv c$
-give $a equiv c$", and #src("ConLeche/Rules/Rel.lean", 334, 357)[none can be added].  Look at the shape of the
-rules above: the two terms of every equality premise are each either a
-subterm of the conclusion (the congruences, the $eta$ body) or a
-term that another premise _produced_ — a reduct (red-l) or an
-inferred type (lam, $eta$).  A transitivity rule would be the
-one rule whose middle term comes from nowhere; @sec:claims says why
-that matters, once the proof is on the table.  What the
-checker does instead of chaining equalities is chain reductions:
-reduce, then continue, which is red-l.
+The list has #src("whitepaper/Fragment/Rules.lean", 529, 546)[no transitivity rule], and
+#src("ConLeche/Rules/Rel.lean", 334, 357)[none can be added]\; @sec:claims
+explains why. Instead of chaining equalities, the checker chains
+reductions: it reduces a side, then continues (red-l).
 
 #real[
-  In con-leche a transitivity rule would also meet two rules that are
-  each sound alone. Free variables are
+  In con-leche a transitivity rule would also combine two rules that
+  are each sound alone into an unsound one. Free variables are
   #src("ConLeche/Rules/Rel.lean", 375, 381)[compared by index], not by
   the types they carry, and a
   #src("ConLeche/Rules/Rel.lean", 439, 444)[fast path] equates two
@@ -227,7 +235,10 @@ reduce, then continue, which is red-l.
 === Inference <sec:infer>
 
 A variable's type is #src("whitepaper/Fragment/Rules.lean", 740, 748)[read off the context], and a sort
-#src("ConLeche/Rules/Rel.lean", 549, 565)[has the next sort].
+#src("ConLeche/Rules/Rel.lean", 549, 565)[has the next sort]. The rules
+of this subsection are the checker's _full inference_. The checker
+also has a cheaper mode, `infer_only`, which skips some of their
+checks; @sec:io presents it.
 
 #rules(
   rule(name: "var", $(x : A) in Gamma$, $Gamma tack x => A$),
@@ -272,20 +283,21 @@ infers the type of the body with the value substituted.
     $Gamma tack (elet x : T := v; thin b) => B$),
 )
 
-*Reducing to a $forall$.*  Note what the application rule does not do.  It does not
-know a type of $f$ that is a $forall$ "up to definitional equality"
-and then argue that its domain is the right one; it reduces the
-inferred type until a $forall$ is syntactically there.  This is the
-site where a syntactic soundness proof needs injectivity of $forall$
-— that $forall x : A. thin B equiv forall x : A'. thin B'$ forces $A equiv A'$
-— a property our proof never needs, and one that the
-model does not even validate: $forall x : A. thin sans("True")$ and
+*Reducing to a $forall$.*  The application rule reduces the inferred
+type of $f$ until a $forall$ is syntactically there. It does not take
+a type of $f$ that is a $forall$ up to definitional equality and argue
+that its domain is the right one. That argument is where a syntactic
+soundness proof needs injectivity of $forall$, the property that
+$forall x : A. thin B equiv forall x : A'. thin B'$ forces
+$A equiv A'$. Our proof never needs it, and the model does not
+validate it: $forall x : A. thin sans("True")$ and
 $forall x : A'. thin sans("True")$ denote the same truth value whatever
-$A$ and $A'$ are.  Our proof argues instead: the head denotes a member
-of what the $forall$ denotes, because reduction preserves denotations;
-the argument denotes a member of the domain, by the certificate; and
-applying a member of a function space to a member of its domain lands in the
-fibre.  The second half of this section carries this out.
+$A$ and $A'$ are. Our proof argues instead that the head denotes a
+member of what the $forall$ denotes, because reduction preserves
+denotations; that the argument denotes a member of the domain, by the
+comparison premise; and that applying a member of a function space to
+a member of its domain lands in the fibre. The second half of this
+section carries this out.
 
 *The let-expression.*  The two checks on the value are what Lean
 runs, and they decide verdicts: they reject a let-expression whose
@@ -297,9 +309,10 @@ itself in place of the variable.
 #real[
   The checker substitutes the value in the same way, both when it
   #src("ConLeche/Kernel/Core.lean", 971, 973)[reduces] and when it
-  #src("ConLeche/Kernel/Core.lean", 1163, 1168)[infers]; it keeps no
+  #src("ConLeche/Kernel/Core.lean", 1163, 1168)[infers]\; it keeps no
   variables bound to values.
-  Lean's kernel opens the body at such a variable instead, which avoids
-  copying the value when the body uses it many times; for con-leche
-  that case is a known performance gap, not a soundness question.
+  The official kernel opens the body at such a variable instead, which
+  avoids copying the value when the body uses it many times; for
+  con-leche that case is a known performance gap, not a soundness
+  question.
 ]

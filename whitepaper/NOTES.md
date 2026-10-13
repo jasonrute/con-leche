@@ -588,3 +588,33 @@ comment block at the top of `lib.typ`.
     would let the full grade's claim stay the plain membership of
     `InferSem` and keep the hereditary claim to the rules that use it.
     (2026-10-12.)
+
+38. **Comparing less than the bodies' types is not enough.**  The
+    ill-typed redex of the λ-congruence witness (`ValueReading.lean`)
+    can be moved into a stored definition
+    `d := fun x => (fun (h : E x) => h) n` of type `∀ x : Prop, F x`;
+    then `fun x => d x` and `fun x => n` are typed in the empty
+    context, their bodies' types `F x` and `Prop` both have sort
+    `Type`, and a comparison of the bodies' sorts, or of their
+    zero-ness, passes; only the comparison `F x ≡ Prop` fails
+    (`Probe.lean`, `lam_congr_sorts_unsound`).  That environment has a
+    model, but `d`'s value is not typed, so it is not accepted.  No
+    counterexample with an accepted environment is known; it would need
+    a typed term whose reduct holds a redex with an argument outside
+    its λ's domain.  The semantic proof does not need to know whether
+    one exists: the check replaces the argument.  The fragment also
+    proves weaker forms of the rule sound (`DefEq.lamProp`,
+    `DefEq.lamConst`, `DefEq.etaProp`, `DefEq.appIn`,
+    `Fragment/Rules.lean`): no type comparison over a domain that is a
+    proposition, or between two bodies that do not use the variable,
+    or between two arguments compared at the domain of a known head
+    type.  The checker uses none of them.  (Lane R4, 2026-10-13.)
+
+39. **Where the ι certificate goes.**  If large elimination from a
+    family that may be a proposition is restricted to families with no
+    constructor, to K-like families and to structures whose fields are
+    propositions wherever the structure is, as Lean's planned kernel
+    changes do, then the certified case of ι is empty: K and the step
+    through the projections (`EtaIota.lean`) cover every remaining
+    large eliminator, and no ι step checks a constructor application.
+    (Lane R4, 2026-10-13.)

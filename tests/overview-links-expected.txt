@@ -420,9 +420,9 @@
    202    | letE (val body : Term)
    203    /-- `@Eq _ lhs rhs`, **without the type**: the interpretation is
    204    `⟦eqE a b⟧ = eqv ⟦a⟧ ⟦b⟧`, so soundness never constrains the type,
-   205    and a census (task #237) found no definition and no theorem in any
-   206    tier reading the slot the former used to carry.  It is gone; a
-   207    producer that knows the type simply drops it. -/
+   205    and no definition and no theorem in any tier reads the type, so
+   206    the constructor does not carry it; a producer that knows the type
+   207    simply drops it. -/
    208    | eqE (lhs rhs : Term)
    209    /-- First field of a pair.  Carries **only** the subject: the pair's
    210    type arguments come from the typing premise `Γ ⊢ p : Σ A B`,
