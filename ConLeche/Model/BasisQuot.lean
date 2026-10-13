@@ -354,7 +354,7 @@ noncomputable def quotIndMinorSpace (V : Type w) [SetTheory V]
 `Quot A r` and `Quot.mk A r a` occur at four different de Bruijn
 depths across the block, so both are stated against an arbitrary
 environment through its slot values.  The `∃ w S F` witnesses are
-`bconst_app_dataAV`/`_data3` — nothing is chosen. -/
+`bconst_app_data2`/`_data3` — nothing is chosen. -/
 
 /-- The relation binder's domain is graded, unconditionally. -/
 theorem quotRelTy_wellDenoted (ρ : Nat → V) (hA : IsTy (ρ 0)) :
@@ -383,7 +383,7 @@ theorem quotApp_data {u i j : Nat} {ρ : Nat → V} {Aset R : V}
       have h := bconst_app_data V .quot [u] ρ (A := .sort u) rfl hA' (IsTy_univ u)
       rw [← hAi] at h
       exact h
-    · have h := bconst_app_dataAV V .quot [u] ρ
+    · have h := bconst_app_data2 V .quot [u] ρ
         (A := .sort u) (A2 := relAV (.bvar 0)) rfl hA' hR'
         (by rw [relAV_interp]; exact IsTy_relSpace _)
       rw [← hAi, ← hRj] at h
@@ -421,7 +421,7 @@ theorem quotMkApp_data {u i j k : Nat} {ρ : Nat → V} {Aset R a : V}
         have h := bconst_app_data V .quotMk [u] ρ (A := .sort u) rfl hA' (IsTy_univ u)
         rw [← hAi] at h
         exact h
-      · have h := bconst_app_dataAV V .quotMk [u] ρ
+      · have h := bconst_app_data2 V .quotMk [u] ρ
           (A := .sort u) (A2 := relAV (.bvar 0)) rfl hA' hR'
           (by rw [relAV_interp]; exact IsTy_relSpace _)
         rw [← hAi, ← hRj] at h
@@ -463,8 +463,7 @@ theorem quotIndMinorTy_interp {u : Nat} {Aset R M : V} (ρ : Nat → V)
 
 /-! ### The type reading -/
 
-/-- `Quot.ind`'s type reading, named: five binders, every numeral the
-literal `0`. -/
+/-- `Quot.ind`'s type reading, named: five binders. -/
 def quotIndTy (u : Nat) : ITerm :=
   .pi (.sort u)
     (.pi quotRelTy

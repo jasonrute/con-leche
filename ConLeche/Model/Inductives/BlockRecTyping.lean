@@ -11,41 +11,19 @@ import ConLeche.Model.CtxOkKit
 public section
 
 /-!
-# `ResidueOk` from the rule stage's TYPING certificates
+# The recursor rule's frame, and the recursor type's binder shape
 
-`targetRule` (`Kernel/Inductives/RecCheck.lean`) closes with
-two runs at the CONSTRUCTORS' environment `envT`, at the depth
+`targetRule` (`Kernel/Inductives/RecCheck.lean`) types a rule's
+right-hand side at the CONSTRUCTORS' environment `envT`, at the depth
 `d = rP + nF + nR` of the opened frame
 
 ```
 p⃗ (the rP stretch)   f⃗ (the constructor's fields)   ih⃗ (the openers)
 ```
 
-namely
+This file holds two facts about that frame and the binder shape of the
+recursor's stored type:
 
-```lean
-let tyB ← opsT.inferType envT depth bodyO
-unless ← opsT.isDefEq envT depth tyB concl do throw …
-```
-
-with `concl` the recursor's OWN conclusion instantiated at the rule's
-prefix, the constructor's index expressions and the major `C_J p⃗ f⃗`.
-`ResidueOk` (`Semantics/Tower/BlockRecTower.lean`) is what the three
-regimes consume of those two runs:
-
-```lean
-def ResidueOk (V) (Rb : ITerm) (ihvals : List V) (ρ' : Nat → V) (B : V) : Prop :=
-  WellDenoted V (consList ihvals ρ') Rb ∧ interp V (consList ihvals ρ') Rb ∈ˢ B
-```
-
-This file is the hop between the two, in three parts.
-
-* **The certified hop** (`residueOk_of_certs`): `InferClaim` at the
-  residue plus `DefEqClaim` between the inferred type and the
-  conclusion, both at the frame's context `Δa`, give membership at
-  every `Δa`-satisfying valuation, packaged as
-  `ResidueOk`; the only difference from `checkConstantVal_reads`
-  (`BlockRecRead.lean`) is that the context is not nil.
 * **The frame's valuation** (`sat_blockFrame`): the context is
   `ihdoms.reverse ++ (pdoms ++ fdoms).reverse` and `Sat` at it is two
   applications of `sat_of_spineFit` — the graph kit's own
@@ -53,25 +31,8 @@ This file is the hop between the two, in three parts.
   the fields, and one `SpineFit` for the `ih` openers.  The second is
   where the kit pays: the opener's value must lie in the opener's
   DOMAIN (the graph's value at the call target).
-* **The frame's context** (`ctxOk_blockFrame`): the frame is opened by
-  THREE `openPisAtFvars` calls at the consecutive offsets `0`, `rP`
-  and `rP + nF`, so the openers' concatenation is an
-  `∃ ty, x = .fvar i ty` list and `ctxOk_of_openers`
-  (`Model/IndFrame.lean`) applies unchanged.
-
-The two runs are premises here; they are fields of the stage's rule
-record (`TargetRuleRun.hty`/`hdeq`, `Verify/Inductives/RecCheckRun.lean`).  The other premises are the seam to the
-readings: `hdoms` (opener `i`'s stored type reads to the context entry
-at that slot — the type readings plus the per-binder
-`checkBlockDefEqList`), `hokΔ` (the context's own grading), and the `ih`
-openers' `SpineFit`, which is the regime's to pay.
-
-**The grade is checked, not assumed**: the stage runs
-`opsT.inferType`, which at `μ = .verified` is `inferTypeCore
-.verified`, and `Rules.inferTypeCore_bridge` (`Verify/Rules/Bridge.lean`)
-sends that to `Infer env .full` — never `.io`, which only
-`inferTypeCoreIO` reaches.  So the residue's typing is at the grade an
-argument inversion at `.full` needs, with no grade side condition.
+* **The openers' leaves** (`leavesBounded_of_openers`).
+* **The recursor type's binder shape** (`BlockRecTyShapeOne`, below).
 -/
 
 namespace ConLeche.Model
@@ -86,9 +47,7 @@ universe w
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
-/-! ## 1. The certified hop — `InferClaim` + `DefEqClaim` at a context -/
-
-/-! ## 2. The frame's valuation — `Sat` at `ih⃗ ⊕ f⃗ ⊕ p⃗` -/
+/-! ## 1. The frame's valuation — `Sat` at `ih⃗ ⊕ f⃗ ⊕ p⃗` -/
 
 /-- **The opened frame's context is satisfied by the frame's own
 values.**  The frame is three telescopes deep and `Sat` at it is two
@@ -117,21 +76,17 @@ theorem sat_blockFrame_length {pdoms fdoms ihdoms : List ITerm}
   simp only [List.length_append, List.length_reverse, hp, hf, hi]
   omega
 
-/-! ## 3. The frame's context — three openings at consecutive offsets -/
-
-/-! ## 4. `CtxOk` at the rule frame -/
+/-! ## 2. The openers' leaves -/
 
 /-- A term whose free variables are among the openers has bounded leaf
-annotations as soon as the OPENERS do — `Expr.LeavesBounded`, which
+types as soon as the OPENERS do — `Expr.LeavesBounded`, which
 `InferClaim` asks of every subject, read off the frame once. -/
 theorem leavesBounded_of_openers {fvs : List Expr} {e : Expr}
     (hlbF : ∀ x ∈ fvs, (Expr.fvarTypeD x).looseBVarsBounded 0 = true)
     (hleaf : ∀ l ∈ e.fvarLeaves, Expr.fvar l.1 l.2 ∈ fvs) :
     Expr.LeavesBounded e := fun l hl => hlbF _ (hleaf l hl)
 
-/-! ## 5. `ResidueOk`, assembled at the rule frame -/
-
-/-! ## 5. THE RECURSOR TYPE'S BINDER SHAPE — `BlockRecSplitOne`
+/-! ## 3. THE RECURSOR TYPE'S BINDER SHAPE — `BlockRecSplitOne`
 
 `BlockRecSplitOne` (`BlockRecPreRun.lean`) is what the recursor model
 reads OFF a fitting spine of `rec_c`'s domains: the prefix, the
@@ -243,7 +198,7 @@ semantic content of the clause: a spine graded against the member's
 FORMER — which is a λ-tower over the member's parameter and index
 telescope — fits that telescope, because every application node's
 function space carries the abstraction's own domain
-(`spineFit_of_wellDenoted_lams`, `lamR_mem_piR_dom`).  The major's
+(`spineFit_of_wellDenoted_lams`).  The major's
 domain is `T_m p⃗ ı⃗` on the nose (`targetRecTy` pins it
 syntactically), so its READING is that spine and the grading is the
 recursor type's own (`piTeleAV_graded` at the major's position).

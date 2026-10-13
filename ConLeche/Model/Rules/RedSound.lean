@@ -451,7 +451,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
     (hus : us.length = entry.levelParams.length)
     (hfire : entry.fireOk us = true)
     (hctor : env.find? entry.ctor = some (.ctorInfo cvC nP nF))
-    (hcerts : CertsSem m φ d
+    (hcerts : TeleAritySem m φ d
       (cvC.type.instantiateLevelParams cvC.levelParams us) e.getAppArgs) :
     RedSem m φ d (.proj sn i e)
       (e.getAppArgs.getD (entry.numParams + i) (.bvar 0)) := by

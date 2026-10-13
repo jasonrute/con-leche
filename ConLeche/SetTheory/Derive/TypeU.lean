@@ -95,8 +95,6 @@ theorem mem_tg_of_mem_strictU {n : Nat} {T : V} (h : T ∈ˢ (strictU n : V)) : 
 theorem ne_pt_of_mem_univZero {T : V} (h : T ∈ˢ (univZero : V)) : T ≠ pt := by
   rintro rfl; exact pt_not_mem_univZero h
 
-theorem Strict.ne_pt {X : V} (h : Strict X) : X ≠ pt := h.1
-
 theorem IsTy.ne_pt {T : V} (h : IsTy T) : T ≠ pt := by
   rcases h with h | h
   · exact ne_pt_of_mem_univZero h
@@ -107,28 +105,10 @@ theorem IsTy_of_Fib {p : Bool} {X : V} (h : Fib p X) : IsTy X := by
   · exact Or.inr h
   · exact Or.inl h
 
-theorem Fib.ne_pt {p : Bool} {X : V} (h : Fib p X) : X ≠ pt := (IsTy_of_Fib h).ne_pt
-
 theorem IsTy_of_mem_strictU {n : Nat} {T : V} (h : T ∈ˢ (strictU n : V)) : IsTy T := by
   by_cases hn : n = 0
   · subst hn; exact Or.inl (mem_strictU_zero.mp h)
   · exact Or.inr ((mem_strictU_pos hn).mp h).2
-
-/-- A member of `strictU n` is in the regime of `n`'s zero-ness. -/
-theorem Fib_of_mem_strictU {n : Nat} {T : V} (h : T ∈ˢ (strictU n : V)) :
-    Fib (decide (n = 0)) T := by
-  by_cases hn : n = 0
-  · subst hn; exact mem_strictU_zero.mp h
-  · simp only [hn, decide_false]; exact ((mem_strictU_pos hn).mp h).2
-
-/-- A truth value or strict member of `tg n` in the right regime is a
-member of `strictU n`. -/
-theorem mem_strictU_of {n : Nat} {T : V} (hT : T ∈ˢ tg n) (hf : Fib (decide (n = 0)) T) :
-    T ∈ˢ (strictU n : V) := by
-  by_cases hn : n = 0
-  · subst hn; exact mem_strictU_zero.mpr hf
-  · simp only [hn, decide_false, Fib_false] at hf
-    exact (mem_strictU_pos hn).mpr ⟨hT, hf⟩
 
 /-- **(P)**: a member of a strict set is not the point. -/
 theorem ne_pt_of_mem_strict {T x : V} (hT : Strict T) (hx : x ∈ˢ T) : x ≠ pt := by
@@ -216,33 +196,6 @@ theorem univZero_mem_tg_succ (n : Nat) : (univZero : V) ∈ˢ tg (n + 1) := by
   rw [tg_zero] at h
   exact tg_mono (Nat.succ_le_succ (Nat.zero_le n)) _ h
 
-/-- `strictU n` is strict. -/
-theorem strict_strictU (n : Nat) : Strict (strictU n : V) := by
-  by_cases hn : n = 0
-  · subst hn; rw [strictU_zero]; exact strict_univZero
-  · refine ⟨?_, fun h => ((mem_strictU_pos hn).mp h).2.1 rfl⟩
-    -- `strictU n` has two distinct members, the point at most one
-    obtain ⟨m, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
-    have h1 : (empty : V) ∈ˢ strictU (m + 1) :=
-      (mem_strictU_pos hn).mpr ⟨empty_mem_tg _, strict_empty⟩
-    have h2 : (univZero : V) ∈ˢ strictU (m + 1) :=
-      (mem_strictU_pos hn).mpr ⟨univZero_mem_tg_succ m, strict_univZero⟩
-    refine ne_pt_of_two h1 h2 fun h => ?_
-    have h3 : (unitSet : V) ∈ˢ univZero := mem_univZero.mpr (Subset.refl _)
-    rw [← h] at h3
-    exact not_mem_empty _ h3
-
-theorem IsTy_strictU (n : Nat) : IsTy (strictU n : V) := Or.inr (strict_strictU n)
-
-theorem strictU_mem_tg_succ (n : Nat) : (strictU n : V) ∈ˢ tg (n + 1) := by
-  by_cases hn : n = 0
-  · subst hn; rw [strictU_zero]; exact univZero_mem_tg_succ 0
-  · unfold strictU; rw [ite_eq_right hn]
-    exact (tg_isTGUniverse (Nat.succ_ne_zero n)).sep_mem (tg_mem_tg n)
-
-theorem strictU_mem_strictU_succ (n : Nat) : (strictU n : V) ∈ˢ strictU (n + 1) :=
-  (mem_strictU_pos (Nat.succ_ne_zero n)).mpr ⟨strictU_mem_tg_succ n, strict_strictU n⟩
-
 /-- `ω` is a type of every positive sort. -/
 theorem omega_mem_strictU_succ (n : Nat) : (omega : V) ∈ˢ strictU (n + 1) :=
   (mem_strictU_pos (Nat.succ_ne_zero n)).mpr ⟨omega_mem_tg_succ n, strict_omega⟩
@@ -294,11 +247,6 @@ theorem mem_strictU_of_strict {n : Nat} {T : V} (hT : T ∈ˢ (tyU n : V)) (hs :
   by_cases hn : n = 0
   · subst hn; rw [strictU_zero]; rw [tyU_zero] at hT; exact hT
   · exact (mem_strictU_pos hn).mpr ⟨mem_tg_of_mem_tyU hT, hs⟩
-
-/-- A member of `tyU` at a positive level that is not a truth value is
-strict. -/
-theorem strict_of_mem_tyU {n : Nat} {T : V} (hT : T ∈ˢ (tyU n : V)) (h0 : ¬ T ∈ˢ univZero) :
-    Strict T := (IsTy_of_mem_tyU hT).resolve_left h0
 
 theorem mem_tyU_of_IsTy {n : Nat} {T : V} (hT : T ∈ˢ tg n) (h : IsTy T) : T ∈ˢ (tyU n : V) :=
   mem_tyU.mpr ⟨hT, h⟩

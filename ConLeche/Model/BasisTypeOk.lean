@@ -16,7 +16,7 @@ a ∈ˢ A ∧ (v = 0 → …) ∧ (v ≠ 0 → IsTy A)`.  At a basis constant's 
 the slot is read off `bval_mem_type` at `BConst.typeAV`'s own binder:
 the function space is `piV`, whose regime numeral `propN` comes with
 its fibre fact (`propN_eq_zero`), so nothing is chosen
-(`bconst_app_data`/`_dataAV`/`_data3`/`_data4`, `slot_of_mem_piV`).
+(`bconst_app_data`/`_data2`/`_data3`/`_data4`, `slot_of_mem_piV`).
 The one bespoke supplier is `quotMk_mem_quot` (`Quot.ind`'s motive at a
 `Quot.mk` spine).
 -/
@@ -115,7 +115,7 @@ theorem bconst_app_data (c : BConst) (us : List Nat) (ρ : Nat → V)
 
 /-- The same one binder in: a basis constant applied to its first
 argument (`app_mem_piV`, no fibre premise). -/
-theorem bconst_app_dataAV (c : BConst) (us : List Nat) (ρ : Nat → V)
+theorem bconst_app_data2 (c : BConst) (us : List Nat) (ρ : Nat → V)
     {A A2 B2 : ITerm}
     (h : BConst.typeAV c us = .pi A (.pi A2 B2))
     {a1 : V} (ha1 : a1 ∈ˢ interp V ρ A)
@@ -257,7 +257,7 @@ theorem WellDenoted_bconst_type (c : BConst) (us : List Nat) (ρ : Nat → V) :
       | (refine bconst_app_data V _ _ ρ rfl ?_ ?_ <;>
           (first | assumption | exact IsTy_univ _ | exact IsTy_piV | exact IsTy_omega |
             exact IsTy_of_mem_univ ‹_›))
-      | (refine bconst_app_dataAV V _ _ ρ rfl ?_ ?_ ?_ <;>
+      | (refine bconst_app_data2 V _ _ ρ rfl ?_ ?_ ?_ <;>
           (first | assumption | exact IsTy_univ _ | exact IsTy_piV | exact IsTy_omega |
             exact IsTy_of_mem_univ ‹_›))
       | (refine bconst_app_data3 V _ _ ρ rfl ?_ ?_ ?_ ?_ <;>

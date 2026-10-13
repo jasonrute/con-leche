@@ -48,12 +48,9 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-! ## The pure mirrors -/
 
-/-- Mirror stack entry of `inferLamsI`: opened domain, binder meta. -/
-abbrev InferLamEntryX := Expr
-
 /-- Pure mirror of `inferLamsOutI` (a pure rebuild fold). -/
 @[expose] def inferLamsOut (d : Nat) :
-    List InferLamEntryX → Nat → Expr → m Expr
+    List Expr → Nat → Expr → m Expr
   | [], _j, cur => pure cur
   | tyo :: rest, j, cur =>
     inferLamsOut d rest (j - 1) (Expr.forallE (tyo.abstractRange d j) cur)
@@ -62,13 +59,13 @@ abbrev InferLamEntryX := Expr
 then the rebuild. -/
 @[expose] def inferLamsLeaf (r : CoreFns m) (d : Nat)
     (t : Expr) (k : Nat) (fvs : List Expr)
-    (stk : List InferLamEntryX) : m Expr := do
+    (stk : List Expr) : m Expr := do
   let bt ← r.infer (d + k) (t.instantiateList fvs)
   inferLamsOut d stk (k - 1) (bt.abstractRange d k)
 
 /-- Pure mirror of `inferLamsI`. -/
 @[expose] def inferLams (r : CoreFns m) (d : Nat) :
-    Nat → Expr → Nat → List Expr → List InferLamEntryX → m Expr
+    Nat → Expr → Nat → List Expr → List Expr → m Expr
   | fuel + 1, t, k, fvs, stk =>
     match t with
     | .lam ty body => do
@@ -120,7 +117,7 @@ then the rebuild. -/
 (innermost first, `j` the head entry's binder level): the fold is
 pure. -/
 @[expose] def inferLamsWrap (d : Nat) :
-    List InferLamEntryX → Nat → Expr → m Expr
+    List Expr → Nat → Expr → m Expr
   | [], _j, bt => pure bt
   | tyo :: rest, j, bt =>
     inferLamsWrap d rest (j - 1) (.forallE tyo (bt.abstract1 (d + j)))
@@ -143,13 +140,13 @@ section Unfold
 variable {r : CoreFns m} {env : Env} {d : Nat}
 
 theorem inferLams_zero (t : Expr) (k : Nat) (fvs : List Expr)
-    (stk : List InferLamEntryX) :
+    (stk : List Expr) :
     inferLams r d 0 t k fvs stk
       = inferLamsLeaf r d t k fvs stk := by rfl
 
 theorem inferLams_succ_lam (fuel : Nat) (ty body : Expr)
     (k : Nat) (fvs : List Expr)
-    (stk : List InferLamEntryX) :
+    (stk : List Expr) :
     inferLams r d (fuel + 1) (.lam ty body) k fvs stk
       = (do
         let tty ← r.infer (d + k) (ty.instantiateList fvs)
@@ -162,7 +159,7 @@ theorem inferLams_succ_lam (fuel : Nat) (ty body : Expr)
 
 theorem inferLams_succ_ne_lam (fuel : Nat) {t : Expr}
     (ht : ∀ ty body, t ≠ .lam ty body) (k : Nat)
-    (fvs : List Expr) (stk : List InferLamEntryX) :
+    (fvs : List Expr) (stk : List Expr) :
     inferLams r d (fuel + 1) t k fvs stk
       = inferLamsLeaf r d t k fvs stk := by
   cases t with
@@ -262,14 +259,14 @@ section AtF
 variable {env : Env}
 
 theorem inferLamsOut_atF (d : Nat) :
-    ∀ (stk : List InferLamEntryX) (j : Nat) (cur : Expr) (F : Nat),
+    ∀ (stk : List Expr) (j : Nat) (cur : Expr) (F : Nat),
       (inferLamsOut (m := FueledM) d stk j cur).val F
         = inferLamsOut (m := CheckM) d stk j cur
   | [], _, _, _ => rfl
   | _tyo :: rest, j, _cur, F => inferLamsOut_atF d rest (j - 1) _ F
 
 theorem inferLamsLeaf_atF (d : Nat) (t : Expr) (k : Nat)
-    (fvs : List Expr) (stk : List InferLamEntryX) (F : Nat) :
+    (fvs : List Expr) (stk : List Expr) (F : Nat) :
     (inferLamsLeaf (fueledFns mode env) d t k fvs stk).val F
       = inferLamsLeaf (pureFns mode env F) d t k fvs stk := by
   unfold inferLamsLeaf
@@ -280,7 +277,7 @@ theorem inferLamsLeaf_atF (d : Nat) (t : Expr) (k : Nat)
 
 theorem inferLams_atF (d : Nat) :
     ∀ (fuel : Nat) (t : Expr) (k : Nat) (fvs : List Expr)
-      (stk : List InferLamEntryX) (F : Nat),
+      (stk : List Expr) (F : Nat),
       (inferLams (fueledFns mode env) d fuel t k fvs stk).val F
         = inferLams (pureFns mode env F) d fuel t k fvs stk
   | 0, t, k, fvs, stk, F => inferLamsLeaf_atF d t k fvs stk F
@@ -363,7 +360,7 @@ variable {env : Env}
 `abstractRange` algebra (`abstractRange_succ`), stated at the rebuild
 cursor the leaf phase enters with (`stk.length = j + 1`). -/
 theorem inferLamsOut_wrap {d : Nat} :
-    ∀ (stk : List InferLamEntryX) (j : Nat) (bt : Expr),
+    ∀ (stk : List Expr) (j : Nat) (bt : Expr),
       stk.length = j + 1 →
       inferLamsOut (m := CheckM) d stk j (bt.abstractRange d (j + 1))
         = inferLamsWrap (m := CheckM) d stk j bt := by
@@ -404,7 +401,7 @@ theorem inferLamsOut_wrap {d : Nat} :
 /-- Leaf-phase soundness: the mirror's leaf run is the chained
 inference of the bulk-opened residual and the (pure) tails. -/
 theorem inferLamsLeaf_sound {d : Nat} {t : Expr}
-    {k : Nat} {fvs : List Expr} {stk : List InferLamEntryX} {F : Nat}
+    {k : Nat} {fvs : List Expr} {stk : List Expr} {F : Nat}
     {res : Expr}
     (hlen : stk.length = k)
     (hrun : inferLamsLeaf (pureFns mode env F) d t k fvs stk = .ok res) :
@@ -432,7 +429,7 @@ theorem inferLamsLeaf_sound {d : Nat} {t : Expr}
 bulk-opened residual followed by the chained tails, at some fuel. -/
 theorem inferLams_sound {d : Nat} :
     ∀ (fuel : Nat) (t : Expr) (k : Nat) (fvs : List Expr)
-      (stk : List InferLamEntryX) (F : Nat) (res : Expr),
+      (stk : List Expr) (F : Nat) (res : Expr),
       stk.length = k →
       inferLams (pureFns mode env F) d fuel t k fvs stk = .ok res →
       ∃ F', (inferTypeCore mode env F' (d + k) (t.instantiateList fvs) >>=

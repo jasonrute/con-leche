@@ -23,17 +23,12 @@ hpre : ∀ ψ ρ, BlockRecPre V s K (blockRecTyAV mpC.base2.acval envC rs ψ) (e
 from the graph kit.  This file holds what that producer reads at the
 run, in the order it composes:
 
-* **§1 the rule's certificates, bundled** (`BlockRuleCerts`): every
-  run-level argument of `residueOk_blockFrame` (`BlockRecTyping.lean`)
-  except the frame, so the kit's typing obligation consumes ONE
-  hypothesis per rule and instantiates it at its own decoding;
 * **§2 the carrier's case analysis** (`blockCarrier_case`,
   `blockCarrier_case_unique` — `mkInj`, one arm of the kit's `huniq`);
 * **§3 the classes at a prefix spine** (`blockRecIs`, `blockRecCr`,
   `blockRec_hsplit_at`): the class's index set is the member's index-tuple
   set and its carrier the least pre-fixed tuple's component, i.e. the
   member's former at the prefix frame (`BlockModelAt.leaf`);
-* **§4 `OneElimLevel` from the check** (`blockRecOneElimLevel`);
 * **§9 the bound** (`blockRecMot`, `blockRec_hconcl_at`);
 * **§20 onward**: the rule data's components at the run's spelling,
   the `ih` values and terms, the certified hop, the certificates'
@@ -53,22 +48,6 @@ open ConLeche (CheckMode Env Expr Name Level ConstantVal ConstantInfo openPisAtF
 universe w
 
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
-
-/-! ## 1. One rule's typing certificates, bundled
-
-`residueOk_blockFrame` takes the rule stage's two runs, the three
-openings that build the frame and the frame's own correspondence, and
-returns `ResidueOk` at ONE spine.  A regime instantiates it at MANY
-spines — every fitting `(x⃗, f⃗)` — so the run-level arguments are
-bundled once, per rule, and the frame stays free.
-
-The bundle is the rule stage's typing output plus the two frame
-premises (`hdoms`, `hokΔ`: the openers' stored types read to the
-context's entries, and the context is graded).
-
-Its second argument is the checker's FUEL, not a frame depth: elsewhere
-the letter `F` names the rule frame's depth, so the binder is `fuel`
-here and the two cannot be confused where both meet. -/
 
 /-! ## 2. The carrier's case analysis
 
@@ -137,9 +116,8 @@ and at a spine that fits nothing the class carriers are empty and
 every obligation is vacuous.
 
 **The guard is the WHOLE rule prefix, not only its parameters**: the
-kit's step instantiates the rule's certificates at
-`x⃗ ++ f⃗`, and `BlockRuleCerts.residueOk` asks `SpineFit ρ (pdoms c)
-x⃗` — a statement about every entry of the prefix, the motives and the
+kit's step instantiates the rule's typing at
+`x⃗ ++ f⃗`, which asks `SpineFit ρ (pdoms c) x⃗` — a statement about every entry of the prefix, the motives and the
 minor premises included.  Guarding on the parameters alone leaves the
 step with an obligation at prefixes whose motive entry is arbitrary,
 and no hypothesis that decides it. -/
@@ -198,29 +176,6 @@ theorem spineFit_take_any {Fs : List ITerm} {ρ : Nat → V} {as : List V}
     exact h
 
 end ClassData
-
-/-! ## 4. `OneElimLevel` from the check
-
-D-d — one elimination level per family — follows from the
-elimination-level PIN (`checkBlockRecElimPin`: every conclusion sort is
-equivalent to the generated `structElimLevel p.elim p.large`), and
-`blockRecElimPin_run` (§38.1) turns it into equalities of
-`Level.eval` at a ground assignment.  What the candidate's λ-tower
-needs (`famCandG_hCand`'s `hbits`) is the ZERONESS bit of every binder
-of every class's binder data, and that is the same bit once each
-class's binder numerals follow its own conclusion's sort — the
-reading's fact, taken here as `hbits`. -/
-
-/-- **D-d, in the shape the candidate consumes**: at the family's
-single level `ℓ` — every recursor's own level evaluates to it (the
-pin, `blockRecElimPin_run`) — every binder numeral of every class's
-binder data is zero exactly when `ℓ` is. -/
-theorem blockRecOneElimLevel {ℓ : Nat} (ψ : Name → Nat) {K : Nat}
-    {rds : Nat → List (Nat × Nat × ITerm)} {uOf : Nat → Level}
-    (hpin : ∀ c, c < K → (uOf c).eval ψ = ℓ)
-    (hbits : ∀ c, c < K → ∀ b ∈ rds c, (b.2.1 = 0 ↔ (uOf c).eval ψ = 0)) :
-    OneElimLevel ℓ K rds :=
-  fun c hc b hb => by rw [hbits c hc b hb, hpin c hc]
 
 /-! ## 6. The rule count -/
 
@@ -1279,10 +1234,10 @@ theorem blockRecElimPin_run {envC : Env} {p : ConLeche.BlockParts} {cvTas : List
   obtain ⟨R⟩ := id h
   exact ConLeche.Level.isEquiv_sound (R.fam.pin _ (blockRecUOf_run R hruns hc)) ψ
 
-/-! ## 39. `BlockRuleCerts`' FRAME SEAM — `hdoms` and `hokΔ` from the
+/-! ## 39. The rule frame's seam — `hdoms` and `hokΔ` from the
 three segments
 
-`BlockRuleCerts` (§1) states its two frame premises at the REVERSED
+The rule's typing states its two frame premises at the REVERSED
 context `ihdoms.reverse ++ (pdoms ++ fdoms).reverse`, because that is
 the order `CtxOk`/`Sat` read a frame in; the three owners state their
 readings and gradings SEGMENT by segment, at the frame's ascending
@@ -1307,7 +1262,7 @@ the ONE environment its reading ran at. -/
 section FrameSeam
 
 /-- **The reversed frame context, read at an ASCENDING index**: the
-entry `BlockRuleCerts` names at `L - 1 - i` is the `i`-th of the
+entry at `L - 1 - i` is the `i`-th of the
 frame's own three segments in order. -/
 theorem blockFrameCtx_getD {pdoms fdoms ihdoms : List ITerm} {rP nF nR : Nat}
     (hp : pdoms.length = rP) (hf : fdoms.length = nF) (hidx : ihdoms.length = nR)
@@ -1348,7 +1303,7 @@ theorem blockFrameCtx_right {pdoms fdoms ihdoms : List ITerm} {rP nF : Nat}
   rw [show rP + nF + l - (rP + nF) = l from by omega, ← List.getD_eq_getElem?_getD]
 
 /-- **`hdoms`, FROM THE THREE SEGMENTS.**  Each opener's stored type
-reads to the frame entry `BlockRuleCerts` names for it. -/
+reads to its frame entry. -/
 theorem blockRuleHdoms_of {envT : Env} {acval : Name → (Name → Nat) → ITerm}
     {ψ : Name → Nat} {rP nF nR : Nat}
     {pdoms fdoms ihdoms : List ITerm} {fvsPref fvsF fvsIh : List Expr}
@@ -1453,23 +1408,12 @@ theorem blockRuleHokΔ_of {rP nF nR : Nat} {pdoms fdoms ihdoms : List ITerm}
   rw [hval]
   exact this
 
-/-! ### 39.1 The bundle, from the segments
-
-`BlockRuleCerts.of_segments` is the bundle's INTRODUCTION rule in the
-spelling its producers export: the three openings and the two typing
-runs come from stage (c)'s record (`TargetRuleRun`), the frame's
-readings and grading come SEGMENT by segment (§39), and the residue's
-and conclusion's own readings are the rule stage's.  Nothing here is
-quantified past the rule it is about, and every semantic premise names
-`envT` — the CONSTRUCTORS' environment, where the check ran — and no
-other. -/
-
 end FrameSeam
 
-/-! ## 40. `BlockRuleCerts`' PRODUCER — its arguments, at the run
+/-! ## 40. The rule frame's arguments, at the run
 
-§39.1 reduced the bundle to a list of named arguments; this section
-owns that list.  The arguments split in three:
+This section owns the rule frame's named arguments.  They split in
+three:
 
 * the **scoping** half (`hw₂`, `hw₃`, `hlbF`, `hbR`, `hbC`, `hleafR`,
   `hleafC`, the three lengths) — plumbing over the frame's three
@@ -1525,10 +1469,9 @@ theorem openPisAtFvars_typeLeaves {k : Nat} {e : Expr} {d : Nat} {fvs : List Exp
   simp only [Expr.fvarLeaves, List.mem_cons]
   exact Or.inr hl
 
-/-- **`hcbF`** — the frame's openers carry consts-bounded annotations
+/-- **`hcbF`** — the frame's openers carry consts-bounded types
 as soon as the three SUBJECTS do (`openPisAtFvars_constsBound`, three
-times).  The bundle carries this for the rule's frame predicate
-(§1). -/
+times). -/
 theorem blockRuleHcbF_of {envT : Env} {rP nF nR : Nat} {recTy crest ihTele' o₁ o₂ o₃ : Expr}
     {fvsPref fvsF fvsIh : List Expr}
     (h₁ : openPisAtFvars rP recTy 0 = some (fvsPref, o₁))
@@ -1837,8 +1780,7 @@ end ConclUniv
   what is left is exactly the hereditary reading of §40.12's
   ASCENDING per-binder grading — one induction, no new content;
 * the equation's RIGHT-hand side, `instsAV 0 (ihs c j) (Rb c j)`.
-  That is the RESIDUE's grading, which is `BlockRuleCerts`' own first
-  component (`ResidueOk.1`), and `wd_instsAV`
+  That is the RESIDUE's grading, and `wd_instsAV`
   (`Semantics/Tower/BlockRecTower.lean`) crosses the substitution;
 * the equation's LEFT-hand side, the recursor VARIABLE applied to the
   rule's spine.  Its head's membership is `hwd`'s own hypothesis (the

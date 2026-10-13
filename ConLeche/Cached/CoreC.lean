@@ -929,16 +929,13 @@ The peel fuel is semantically transparent: on exhaustion the leaf phase hands
 the residual binder chain back to the knot, which is exactly the
 chained spec's next step. -/
 
-/-- Stack entry of `inferLamsI`: the opened domain. -/
-abbrev InferLamEntry := Expr
-
 /-- Rebuild loop of `inferLamsI`: fold the stack (innermost binder
 first, `j` its binder level relative to the ambient depth `d`).  The
 intermediate `∀`-node inferences of the chained body are
 value-determined by the peel phase's domain sorts and the leaf phase's
 body-type sort and cannot fail. -/
 def inferLamsOutI (d : Nat) :
-    List InferLamEntry → Nat → Expr → CheckCM Expr
+    List Expr → Nat → Expr → CheckCM Expr
   | [], _j, cur => pure cur
   | tyo :: rest, j, cur => do
     let tyAbs ← abstractRangeM tyo d j
@@ -954,7 +951,7 @@ clause), which fires at the innermost binder of a λ-chain, i.e.
 exactly when the peel stops on a non-λ residual.  The guard is the
 same one the spec uses, on the same term. -/
 def inferLamsLeafI (r : CoreFnsI) (d : Nat) (t : Expr) (k : Nat)
-    (fvs : Array Expr) (stk : List InferLamEntry) : CheckCM Expr := do
+    (fvs : Array Expr) (stk : List Expr) : CheckCM Expr := do
   let ob ← instListRevM t fvs
   let bt ← r.infer (d + k) ob
   let cur ← abstractRangeM bt d k
@@ -966,7 +963,7 @@ domain to be a type on the way in.  `k` counts the opened binders
 (`≥ 1`: the caller peels the first binder inline), `fvs` their free
 variables innermost-first. -/
 def inferLamsI (r : CoreFnsI) (d : Nat) :
-    Nat → Expr → Nat → Array Expr → List InferLamEntry → CheckCM Expr
+    Nat → Expr → Nat → Array Expr → List Expr → CheckCM Expr
   | fuel + 1, t, k, fvs, stk => do
     match t with
     | .lam ty body => do

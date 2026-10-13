@@ -92,9 +92,9 @@ subject's own; where it is not the point ("not pt" source (2): a
 reduction claims nothing of a redex that is the point) it fits its
 head's telescope (`teleFitPA_of_peel_ne_pt`), the arity making the
 telescope's reading a ∀-chain (`piChain_of_stripPis`). -/
-theorem Certs.licensed_sound {d : Nat} {T : Expr} {args : List Expr}
+theorem teleArity_sound {d : Nat} {T : Expr} {args : List Expr}
     (harity : (Expr.peelPis args.length T).isSome = true) :
-    CertsSem m φ d T args := by
+    TeleAritySem m φ d T args := by
   intro _ Δa Ta fa vs _ hTa _ hsp
   have hstrip : (T.stripPis vs.length).isSome = true := by
     rw [← hsp.length]

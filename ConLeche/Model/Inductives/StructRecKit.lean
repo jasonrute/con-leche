@@ -455,28 +455,6 @@ recursor's elimination level.
 -/
 
 
-/-- A graded λ-tower whose value is the point has body value the point
-along any fitting spine. -/
-theorem mkLamsAV_pt_body :
-    ∀ {lds : List ITerm} {b : ITerm} {ρ : Nat → V} {as : List V},
-      WellDenoted V ρ (mkLamsAV lds b) → SpineFit ρ lds as →
-      interp V ρ (mkLamsAV lds b) = (pt : V) →
-      interp V (consList as ρ) b = (pt : V)
-  | [], _, _, [], _, _, h => h
-  | [], _, _, _ :: _, _, hsp, _ => hsp.elim
-  | _ :: _, _, _, [], _, hsp, _ => hsp.elim
-  | d :: lds, b, ρ, a :: as, hok, hsp, hpt => by
-    have hok' := hok
-    simp only [mkLamsAV, WellDenoted_lam] at hok'
-    obtain ⟨-, -, hrest, -⟩ := hok'
-    rw [consList_cons]
-    refine mkLamsAV_pt_body (hrest a hsp.1) hsp.2 ?_
-    have := app_lamV (A := interp V ρ d)
-      (F := fun x => interp V (cons x ρ) (mkLamsAV lds b)) hsp.1
-    simp only [mkLamsAV, interp_lam] at hpt
-    rw [hpt, app_pt] at this
-    exact this.symm
-
 /-- **A graded λ-tower folds to its body** along any fitting spine. -/
 theorem mkLamsAV_fold_graded :
     ∀ {lds : List ITerm} {b : ITerm} {ρ : Nat → V} {as : List V},

@@ -727,7 +727,7 @@ theorem natRecSpine_wellDenoted {u : Nat} (ρ : Nat → V) {e1 e2 e3 e4 : ITerm}
       refine ⟨⟨trivial, h1, ?_⟩, h2, ?_⟩
       · exact bconst_app_data V .natRec [u] ρ rfl (by rw [hlv, d1]; exact m1)
           (by rw [hlv, d1]; exact IsTy_piR _ _ _)
-      · refine bconst_app_dataAV V .natRec [u] ρ rfl
+      · refine bconst_app_data2 V .natRec [u] ρ rfl
           (by rw [hlv, d1]; exact m1) ?_
           (by rw [d2]; exact IsTy_of_mem_univ (natMotive_apply V m1 natzero_mem))
         rw [d2]; exact m2

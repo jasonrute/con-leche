@@ -19,10 +19,8 @@ the values, and are what the interpretation and `Denotes` use.
   (`piR_zero_mem_univZero`).
 * **`v ≠ 0` — the graph regime.**  `piR v A B` is `piSet A B`, the set
   of total single-valued function graphs over `A`; `lamR v A F` is the
-  literal graph.  A member is a graph, never `pt`
-  (`not_pt_mem_piR_pos`), determines its own domain (`piR_dom_unique`),
-  and applies to the canonical junk `∅` off that domain
-  (`app_off_dom_piR_pos`).
+  literal graph.  A member is a graph, never `pt` (`mem_piR_pos`), and
+  determines its own domain (`piR_dom_unique`).
 
 `piV A B` is the truth-value regime exactly when every fibre over `A`
 is a truth value; `lamV A F` exactly when every body value over `A` is
@@ -131,34 +129,12 @@ theorem app_mem_piR_pos {v : Nat} {A f a : V} {B : V → V} (hv : v ≠ 0)
     (hf : f ∈ˢ piR v A B) (ha : a ∈ˢ A) : app f a ∈ˢ B a := by
   rw [piR_pos hv] at hf; exact app_mem_of_mem_piSet hf ha
 
-/-- Beta, conditional on domain membership (set-theoretic functions
-have set domains). -/
-theorem app_lamR {v : Nat} {A a : V} {F B : V → V}
-    (ha : a ∈ˢ A) (hF : ∀ x, x ∈ˢ A → F x ∈ˢ B x)
-    (hB0 : v = 0 → ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) :
-    app (lamR v A F) a = F a := by
-  rcases Nat.eq_zero_or_pos v with rfl | hv
-  · rw [lamR_zero, app_pt]
-    exact (eq_pt_of_mem_univZero (hB0 rfl a ha) (hF a ha)).symm
-  · rw [lamR_pos (Nat.pos_iff_ne_zero.mp hv)]
-    exact app_graph ha
-
 /-- **Beta in the graph regime**: application of an abstraction on its
 domain computes, with no typing premise whatsoever — it is literally
 `app_graph`. -/
 theorem app_lamR_pos {v : Nat} {A a : V} {F : V → V} (hv : v ≠ 0)
     (ha : a ∈ˢ A) : app (lamR v A F) a = F a := by
   rw [lamR_pos hv]; exact app_graph ha
-
-/-- **Off-domain application in the graph regime** — `app_lamR_pos`'s
-complement.  The rigidity a *type former*'s application is inverted
-with: off its domain a graph-regime abstraction applies to the
-canonical junk `∅`, which has no members, so an inhabited application
-forces its argument into the domain.  Added for the caps tier's
-pinned-pair η row (task #161). -/
-theorem app_lamR_of_not_mem {v : Nat} {A a : V} {F : V → V} (hv : v ≠ 0)
-    (ha : ¬ a ∈ˢ A) : app (lamR v A F) a = (empty : V) := by
-  rw [lamR_pos hv]; exact app_graph_of_not_mem ha
 
 /-- Graph-regime abstractions are graphs, never the proof point. -/
 theorem lamR_ne_pt {v : Nat} {A : V} {F : V → V} (hv : v ≠ 0) :
@@ -187,15 +163,6 @@ theorem lamR_eta {v : Nat} {A f : V} {B : V → V} (hf : f ∈ˢ piR v A B) :
     rw [lamR_pos hv']
     exact eq_graph_app_of_mem_piSet hf
 
-/-- Function extensionality for function-space members: on-domain agreement is
-total agreement.  At `v = 0` both sides are the canonical proof; above
-it both are graphs over `A`, whose off-domain applications are the same
-canonical junk. -/
-theorem eq_of_mem_piR_app_eq {v : Nat} {A f g : V} {B B' : V → V}
-    (hf : f ∈ˢ piR v A B) (hg : g ∈ˢ piR v A B')
-    (h : ∀ x, x ∈ˢ A → app f x = app g x) : f = g := by
-  rw [← lamR_eta hf, ← lamR_eta hg]; exact lamR_congr h
-
 /-! ## The graph regime: inversion and junk-freeness
 
 The numeral has already decided the regime, so membership in a
@@ -216,32 +183,6 @@ theorem mem_piR_pos {v : Nat} {A f : V} {B : V → V} (hv : v ≠ 0)
   rw [piR_pos hv] at hf
   exact ⟨eq_graph_app_of_mem_piSet hf, fun x hx => app_mem_of_mem_piSet hf hx,
     fun a ha => app_off_dom_of_mem_piSet hf ha, ne_pt_of_mem_piSet hf⟩
-
-/-- The proof point never inhabits a graph-regime function space — for *any*
-domain and *any* fibre family, in particular a universe-valued one. -/
-theorem not_pt_mem_piR_pos {v : Nat} {A : V} {B : V → V} (hv : v ≠ 0) :
-    ¬ (pt : V) ∈ˢ piR v A B :=
-  fun h => (mem_piR_pos hv h).2.2.2 rfl
-
-/-- `piR` is monotone in its fibres. -/
-theorem piR_subset_mono {v : Nat} {A : V} {B B' : V → V} (h : ∀ x, x ∈ˢ A → B x ⊆ˢ B' x) :
-    piR v A B ⊆ˢ piR v A B' := by
-  rcases Nat.eq_zero_or_pos v with rfl | hv
-  · rw [piR_zero, piR_zero]
-    intro z hz
-    obtain ⟨hp, rfl⟩ := mem_truthVal.mp hz
-    exact mem_truthVal.mpr ⟨fun x hx => (hp x hx).elim fun y hy => ⟨y, h x hx y hy⟩, rfl⟩
-  · have hv' : v ≠ 0 := Nat.pos_iff_ne_zero.mp hv
-    intro f hf
-    obtain ⟨hg, hB, -, -⟩ := mem_piR_pos hv' hf
-    rw [piR_pos hv', ← hg]
-    exact graph_mem_piSet fun x hx => h x hx _ (hB x hx)
-
-/-- A graph-regime member applied off the domain is canonical junk —
-never a proof point, never anything a consumer must dispatch on. -/
-theorem app_off_dom_piR_pos {v : Nat} {A f a : V} {B : V → V} (hv : v ≠ 0)
-    (hf : f ∈ˢ piR v A B) (ha : ¬ a ∈ˢ A) : app f a = empty :=
-  (mem_piR_pos hv hf).2.2.1 a ha
 
 /-- **Domain uniqueness, unconditional.**  A graph determines its own
 domain, so membership in two graph-regime function spaces identifies their
@@ -283,17 +224,6 @@ theorem Fib_piR (v : Nat) (A : V) (B : V → V) : Fib (decide (v = 0)) (piR v A 
 /-- A function space is a type. -/
 theorem IsTy_piR (v : Nat) (A : V) (B : V → V) : IsTy (piR v A B) :=
   IsTy_of_Fib (Fib_piR v A B)
-
-/-- Members of a truth value are all equal: the `v = 0` regime is
-subsingleton-valued. -/
-theorem subsingleton_of_mem_univZero {T x y : V} (hT : T ∈ˢ (univZero : V))
-    (hx : x ∈ˢ T) (hy : y ∈ˢ T) : x = y :=
-  (eq_pt_of_mem_univZero hT hx).trans (eq_pt_of_mem_univZero hT hy).symm
-
-/-- Proof irrelevance for the squash regime, in subsingleton form. -/
-theorem piR_zero_subsingleton {A x y : V} {B : V → V}
-    (hx : x ∈ˢ piR 0 A B) (hy : y ∈ˢ piR 0 A B) : x = y :=
-  (eq_pt_of_mem_piR_zero hx).trans (eq_pt_of_mem_piR_zero hy).symm
 
 /-! ## The value-read regimes (task #342, L14a)
 
@@ -513,12 +443,6 @@ regime's. -/
 theorem lamV_eq_pos {v : Nat} (hv : v ≠ 0) {A : V} {F : V → V} {x : V} (hx : x ∈ˢ A)
     (h : F x ≠ pt) : lamV A F = lamR v A F := by
   rw [lamV_eq_graph (lamV_ne_pt_of hx h), lamR_pos hv]
-
-/-- An abstraction all of whose body values are the point is the
-truth-value regime's. -/
-theorem lamV_eq_zero {A : V} {F : V → V} (h : ∀ x, x ∈ˢ A → F x = pt) :
-    lamV A F = lamR 0 A F := by
-  rw [lamV_eq_pt h, lamR_zero]
 
 /-- **Transport of a member along fibres that are types**: a member of
 one function space over `A` whose applications land in the fibres of

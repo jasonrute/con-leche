@@ -954,15 +954,10 @@ dummy binders carry the reading only; the law never reads them. -/
       -- (B) the iota law: the projection of a *graded* constructor
       -- application is the selected field, at every valuation under
       -- the guard (task #175 W6).  Two premises: the application's
-      -- grading (its slot chain — the graph regime's whole premise,
-      -- where every constructor binder is graph-regime and graph
-      -- rigidity pins the memberships), and the certified spine's fit
-      -- against the constructor's own type reading (`projCert`'s
-      -- arity check, `Certs.licensed_sound`) — the squash regime's
-      -- premise, where the application is the point and the fit pins
-      -- the selected field to a proposition's domain (its sort is `0`
-      -- there: the O5 bound at a non-`Prop` family, the guard at a
-      -- `Prop`-declared one).
+      -- grading (its slot chain), and the spine's fit against the
+      -- constructor's own type reading (`projCert`'s arity check,
+      -- `teleArity_sound`), which places the selected field in its
+      -- domain where the application is the point.
       (∃ TCa : ITerm,
         denoteMeta m.acval env φ 0
           (cvC.type.instantiateLevelParams cvC.levelParams us) = some TCa ∧

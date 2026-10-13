@@ -19,7 +19,7 @@ name.  The shared helpers live in `IotaSoundKit.lean`.
 **Conditional premises, unconditional conclusions** (task #342, L10).
 `Red.iota_sound`, `Red.rescueK_sound` and `Red.rescueAnd_sound` take
 their premises' CONDITIONAL claims (`RedSem`, `DefEqSem`,
-`DefEqListSem`, `CertsSem`, `CertsFSem`) and conclude the UNCONDITIONAL
+`DefEqListSem`, `TeleAritySem`, `CertsFSem`) and conclude the UNCONDITIONAL
 `RedSemU`: no step reads that the redex is not the point.  The
 induction of `Sound.lean` weakens the conclusion (`RedSemU.cond`).  The ι step's licence is read through the law's
 `RecRuleExtra` (`Model/Env/Laws.lean`): the recursor's spine fits by
@@ -110,7 +110,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
       DefEqListSem m φ d (major.getAppArgs.take rl.ctorParams)
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams
           e.getAppArgs rP).2)
-    (hcertR : CertsSem m φ d (cv.type.instantiateLevelParams cv.levelParams us)
+    (hcertR : TeleAritySem m φ d (cv.type.instantiateLevelParams cv.levelParams us)
       e.getAppArgs)
     (hcertC : ConLeche.iotaCase3 env.find? rl cvj
         (ConLeche.recFireComparands rl cv.levelParams us cvj.levelParams

@@ -26,9 +26,10 @@ The fix is the crossing law, and for `denoteMeta` it is **pure algebra**:
 
 `denoteMeta` runs no checker, so the law is unconditional.
 
-The binder step is `pwBit_substPW`, whose docstring already names this
-theorem as its consumer; the constant step is `Level.substFn_map_subst`
-under `acval_params`; the two literal clauses are the assignment-
+The binder steps are the induction hypotheses, with
+`instantiateLevelParams` commuting with opening
+(`Expr.instantiateLevelParams_instantiate1`); the constant step is
+`Level.substFn_map_subst` under `acval_params`; the two literal clauses are the assignment-
 insensitivity of the support slots, off a bare `acval_params`
 hypothesis.
 -/
@@ -153,8 +154,8 @@ theorem acvalAt_natPair (hp : AcvalParamsAt env acval)
 
 set_option maxHeartbeats 1000000 in
 /-- **`denoteMeta` crosses level instantiation** — unconditionally, since
-the reading runs no checker.  Clause for clause, with `pwBit_substPW`
-at the binders and `AcvalParamsAt` at the constants. -/
+the reading runs no checker.  Clause for clause, with
+`AcvalParamsAt` at the constants. -/
 theorem denoteMeta_instLevels (hp : AcvalParamsAt env acval)
     {ks : List Name} {us : List Level} (φ : Name → Nat) :
     ∀ (d : Nat) (e : Expr),

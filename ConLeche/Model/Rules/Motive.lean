@@ -228,7 +228,7 @@ telescope's reading, substitution-peeling, where the spine is graded,
 its head a member of the telescope's reading and the application not
 the point ("not pt" source (2): a reduction claims nothing of a redex
 that is the point) — premises exactly there. -/
-@[expose] def CertsSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
+@[expose] def TeleAritySem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (ty : Expr) (args : List Expr) : Prop :=
   Frame d ty →
   ∀ {Δa : List ITerm} {Ta fa : ITerm} {vs : List ITerm},
@@ -247,7 +247,7 @@ that is the point) — premises exactly there. -/
 
 /-- **`CertsF`' motive** (task #342 L10): the full-grade certificate
 ESTABLISHES its arguments' grading (each slot ran `Infer .full`), so,
-unlike `CertsSem`, it takes no grading of the spine and concludes it,
+unlike `TeleAritySem`, it takes no grading of the spine and concludes it,
 with the fit and the residual's grading. -/
 @[expose] def CertsFSem {env : Env} (m : EnvModel V env) (φ : Name → Nat)
     (d : Nat) (ty : Expr) (args : List Expr) : Prop :=

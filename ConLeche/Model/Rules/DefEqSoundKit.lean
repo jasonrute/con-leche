@@ -117,36 +117,6 @@ theorem Frame.of_not_hasFvar {d : Nat} {e : Expr} (hf : e.hasFvar = false)
 
 /-! ## The grading splitters, at `Graded` -/
 
-theorem Graded.fst {Δa : List ITerm} {e : ITerm}
-    (h : Graded V Δa (.fst e)) : Graded V Δa e := fun ρ hρ =>
-  (cast (WellDenoted_fst V ρ e) (h ρ hρ)).1
-
-theorem Graded.snd {Δa : List ITerm} {e : ITerm}
-    (h : Graded V Δa (.snd e)) : Graded V Δa e := fun ρ hρ =>
-  (cast (WellDenoted_snd V ρ e) (h ρ hρ)).1
-
-/-- `WellDenoted.hoist_pi` at `Graded`. -/
-theorem Graded.pi {Δa : List ITerm} {A B : ITerm}
-    (h : Graded V Δa (.pi A B)) :
-    GradedTy V Δa A ∧ Graded V (A :: Δa) B := by
-  obtain ⟨h1, h2⟩ := WellDenoted.hoist_pi (V := V) (fun ρ hρ => h ρ hρ)
-  exact ⟨fun ρ hρ => ⟨h1 ρ hρ, (cast (WellDenoted_pi V ρ A B) (h ρ hρ)).2.1⟩,
-    fun ρ hρ => h2 ρ hρ⟩
-
-/-- `WellDenoted.hoist_lam` at `Graded`. -/
-theorem Graded.lam {Δa : List ITerm} {A b : ITerm}
-    (h : Graded V Δa (.lam A b)) :
-    GradedTy V Δa A ∧ Graded V (A :: Δa) b := by
-  obtain ⟨h1, h2⟩ := WellDenoted.hoist_lam (V := V) (fun ρ hρ => h ρ hρ)
-  exact ⟨fun ρ hρ => ⟨h1 ρ hρ, (cast (WellDenoted_lam V ρ A b) (h ρ hρ)).2.1⟩,
-    fun ρ hρ => h2 ρ hρ⟩
-
-/-- The head transport of a hoisted grading, at `Graded`. -/
-theorem Graded.head_congr {Δa : List ITerm} {A B e : ITerm}
-    (heq : ∀ ρ : Nat → V, Sat V Δa ρ → interp V ρ A = interp V ρ B)
-    (h : Graded V (B :: Δa) e) : Graded V (A :: Δa) e :=
-  fun ρ hρ => h ρ (Sat.head_congr heq hρ)
-
 theorem denoteMeta_open_rename {acval : Name → (Name → Nat) → ITerm}
     {d : Nat} {bd ty ty' : Expr} {ba : ITerm}
     (h : denoteMeta acval env φ (d + 1) (bd.instantiate1 (.fvar d ty))
@@ -182,12 +152,6 @@ theorem acval_const_congr' {m : EnvModel V env} (hap : AcvalParams m)
           (Level.isEquivList_sound hlev φ) p
       · exact nomatch hdb
     · exact nomatch hda
-
-/-- The subject of a graded projection spine is graded (`ProjAV.hoistV`
-of `RedSoundKit`, at `Graded`). -/
-theorem Graded.projAV {Δa : List ITerm} {i : Nat} {e : ITerm}
-    (h : Graded V Δa (ConLeche.Semantics.projAV i e)) : Graded V Δa e :=
-  fun ρ hρ => ProjAV.hoistV (h ρ hρ)
 
 /-! ## The proof-irrelevance fast arm: the shared facts
 
