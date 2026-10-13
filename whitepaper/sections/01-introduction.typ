@@ -65,10 +65,10 @@ equal" means that the two sides denote the same set; and an inferred
 type contains the term, that is, the term's set is a member of the
 type's set.
 
-== How to interpret a `∀` or a `λ`
+== How to interpret a `∀` or a lambda
 
 At every binder the interpretation has to decide how to interpret a
-`∀` or a `λ`. In Lean, `∀ x : A, B` is a type of functions when `B`
+`∀` or a lambda. In Lean, `∀ x : A, B` is a type of functions when `B`
 is a type and a proposition when `B` is a proposition, and in the
 model these are different kinds of sets. A function type is a set of
 graphs. A proposition is a _truth value_, a set with at most one
@@ -78,8 +78,8 @@ The two cases look the same on the page, and telling them apart by
 the sort of `B` would take type inference. Our interpretation instead
 #src("whitepaper/Fragment/Lib.lean", 477, 481)[reads the answer off the values]:
 a `∀` denotes a truth value exactly when every one of its fibres (the
-set `B` denotes at a member of the domain) is a truth value, and a `λ`
-denotes the point exactly when every value of its body is the point.
+set `B` denotes at a member of the domain) is a truth value, and a
+lambda denotes the point exactly when every value of its body is the point.
 The terms are Lean's own.
 
 Over a non-empty domain this reading agrees with the sort of the body.
@@ -89,7 +89,7 @@ Over an empty domain it does not: `fun h => h.elim`, of type
 equality claims nothing about a term that denotes the point
 (@sec:claims). It also costs two checks that the official kernel
 never makes (@sec:tax): the checker compares the types of two bodies
-at λ-congruence and η, and, in one rare case of ι-reduction, it
+at lambda congruence and η, and, in one rare case of ι-reduction, it
 compares a constructor application with the recursor's arguments and
 type-checks its fields.
 

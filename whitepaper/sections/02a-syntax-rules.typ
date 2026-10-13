@@ -26,7 +26,7 @@ $lambda x : A. thin b$; a dependent function type, or Π-type,
 $forall x : A. thin B$, written $A -> B$ when $x$ does not
 occur in $B$; or a let-expression $elet x : T := v; thin b$.
 Types are terms; there is no separate class. A sequence of binders,
-such as the $lambda$s of $lambda x : A. thin lambda y : B. thin e$,
+such as the lambdas of $lambda x : A. thin lambda y : B. thin e$,
 is a _telescope_.
 
 The paper writes named variables, with the usual conventions: terms
@@ -125,7 +125,7 @@ let-binding's value into its body; neither has a premise.
 )
 
 As in the official kernel, $beta$ has no premise, although its
-soundness needs the argument to lie in the domain of the $lambda$;
+soundness needs the argument to lie in the domain of the lambda;
 @sec:inv shows where that comes from. $zeta$ is simpler: a
 let-expression always denotes what its body with the value
 substituted denotes.
@@ -160,10 +160,10 @@ domain.  #src("whitepaper/Fragment/Rules.lean", 567, 575)[For $forall$] that is 
     $Gamma tack f_1 thick a_1 equiv f_2 thick a_2$),
 )
 
-Two $lambda$s are compared as two $lambda$-telescopes, by an auxiliary
+Two lambdas are compared as two lambda telescopes, by an auxiliary
 relation $Gamma tack a eqlam b$. The checker
 #src("whitepaper/Fragment/Rules.lean", 701, 714)[descends level by level]
-while both bodies are $lambda$s, comparing the domains at each level
+while both bodies are lambdas, comparing the domains at each level
 (lam-outer). At the innermost level, where the descent stops,
 #src("whitepaper/Fragment/Rules.lean", 704, 709)[it also infers the types of the two bodies]
 under the binder and compares them (lam). That comparison is a check
@@ -186,11 +186,11 @@ explains why they are there, and why the outer levels need none.
 )
 
 (Two syntactically equal terms are also related by $eqlam$.)
-A $lambda$ against a non-$lambda$ term $b$ is #src("whitepaper/Fragment/Rules.lean", 640, 653)[tried by $eta$]. The
+A lambda against a term $b$ that is not a lambda is #src("whitepaper/Fragment/Rules.lean", 640, 653)[tried by $eta$]. The
 type of $b$ is inferred and reduced to a $forall$, its domain is
-compared with the $lambda$'s, and the body is compared with $b$
+compared with the lambda's, and the body is compared with $b$
 applied to the bound variable. As at the innermost level of
-λ-congruence, the type of the $lambda$'s body is inferred and compared
+lambda congruence, the type of the lambda's body is inferred and compared
 with the $forall$'s body.  Two terms are
 #src("whitepaper/Fragment/Rules.lean", 654, 663)[equal by proof irrelevance] when both are proofs: each one's type has type
 $Sort u$ with $u$ oracle-equal to $0$.
@@ -248,7 +248,7 @@ checks; @sec:io presents it.
 The two #src("whitepaper/Fragment/Rules.lean", 754, 771)[binder rules] are Lean's own.  For a
 $forall$, the domain's type must reduce to a sort $Sort u$ and the
 body's type, under the domain, to a sort $Sort v$; the result is
-$Sort (imax(u, v))$.  For a $lambda$, the domain's type must reduce to
+$Sort (imax(u, v))$.  For a lambda, the domain's type must reduce to
 a sort, and the result is the $forall$ of the body's inferred type;
 the sort of that type is not computed.
 

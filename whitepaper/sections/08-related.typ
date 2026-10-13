@@ -19,7 +19,7 @@ point (our propositional function space $Pi_0$, @sec:interp), and a $forall$
 into a higher universe is the full dependent function space. To decide
 which reading applies, the thesis first translates every well-typed
 term into a language in which the propositional and the
-non-propositional $forall$ and $lambda$ are separate constructs, using
+non-propositional $forall$ and lambda are separate constructs, using
 the sort of each body, which is well defined given the thesis's
 unique typing theorem. Our interpretation reads the choice off the
 values instead (@sec:interp): a function space is a proposition when
@@ -88,7 +88,7 @@ set of pairs $(x, y)$ with $y$ in its value at $x$, a function into
 propositions collapses to a proposition, so the interpretation, like
 ours, consults no typing information. In our set
 theory a graph is never the point (@sec:lib), so that a graph
-determines its domain; the two readings of a $forall$ or a $lambda$
+determines its domain; the two readings of a $forall$ or a lambda
 are then different sets, and the values choose between them
 (@sec:interp).
 Soundness there is stated for semantic judgements $Gamma ⊨ M

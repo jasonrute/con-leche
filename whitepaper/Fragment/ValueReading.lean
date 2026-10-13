@@ -174,10 +174,10 @@ theorem WellDenoted_mixedBody {x : V} (hx : x ∈ˢ typeU 0) :
 
 end
 
-/-- **Untyped λ-congruence is unsound** in the value-driven model: the
+/-- **Untyped lambda congruence is unsound** in the value-driven model: the
 rule's two premises are checker derivations — the domains by `refl`,
 the bodies by β then `refl` — yet in a model of the empty environment
-the two λs are well-denoted, neither is the point, and they differ. -/
+the two lambdas are well-denoted, neither is the point, and they differ. -/
 theorem lam_congr_untyped_unsound [LevelOracle] (φ : Name → Nat) (ρ : Nat → V) :
     DefEq Env.empty [] (.sort .zero) (.sort .zero) ∧
     DefEq Env.empty [.sort .zero] mixedBody (.const nName []) ∧

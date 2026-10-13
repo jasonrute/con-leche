@@ -247,7 +247,7 @@ theorem interp_inst0 (e a : Expr) (ρ : Nat → V) :
 
 /-- **ζ is an identity**: a `let` denotes what its body with the value
 substituted denotes — at every environment, the point included (as β
-is at a λ that is a graph; ζ has no λ that could be the point). -/
+is at a lambda that is a graph; ζ has no lambda that could be the point). -/
 theorem interp_zeta (T v b : Expr) (ρ : Nat → V) :
     interp M φ ρ (.letE T v b) = interp M φ ρ (b.inst v) := by
   rw [interp_letE, interp_inst0]
