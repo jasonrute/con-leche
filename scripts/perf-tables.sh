@@ -194,7 +194,8 @@ cell() { # $1 = stream label, $2 = config id, $3 = stream path
     instrs+=("${i:-0}")
     walls+=("$(awk "BEGIN{printf \"%.2f\", $t1 - $t0}")")
     decls=$(printf '%s' "$run_out" | grep -oE '[0-9]+ declarations' | head -1 | cut -d' ' -f1)
-    verdict=$(printf '%s' "$run_out" | tr '\n' ' ' | sed 's/\t/ /g' | cut -c1-90)
+    # the verdict line, not the `stats:` lines con-leche prints ahead of it
+    verdict=$(printf '%s\n' "$run_out" | grep -v ': stats:' | tr '\n' ' ' | sed 's/\t/ /g' | cut -c1-90)
   done
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "$1" "$2" "$(median "${instrs[@]}")" "$(median "${walls[@]}")" \
@@ -272,11 +273,13 @@ else
     echo "cores	$(nproc)"
     echo "mem	$(awk '/MemTotal/{printf "%.0f GB", $2/1048576}' /proc/meminfo)"
     echo "kernelver	$(uname -r)"
-    echo "official	$(readlink -f "$OFFICIAL")"
+    # artifact paths are written relative to the checkout whose `_tmp/`
+    # holds them (tests/no-local-paths.sh: no home directories in the repo)
+    echo "official	$(readlink -f "$OFFICIAL" | sed -E 's|^.*/_tmp/|<checkout>/_tmp/|')"
     echo "binmd5	$(md5sum "$BIN" | cut -d' ' -f1)"
-    ml=$(stream_path mathlib-full)
+    ml=$(readlink -f "$(stream_path mathlib-full)")
     if [ -s "$ml" ]; then
-      echo "mathlibstream	\`$ml\` ($(stat -c%s "$ml") bytes, raw)"
+      echo "mathlibstream	\`$(echo "$ml" | sed -E 's|^.*/_tmp/|<checkout>/_tmp/|')\` ($(stat -c%s "$ml") bytes, $(wc -l < "$ml") lines, raw)"
     fi
     # optional one-line provenance note for the header (e.g. which
     # master commit the measured tree is a merge of)
