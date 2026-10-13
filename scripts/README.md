@@ -8,7 +8,10 @@ pin-prefix recipe (`extract_natop_prefix.py`,
 probe (`natop-matrix.sh`), and the line statistics (`code-stats.py`:
 code, proof, comment and blank lines per area — kernel, cached core,
 frontend, driver, proofs, the whitepaper fragment — at one or more
-revisions, with the change between the first and the last).  Nothing here is on the build's critical
+revisions, with the change between the first and the last; `--executed`
+adds the lines reached from `main` in the compiled IR and a per-component
+table of the checker; `code-stats-compare.sh OLD NEW` measures both
+revisions in throwaway worktrees and prints the comparison).  Nothing here is on the build's critical
 path; each file's header says who consumes it.
 
 ## `natop-matrix.sh` — the pin-drift probe (task #274)
