@@ -33,7 +33,7 @@ Both are discharged from one closedness fact at every real supplier:
 `Term.liftN_eq_self` and `Term.inst_eq_self`
 (`Verify/Denote/VClosed.lean`) take the same
 `Term.bvarsBelow k (acval n ψ)` hypothesis, and `hacl` is
-already an `EnvModel` field (`acval_closed`).
+`EnvModel.acval_closed`, read off the `cval_closed` field.
 
 ## Where the arithmetic lands
 

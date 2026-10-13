@@ -218,9 +218,6 @@ theorem extendEq (mp : EnvModelM V μ env)
           = none from rfl] at hp
         exact nomatch hp)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun ψ k => Term.liftN_eq_self
-      (Term.bvarsBelow.mono (Nat.zero_le k)
-        (by exact eqValT_closed ψ)) 1)
     (fun ψ₁ ψ₂ hp => eqValT_congr
       (hp uN (by show uN ∈ [uN]; exact List.mem_cons_self)))
     (fun ψ ρ => eqValT_wellDenoted ψ ρ)
@@ -269,9 +266,6 @@ theorem extendEqRefl (mp : EnvModelM V μ env)
           = none from rfl] at hp
         exact nomatch hp)
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun ψ k => Term.liftN_eq_self
-      (Term.bvarsBelow.mono (Nat.zero_le k)
-        (by exact eqReflValT_closed ψ)) 1)
     (fun ψ₁ ψ₂ hp => eqReflValT_congr
       (hp uN (by show uN ∈ [uN]; exact List.mem_cons_self)))
     (fun ψ ρ => eqReflValT_wellDenoted ψ ρ)
@@ -1204,9 +1198,6 @@ theorem extendEqRec (mp : EnvModelM V μ env)
         · exact ⟨⟨_, _, _, hR⟩, fun _ => recRuleKOf_of hR rfl hE rfl,
             fun hb => Bool.noConfusion hb⟩
         · exact nomatch hr'))
-    (fun ψ k => Term.liftN_eq_self
-      (Term.bvarsBelow.mono (Nat.zero_le k)
-        (by exact eqRecValT_closed ψ)) 1)
     (fun ψ₁ ψ₂ hp => eqRecValT_congr
       (hp uN (by
         show uN ∈ [u1N, uN]

@@ -10,11 +10,11 @@ public section
 /-!
 # The basis cons, P tier: the seven rows discharged once (task #161)
 
-`declStep_preserves_of_cons` (`Model/Install.lean`) takes eleven premises;
+`declStep_preserves_of_cons` (`Model/Install.lean`) takes a premise per row;
 at a *basis* cons seven of them are the same proof every time.  This file collapses the seven into one lemma, so that a
 basis block's per-constant obligation is exactly what it should be:
 
-> the tower (`hAclosed`/`hAparams`/`hAok`) and the
+> the tower (`hAparams`/`hAok`) and the
 > **type reading** (`htyReads`/`htyOk`/`hmemNew`), and nothing else.
 
 The rows, and where each comes from:
@@ -55,7 +55,7 @@ variable {V : Type w} [SetTheory V]
 variable {μ : CheckMode} {env : Env}
 
 /-- **The P step at a basis cons.**  Seven of `declStep_preserves_of_cons`'s
-eleven premises are discharged here; what remains is the tower and its
+premises are discharged here; what remains is the tower and its
 type's reading. -/
 theorem declStep_preserves_of_basis_cons (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
@@ -78,7 +78,6 @@ theorem declStep_preserves_of_basis_cons (mp : EnvModelM V μ env)
       c₀.name ∉ ConLeche.reduceOpNames)
     -- the head's own obligations (task #161 S7)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -103,7 +102,7 @@ theorem declStep_preserves_of_basis_cons (mp : EnvModelM V μ env)
       intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
-  refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAclosed hAparams hAok htyReads htyOk hmemNew
+  refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAparams hAok htyReads htyOk hmemNew
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · -- `hvalReads`: a basis cons is never a definition
     intro _ψ cv2 value2 hmem
@@ -151,7 +150,6 @@ theorem declStep_preserves_of_basis_rec_cons (mp : EnvModelM V μ env)
     (hred : (∀ cv, c₀ ≠ .axiomInfo cv) ∨
       c₀.name ∉ ConLeche.reduceOpNames)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -178,7 +176,7 @@ theorem declStep_preserves_of_basis_rec_cons (mp : EnvModelM V μ env)
       intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
-  refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAclosed hAparams hAok htyReads htyOk hmemNew
+  refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAparams hAok htyReads htyOk hmemNew
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · intro _ψ cv2 value2 hmem
     obtain ⟨hint2, hdt⟩ := hmem
@@ -213,7 +211,6 @@ theorem declStep_preserves_of_basis_cons_eqrow (mp : EnvModelM V μ env)
     (hred : (∀ cv, c₀ ≠ .axiomInfo cv) ∨
       c₀.name ∉ ConLeche.reduceOpNames)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -239,7 +236,7 @@ theorem declStep_preserves_of_basis_cons_eqrow (mp : EnvModelM V μ env)
       intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
-  refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAclosed hAparams hAok htyReads htyOk hmemNew
+  refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAparams hAok htyReads htyOk hmemNew
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · intro _ψ cv2 value2 hmem
     obtain ⟨hint2, hdt⟩ := hmem
@@ -270,7 +267,6 @@ theorem declStep_preserves_of_basis_cons_gen (mp : EnvModelM V μ env)
     (hred : (∀ cv, c₀ ≠ .axiomInfo cv) ∨
       c₀.name ∉ ConLeche.reduceOpNames)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -300,7 +296,7 @@ theorem declStep_preserves_of_basis_cons_gen (mp : EnvModelM V μ env)
       intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
     ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
-  refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAclosed hAparams hAok htyReads htyOk hmemNew
+  refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh hAparams hAok htyReads htyOk hmemNew
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ (hind := hind)
   · intro _ψ cv2 value2 hmem
     obtain ⟨hint2, hdt⟩ := hmem

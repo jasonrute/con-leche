@@ -204,7 +204,6 @@ theorem EnvModelM.swapP {μ : CheckMode} {env₀ env₃ : Env}
                 basis_pinned := hbp₃
                 proj_ok := hproj₃
                 rec_ctors := hctors₃
-                acval_closed := mp.base2.acval_closed
                 acval_params := by
                   intro n ci hf ψ₁ ψ₂ hp
                   rcases hcorr n with heq |

@@ -273,7 +273,7 @@ theorem axiomOfReduce (hμ : μ.verifiedChecks = true)
     · intro cv2 caps heq; exact nomatch heq
   refine harvestAxiom (V := V) hμ mp hcv
     (A := fun _ => Term.prf) (fun _ => trivial)
-    (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ => by simp) ?_
+    (fun _ _ _ => rfl) (fun _ _ => by simp) ?_
     (by rcases hor with h | h <;> rw [h] <;> decide)
   intro ψ ta hta ρ
   exact ofReduce_mem mp hok hor ψ ta hta ρ

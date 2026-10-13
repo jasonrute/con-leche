@@ -175,7 +175,7 @@ theorem extendQuot (mp : EnvModelM V μ env)
           = some (Term.const .quot [ψ uN]) from rfl] at hp
         rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun _ _ => rfl) ?_
+    ?_
     (fun _ _ => trivial)
     (fun ψ => ⟨_, denote_quotA_type ψ⟩) ?_ ?_
     (hind := indStrictHead_cons
@@ -225,7 +225,7 @@ theorem extendQuotMk (mp : EnvModelM V μ env)
           = some (Term.const .quotMk [ψ uN]) from rfl] at hp
         rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun _ _ => rfl) ?_
+    ?_
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_)
   · intro ψ₁ ψ₂ hp
@@ -894,7 +894,7 @@ theorem quotIndExtra {m : EnvModel V env}
     intro usj
     rw [show RecRule.ctor quotIndRule = quotMkName from rfl, hac,
       acvalWith_ne (by decide)]
-    refine acval_basis_pinned (m := m) hM (by decide) ?_
+    refine EnvModel.acval_pinned m hM (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hCtorRead : ∀ usj : List Level,
       denote m₂.acval ⟨quotIndA :: env.consts⟩ φ 0
@@ -1094,7 +1094,7 @@ theorem extendQuotInd (mp : EnvModelM V μ env)
         · exact ⟨⟨_, _, _, hM⟩, fun hb => Bool.noConfusion hb,
             fun hb => Bool.noConfusion hb⟩
         · exact nomatch hr'))
-    (fun _ _ => rfl) ?_
+    ?_
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_ ?_)
   · intro ψ₁ ψ₂ hp
@@ -1463,7 +1463,7 @@ theorem extendQuotSound (mp : EnvModelM V μ env)
           = some (Term.const .quotSound [ψ uN]) from rfl] at hp
         rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun _ _ => rfl) ?_
+    ?_
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_)
   · intro ψ₁ ψ₂ hp
@@ -2159,7 +2159,7 @@ theorem quotLiftExtra {m : EnvModel V env}
     intro usj
     rw [show RecRule.ctor quotLiftRule = quotMkName from rfl, hac,
       acvalWith_ne (by decide)]
-    refine acval_basis_pinned (m := m) hM (by decide) ?_
+    refine EnvModel.acval_pinned m hM (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hCtorRead : ∀ usj : List Level,
       denote m₂.acval ⟨quotLiftA :: env.consts⟩ φ 0
@@ -2363,7 +2363,7 @@ theorem quotLiftLaw {m : EnvModel V env}
       = Term.const .quotMk
         [Level.substFn φ quotMkA.toConstantVal.levelParams usj uN] := by
     rw [hac, acvalWith_ne (by decide)]
-    refine acval_basis_pinned (m := m) hM (by decide) ?_
+    refine EnvModel.acval_pinned m hM (by decide) ?_
     simp +decide [ConLeche.Verify.pinnedStructT]
   have hctorL : m₂.acval quotMkName
       (Level.substFn φ quotMkA.toConstantVal.levelParams usj)
@@ -2460,7 +2460,7 @@ theorem extendQuotLift (mp : EnvModelM V μ env)
         · exact ⟨⟨_, _, _, hM⟩, fun hb => Bool.noConfusion hb,
             fun hb => Bool.noConfusion hb⟩
         · exact nomatch hr'))
-    (fun _ _ => rfl) ?_
+    ?_
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_ ?_)
   · intro ψ₁ ψ₂ hp

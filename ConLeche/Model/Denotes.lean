@@ -367,7 +367,7 @@ noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
         = some (Term.const .empty [0]) := by
       simp +decide [ConLeche.Verify.pinnedStructT]
     have he : (m.base2.acval falseName ψ) = Term.const .empty [0] :=
-      m.base2.acval_pinned (n := falseName) (by decide) (by rw [hf]; rfl) ψ hpd
+      m.base2.acval_pinned hf (by decide) hpd
     rw [cvalOf, he, interp_const]
     rfl
   eq_equality := by

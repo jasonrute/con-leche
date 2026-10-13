@@ -1148,8 +1148,6 @@ theorem stageCtorGen {T : Name}
     (ConsHead.ofFresh hwfC (fun ψ => hAbelow ψ) hnresC
       (fun _ h => nomatch h)
       (fun _ _ _ _ h => nomatch h))
-    (fun ψ k => Term.liftN_eq_self
-      (Term.bvarsBelow.mono (Nat.zero_le k) (hAbelow ψ)) 1)
     ?_ ?_ ?_ ?_ ?_ ?_
   · intro ψ₁ ψ₂ hφ
     have hφT : ∀ q ∈ cvTa.levelParams, ψ₁ q = ψ₂ q := by rw [hlpsT, ← hlpsC]; exact hφ

@@ -220,7 +220,6 @@ head's obligation; nothing of the collapsed model is consulted. -/
     (A : (Name → Nat) → Term)
     (hfresh : env.find? c₀.name = none)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -247,7 +246,6 @@ head's obligation; nothing of the collapsed model is consulted. -/
         exact (hh.pin hres).2 ψ t hp⟩)
   proj_ok := ProjOkT.cons m.proj_ok hfresh hh.projTowerHead
   rec_ctors := ConLeche.RecCtorsStored.cons m.rec_ctors hfresh hh.ctorsHead
-  acval_closed := acvalWith_closed m.acval_closed hAclosed
   acval_params := acvalWith_params m.acval_params hAparams
   acval_wellDenoted := acvalWith_wellDenoted m.acval_wellDenoted hAok
 
@@ -280,7 +278,6 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hh : ConsHead env c₀ A)
-    (hAclosed : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ)
     (hAparams : ∀ ψ₁ ψ₂ : Name → Nat,
       (∀ p ∈ c₀.toConstantVal.levelParams, ψ₁ p = ψ₂ p) →
       A ψ₁ = A ψ₂)
@@ -305,21 +302,21 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
           ⟨c₀ :: env.consts⟩ ψ 0 value = some (A ψ))
     (hnh : ∀ φ : Name → Nat,
       NatHeads (V := V)
-        (coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) φ)
+        (coreCons mp.base2 A hfresh hh hAparams hAok) φ)
     (hnat_ops : ∀ φ : Name → Nat,
       NatOps (V := V)
-        ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ)
+        ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _) φ)
     (hdiv_mod : ∀ φ : Name → Nat,
-      DivMod (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ)
-    (heq_law : EqLaw (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _))
+      DivMod (V := V) ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _) φ)
+    (heq_law : EqLaw (V := V) ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _))
     (hcaps_ok : CapsOk (V := V)
-        ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _))
+        ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _))
     (hrec_rules : ∀ φ : Name → Nat,
-      RecRules (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ)
+      RecRules (V := V) ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _) φ)
     (hreduce_ops : ReduceOps (V := V)
-        ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _))
+        ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _))
     (htower_ok : ∀ φ : Name → Nat,
-      TowerOk (V := V) ((coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) : EnvModel V _) φ)
+      TowerOk (V := V) ((coreCons mp.base2 A hfresh hh hAparams hAok) : EnvModel V _) φ)
     -- the head's fibres above a proposition, if it is a former (task
     -- #342 L7); vacuous at every other head kind
     (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
@@ -408,7 +405,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
         (mp.defn_reads ψ cv value ⟨hint, h⟩)
   -- the stored formers' strict fibres: the head's is `hind`; a prefix
   -- former keeps its leaf and its type's reading
-  have hind' : IndStrictOk (V := V) (coreCons mp.base2 A hfresh hh hAclosed hAparams hAok) := by
+  have hind' : IndStrictOk (V := V) (coreCons mp.base2 A hfresh hh hAparams hAok) := by
     intro I cv caps hf ψ ab n hread hn ρ vs hsp
     by_cases hI : I = c₀.name
     · subst hI
@@ -430,7 +427,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
       rw [acvalWith_ne hI]
       exact mp.ind_strict I cv caps hfE ψ ab n hta hn ρ vs hsp
   exact ⟨{
-    base2 := coreCons mp.base2 A hfresh hh hAclosed hAparams hAok
+    base2 := coreCons mp.base2 A hfresh hh hAparams hAok
     type_reads := htr
     type_wellDenotedTy := hto
     mem_type := hmt

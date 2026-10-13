@@ -312,15 +312,6 @@ theorem blockRecLeafAV_closed (hμ : μ.verifiedChecks = true) (mpC : EnvModelM 
     (fun _c' hc' => closed_blockRecTyAV hμ mpC h (List.getElem?_eq_getElem hc') ψ)
     (heqB ψ)
 
-/-- **C-2 at the run**: lifting the stage's leaf is a no-op. -/
-theorem blockRecLeafAV_liftN (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
-    (h : ConLeche.RecStageG μ F envC p cvTas rs)
-    (heqB : ∀ ψ : Name → Nat, ∀ e ∈ eqs ψ, Term.bvarsBelow rs.length e)
-    (ψ : Name → Nat) (i k : Nat) :
-    (blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i).liftN 1 k
-      = blockRecLeafAV mpC.base2.acval envC rs s eqs ψ i :=
-  liftN_eq_self_of_closed (blockRecLeafAV_closed hμ mpC h heqB ψ i) k 1
-
 /-- **C-4 at the run**: the stage's leaf is graded — `blockRecAV_facts`
 at the family premise, one line.  **The block position is needed**:
 out of range `projChainAV` walks past the chain's last binder and the
@@ -422,7 +413,7 @@ theorem blockRecLeafOk_of (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ
       ConLeche.Semantics.BlockRecPre V (s ψ) rs.length
         (blockRecTyAV mpC.base2.acval envC rs ψ) (eqs ψ) ρ) :
     BlockRecLeafOk mpC rs s eqs :=
-  ⟨blockRecLeafAV_closed hμ mpC h heqB, blockRecLeafAV_liftN hμ mpC h heqB,
+  ⟨blockRecLeafAV_closed hμ mpC h heqB,
     blockRecLeafAV_par_run hμ mpC h heqP, fun ψ _ hi ρ => blockRecLeafAV_wd hpre ψ hi ρ,
     hpre⟩
 
@@ -1437,8 +1428,8 @@ theorem blockRecBareModel_run {envC : Env} (hμ : μ.verifiedChecks = true)
       ⟨(hfacts r hr).1, (hfacts r hr).2.1, (hfacts r hr).2.2.1, (hfacts r hr).2.2.2.1⟩)
     (fun n hne => blockRecAcv_of_notin (fun r hr => hne (r.1, r.2.2.1)
       (List.mem_map.mpr ⟨r, hr, rfl⟩)))
-    (hB fun r hr => (hL r hr).1) (hB fun r hr => (hL r hr).2.1)
-    (hB fun r hr => (hL r hr).2.2.1) (hB fun r hr => (hL r hr).2.2.2)
+    (hB fun r hr => (hL r hr).1)
+    (hB fun r hr => (hL r hr).2.1) (hB fun r hr => (hL r hr).2.2)
     (hB fun r hr => hrd r hr)
 
 /-- **A checked right-hand side READS, and its reading is graded.**

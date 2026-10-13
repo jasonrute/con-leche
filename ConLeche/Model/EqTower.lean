@@ -9,7 +9,7 @@ public section
 # The hand-built basis towers, `Eq` family (task #161)
 
 `pinnedStructT` has no entry for `Eq`, `Eq.refl` or `Eq.rec`, and
-`BConst` has no such constructors, so `acval_basis_pinned` — which
+`BConst` has no such constructors, so `EnvModel.acval_pinned` — which
 unlocks the other blocks' leaves — is *empty* on `eqK`.  The leaves are
 built by hand: `Semantics/EqTower.lean`'s `eqValT`/`eqReflValT`/
 `eqRecValT`, and here are their laws.

@@ -14,10 +14,9 @@ public import ConLeche.Verify.Denote.Install
 The one theorem that mentions `V` (`acvalWith_wellDenoted`) takes
 `WellDenoted` as a hypothesis and returns it.
 
-The `EnvModel` install keys are **five syntactic fields and two semantic
-ones**: `acval` (data), `acval_closed`,
-`acval_params`, `acval_defn` and `acval_thm` mention no
-`V` at all, while only `acval_wellDenoted` and `mem_type2` do.  So the first
+Of the `EnvModel` fields an install extends, `acval` (data),
+`cval_closed` and `acval_params` mention no `V` at all, while
+`acval_wellDenoted` does.  So the first
 thing the install tier needs is not semantics — it is the *algebra*
 of extending the canonical constant reading `acval` at one fresh name, and
 the fact that extending it there moves nothing already denoted.
@@ -49,34 +48,16 @@ theorem acvalWith_self {acval : Name → (Name → Nat) → Term}
     acvalWith acval n A n = A := by
   funext ψ; simp [acvalWith]
 
-/-! ## The three syntactic fields, transported
+/-! ## The syntactic fields, transported
 
-`acval_closed` and `acval_params` are conditions on an
-install-fixed object with no `interp` in them (the
-`EnvModel` docstrings say so of the last two).  Each therefore extends by
-a case split on the updated name and nothing else. -/
-
-/-- `acval_closed` extends. -/
-theorem acvalWith_closed {acval : Name → (Name → Nat) → Term}
-    {n : Name} {A : (Name → Nat) → Term}
-    (h : ∀ (m : Name) (ψ : Name → Nat) (k : Nat),
-      (acval m ψ).liftN 1 k = acval m ψ)
-    (hA : ∀ (ψ : Name → Nat) (k : Nat), (A ψ).liftN 1 k = A ψ) :
-    ∀ (m : Name) (ψ : Name → Nat) (k : Nat),
-      (acvalWith acval n A m ψ).liftN 1 k
-        = acvalWith acval n A m ψ := by
-  intro m ψ k
-  by_cases hm : m = n
-  · subst hm
-    rw [acvalWith_self]
-    exact hA ψ k
-  · rw [acvalWith_ne hm]
-    exact h m ψ k
+`acval_params` is a condition on an install-fixed object with no
+`interp` in it, so it extends by a case split on the updated name and
+nothing else. -/
 
 /-- `acval_params` extends across a `cons`: the stored entries are the
 old ones plus the installed one, and the new leaf answers for itself.
 
-Note the environment moves here, unlike in the two above — the field
+Note the environment moves here — the field
 is indexed by `env.find?`.  Freshness is **not** needed: the `cons`
 shadows, so the installed entry answers first either way. -/
 theorem acvalWith_params {acval : Name → (Name → Nat) → Term}

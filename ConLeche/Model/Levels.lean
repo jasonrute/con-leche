@@ -16,7 +16,7 @@ substitution.  Walking a substituted tree with the `denote` clause
 equations is possible but miserable: every `.sort` carries a
 `Level.subst`, every `.const` a `List.map (Level.subst …)`, and every
 binder a `Level.substPW`, so the clause equations no longer see
-constructor applications and the `acval_basis_pinned` leaves no longer
+constructor applications and the `EnvModel.acval_pinned` leaves no longer
 match.
 
 The fix is the crossing law, and for `denote` it is **pure algebra**:

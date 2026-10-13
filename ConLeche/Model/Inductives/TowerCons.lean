@@ -149,7 +149,7 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
     rw [denote_sort]
     rfl
   refine declStep_preserves_of_cons mp (c₀ := .projInfo tbl) (A := fun _ => .sort 0) hfresh hh
-    (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ => by rw [WellDenoted_sort]; trivial)
+    (fun _ _ _ => rfl) (fun _ _ => by rw [WellDenoted_sort]; trivial)
     (fun ψ => ⟨_, hreads ψ⟩)
     (fun ψ ta hta ρ => by
       obtain rfl := Option.some.inj ((hreads ψ).symm.trans hta)

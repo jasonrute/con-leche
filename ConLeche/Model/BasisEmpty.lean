@@ -18,7 +18,7 @@ The recipe for a basis constant's type, in three moves:
 2. walk it with `denote_forallE`/`denote_sort`/`denote_app`/
    `denote_fvar` and `Expr.instantiate1_eq_self` at every closed
    binder body, with the constant leaves supplied by
-   `acval_basis_pinned` (`Model/BasisCons.lean`);
+   `EnvModel.acval_pinned` (`Model/BasisCons.lean`);
 3. the reading is `BConst.typeAV` on the nose, so `WellDenotedTy_bconst_type` grades it and
    `bval_mem_type` inhabits it.
 -/
@@ -82,7 +82,7 @@ theorem extendEmpty (mp : EnvModelM V μ env)
           = some (Term.const .empty [1]) from rfl] at hp
         rw [← Option.some.inj hp])
       (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
-    (fun _ _ => rfl) (fun _ _ _ => rfl)
+    (fun _ _ _ => rfl)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, denote_emptyA_type ψ⟩) ?_ ?_
     (hind := indStrictHead_cons (ab := fun _ => []) (s := fun _ => 1)
@@ -102,7 +102,7 @@ theorem extendEmpty (mp : EnvModelM V μ env)
 /-! ## `Empty.rec` -/
 
 /-- **`Empty.rec`'s type reading.**  The four moves of the module
-docstring; the leaves are `acval_basis_pinned` at `Empty`. -/
+docstring; the leaves are `EnvModel.acval_pinned` at `Empty`. -/
 theorem denote_emptyRecA_type {m : EnvModel V env}
     {A : (Name → Nat) → Term} (ψ : Name → Nat)
     (hE : env.find? emptyName = some emptyA) :
@@ -117,7 +117,7 @@ theorem denote_emptyRecA_type {m : EnvModel V env}
   have hleaf : acvalWith m.acval emptyRecA.name A emptyName ψ
       = Term.const .empty [1] := by
     rw [acvalWith_ne (by decide)]
-    exact acval_basis_pinned hE (by decide) hpd
+    exact EnvModel.acval_pinned _ hE (by decide) hpd
   have hEc : ∀ d : Nat,
       denote (acvalWith m.acval emptyRecA.name A)
           ⟨emptyRecA :: env.consts⟩ ψ d (.const emptyName [])
@@ -166,7 +166,7 @@ theorem extendEmptyRec (mp : EnvModelM V μ env)
       (fun _ h => nomatch h)
       (fun _ _ _ _ h => by injection h with _ _ _ h4
                            intro r hr; rw [← h4] at hr; exact nomatch hr))
-    (fun _ _ => rfl) ?_
+    ?_
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_)
   · intro ψ₁ ψ₂ hp

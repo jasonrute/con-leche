@@ -18,10 +18,8 @@ leaf; the sum leaves' syntactic battery.
 /-!
 ## The tower leaves' syntactic battery
 
-The `hAclosed` row of an install-step leaf is
-`Term.liftN 1 (leaf) k = leaf`, and by `Term.liftN_eq_self`
-(`Verify/Denote/VClosed.lean`) that follows from the leaf's
-boundedness.  So this
+The closedness row of an install-step leaf (`ConsHead.vclosed`) is
+`Term.bvarsBelow 0 (leaf)`.  So this
 section is a bvar-bound walk per leaf former, plus the peel lemma that
 produces the binder domains' bounds from the (closed) type reading
 (`stripPisAV_below`).  No semantics, no `V`.
@@ -234,10 +232,9 @@ theorem stripPisAV_below :
       rw [show k + (n + 1) = k + 1 + n by omega]
       exact hb⟩
 
-/-! ## The `hAclosed` packages
+/-! ## Lift-invariance of a closed leaf
 
-The install rows want `Term.liftN 1 (leaf) k = leaf` for every cut
-`k`; a leaf bounded at `0` is bounded at every cut
+A leaf bounded at `0` is bounded at every cut
 (`Term.bvarsBelow.mono`), and a lift below the bound is the identity
 (`Term.liftN_eq_self`). -/
 
@@ -1964,7 +1961,7 @@ noncomputable def srcVals (is : List V) (src : List (Option Nat)) : List V :=
 /-!
 ## The sum leaves' syntactic battery
 
-The `hAclosed` rows of the sum leaves: bound-variable bounds of their
+The closedness rows of the sum leaves: bound-variable bounds of their
 erasures, one structural walk per spelled former.  The tower bodies
 are scoped at the frame `K` and lifted by the depth `d` where they are
 used, so every lifted use is bounded at `K + d` (`bvarsBelow_liftN`).
