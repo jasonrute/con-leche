@@ -282,10 +282,6 @@ theorem of_fvarLeaves_nil {d : Nat} {Δa : List Term} {e : Expr}
   rw [h] at hl
   exact nomatch hl
 
-theorem nil {e : Expr} (h : e.fvarLeaves = []) :
-    CtxOkS m φ 0 ([] : List Term) e :=
-  of_fvarLeaves_nil rfl h
-
 theorem of_subset {d : Nat} {Δa : List Term} {e e' : Expr}
     (hC : CtxOkS m φ d Δa e)
     (hsub : ∀ l ∈ e'.fvarLeaves, l ∈ e.fvarLeaves) :
