@@ -3,6 +3,7 @@ module
 public import ConLeche.Model.BasisBlocks
 import ConLeche.Semantics.BasisRules
 import ConLeche.Model.Cover
+import ConLeche.Verify.PropWhen
 
 public section
 

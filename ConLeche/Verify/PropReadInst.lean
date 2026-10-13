@@ -2,6 +2,7 @@ module
 
 public import ConLeche.Verify.PropRead
 import ConLeche.Verify.InstLevels
+import ConLeche.Verify.PropWhen
 public import ConLeche.Verify.EnvWF
 import ConLeche.Kernel.PropWhen
 

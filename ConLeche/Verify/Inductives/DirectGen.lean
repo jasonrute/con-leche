@@ -5,6 +5,7 @@ public import ConLeche.Verify.ProjTele
 import ConLeche.Kernel.Inductives.StructParts
 import ConLeche.Verify.Cached.Erase
 import ConLeche.Verify.ProjSlots
+public import ConLeche.Verify.Level
 import ConLeche.Kernel.Inductives.SumInstall
 import ConLeche.Kernel.Inductives.FieldTele
 
