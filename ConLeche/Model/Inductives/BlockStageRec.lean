@@ -665,10 +665,10 @@ theorem blockRecStaged_of
         (fun j r hr rl hrl => by
           obtain ⟨i, cA, rhs, -, hrhs', rfl⟩ := hshape j r hr rl hrl
           refine ⟨List.mem_of_getElem? hrhs', fun lvls pins hf => ?_⟩
-          obtain ⟨n1, n2, n3, n4⟩ := hnest j r hr lvls pins hf
+          obtain ⟨n1, n2, n3, pre, dom, body, D, e1, e2, e3⟩ := hnest j r hr lvls pins hf
           exact ⟨n1, n2, fun pin hpin =>
             ⟨(n3 pin hpin).1, (n3 pin hpin).2.1, (n3 pin hpin).2.2.1,
-              (n3 pin hpin).2.2.2.1⟩, n4⟩))
+              (n3 pin hpin).2.2.2.1⟩, pre, dom, body, D, e1, e2, e3, rfl⟩))
       (recCtorsHead_consBlockRecsR (R := R) hshape hfr hctorsIn) hrecP
   refine ⟨mp', fun n hn => by rw [hac']; exact hag n (hne n hn), hkeep, ?_, ?_⟩
   · -- the readings of the constructors' environment survive, verbatim

@@ -117,9 +117,8 @@ type checks (`ConstChecked`), at the type record of each stored recursor
 (`RecStage.tyGenAt`, `Verify/Inductives/RecStage.lean`). -/
 theorem recStage_tyReads {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs) :
+    (h : ConLeche.RecStageG μ F envC p cvTas rs) :
     ∀ r ∈ rs, ∃ u : Level, ∀ ψ : Name → Nat, ∃ ta : ITerm,
       denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta ∧
       (∀ ρ : Nat → V, WellDenoted V ρ ta) ∧
@@ -136,10 +135,9 @@ is left is that the leaf inhabits the reading — the recursion theorem,
 which the recursor model delivers as `hmem` in this shape. -/
 theorem hrd_of_mem {envC : Env} (hμ : μ.verifiedChecks = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
-    {ctorsAs : List (List (ConstantVal × Nat))}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
     {acv : Name → (Name → Nat) → ITerm}
-    (h : ConLeche.RecStageG μ F envC p cvTas ctorsAs rs)
+    (h : ConLeche.RecStageG μ F envC p cvTas rs)
     (hmem : ∀ r ∈ rs, ∀ (ψ : Name → Nat) (ta : ITerm),
       denoteMeta mpC.base2.acval envC ψ 0 r.1.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (acv r.1.name ψ) ∈ˢ interp V ρ ta) :

@@ -690,7 +690,7 @@ theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC 
     (R : GenRecRun μ F (mkFEnv envI) envI (mkFEnv envC) pp.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
     (hg : ClassGenScoped R.g)
-    (h : RecStageG μ F envC pp cvTas ctorsAs (ConLeche.tgtRs out))
+    (h : RecStageG μ F envC pp cvTas (ConLeche.tgtRs out))
     {dR : BlockData V}
     (hmr : BlockMembersRun mpC.base2 dR pp.toBlockShape cvTas) :
     ∀ c, c < (ConLeche.tgtRs out).length → ∀ (ψ : Name → Nat) (ρ : Nat → V) (xs : List V),

@@ -472,7 +472,7 @@ theorem envWF_consBlockRecsT {find? : Name → Option ConstantInfo} {q : BlockSh
       simp only [auxRuleFire, RecRuleFire.nested.injEq] at hf
       obtain ⟨rfl, rfl⟩ := hf
       obtain ⟨k1, k2, k3, pre, dom, body, D, e1, e2, e3, -⟩ := hread i t hti hM
-      refine ⟨k1, k2, fun pin hpin => ?_, pre, dom, body, D, e1, e2, e3⟩
+      refine ⟨k1, k2, fun pin hpin => ?_, pre, dom, body, D, e1, e2, e3, rfl⟩
       obtain ⟨p1, p2, p3, p4⟩ := k3 pin hpin
       exact ⟨p1, p2, Expr.constsResolve_of_find hdomEnv p3, p4⟩
 

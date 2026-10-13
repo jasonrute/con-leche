@@ -169,7 +169,7 @@ the constructors' environment, `rs` the stored family (install format).
 Every fact holds at every recursor, an auxiliary one (an outside
 major) included. -/
 structure RecStage (mode : CheckMode) (F : Nat) (env : Env) (p : BlockParts)
-    (cvTas : List ConstantVal) (ctorsAs : List (List (ConstantVal × Nat)))
+    (cvTas : List ConstantVal)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))) : Type where
   /-- stage (b)'s list: the checked constant, its major's index count,
   its conclusion's sort -/
@@ -198,9 +198,9 @@ structure RecStage (mode : CheckMode) (F : Nat) (env : Env) (p : BlockParts)
 
 /-- The stage's facts, as a proposition. -/
 @[expose] def RecStageG (mode : CheckMode) (F : Nat) (env : Env) (p : BlockParts)
-    (cvTas : List ConstantVal) (ctorsAs : List (List (ConstantVal × Nat)))
+    (cvTas : List ConstantVal)
     (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))) : Prop :=
-  Nonempty (RecStage mode F env p cvTas ctorsAs rs)
+  Nonempty (RecStage mode F env p cvTas rs)
 
 namespace RecStage
 
@@ -210,7 +210,7 @@ variable {F : Nat} {env : Env} {p : BlockParts} {cvTas : List ConstantVal}
 
 /-- **The bridge at an index**: stage (b)'s entry at a stored
 recursor is its checked constant, with the same index count. -/
-theorem stored_at (R : RecStage mode F env p cvTas ctorsAs rs) {i : Nat}
+theorem stored_at (R : RecStage mode F env p cvTas rs) {i : Nat}
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : rs[i]? = some r) :
     ∃ u, R.cvRus[i]? = some (r.1, r.2.2.1, u) := by
   have hil : i < R.cvRus.length := by
@@ -222,13 +222,13 @@ theorem stored_at (R : RecStage mode F env p cvTas ctorsAs rs) {i : Nat}
   rw [List.getElem?_eq_getElem hil, h.1, h.2]
 
 /-- **Every constructor has its rule.** -/
-theorem rulesLen (R : RecStage mode F env p cvTas ctorsAs rs)
+theorem rulesLen (R : RecStage mode F env p cvTas rs)
     {c : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[c]? = some r) : r.2.1.length = r.2.2.2.length :=
   R.rulesLenAt c r hr
 
 /-- **Stage (b)'s major-free entry at a STORED recursor** (any major). -/
-theorem tyGenAt (R : RecStage mode F env p cvTas ctorsAs rs) {i : Nat}
+theorem tyGenAt (R : RecStage mode F env p cvTas rs) {i : Nat}
     {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)} (hr : rs[i]? = some r) :
     ∃ rc u, p.recs[i]? = some rc ∧ R.cvRus[i]? = some (r.1, r.2.2.1, u) ∧
       Nonempty (RecTyGen mode F env p.toBlockShape false i rc r.1 r.2.2.1 u) := by
@@ -241,7 +241,7 @@ theorem tyGenAt (R : RecStage mode F env p cvTas ctorsAs rs) {i : Nat}
   exact ⟨rc, u, hrc, hcu, ⟨E⟩⟩
 
 /-- **A stored rule is checked at the rule-less recursors** (any major). -/
-theorem ruleOutOf (R : RecStage mode F env p cvTas ctorsAs rs)
+theorem ruleOutOf (R : RecStage mode F env p cvTas rs)
     {c : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[c]? = some r) {rhs : Expr} (hrhs : rhs ∈ r.2.1) :
     ∃ (i : Nat) (rc : RecShape),
@@ -263,7 +263,7 @@ variable {F : Nat} {env : Env} {p : BlockParts} {cvTas : List ConstantVal}
   {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))}
 
 /-- **Stage (b)'s major-free record at a STORED recursor** (any major). -/
-theorem recStageG_tyGen (h : RecStageG mode F env p cvTas ctorsAs rs)
+theorem recStageG_tyGen (h : RecStageG mode F env p cvTas rs)
     {i : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[i]? = some r) :
     ∃ rc u, p.recs[i]? = some rc ∧
@@ -276,7 +276,7 @@ theorem recStageG_tyGen (h : RecStageG mode F env p cvTas ctorsAs rs)
 recursor type is a CHECKED constant's, and every stored rule's
 right-hand side is closed, at the recursor's level parameters, and
 resolves at the BARE-`k` environment. -/
-theorem recStage_facts (h : RecStageG mode F env p cvTas ctorsAs rs) :
+theorem recStage_facts (h : RecStageG mode F env p cvTas rs) :
     ∀ r ∈ rs, r.1.type.hasFvar = false ∧
       r.1.type.allLevelParamsDefined r.1.levelParams = true ∧
       r.1.type.constsResolve env = true ∧
@@ -296,7 +296,7 @@ theorem recStage_facts (h : RecStageG mode F env p cvTas ctorsAs rs) :
   exact ⟨Q.hfv, by rw [E.lps_eq]; exact Q.hlp, Q.hres, Q.hbv⟩
 
 /-- **The CHECK's stored recursors take no guarded name.** -/
-theorem recStage_reserved (h : RecStageG mode F env p cvTas ctorsAs rs) :
+theorem recStage_reserved (h : RecStageG mode F env p cvTas rs) :
     ∀ r ∈ rs, reservedRecName r.1.name = false := by
   obtain ⟨R⟩ := h
   intro r hr
@@ -308,7 +308,7 @@ theorem recStage_reserved (h : RecStageG mode F env p cvTas ctorsAs rs) :
 
 /-- The stage's recursor names: the pins at the member-targeting
 records. -/
-theorem recStageG_recNames (h : RecStageG mode F env p cvTas ctorsAs rs) :
+theorem recStageG_recNames (h : RecStageG mode F env p cvTas rs) :
     RecPinsF p.toBlockShape ∧ rs.length = p.recs.length ∧
     ∀ i, i < p.recs.length → ∃ rc r, p.recs[i]? = some rc ∧ rs[i]? = some r ∧
       r.1.name = rc.cvR.name ∧
@@ -327,7 +327,7 @@ theorem recStageG_recNames (h : RecStageG mode F env p cvTas ctorsAs rs) :
 per-recursor check (`ConstChecked`): freshness at the constructors'
 environment, the two name guards, and no `.proj` node of the stored type
 at an empty table slot. -/
-theorem recStage_cvFacts (h : RecStageG mode F env p cvTas ctorsAs rs) :
+theorem recStage_cvFacts (h : RecStageG mode F env p cvTas rs) :
     ∀ r ∈ rs,
       env.find? r.1.name = none ∧
       reservedBasisNames.contains r.1.name = false ∧
