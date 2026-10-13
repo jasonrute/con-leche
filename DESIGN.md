@@ -105040,3 +105040,79 @@ relations (six).
 diagnostics, synced to `_out/whitepaper/`), and the full
 `tests/arena.sh` on the final tree: arena 90/92, e2e 473/473, trusted,
 `--jobs=1`/`--jobs=4` sweeps as the default, every gate green.
+
+## TASK #342 — R3: `ITerm` folded into `Term` (2026-10-13, agent/342-r3)
+
+Ruling (maintainer, final review): `ITerm` existed only because it once
+carried the binder numerals; since L14a its constructors are `Term`'s,
+`ITerm.erase` maps every node to itself and `denoteMeta` is `denote`.
+Fold one into the other.
+
+**Where the one type lives.**  `Term` (`ConLeche/Term/Syntax.lean`),
+unchanged in shape.  The base tier is the right home: three tiers read
+the type — `Verify/Denote/*` (the denotation and its model-free
+metatheory, which may not import `Semantics/*`), `Semantics/*` (the
+interpretation) and `Model/*` — and `Term/*` imports nothing of them.
+`Term.lift` and the four `projPair?` lemmas moved there from
+`Semantics/Syntax.lean`.
+
+**One reading.**  `denote` (`Verify/Denote.lean`) keeps its name and
+home and takes `denoteMeta`'s body: the binder clauses in `do` form, and
+a `let` whose type must read (its constants resolve) and is dropped —
+`constsBound_of_read` derives `ConstsBound` of stored terms from
+readability, `let` types included, so the stricter clause is the one the
+model uses.  The string literal is written out in the clause
+(`strLitT` is gone).  The clause equations moved from
+`Model/Reading/Lemmas.lean` to `Verify/Denote.lean`;
+`denote_bvarsBelow` was re-proved on the new induction principle.
+`Model/Reading/*` stays the reading's metatheory, now about `denote`.
+
+**Deleted.**  `Semantics/Syntax.lean` (`ITerm`, `erase`, its `liftN`/
+`inst`/`mkAppN` copies and their clause lemmas, `erase_liftN`/
+`erase_inst`/`erase_mkAppN`/`erase_eq_const`), `Semantics/Canon.lean`
+(`natLitAV`/`charListAV` and their `_erase` laws, `erase_projAV`),
+`Semantics/DenoteClosed.lean` (`ITerm.liftN_eq_self`/`inst_eq_self`,
+twins of `Verify/Denote/VClosed.lean`'s), `Model/Reading/DenoteMeta.lean`
+(`denoteMeta`, `denoteMeta_erase`); `TConstVal`, `EnvModel.cvalE`,
+`EnvModel.acval_erase` (48 uses), the `cval_closedL`/`basis_pinnedL`
+spellings (the fields are now `cval_closed`/`basis_pinned` on `acval`
+itself), the `hlink : (acval n ψ).erase = cval n ψ` premises and their
+second valuation (`pinCross`, `pinOpenRevReads`, `nestedPinGrade`,
+`denote_openRev_base`), `strLitT`, the twin definitions `projAV` (=
+`projNV`), `eqValAV`/`eqReflValAV`/`eqRecValAV` (= `Semantics/EqTower`'s
+`…T`), `emptyAV` (= `emptyT`), `Model.ITerm.instSeq` (= `Term.instSeq`),
+Verify's `ctxInstAt` and `ctxInstAt_nil` (no consumer; `ctxInstAtAV` is
+the one in use), and a local `denote_bvar` twin in `BlockRecRule`.
+`denoteMeta_closed` became `denote_liftN_eq_self` (one line from
+`denote_closed`).  Names that said `iTerm`/`erase` were renamed
+(`Term.mkAppN_append`, `Term.liftN_mkAppN`, `numeralAV_below`).
+
+**Kept.**  `interp`, `WellDenoted`, the claims, `Denotes`,
+`MainTheorem` and `Challenge` are textually the same statements over
+`Term`; `Denotes_of_denoteMeta` is `Denotes_of_denote`.  No checker
+code changed (one comment in `Kernel/ExprOps.lean`).
+
+**Size.**  292 files, +8863/−9811 (`ConLeche/` +8219/−9150); the four
+deleted modules were 787 lines.
+
+**Imports.**  Shake re-gated: the edges the deleted modules carried
+moved to `TowerKit`/`Verify/Denote`; 14 compensated or not-reproduced
+proposals allowlisted with their `--only` evidence, 11 stale lines
+dropped, 10 `public import`s demoted, one dot-notation fallback in
+`pub-import-plan.py` repointed (`BlockHoleRead` ← `TowerKit`).
+
+**Documents.**  OVERVIEW (§4 "Terms", the `AV` suffix row, the module
+map) and the whitepaper (§7 "An intermediate term language", the
+fragment's two comments) name `Term`/`denote`; anchors that moved with
+added `open` lines were repointed mechanically and the citing
+paragraphs re-read; both link gates regenerated.
+
+**Left for later (report, not done).**  `EnvModel.acval_closed` (the
+lift-invariance of every leaf) is now derivable from `cval_closed`
+(`Term.liftN_eq_self`), and so is every `hAclosed` premise threaded
+from `coreCons` through the install step (~40 call sites, the sum
+tower's "`hAclosed` packages").  `acval_basis_pinned` and
+`EnvModel.acval_pinned` are two spellings of `basis_pinned`'s second
+component.  `Model/Reading/*` needs no model in most modules and could
+move to `Verify/Denote/*`.  The `…AV` names now only mark the model
+tier's spellings of `Term`s.
