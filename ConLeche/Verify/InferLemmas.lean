@@ -1412,13 +1412,15 @@ theorem defEqList_step_inv {env : Env} {fuel d : Nat} {a b : Expr}
 
 /-- Inversion of the lazy delta same-head spine congruence: both sides
 are applications of the same constant, at pointwise-equivalent levels,
-with pairwise definitionally equal spines of equal length. -/
+with pairwise definitionally equal spines of equal length, compared
+last to first (the reversed spines). -/
 theorem defeqSpine_inv {env : Env} {fuel d : Nat} {a b : Expr}
     (h : defeqSpineFueled mode env fuel d a b = .ok true) :
     ∃ n us us', a.getAppFn = .const n us ∧ b.getAppFn = .const n us' ∧
       a.getAppArgs.length = b.getAppArgs.length ∧
       Level.isEquivList us us' = some true ∧
-      defEqListFueled mode env fuel d a.getAppArgs b.getAppArgs = .ok true := by
+      defEqListFueled mode env fuel d a.getAppArgs.reverse
+        b.getAppArgs.reverse = .ok true := by
   dsimp only [defeqSpineFueled] at h
   simp only [defeqSpine, defEqList_fold] at h
   revert h

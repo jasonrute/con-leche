@@ -589,7 +589,7 @@ theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
             match ← isEquivListLM us us' with
             | some true =>
               defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
-                aargs bargs
+                aargs.reverse bargs.reverse
             | _ => pure false
           else pure false
         | _ => pure false
@@ -608,7 +608,7 @@ theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
             match Level.isEquivList us us' with
             | some true =>
               defEqList (fueledFns mode env) env d
-                (Expr.getAppArgs i) (Expr.getAppArgs j)
+                (Expr.getAppArgs i).reverse (Expr.getAppArgs j).reverse
             | _ => pure false
           else pure false
         | _ => pure false
@@ -643,8 +643,10 @@ theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
         | some tv =>
           cases tv with
           | true =>
-            exact defEqListC_sim ih hs₁ haargs hbargs
-              hwa.getAppArgs hwb.getAppArgs
+            exact defEqListC_sim ih hs₁ (congrArg List.reverse haargs)
+              (congrArg List.reverse hbargs)
+              (fun x hx => hwa.getAppArgs x (List.mem_reverse.mp hx))
+              (fun x hx => hwb.getAppArgs x (List.mem_reverse.mp hx))
           | false => exact SimC.pure hs₁ rfl
         | none => exact SimC.pure hs₁ rfl
       · rw [ite_eq_right hcnd, ite_eq_right hcnd]

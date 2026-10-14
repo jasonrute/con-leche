@@ -2904,18 +2904,17 @@
 # way; today's official kernel unfolds it, accepts `proposition` and
 # rejects `observe`).  Target: reject.
 1 proj_of_subst_prop.ndjson
-# --- the openai/math completeness run (2026-10-10; parked by task #348,
-# see DESIGN.md "TASK #348"): two of its three exit-3 causes, pinned at
-# today's verdict, to be looked into later (after the checker rewrite).
+# --- the openai/math completeness run (2026-10-10; DESIGN.md "TASK #348",
+# fixed by task #353): two of its three exit-3 causes.
 # spine_arg_order.ndjson (cause A): `2*(x+5000000)+1+1 = 2*(x+5000000)+2`
 # by rfl.  From the challenges RandomizedMeanPayoff
 # (`OAI.MeanPayoff.DetRealizer.total_formula`) and UniformFourier
 # (`OAI.PowerSaving.Cluster.certificate`).  The lazy-delta same-head
-# shortcut `defeqSpine` compares the arguments first to last; official
-# `is_def_eq_args` compares them last to first, fails `1 =?= 2` at once
-# and unfolds.  con-leche first decides `M+1 =?= M` by unary succ descent
-# and exhausts checkFuel (exit 3).  Official accepts.  Today 3, TARGET 0.
-3 spine_arg_order.ndjson
+# shortcut `defeqSpine` compares the arguments last to first, as official
+# `is_def_eq_args`: `1 =?= 2` fails at once and both sides unfold.  (Until
+# task #353 it compared them first to last, decided `M+1 =?= M` by unary
+# succ descent and exhausted checkFuel: exit 3.)  Official accepts.
+0 spine_arg_order.ndjson
 # natmul_deep_major.ndjson (cause B): `st 0 1 = st (W*200033) 1` by rfl.
 # From the challenges PeriodicGroup (`OAI.SourceBurnside.RawNumberPrep.
 # seed_run`) and LogspaceEquality (`OAI.ExactDerandomization.Vessel.

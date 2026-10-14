@@ -1287,7 +1287,16 @@ official kernel's `try_eq_const_app`): before unfolding both sides of
 `f as ≡ f bs`, try pairwise definitional equality of the levels and
 the spine arguments.  A `false` verdict is never final — the caller
 falls back to unfolding — so an inconclusive level comparison simply
-answers `false` here. -/
+answers `false` here.
+
+The arguments are compared **last to first** (task #353), as official
+`is_def_eq_args` walks `app_arg`/`app_fn` from the outermost
+application inwards: on `Nat.add (M+1) 1 =?= Nat.add M 2` the literals
+`1 =?= 2` fail at once and both sides unfold, where a first-to-first
+walk decides `M+1 =?= M` by unary successor descent first
+(`tests/e2e/src/spine_arg_order.lean`).  The stuck spine congruence
+(`defeqStuck`, official `is_def_eq_app`) stays first to last, as
+official's does. -/
 def defeqSpine (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     m Bool := do
   match a.getAppFn with
@@ -1296,7 +1305,8 @@ def defeqSpine (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     | .const n' us' =>
       if n = n' ∧ a.getAppArgs.length = b.getAppArgs.length then
         match Level.isEquivList us us' with
-        | some true => defEqList r env depth a.getAppArgs b.getAppArgs
+        | some true =>
+          defEqList r env depth a.getAppArgs.reverse b.getAppArgs.reverse
         | _ => pure false
       else pure false
     | _ => pure false

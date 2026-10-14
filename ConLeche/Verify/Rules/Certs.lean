@@ -193,7 +193,9 @@ theorem defeqSpine_bridge (hd : DefEqBridge env fuel)
     (h : defeqSpineFueled .verified env fuel d a b = .ok true) :
     DefEq env d a b := by
   obtain ⟨n, us, us', ha, hb, -, hus, hl⟩ := defeqSpine_inv h
-  exact .constSpine ha hb hus (defEqList_bridge hd hl)
+  have hr := (defEqList_bridge hd hl).reverse
+  rw [List.reverse_reverse, List.reverse_reverse] at hr
+  exact .constSpine ha hb hus hr
 
 /-- `boolTrueShortcut` ⇒ `DefEq.boolTrue`. -/
 theorem boolTrueShortcut_bridge (hw : WhnfBridge env fuel)

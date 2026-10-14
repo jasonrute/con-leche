@@ -210,7 +210,8 @@ def defeqSpineI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (a b : Expr) :
       let bargs ← pure (Expr.getAppArgsC b)
       if n = n' ∧ aargs.length = bargs.length then
         match ← isEquivListLM us us' with
-        | some true => defEqListI r fe depth aargs bargs
+        -- last to first, as the spec (official `is_def_eq_args`)
+        | some true => defEqListI r fe depth aargs.reverse bargs.reverse
         | _ => pure false
       else pure false
     | _ => pure false

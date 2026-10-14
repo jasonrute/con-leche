@@ -591,7 +591,10 @@ private theorem defeqSpine_shift (_henv : EnvWF env)
   | some r =>
     cases r with
     | true =>
-      exact defEqList_shift _henv ih hpd hwa.getAppArgs hwb.getAppArgs
+      rw [← List.map_reverse, ← List.map_reverse]
+      exact defEqList_shift _henv ih hpd
+        (fun x hx => hwa.getAppArgs x (List.mem_reverse.mp hx))
+        (fun x hx => hwb.getAppArgs x (List.mem_reverse.mp hx))
     | false => rfl
 
 private theorem proofIrrel_shift (henv : EnvWF env)
