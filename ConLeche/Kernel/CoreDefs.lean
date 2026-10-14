@@ -424,7 +424,7 @@ def eagerReduceName : Name := .str .anonymous "eagerReduce"
 /-- Is `e` of the form `eagerReduce _ _` — official `is_eager_reduce`
 (`type_checker.cpp`): the head constant `eagerReduce`, exactly two
 arguments, any universe levels. -/
-def Expr.isEagerReduce : Expr → Bool
+@[inline] def Expr.isEagerReduce : Expr → Bool
   | .app (.app (.const c _) _) _ => c == eagerReduceName
   | _ => false
 def boolTrueName : Name := boolName.str "true"

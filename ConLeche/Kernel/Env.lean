@@ -106,7 +106,7 @@ an `eagerReduce _ _` argument's type is compared with its domain
 everything it calls.  Read by `defeqBody` (the `Bool.true` shortcut
 ignores free variables) and `lazyDeltaReduction` (the Nat-literal
 fold ignores free variables). -/
-def CheckMode.eager : CheckMode → Bool
+@[inline] def CheckMode.eager : CheckMode → Bool
   | .verifiedEager => true
   | .trustedEager => true
   | _ => false

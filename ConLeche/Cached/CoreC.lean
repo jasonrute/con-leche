@@ -833,7 +833,7 @@ def whnfCoreBodyI (r : CoreFnsI) (fe : FEnv) : Bool → Nat → Expr → CheckCM
 
 /-- Twin of `defeqArg`: an `eagerReduce _ _` argument's type is
 compared in the eager tower. -/
-def defeqArgI (r : CoreFnsI) (depth : Nat) (a ta ty : Expr) : CheckCM Bool :=
+@[inline] def defeqArgI (r : CoreFnsI) (depth : Nat) (a ta ty : Expr) : CheckCM Bool :=
   if Expr.isEagerReduce a then r.defeqE depth ta ty else r.defeq depth ta ty
 
 /-- Application-inference spine loop (task #50): walk the raw
