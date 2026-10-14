@@ -105771,3 +105771,76 @@ full `tests/arena.sh` green — layering, pindump, trust surface, links
 pub-imports none demotable), the self-check (46 898 accepted), axioms,
 arena 90/92, e2e 484/484, the trusted sweep (0 divergences), the
 `--jobs=1`/`--jobs=4` sweeps.
+
+## TASK #352 — the openai/math re-run after #342; the rescue-order regression (2026-10-14)
+
+The #348 re-run list, checked with master `dd695ca` (the annotation-free
+checker), `--verified --jobs=8`, 1 h timeout, the 25 GiB RSS watchdog,
+one run each.  Material: `_tmp/ref/openai-math-work/rerun-342/`
+(`results.tsv` for the nine kept exports and three reproducers — its
+verdicts are in the `.err` files; `results-rebuilt.tsv` for the 13
+re-exported challenges; `probe.tsv`; `memcmp/`), the regression's
+diagnosis in `_tmp/laughlin-mem/`.  The 13 challenges whose exports #348
+had deleted were re-exported from the kept clone by rebuilding only
+their solution modules (about 4.5 h, Mathlib cache present; the build
+trees were deleted afterwards).  Declaration counts match #348's.
+
+**The seven #348 failures** all still exit 3 (`fuel exhausted:
+whnfCore`).  Exe-only probes on `dd695ca` (proofs not repaired):
+
+| | rev (spine args last to first) | fuel 2M | rev + fuel 2M |
+|---|---|---|---|
+| RandomizedMeanPayoff | 3 | abort (134) | accept |
+| UniformFourier | accept | >25 GB | accept |
+| PeriodicGroup, LogspaceEquality, MatchingFPRAS | 3 | accept | accept |
+| SquareDifference | 3 | >25 GB | >25 GB |
+| ContinuumCoulombHardness | 3 | >25 GB | >25 GB |
+
+Fixtures: `spine_arg_order` accepts with rev; `natmul_deep_major` with
+fuel 2M; fuel 2M alone aborts on `spine_arg_order` (the unary peel), so
+cause B's fuel raise needs cause A's order.  SquareDifference is still
+cause C (inference substitutes `let` values; the fold sees a closed
+term).  ContinuumCoulombHardness is costly for official too.
+
+**The other 15:** TamingCompatibility and UniversalTensorSquares still
+exceed 25 GB; PlanarPacking still times out (13.8 GB, was 15.7); MUBSix
+10.0 → 7.7 GB; the other accepts within a few percent of #348's peaks.
+Two regressions:
+
+| | `--jobs=1` ca75f61 → dd695ca | `--jobs=8` ca75f61 → dd695ca |
+|---|---|---|
+| AuslanderReiten | 4.14 → 5.55 GB, 2.58T → 3.42T instr. | 19.5 → 32.4 GB |
+| LaughlinFock | timeout at 3.7 GB → >42 GB | accept 22.7 GB → >42 GB |
+
+**Cause: #342 R2's rescue order** (lean4#15351): off K, `prepareMajorI`
+tries the structure-η/`And` rescue on the major before its `whnf`.  The
+fields come out as projections of an unreduced term instead of
+canonical constructor values.  LaughlinFock
+(`fourLDLChecked_23._proof_1_1`, a `decide +kernel` over 12×12 `Rat`
+matrices): the rescued `Rat`s reach a K comparison of two distinct
+matrix-product denominators, lazy delta descends first to last under
+binders (the open terms disable the Nat-literal fold) and ends in
+`Nat.beq._f` peeling a 22-digit literal by unary `Nat.rec` — 3.36M δ,
+2.26M ι, 7.39M cheap-`whnfCore` misses at 8 GB, unbounded.
+AuslanderReiten (`CocycleData.valid_*._proof_1_1`, ~20 declarations,
+~+9 s each): `Decidable`/`Prod` majors rescued before `whnf` would decide
+them; every memo key is distinct, so small comparisons official answers
+from its cache are recomputed (`Bool.casesOn` 240k against official
+14.3k).  `--trusted` blows up alike: no certificate is involved.  An
+exe-only probe restoring whnf-before-rescue (`_tmp/laughlin-mem/
+whnffirst.patch`) matches ca75f61 and official: AuslanderReiten 2.47T,
+3.83 GB / 19.0 GB; LaughlinFock accepts at 22.5 GB (`--jobs=8`); unfold
+counts per constant equal official's on the reproducers
+(`_tmp/laughlin-mem/{ldl-min,vfn-min}.ndjson.zst`).  rev alone avoids
+the LaughlinFock blow-up but not AuslanderReiten's extra work.
+
+LaughlinFock at `--jobs=1` times out in ca75f61 too: ~300 `decide
++kernel` certificates (`fourHighestNumber_*`, `fourYNumber_*`) of
+10–57 s each, the same work as official (11.7 s against 20.6 s on
+`fourHighestNumber_23_1`).
+
+**Not done, for the maintainer:** (1) the rescue order: head-normalise
+first, the raw-major rescue only as the fallback the
+`eta-struct-major-no-whnf` fixtures need (strategy only, both orders
+are sound `Red` steps); (2) causes A + B (spine order last to first,
+fuel with a stack check); (3) cause C (let-variables in the checker).
