@@ -559,12 +559,14 @@ presentation and matter for the proof:
   every fuel large enough to succeed
   ([theorem `checkDecls_skels` in `ConLeche/Verify/Cached/AgreeFloor.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/AgreeFloor.lean#L1102-L1104)).
   Nesting (a head, a scrutinee, a subterm's type) is bounded by the
-  shared fuel, an error when exhausted. Each level of nesting is native
-  recursion, as in the official kernel, so the fuel is sized to the
-  native stack: every checker thread has the Lean runtime's 1 GiB stack,
-  a level costs at most about 1.2 KB of it, and the fuel of 500 000
-  levels runs out before the stack does
-  ([definition `checkFuel` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1802)).
+  shared fuel, an error when exhausted; the fuel is effectively
+  unbounded (2^62), since it exists for the proofs' induction. Each
+  level of nesting is native recursion, as in the official kernel, so
+  the native stack is the real limit: every checker thread has the Lean
+  runtime's 1 GiB stack, a level costs at most about 1.2 KB of it, and
+  a recursion of about a million levels or more aborts with a stack
+  overflow, an error
+  ([definition `checkFuel` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1793)).
   Reduction *chains* are not bounded by it: the
   `whnf` loop's δ steps, the `whnfCore` loop's β, ι and projection steps
   and the lazy-delta loop each iterate in constant native stack, a

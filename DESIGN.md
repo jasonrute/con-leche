@@ -106021,3 +106021,77 @@ as expected, e2e 487/487, the trusted, `--jobs=1` and `--jobs=4` sweeps
 as expected.  OVERVIEW's and the whitepaper's line anchors repointed
 (`bridge` → `bridgeAt`), their expectation files regenerated.
 
+
+## TASK #354 — `checkFuel` effectively unbounded; the openai/math investigation closed (2026-10-14, agent/354-fuel)
+
+**The change.**  `checkFuel` is `2^62` (`@[irreducible, noinline]`, as
+`whnfCoreLoopFuel` and the other loop budgets), replacing #353's stack
+policy (500000, sized so that running out of fuel was a clean exit 3
+before the 1 GiB thread stack overflowed).  Maintainer's ruling: the
+fuel exists for the proofs' induction; as a limit it is not needed, and
+the thread stacks stay at the runtime default.  A recursion deeper than
+the stack holds (about a million knot levels) now aborts (`Stack
+overflow detected`, exit 134).  For the arena that is an error, like
+exit 3, and never an accept.  `stack_fuel_offset` (3000000 levels):
+verdict 3 → 134, target accept (official recurses on its native stack).
+
+**Why.**  openai/math ContinuumCoulombHardness needs more than 500000
+levels.  With an exe-only probe at fuel 5M on `05c734e`
+(`_tmp/ref/openai-math-work/bin/con-leche-05c734e-fuel5m`,
+`--verified --jobs=1`) it is accepted on the default 1 GiB stacks:
+91875 declarations, 16.3 GiB peak RSS (`rerun-353/
+ContinuumCoulombHardness.defstack.*`); an earlier run with 8 GiB stacks
+(`LEAN_STACK_SIZE_KB`) did the same, so the stack was never the issue.
+
+**The rest of the openai/math investigation (#348, #352, #353), for the
+record:**
+
+* *lean4#15351 has the AuslanderReiten slowdown, not LaughlinFock's.*
+  Official built against `pr-release-15351-fb2d7ef` and against its fork
+  point `nightly-2026-09-24` (`_tmp/upstream-15351/`): AuslanderReiten
+  3.86T → 4.48T instructions (+16 %), 3.15 → 4.49 GB; LaughlinFock
+  +0.4 %.  Same mechanism and the same unfold counts as con-leche's
+  (#352): the `Prod.casesOn` major is η-expanded into projections before
+  `whnf`, the fields never become canonical values, memo keys stop
+  matching (`Bool.casesOn` 14.3k → 240k).  A 20-line `decide +kernel`
+  reproducer (`repro/R10.lean`): 4.51G → 6.76G.  Reported on the PR;
+  con-leche keeps following its order and waits for upstream.
+  LaughlinFock's blow-up was con-leche's own (first-to-last argument
+  order); #353 fixed it.
+* *The LaughlinFock unary walk is not a missed Nat fold.*  It peels
+  `Nat.beq (x+1) (x+1)` with every `x` closed in value; the one free
+  variable sits in a `PSigma` component a `casesOn` discards, enough to
+  disable the fold — official's `has_fvar` guard does the same (run on
+  a built term: linear at 10^6, deterministic timeout at 10^20,
+  `_tmp/laughlin-mem/nat-walk/official-demo/`).  The real gap found on
+  the way was `eagerReduce`, implemented in #353.
+* *Cause C (SquareDifference) is a Mathlib `ring` bug,* filed as
+  mathlib4#44873.  `ring`'s `HPow` case casts the normalised exponent to
+  its `ExSumNat` form by an unchecked `have : $b =Q $b' := ⟨⟩`; the two
+  sides use different instance paths (`Nat.instCommSemiring`-derived
+  against core `instAddNat`/`Nat.instMonoid`), so the kernel decides
+  `b =?= b'`, and for a closed exponent the Nat-literal fold evaluates
+  it (`x ^ Fintype.card (Equiv.Perm (Fin 8)) = …` by `ring`: 36.3G
+  instructions against 3.07G without the kernel check;
+  `_tmp/sqdiff-mwe/`).  In SquareDifference it is reached through
+  `linarith`'s `ring1` certificates with `d := Fintype.card
+  TupleVertex`; official escapes only because `d` is a let-variable
+  there (the `has_fvar` guard).  Maintainer's ruling: a tactic bug, not
+  a checker gap; the cause-C lane (let-variables kept in inference) is
+  dropped for now.  SquareDifference stays unsupported.
+* *Arena test `perf/irrelevance-refutes`* (arena #261): its description
+  claimed official compares arguments left to right; official's
+  lazy-delta shortcut (`is_def_eq_args`) compares last to first and
+  reaches the proofs first, only `is_def_eq_app` goes first to last.
+  Corrected in arena #275.
+* *No full re-check* of the 416 challenges (maintainer: not worth it).
+  State: the #348 failures from causes A and B and LaughlinFock accept
+  (#353); ContinuumCoulombHardness accepts (this task);
+  AuslanderReiten and TamingCompatibility accept at `--jobs=1` only;
+  SquareDifference (mathlib4#44873), UniversalTensorSquares and
+  PlanarPacking (time out in official too) do not.
+
+**Gates** (this tree): `lake build` and `lake test` warning-free;
+`tests/arena.sh` green (e2e 487/487 with `stack_fuel_offset` at 134,
+the trusted, `--jobs=1` and `--jobs=4` sweeps as expected) after the
+`checkFuel` anchor in OVERVIEW was repointed; whitepaper links gate OK.

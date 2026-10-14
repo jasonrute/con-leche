@@ -5,8 +5,8 @@ register store holding `List.replicate (W*(10000*(D+20)+33)) false`),
 `OAI.ExactDerandomization.Vessel.Basket.Sack.Ground.advances._proof_1_2`
 (challenge LogspaceEquality) and, by the same cause,
 `OAI.MatchingFPRAS.ExecutableEstimator.upperRealizer` (MatchingFPRAS)).
-Exit 3 until task #353, which raised `checkFuel` to 500000 under a stack
-policy (see its docstring): accepted.
+Exit 3 until task #353, which raised `checkFuel` to 500000 (task #354:
+effectively unbounded, see its docstring): accepted.
 
 The comparison reaches the ι-reduction of `List.replicate (W*200033) false`,
 whose major `W*200033` is put through `whnf`: each `Nat.add (Nat.mul W k) W`
@@ -15,7 +15,7 @@ step's literal acceleration head-normalises its first argument, the next
 the old `checkFuel = 100000` (exit 3).  The official kernel performs the
 same recursion on its native stack and accepts (the v4.34.1
 elaborator-side kernel reports deep recursion only at `W*20000033`), and
-so does con-leche at its `checkFuel` of 500000.
+so does con-leche, on its native stack too.
 
 `debug.skipKernelTC`: the pinned v4.29.1 elaborator's own kernel check
 runs out of native stack on this term already at `W*50000`; the stream
