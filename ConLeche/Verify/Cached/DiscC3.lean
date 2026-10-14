@@ -121,248 +121,158 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
       (majorToCtorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName
         rules i)
       (majorToCtor mode (fueledFns mode env) env d recName rules major) := by
-  obtain rfl := CheckMode.eq_verified hμ
-  show SimC .verified env s₀ (RelEC d)
-    (pure (isCtorAppC (mkFEnv env) i) >>=
-      fun ctor =>
-      if ctor then pure i else
-      match rules with
-      | [rl] =>
-        match (mkFEnv env).find? rl.ctor with
-        | some (.ctorInfo cvj cnP cnF) =>
-          match (cvj.type.piResult).getAppFn with
-          | .const T _ =>
-            match (mkFEnv env).find? T with
-            | some (.indInfo cvT caps) =>
-              if rl.k = true then
-                (coreKnotI .verified (mkFEnv env) f).inferIO d i >>= fun tm =>
-                (coreKnotI .verified (mkFEnv env) f).whnf d tm >>= fun tmaj =>
+  -- `.verified` or its eager tower (task #353): the same walk at either
+  -- literal mode
+  rcases CheckMode.verified_cases hμ with rfl | rfl
+  all_goals
+    show SimC _ env s₀ (RelEC d)
+      (pure (isCtorAppC (mkFEnv env) i) >>=
+        fun ctor =>
+        if ctor then pure i else
+        match rules with
+        | [rl] =>
+          match (mkFEnv env).find? rl.ctor with
+          | some (.ctorInfo cvj cnP cnF) =>
+            match (cvj.type.piResult).getAppFn with
+            | .const T _ =>
+              match (mkFEnv env).find? T with
+              | some (.indInfo cvT caps) =>
+                if rl.k = true then
+                  (coreKnotI _ (mkFEnv env) f).inferIO d i >>= fun tm =>
+                  (coreKnotI _ (mkFEnv env) f).whnf d tm >>= fun tmaj =>
                 
-                match (Expr.getAppFn tmaj) with
-                | .const T' ust =>
-                  pure (T' == T) >>= fun bq =>
-                  if bq ∧ cvj.levelParams.length = ust.length then
+                  match (Expr.getAppFn tmaj) with
+                  | .const T' ust =>
+                    pure (T' == T) >>= fun bq =>
+                    if bq ∧ cvj.levelParams.length = ust.length then
+                      pure (Expr.getAppArgsC tmaj) >>= fun margs =>
+                      if cnP ≤ margs.length then
+                        pure rl.ctor >>= fun ctorI =>
+                        pure (Expr.const ctorI ust) >>= fun h =>
+                        mkAppNM h (margs.take cnP) >>= fun fab =>
+                        pure (Expr.wscopedBC d fab &&
+                          Expr.looseBVarsBounded 0 fab &&
+                          Expr.leafGuard fab i) >>=
+                          fun g =>
+                        if g then
+                          (coreKnotI _ (mkFEnv env) f).inferIO d fab >>=
+                            fun tfab =>
+                          (coreKnotI _ (mkFEnv env) f).defeq d tmaj
+                              tfab >>= fun rd =>
+                          if rd then
+                            proofIrrelI (coreKnotI _ (mkFEnv env) f)
+                                d fab i >>= fun r =>
+                            if r then pure fab
+                            else pure i
+                          else pure i
+                        else pure i
+                      else pure i
+                    else pure i
+                  | _ => pure i
+                else if rl.eta = true then
+                  (coreKnotI _ (mkFEnv env) f).inferIO d i >>= fun tm =>
+                  (coreKnotI _ (mkFEnv env) f).whnf d tm >>= fun tmaj =>
+                
+                  match (Expr.getAppFn tmaj) with
+                  | .const T' ust =>
                     pure (Expr.getAppArgsC tmaj) >>= fun margs =>
-                    if cnP ≤ margs.length then
+                    pure ust >>= fun ustL =>
+                    pure (T' == T) >>= fun bq =>
+                    if bq ∧ margs.length = caps.etaParams ∧
+                        ust.length = cvT.levelParams.length ∧
+                        capsNeverZero cvT.levelParams ustL caps
+                          = true ∧
+                        reservedBasisNames.contains T = false ∧
+                        reservedBasisNames.contains caps.etaCtor = false ∧
+                        (mkFEnv env).towerSlotsAllF T caps.etaFields = true then
+                      pure T >>= fun TI =>
+                      projNodesI TI i (List.range caps.etaFields) >>= fun projs =>
+                      pure caps.etaCtor >>= fun ctorI =>
+                      pure (Expr.const ctorI ust) >>= fun h =>
+                      mkAppNM h (margs ++ projs) >>= fun fab =>
+                      pure (Expr.wscopedBC d fab &&
+                        Expr.looseBVarsBounded 0 fab &&
+                        Expr.leafGuard fab i) >>=
+                        fun g =>
+                      if g then pure fab
+                      else pure i
+                    else pure i
+                  | _ => pure i
+                else if T = andName then
+                  (coreKnotI _ (mkFEnv env) f).inferIO d i >>= fun tm =>
+                  (coreKnotI _ (mkFEnv env) f).whnf d tm >>= fun tmaj =>
+
+                  match (Expr.getAppFn tmaj) with
+                  | .const T' ust =>
+                    pure (Expr.getAppArgsC tmaj) >>= fun margs =>
+                    pure (T' == T) >>= fun bq =>
+                    if bq ∧ margs.length = cnP ∧
+                        cvj.levelParams.length = ust.length ∧
+                        (mkFEnv env).andRescueSlotsF rl.ctor cnP ust = true then
+                      pure T >>= fun TI =>
+                      projNodesI TI i [0, 1] >>= fun projs =>
                       pure rl.ctor >>= fun ctorI =>
                       pure (Expr.const ctorI ust) >>= fun h =>
-                      mkAppNM h (margs.take cnP) >>= fun fab =>
+                      mkAppNM h (margs ++ projs) >>= fun fab =>
                       pure (Expr.wscopedBC d fab &&
                         Expr.looseBVarsBounded 0 fab &&
                         Expr.leafGuard fab i) >>=
                         fun g =>
                       if g then
-                        (coreKnotI .verified (mkFEnv env) f).inferIO d fab >>=
+                        (coreKnotI _ (mkFEnv env) f).inferIO d fab >>=
                           fun tfab =>
-                        (coreKnotI .verified (mkFEnv env) f).defeq d tmaj
+                        (coreKnotI _ (mkFEnv env) f).defeq d tmaj
                             tfab >>= fun rd =>
                         if rd then
-                          proofIrrelI (coreKnotI .verified (mkFEnv env) f)
+                          proofIrrelI (coreKnotI _ (mkFEnv env) f)
                               d fab i >>= fun r =>
                           if r then pure fab
                           else pure i
                         else pure i
                       else pure i
                     else pure i
-                  else pure i
-                | _ => pure i
-              else if rl.eta = true then
-                (coreKnotI .verified (mkFEnv env) f).inferIO d i >>= fun tm =>
-                (coreKnotI .verified (mkFEnv env) f).whnf d tm >>= fun tmaj =>
-                
-                match (Expr.getAppFn tmaj) with
-                | .const T' ust =>
-                  pure (Expr.getAppArgsC tmaj) >>= fun margs =>
-                  pure ust >>= fun ustL =>
-                  pure (T' == T) >>= fun bq =>
-                  if bq ∧ margs.length = caps.etaParams ∧
-                      ust.length = cvT.levelParams.length ∧
-                      capsNeverZero cvT.levelParams ustL caps
-                        = true ∧
-                      reservedBasisNames.contains T = false ∧
-                      reservedBasisNames.contains caps.etaCtor = false ∧
-                      (mkFEnv env).towerSlotsAllF T caps.etaFields = true then
-                    pure T >>= fun TI =>
-                    projNodesI TI i (List.range caps.etaFields) >>= fun projs =>
-                    pure caps.etaCtor >>= fun ctorI =>
-                    pure (Expr.const ctorI ust) >>= fun h =>
-                    mkAppNM h (margs ++ projs) >>= fun fab =>
-                    pure (Expr.wscopedBC d fab &&
-                      Expr.looseBVarsBounded 0 fab &&
-                      Expr.leafGuard fab i) >>=
-                      fun g =>
-                    if g then pure fab
-                    else pure i
-                  else pure i
-                | _ => pure i
-              else if T = andName then
-                (coreKnotI .verified (mkFEnv env) f).inferIO d i >>= fun tm =>
-                (coreKnotI .verified (mkFEnv env) f).whnf d tm >>= fun tmaj =>
-
-                match (Expr.getAppFn tmaj) with
-                | .const T' ust =>
-                  pure (Expr.getAppArgsC tmaj) >>= fun margs =>
-                  pure (T' == T) >>= fun bq =>
-                  if bq ∧ margs.length = cnP ∧
-                      cvj.levelParams.length = ust.length ∧
-                      (mkFEnv env).andRescueSlotsF rl.ctor cnP ust = true then
-                    pure T >>= fun TI =>
-                    projNodesI TI i [0, 1] >>= fun projs =>
-                    pure rl.ctor >>= fun ctorI =>
-                    pure (Expr.const ctorI ust) >>= fun h =>
-                    mkAppNM h (margs ++ projs) >>= fun fab =>
-                    pure (Expr.wscopedBC d fab &&
-                      Expr.looseBVarsBounded 0 fab &&
-                      Expr.leafGuard fab i) >>=
-                      fun g =>
-                    if g then
-                      (coreKnotI .verified (mkFEnv env) f).inferIO d fab >>=
-                        fun tfab =>
-                      (coreKnotI .verified (mkFEnv env) f).defeq d tmaj
-                          tfab >>= fun rd =>
-                      if rd then
-                        proofIrrelI (coreKnotI .verified (mkFEnv env) f)
-                            d fab i >>= fun r =>
-                        if r then pure fab
-                        else pure i
-                      else pure i
-                    else pure i
-                  else pure i
-                | _ => pure i
-              else pure i
+                  | _ => pure i
+                else pure i
+              | _ => pure i
             | _ => pure i
           | _ => pure i
-        | _ => pure i
-      | _ => pure i)
-    (majorToCtor .verified (fueledFns .verified env) env d recName rules major)
-  rw [majorToCtor_unfold]
-  refine SimC.pureB ?_
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  rw [isCtorAppC_spec' rfl]
-  by_cases hctor : isCtorApp env i
-  · rw [ite_eq_left hctor, ite_eq_left hctor]
-    exact SimC.pure hs ⟨hden, hmaj⟩
-  · rw [ite_eq_right hctor, ite_eq_right hctor]
-    match rules with
-    | [] => exact SimC.pure hs ⟨hden, hmaj⟩
-    | _ :: _ :: _ => exact SimC.pure hs ⟨hden, hmaj⟩
-    | [rl] =>
-      dsimp only
-      rw [show (mkFEnv env).find? rl.ctor = env.find? rl.ctor from
-        mkFEnv_find? env rl.ctor]
-      cases hfj : env.find? rl.ctor with
-      | none => exact SimC.pure hs ⟨hden, hmaj⟩
-      | some ci =>
-        cases ci with
-        | ctorInfo cvj cnP cnF =>
-          dsimp only
-          cases hpr : (cvj.type.piResult).getAppFn with
-          | const T lus =>
+        | _ => pure i)
+      (majorToCtor _ (fueledFns _ env) env d recName rules major)
+    rw [majorToCtor_unfold]
+    refine SimC.pureB ?_
+    obtain rfl := hden
+    have hden : RelC i i := rfl
+    rw [isCtorAppC_spec' rfl]
+    by_cases hctor : isCtorApp env i
+    · rw [ite_eq_left hctor, ite_eq_left hctor]
+      exact SimC.pure hs ⟨hden, hmaj⟩
+    · rw [ite_eq_right hctor, ite_eq_right hctor]
+      match rules with
+      | [] => exact SimC.pure hs ⟨hden, hmaj⟩
+      | _ :: _ :: _ => exact SimC.pure hs ⟨hden, hmaj⟩
+      | [rl] =>
+        dsimp only
+        rw [show (mkFEnv env).find? rl.ctor = env.find? rl.ctor from
+          mkFEnv_find? env rl.ctor]
+        cases hfj : env.find? rl.ctor with
+        | none => exact SimC.pure hs ⟨hden, hmaj⟩
+        | some ci =>
+          cases ci with
+          | ctorInfo cvj cnP cnF =>
             dsimp only
-            rw [show (mkFEnv env).find? T = env.find? T from
-              mkFEnv_find? env T]
-            cases hfT : env.find? T with
-            | none => exact SimC.pure hs ⟨hden, hmaj⟩
-            | some ciT =>
-              cases ciT with
-              | indInfo cvT caps =>
-                dsimp only
-                by_cases hK : rl.k = true
-                · rw [ite_eq_left hK, ite_eq_left hK]
-                  refine SimC.bind (ih.inferIO hs hden hmaj)
-                    (fun s₁ tm tmx hs₁ hP => ?_)
-                  obtain ⟨htmd, hwtm⟩ := hP
-                  refine SimC.bind (ih.whnf hs₁ htmd hwtm)
-                    (fun s₂ tmaj tmajx hs₂ hP₂ => ?_)
-                  obtain ⟨rfl, hwtmaj⟩ := hP₂
-                  have hmargs : RelCL (Expr.getAppArgsC tmaj)
-                      (Expr.getAppArgs tmaj) :=
-                    Expr.getAppArgsC_spec _
-                  refine SimC.pureB ?_
-                  generalize hg : Expr.getAppFn tmaj = g
-                  cases g with
-                  | const T' ust =>
-                    dsimp only
-                    refine SimC.bind_left (pureEq_eff hs₂ (T' == T))
-                      (fun s₂b bq hs₂ hbq => ?_)
-                    subst bq
-                    simp only [beq_iff_eq]
-                    split
-                    · refine SimC.pureB ?_
-                      simp only [hmargs.length]
-                      split
-                      rotate_left
-                      · exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      refine SimC.bind_left (pureEq_eff hs₂ rl.ctor)
-                        (fun s₂n ctorI hs₂ hQctorI => ?_)
-                      subst hQctorI
-                      refine SimC.bind_left (pureC_eff hs₂
-                        (x := Expr.const rl.ctor ust))
-                        (fun s₃ hd hs₃ hQh => ?_)
-                      refine SimC.bind_left (mkAppNM_eff hs₃ hQh
-                        (hmargs.take cnP))
-                        (fun s₄ fab hs₄ hQfab => ?_)
-                      have hQfab' : RelC fab
-                          (Expr.mkAppN (.const rl.ctor ust)
-                            ((Expr.getAppArgs tmaj).take cnP)) := hQfab
-                      refine SimC.pureB ?_
-                      rw [wscopedB_spec' hQfab',
-                        looseBVarsBounded_spec' hQfab',
-                        leafGuard_spec' hQfab' rfl]
-                      split
-                      · rename_i hguard
-                        have hwfab := Expr.WScoped.of_wscopedB
-                          (by simp only [Bool.and_eq_true] at hguard
-                              exact hguard.1.1)
-                        -- the official `to_cnstr_when_K` type check
-                        refine SimC.bind (ih.inferIO hs₄ hQfab' hwfab)
-                          (fun s₄e tfab tfabx hs₄e hPtf => ?_)
-                        obtain ⟨htfd, hwtf⟩ := hPtf
-                        refine SimC.bind (ih.defeq hs₄e rfl
-                          htfd hwtmaj hwtf)
-                          (fun s₄f rd rd' hs₄f hPrd => ?_)
-                        obtain rfl : rd = rd' := hPrd
-                        cases rd with
-                        | false =>
-                          simp only [Bool.false_eq_true, ↓reduceIte]
-                          exact SimC.pure hs₄f ⟨hden, hmaj⟩
-                        | true =>
-                          simp only [↓reduceIte]
-                          refine SimC.bind (proofIrrelC_sim ih hs₄f
-                            hQfab' hden hwfab hmaj)
-                            (fun s₅ r r' hs₅ hPr => ?_)
-                          obtain rfl : r = r' := hPr
-                          cases r with
-                          | true =>
-                            simp only [↓reduceIte]
-                            exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
-                          | false =>
-                            simp only [Bool.false_eq_true, ↓reduceIte]
-                            exact SimC.pure hs₅ ⟨hden, hmaj⟩
-                      · exact SimC.pure hs₄ ⟨hden, hmaj⟩
-                    · exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | bvar k =>
-                    exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | sort u =>
-                    exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | lit l =>
-                    exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | fvar ix t =>
-                    exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | app f' a' =>
-                    exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | lam t b' =>
-                    exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | forallE t b' =>
-                    exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | letE t v b' =>
-                    exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  | proj sn jx e' =>
-                    exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                · rw [ite_eq_right hK, ite_eq_right hK]
-                  by_cases hEta : rl.eta = true
-                  · rw [ite_eq_left hEta, ite_eq_left hEta]
+            cases hpr : (cvj.type.piResult).getAppFn with
+            | const T lus =>
+              dsimp only
+              rw [show (mkFEnv env).find? T = env.find? T from
+                mkFEnv_find? env T]
+              cases hfT : env.find? T with
+              | none => exact SimC.pure hs ⟨hden, hmaj⟩
+              | some ciT =>
+                cases ciT with
+                | indInfo cvT caps =>
+                  dsimp only
+                  by_cases hK : rl.k = true
+                  · rw [ite_eq_left hK, ite_eq_left hK]
                     refine SimC.bind (ih.inferIO hs hden hmaj)
                       (fun s₁ tm tmx hs₁ hP => ?_)
                     obtain ⟨htmd, hwtm⟩ := hP
@@ -377,36 +287,28 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                     cases g with
                     | const T' ust =>
                       dsimp only
-                      refine SimC.pureB ?_
-                      refine SimC.bind_left (pureEq_eff hs₂ ust)
-                        (fun s₂r ustL hs₂r hustL => ?_)
-                      subst ustL
-                      refine SimC.bind_left (pureEq_eff hs₂r (T' == T))
-                        (fun s₂rb bq hs₂r hbq => ?_)
+                      refine SimC.bind_left (pureEq_eff hs₂ (T' == T))
+                        (fun s₂b bq hs₂ hbq => ?_)
                       subst bq
-                      simp only [hmargs.length,
-                        beq_iff_eq]
-                      rw [towerSlotsAllF_mkFEnv]
+                      simp only [beq_iff_eq]
                       split
-                      · refine SimC.bind_left (pureEq_eff hs₂r T)
-                          (fun s₂t TI hs₂r hQTI => ?_)
-                        subst TI
-                        refine SimC.bind_left (etaProjsC_eff T caps.etaFields hs₂r hden)
-                          (fun s₃ projs hs₃ hQp => ?_)
-                        refine SimC.bind_left (pureEq_eff hs₃
-                          caps.etaCtor)
-                          (fun s₃n ctorI hs₃ hQctorI => ?_)
+                      · refine SimC.pureB ?_
+                        simp only [hmargs.length]
+                        split
+                        rotate_left
+                        · exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        refine SimC.bind_left (pureEq_eff hs₂ rl.ctor)
+                          (fun s₂n ctorI hs₂ hQctorI => ?_)
                         subst hQctorI
-                        refine SimC.bind_left (pureC_eff hs₃
-                          (x := Expr.const caps.etaCtor ust))
-                          (fun s₄ hd hs₄ hQh => ?_)
-                        refine SimC.bind_left (mkAppNM_eff hs₄ hQh
-                          (hmargs.append hQp))
-                          (fun s₅ fab hs₅ hQfab => ?_)
+                        refine SimC.bind_left (pureC_eff hs₂
+                          (x := Expr.const rl.ctor ust))
+                          (fun s₃ hd hs₃ hQh => ?_)
+                        refine SimC.bind_left (mkAppNM_eff hs₃ hQh
+                          (hmargs.take cnP))
+                          (fun s₄ fab hs₄ hQfab => ?_)
                         have hQfab' : RelC fab
-                            (Expr.mkAppN (.const caps.etaCtor ust)
-                              (etaFabArgsE T (Expr.getAppArgs tmaj) i
-                                caps.etaFields)) := hQfab
+                            (Expr.mkAppN (.const rl.ctor ust)
+                              ((Expr.getAppArgs tmaj).take cnP)) := hQfab
                         refine SimC.pureB ?_
                         rw [wscopedB_spec' hQfab',
                           looseBVarsBounded_spec' hQfab',
@@ -416,9 +318,33 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                           have hwfab := Expr.WScoped.of_wscopedB
                             (by simp only [Bool.and_eq_true] at hguard
                                 exact hguard.1.1)
-                          exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
-                        · exact SimC.pure hs₅ ⟨hden, hmaj⟩
-                      · exact SimC.pure hs₂r ⟨hden, hmaj⟩
+                          -- the official `to_cnstr_when_K` type check
+                          refine SimC.bind (ih.inferIO hs₄ hQfab' hwfab)
+                            (fun s₄e tfab tfabx hs₄e hPtf => ?_)
+                          obtain ⟨htfd, hwtf⟩ := hPtf
+                          refine SimC.bind (ih.defeq hs₄e rfl
+                            htfd hwtmaj hwtf)
+                            (fun s₄f rd rd' hs₄f hPrd => ?_)
+                          obtain rfl : rd = rd' := hPrd
+                          cases rd with
+                          | false =>
+                            simp only [Bool.false_eq_true, ↓reduceIte]
+                            exact SimC.pure hs₄f ⟨hden, hmaj⟩
+                          | true =>
+                            simp only [↓reduceIte]
+                            refine SimC.bind (proofIrrelC_sim ih hs₄f
+                              hQfab' hden hwfab hmaj)
+                              (fun s₅ r r' hs₅ hPr => ?_)
+                            obtain rfl : r = r' := hPr
+                            cases r with
+                            | true =>
+                              simp only [↓reduceIte]
+                              exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
+                            | false =>
+                              simp only [Bool.false_eq_true, ↓reduceIte]
+                              exact SimC.pure hs₅ ⟨hden, hmaj⟩
+                        · exact SimC.pure hs₄ ⟨hden, hmaj⟩
+                      · exact SimC.pure hs₂ ⟨hden, hmaj⟩
                     | bvar k =>
                       exact SimC.pure hs₂ ⟨hden, hmaj⟩
                     | sort u =>
@@ -437,9 +363,9 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       exact SimC.pure hs₂ ⟨hden, hmaj⟩
                     | proj sn jx e' =>
                       exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  · rw [ite_eq_right hEta, ite_eq_right hEta]
-                    by_cases hAnd : T = andName
-                    · rw [ite_eq_left hAnd, ite_eq_left hAnd]
+                  · rw [ite_eq_right hK, ite_eq_right hK]
+                    by_cases hEta : rl.eta = true
+                    · rw [ite_eq_left hEta, ite_eq_left hEta]
                       refine SimC.bind (ih.inferIO hs hden hmaj)
                         (fun s₁ tm tmx hs₁ hP => ?_)
                       obtain ⟨htmd, hwtm⟩ := hP
@@ -455,33 +381,35 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                       | const T' ust =>
                         dsimp only
                         refine SimC.pureB ?_
-                        refine SimC.bind_left (pureEq_eff hs₂ (T' == T))
-                          (fun s₂b bq hs₂ hbq => ?_)
+                        refine SimC.bind_left (pureEq_eff hs₂ ust)
+                          (fun s₂r ustL hs₂r hustL => ?_)
+                        subst ustL
+                        refine SimC.bind_left (pureEq_eff hs₂r (T' == T))
+                          (fun s₂rb bq hs₂r hbq => ?_)
                         subst bq
-                        rw [andRescueSlotsF_spec]
-                        simp only [hmargs.length, beq_iff_eq]
+                        simp only [hmargs.length,
+                          beq_iff_eq]
+                        rw [towerSlotsAllF_mkFEnv]
                         split
-                        · refine SimC.bind_left (pureEq_eff hs₂ T)
-                            (fun s₂t TI hs₂ hQTI => ?_)
+                        · refine SimC.bind_left (pureEq_eff hs₂r T)
+                            (fun s₂t TI hs₂r hQTI => ?_)
                           subst TI
-                          refine SimC.bind_left
-                            (projNodesC_eff T [0, 1] hs₂ hden)
+                          refine SimC.bind_left (etaProjsC_eff T caps.etaFields hs₂r hden)
                             (fun s₃ projs hs₃ hQp => ?_)
-                          have hQp' : RelCL projs
-                              [Expr.proj T 0 i, Expr.proj T 1 i] := hQp
-                          refine SimC.bind_left (pureEq_eff hs₃ rl.ctor)
+                          refine SimC.bind_left (pureEq_eff hs₃
+                            caps.etaCtor)
                             (fun s₃n ctorI hs₃ hQctorI => ?_)
                           subst hQctorI
                           refine SimC.bind_left (pureC_eff hs₃
-                            (x := Expr.const rl.ctor ust))
+                            (x := Expr.const caps.etaCtor ust))
                             (fun s₄ hd hs₄ hQh => ?_)
                           refine SimC.bind_left (mkAppNM_eff hs₄ hQh
-                            (hmargs.append hQp'))
+                            (hmargs.append hQp))
                             (fun s₅ fab hs₅ hQfab => ?_)
                           have hQfab' : RelC fab
-                              (Expr.mkAppN (.const rl.ctor ust)
-                                (Expr.getAppArgs tmaj ++
-                                  [Expr.proj T 0 i, Expr.proj T 1 i])) := hQfab
+                              (Expr.mkAppN (.const caps.etaCtor ust)
+                                (etaFabArgsE T (Expr.getAppArgs tmaj) i
+                                  caps.etaFields)) := hQfab
                           refine SimC.pureB ?_
                           rw [wscopedB_spec' hQfab',
                             looseBVarsBounded_spec' hQfab',
@@ -491,33 +419,9 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                             have hwfab := Expr.WScoped.of_wscopedB
                               (by simp only [Bool.and_eq_true] at hguard
                                   exact hguard.1.1)
-                            -- the fabrication's type against the major's
-                            refine SimC.bind (ih.inferIO hs₅ hQfab' hwfab)
-                              (fun s₅e tfab tfabx hs₅e hPtf => ?_)
-                            obtain ⟨htfd, hwtf⟩ := hPtf
-                            refine SimC.bind (ih.defeq hs₅e rfl
-                              htfd hwtmaj hwtf)
-                              (fun s₅f rd rd' hs₅f hPrd => ?_)
-                            obtain rfl : rd = rd' := hPrd
-                            cases rd with
-                            | false =>
-                              simp only [Bool.false_eq_true, ↓reduceIte]
-                              exact SimC.pure hs₅f ⟨hden, hmaj⟩
-                            | true =>
-                              simp only [↓reduceIte]
-                              refine SimC.bind (proofIrrelC_sim ih hs₅f
-                                hQfab' hden hwfab hmaj)
-                                (fun s₆ r r' hs₆ hPr => ?_)
-                              obtain rfl : r = r' := hPr
-                              cases r with
-                              | true =>
-                                simp only [↓reduceIte]
-                                exact SimC.pure hs₆ ⟨hQfab', hwfab⟩
-                              | false =>
-                                simp only [Bool.false_eq_true, ↓reduceIte]
-                                exact SimC.pure hs₆ ⟨hden, hmaj⟩
+                            exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
                           · exact SimC.pure hs₅ ⟨hden, hmaj⟩
-                        · exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        · exact SimC.pure hs₂r ⟨hden, hmaj⟩
                       | bvar k =>
                         exact SimC.pure hs₂ ⟨hden, hmaj⟩
                       | sort u =>
@@ -536,35 +440,134 @@ theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
                         exact SimC.pure hs₂ ⟨hden, hmaj⟩
                       | proj sn jx e' =>
                         exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    · rw [ite_eq_right hAnd, ite_eq_right hAnd]
-                      exact SimC.pure hs ⟨hden, hmaj⟩
-              | axiomInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
-              | defnInfo cv v h => exact SimC.pure hs ⟨hden, hmaj⟩
-              | thmInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
-              | ctorInfo cv nP' nF' => exact SimC.pure hs ⟨hden, hmaj⟩
-              | recInfo cv mI rP rules' => exact SimC.pure hs ⟨hden, hmaj⟩
-              | projInfo entry => exact SimC.pure hs ⟨hden, hmaj⟩
-          | bvar k => exact SimC.pure hs ⟨hden, hmaj⟩
-          | fvar ix t => exact SimC.pure hs ⟨hden, hmaj⟩
-          | sort u => exact SimC.pure hs ⟨hden, hmaj⟩
-          | app f' a' => exact SimC.pure hs ⟨hden, hmaj⟩
-          | lam t b' => exact SimC.pure hs ⟨hden, hmaj⟩
-          | forallE t b' => exact SimC.pure hs ⟨hden, hmaj⟩
-          | letE t v b' => exact SimC.pure hs ⟨hden, hmaj⟩
-          | lit l => exact SimC.pure hs ⟨hden, hmaj⟩
-          | proj s'ᵢ j' e' => exact SimC.pure hs ⟨hden, hmaj⟩
-        | axiomInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
-        | defnInfo cv v h => exact SimC.pure hs ⟨hden, hmaj⟩
-        | thmInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
-        | indInfo cv caps => exact SimC.pure hs ⟨hden, hmaj⟩
-        | recInfo cv mI rP rules' => exact SimC.pure hs ⟨hden, hmaj⟩
-        | projInfo entry => exact SimC.pure hs ⟨hden, hmaj⟩
+                    · rw [ite_eq_right hEta, ite_eq_right hEta]
+                      by_cases hAnd : T = andName
+                      · rw [ite_eq_left hAnd, ite_eq_left hAnd]
+                        refine SimC.bind (ih.inferIO hs hden hmaj)
+                          (fun s₁ tm tmx hs₁ hP => ?_)
+                        obtain ⟨htmd, hwtm⟩ := hP
+                        refine SimC.bind (ih.whnf hs₁ htmd hwtm)
+                          (fun s₂ tmaj tmajx hs₂ hP₂ => ?_)
+                        obtain ⟨rfl, hwtmaj⟩ := hP₂
+                        have hmargs : RelCL (Expr.getAppArgsC tmaj)
+                            (Expr.getAppArgs tmaj) :=
+                          Expr.getAppArgsC_spec _
+                        refine SimC.pureB ?_
+                        generalize hg : Expr.getAppFn tmaj = g
+                        cases g with
+                        | const T' ust =>
+                          dsimp only
+                          refine SimC.pureB ?_
+                          refine SimC.bind_left (pureEq_eff hs₂ (T' == T))
+                            (fun s₂b bq hs₂ hbq => ?_)
+                          subst bq
+                          rw [andRescueSlotsF_spec]
+                          simp only [hmargs.length, beq_iff_eq]
+                          split
+                          · refine SimC.bind_left (pureEq_eff hs₂ T)
+                              (fun s₂t TI hs₂ hQTI => ?_)
+                            subst TI
+                            refine SimC.bind_left
+                              (projNodesC_eff T [0, 1] hs₂ hden)
+                              (fun s₃ projs hs₃ hQp => ?_)
+                            have hQp' : RelCL projs
+                                [Expr.proj T 0 i, Expr.proj T 1 i] := hQp
+                            refine SimC.bind_left (pureEq_eff hs₃ rl.ctor)
+                              (fun s₃n ctorI hs₃ hQctorI => ?_)
+                            subst hQctorI
+                            refine SimC.bind_left (pureC_eff hs₃
+                              (x := Expr.const rl.ctor ust))
+                              (fun s₄ hd hs₄ hQh => ?_)
+                            refine SimC.bind_left (mkAppNM_eff hs₄ hQh
+                              (hmargs.append hQp'))
+                              (fun s₅ fab hs₅ hQfab => ?_)
+                            have hQfab' : RelC fab
+                                (Expr.mkAppN (.const rl.ctor ust)
+                                  (Expr.getAppArgs tmaj ++
+                                    [Expr.proj T 0 i, Expr.proj T 1 i])) := hQfab
+                            refine SimC.pureB ?_
+                            rw [wscopedB_spec' hQfab',
+                              looseBVarsBounded_spec' hQfab',
+                              leafGuard_spec' hQfab' rfl]
+                            split
+                            · rename_i hguard
+                              have hwfab := Expr.WScoped.of_wscopedB
+                                (by simp only [Bool.and_eq_true] at hguard
+                                    exact hguard.1.1)
+                              -- the fabrication's type against the major's
+                              refine SimC.bind (ih.inferIO hs₅ hQfab' hwfab)
+                                (fun s₅e tfab tfabx hs₅e hPtf => ?_)
+                              obtain ⟨htfd, hwtf⟩ := hPtf
+                              refine SimC.bind (ih.defeq hs₅e rfl
+                                htfd hwtmaj hwtf)
+                                (fun s₅f rd rd' hs₅f hPrd => ?_)
+                              obtain rfl : rd = rd' := hPrd
+                              cases rd with
+                              | false =>
+                                simp only [Bool.false_eq_true, ↓reduceIte]
+                                exact SimC.pure hs₅f ⟨hden, hmaj⟩
+                              | true =>
+                                simp only [↓reduceIte]
+                                refine SimC.bind (proofIrrelC_sim ih hs₅f
+                                  hQfab' hden hwfab hmaj)
+                                  (fun s₆ r r' hs₆ hPr => ?_)
+                                obtain rfl : r = r' := hPr
+                                cases r with
+                                | true =>
+                                  simp only [↓reduceIte]
+                                  exact SimC.pure hs₆ ⟨hQfab', hwfab⟩
+                                | false =>
+                                  simp only [Bool.false_eq_true, ↓reduceIte]
+                                  exact SimC.pure hs₆ ⟨hden, hmaj⟩
+                            · exact SimC.pure hs₅ ⟨hden, hmaj⟩
+                          · exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        | bvar k =>
+                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        | sort u =>
+                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        | lit l =>
+                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        | fvar ix t =>
+                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        | app f' a' =>
+                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        | lam t b' =>
+                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        | forallE t b' =>
+                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        | letE t v b' =>
+                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                        | proj sn jx e' =>
+                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
+                      · rw [ite_eq_right hAnd, ite_eq_right hAnd]
+                        exact SimC.pure hs ⟨hden, hmaj⟩
+                | axiomInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
+                | defnInfo cv v h => exact SimC.pure hs ⟨hden, hmaj⟩
+                | thmInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
+                | ctorInfo cv nP' nF' => exact SimC.pure hs ⟨hden, hmaj⟩
+                | recInfo cv mI rP rules' => exact SimC.pure hs ⟨hden, hmaj⟩
+                | projInfo entry => exact SimC.pure hs ⟨hden, hmaj⟩
+            | bvar k => exact SimC.pure hs ⟨hden, hmaj⟩
+            | fvar ix t => exact SimC.pure hs ⟨hden, hmaj⟩
+            | sort u => exact SimC.pure hs ⟨hden, hmaj⟩
+            | app f' a' => exact SimC.pure hs ⟨hden, hmaj⟩
+            | lam t b' => exact SimC.pure hs ⟨hden, hmaj⟩
+            | forallE t b' => exact SimC.pure hs ⟨hden, hmaj⟩
+            | letE t v b' => exact SimC.pure hs ⟨hden, hmaj⟩
+            | lit l => exact SimC.pure hs ⟨hden, hmaj⟩
+            | proj s'ᵢ j' e' => exact SimC.pure hs ⟨hden, hmaj⟩
+          | axiomInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
+          | defnInfo cv v h => exact SimC.pure hs ⟨hden, hmaj⟩
+          | thmInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
+          | indInfo cv caps => exact SimC.pure hs ⟨hden, hmaj⟩
+          | recInfo cv mI rP rules' => exact SimC.pure hs ⟨hden, hmaj⟩
+          | projInfo entry => exact SimC.pure hs ⟨hden, hmaj⟩
 
-end Walks
+  end Walks
 
-section Walks2
+  section Walks2
 
-variable {env : Env} {f : Nat}
+  variable {env : Env} {f : Nat}
 
 /-- The cached pin instantiations denote the
 nested comparand's mapped list. -/
@@ -864,20 +867,17 @@ private theorem iotaRec_unfold (env : Env) (d : Nat)
       | _ => pure none
     | _ => pure none) := rfl
 
-/-- `iotaRecI` simulates its fueled original.  The ι mode `mi` is
-separate from the knot's `mode` (the walks apply this at the ι cone's
-own mode `mi`). -/
+/-- `iotaRecI` simulates its fueled original. -/
 theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
-    {mi : CheckMode} (hmi : mi.verifiedChecks = true) {d : Nat} {i : Expr} {ex : Expr} {s₀ : CState}
+    {d : Nat} {i : Expr} {ex : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀)
     (hden : RelC i ex) (hw : Expr.WScoped d ex) :
     SimC mode env s₀ (RelOC d)
-      (iotaRecI mi (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
+      (iotaRecI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
       (iotaRec mode (fueledFns mode env) env d ex) := by
-  obtain rfl := CheckMode.eq_verified hμ
-  obtain rfl := CheckMode.eq_verified hmi
   unfold iotaRecI
   rw [iotaRec_unfold]
+  simp only [hμ, ↓reduceIte]
   refine SimC.pureB ?_
   obtain rfl := hden
   have hden : RelC i i := rfl
@@ -951,7 +951,7 @@ theorem iotaRecC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
                     have hcmpW := recFireComparands_snd_WScoped rl
                       cv.levelParams us cvj.levelParams
                       (Expr.getAppArgs i) rP hargsW hpinsW
-                    rw [certAtI_verified,
+                    rw [certAtI_of hμ,
                       show (mkFEnv env).find? = env.find? from funext (mkFEnv_find? env)]
                     refine SimC.bind (P := RelVC) ?_
                       (fun s₆ r₄ r₄' hs₆ hPr₄ => ?_)

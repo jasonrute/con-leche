@@ -441,7 +441,7 @@ Read from the outside in:
    recursion on a fuel parameter
    ([the entry points in `ConLeche/Kernel/TypeChecker.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/TypeChecker.lean#L29-L54));
    on exhaustion every operation throws
-   ([the fuel recursion's base case in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1714-L1719)).
+   ([the fuel recursion's base case in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1744-L1749)).
    Its declaration fold is what the model tier proves things about
    ([theorem `no_proof_of_False_pure` in `ConLeche/Model/Fold.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/Fold.lean#L268-L275)).
 5. **The model tier** (`ConLeche/Model/*`, the set model of the checker)
@@ -467,11 +467,18 @@ cannot depend on a proof.
 ## 3. The checker
 
 Two modes exist, `--verified` (default) and `--trusted`
-([the type `CheckMode` in `ConLeche/Kernel/Env.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Env.lean#L53)).
+([the type `CheckMode` in `ConLeche/Kernel/Env.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Env.lean#L62)).
 Trusted mode is verified mode minus the certification-only steps —
 checks the official kernel does not make, which exist so that the proof
 can rely on their outcome; it is faster and is outside the theorem.
-Both use the same core.
+Both use the same core. Each mode has an eager variant, the official
+kernel's `eagerReduce` flag: the type of an application argument of
+the form `eagerReduce _ _` is compared with the function's domain at
+the eager variant, for that comparison and everything it calls, where
+the lazy-delta `Nat`-literal fold and the `Bool.true` shortcut also fire
+on terms with free variables
+([function `defeqArg` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1070)).
+The eager comparison runs under memos of its own.
 
 The checker is a Lean-kernel-style type checker in the shape of the
 official one: `whnfCore` does β/ι/projection/quotient reduction (with
@@ -481,10 +488,13 @@ reduced by `whnfCore` itself rather than by `whnf`),
 reduction: its value is never unfolded, so whether a declaration
 type-checks never depends on a theorem's value — and the literal fast
 paths
-([function `whnfBody` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1045)),
+([function `whnfBody` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1053)),
 `inferType` computes a type, and `isDefEq` decides conversion in the
 order of the official `is_def_eq_core` (cheap head normalization, the
-easy cases, the lazy-delta loop, the
+easy cases, the lazy-delta loop — which compares two applications of
+the same definition argument by argument before unfolding them, last
+argument first as the official `is_def_eq_args` does
+([function `defeqSpine` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1317)) —, the
 projection-against-projection comparison by scrutinees, the full head
 normalization and a restart, then the stuck comparisons) with one
 deliberate exception: the easy cases and proof irrelevance are tried on
@@ -525,10 +535,10 @@ presentation and matter for the proof:
   domains and `let` values checked) and at the official kernel's
   infer-only grade on the terms reduction and definitional equality
   build on their way
-  ([function `inferBodyIO` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1186)).
+  ([function `inferBodyIO` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1202)).
   Beyond the official kernel, the verified mode compares the opened
   bodies' full-grade types at the innermost level of a λ/λ comparison
-  ([function `defeqLams` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1328))
+  ([function `defeqLams` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1355))
   and at η; the proof consumes them. Three cheap guards are the proof's
   too and never change a verdict on well-typed input: η is tried only
   against a term whose head is no λ and no `let` (a weak-head normal
@@ -549,7 +559,13 @@ presentation and matter for the proof:
   every fuel large enough to succeed
   ([theorem `checkDecls_skels` in `ConLeche/Verify/Cached/AgreeFloor.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/AgreeFloor.lean#L1102-L1104)).
   Nesting (a head, a scrutinee, a subterm's type) is bounded by the
-  shared fuel, an error when exhausted; reduction *chains* are not: the
+  shared fuel, an error when exhausted. Each level of nesting is native
+  recursion, as in the official kernel, so the fuel is sized to the
+  native stack: every checker thread has the Lean runtime's 1 GiB stack,
+  a level costs at most about 1.2 KB of it, and the fuel of 500 000
+  levels runs out before the stack does
+  ([definition `checkFuel` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1802)).
+  Reduction *chains* are not bounded by it: the
   `whnf` loop's δ steps, the `whnfCore` loop's β, ι and projection steps
   and the lazy-delta loop each iterate in constant native stack, a
   `whnfCore` step returning the term to continue with instead of
@@ -668,8 +684,9 @@ reduction or an inference
 ([the docstring of `DefEq` in `ConLeche/Rules/Rel.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Rules/Rel.lean#L334-L357)).
 The proof then has three parts. The *bridge*: an accepting run of any
 kernel entry point, at any fuel, yields a derivation — one induction
-on fuel, mechanical, each checker site landing on one rule
-([theorem `bridge` in `ConLeche/Verify/Rules/Bridge.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Rules/Bridge.lean#L23-L28)).
+on fuel, over the verified mode and its eager variant at once,
+mechanical, each checker site landing on one rule
+([theorem `bridgeAt` in `ConLeche/Verify/Rules/Bridge.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Rules/Bridge.lean#L30-L33)).
 The *soundness*: a derivation implies the claim's conclusion — one
 structural induction over the eight relations, every case one lemma
 about one rule, stated over the environment's laws and never over the
@@ -804,7 +821,7 @@ The recogniser reads the block's shape
 its parameter count as the stream declares it, checked against the
 type formers' telescopes and against every constructor record before
 anything else runs
-([function `indParamsOk` in `ConLeche/Kernel/Env.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Env.lean#L469-L476)),
+([function `indParamsOk` in `ConLeche/Kernel/Env.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Env.lean#L509-L516)),
 and each member's index count off what is left of its type former's
 telescope, as the official kernel reads them. Any number of parameters,
 indices, constructors and fields is supported; fields may be recursive,
@@ -1085,7 +1102,7 @@ instead of trusting the operation's name.
 
 * **Structural operations** (`Nat.add`, `sub`, `mul`, `pow`, `beq`,
   `ble`, and `pred` as a dependency;
-  [the list `natOpNames` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L429-L437)):
+  [the list `natOpNames` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L440-L448)):
   when a definition under one of these names arrives, the install
   certifies its defining recurrence equations by definitional
   equality, in the environment *before* the operation is stored, with
@@ -1102,7 +1119,7 @@ instead of trusting the operation's name.
   ([theorem `natOps_install` in `ConLeche/Model/NatEqs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Model/NatEqs.lean#L1101)).
 * **Well-founded operations** (`Nat.div`, `mod`, `gcd`, `land`, `lor`,
   `xor`, `shiftLeft`, `shiftRight`;
-  [the list `natDivModNames` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L439-L454))
+  [the list `natDivModNames` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L450-L465))
   are defined by well-founded recursion and have no recurrence the
   kernel can check directly. The binary embeds *pinned* copies of
   several supported toolchains' own definitions of each operation,
@@ -1130,8 +1147,8 @@ instead of trusting the operation's name.
   guarded by `Nat.ble`, so these operations install only once `Bool`
   and its two constructors are stored, with no universe parameters,
   the constructors at the type `Bool` itself, and with `Bool : Type`
-  ([function `natOpGuard` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L589-L603),
-  [function `natOpCod` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L646-L653)).
+  ([function `natOpGuard` in `ConLeche/Kernel/CoreDefs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L600-L614),
+  [function `natOpCod` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/CoreDefs.lean#L657-L664)).
   That is the only reason the checker knows the name. `Bool` is not
   pinned: it is the stream's own block, installed like any other, and
   nothing depends on what it denotes — the fast path's result is the

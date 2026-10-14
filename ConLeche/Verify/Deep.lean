@@ -324,6 +324,8 @@ structure ShiftClaims (mode : CheckMode) (env : Env) (fuel : Nat) : Prop where
   whnf : WhnfShift mode env fuel
   infer : InferShift mode env fuel
   defeq : DefEqShift mode env fuel
+  /-- the eager slot (task #353): the eager tower's `defeq` -/
+  defeqE : DefEqShift mode.toEager env fuel
   inferIO : InferIOShift mode env fuel
 
 /-! ## Helper bodies at the same fuel
@@ -331,6 +333,23 @@ structure ShiftClaims (mode : CheckMode) (env : Env) (fuel : Nat) : Prop where
 Every record-parameterized helper commutes with the shift, given the
 entry-point claims at the same fuel (the helpers only call the record's
 entry points; the list helpers recurse structurally). -/
+
+/-- An `eagerReduce _ _` application stays one under the shift (its
+head is a constant, which the shift fixes). -/
+theorem isEagerReduce_shiftFrom {p : Nat} {e : Expr} :
+    (shiftFrom p e).isEagerReduce = e.isEagerReduce := by
+  match e with
+  | .app (.app f x) y =>
+    cases f <;> first
+      | rfl
+      | (simp only [shiftFrom]; split <;> rfl)
+  | .app (.fvar i t) y => simp only [shiftFrom]; split <;> rfl
+  | .app (.bvar _) _ | .app (.sort _) _ | .app (.const _ _) _ | .app (.lam _ _) _
+  | .app (.forallE _ _) _ | .app (.letE _ _ _) _ | .app (.lit _) _
+  | .app (.proj _ _ _) _ => rfl
+  | .fvar i t => simp only [shiftFrom]; split <;> rfl
+  | .bvar _ | .sort _ | .const _ _ | .lam _ _ | .forallE _ _ | .letE _ _ _
+  | .lit _ | .proj _ _ _ => rfl
 
 section Helpers
 
@@ -591,7 +610,10 @@ private theorem defeqSpine_shift (_henv : EnvWF env)
   | some r =>
     cases r with
     | true =>
-      exact defEqList_shift _henv ih hpd hwa.getAppArgs hwb.getAppArgs
+      rw [← List.map_reverse, ← List.map_reverse]
+      exact defEqList_shift _henv ih hpd
+        (fun x hx => hwa.getAppArgs x (List.mem_reverse.mp hx))
+        (fun x hx => hwb.getAppArgs x (List.mem_reverse.mp hx))
     | false => rfl
 
 private theorem proofIrrel_shift (henv : EnvWF env)
@@ -1704,8 +1726,18 @@ private theorem infer_step (henv : EnvWF env)
     simp only [WScoped] at hwPi
     refine bind_rel _ _ (ih.infer hpd hw.2) ?_
     intro ta hta
-    refine bind_rel_eq _
-      (ih.defeq hpd (inferTypeCore_WScoped henv fuel hta hw.2) hwPi.1) ?_
+    -- the argument check at the argument's mode (task #353): the
+    -- shift keeps an `eagerReduce _ _` argument one
+    have hdeq : defeqArg (pureFns mode env fuel) (d + 1) (shiftFrom p a)
+        (shiftFrom p ta) (shiftFrom p ty') =
+        defeqArg (pureFns mode env fuel) d a ta ty' := by
+      rw [defeqArg_def, defeqArg_def]
+      unfold CheckMode.argMode
+      rw [isEagerReduce_shiftFrom]
+      split
+      · exact ih.defeqE hpd (inferTypeCore_WScoped henv fuel hta hw.2) hwPi.1
+      · exact ih.defeq hpd (inferTypeCore_WScoped henv fuel hta hw.2) hwPi.1
+    refine bind_rel_eq _ hdeq ?_
     intro bb _
     refine ite_rel _ (fun _ => ?_) (fun _ => rfl)
     rw [← shiftFrom_instantiate1_gen]
@@ -2694,13 +2726,16 @@ shift, at every fuel. -/
 theorem shiftClaims {env : Env} (henv : EnvWF env) :
     ∀ (fuel : Nat), ShiftClaims mode env fuel := by
   intro fuel
-  induction fuel with
+  -- over every mode at once: the eager slot is the knot at
+  -- `mode.toEager` (task #353)
+  induction fuel generalizing mode with
   | zero =>
     exact ⟨fun _ _ _ => rfl, fun _ _ _ => rfl, fun _ _ _ => rfl,
-      fun _ _ _ _ _ => rfl, fun _ _ _ => rfl⟩
+      fun _ _ _ _ _ => rfl, fun _ _ _ _ _ => rfl, fun _ _ _ => rfl⟩
   | succ fuel ih =>
     exact ⟨whnfCore_step henv ih, whnf_step henv ih, infer_step henv ih,
-      defeq_step henv ih, inferIOSlot_step henv ih⟩
+      defeq_step henv ih, defeq_step henv (ih (mode := mode.toEager)),
+      inferIOSlot_step henv ih⟩
 
 /-! ## Depth invariance -/
 

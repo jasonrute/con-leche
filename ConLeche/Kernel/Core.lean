@@ -149,6 +149,14 @@ structure CoreFns (m : Type → Type u) where
   whnf : Nat → Expr → m Expr
   infer : Nat → Expr → m Expr
   defeq : Nat → Expr → Expr → m Bool
+  /-- Definitional equality in the **eager tower** (task #353): the
+  official kernel's `is_def_eq` with `m_eager_reduce` set, which
+  `infer_app` sets for the comparison of an `eagerReduce _ _`
+  argument's type with its domain (`defeqArg`).  The knot ties it to
+  the bodies at `mode.toEager` one level down, so the flag holds for
+  the whole comparison and everything it calls, as official's
+  `flet` scope does. -/
+  defeqE : Nat → Expr → Expr → m Bool
   /-- Type inference at the **infer-only grade** (task #170): the
   official kernel's `infer_type_core(e, infer_only = true)`, the entry
   every *internal* inference call site uses: the io body
@@ -1054,6 +1062,14 @@ def ensureSort (r : CoreFns m) (_env : Env) (depth : Nat) (e : Expr) :
   | .sort u => pure u
   | _ => throw (.invalid "expected a sort")
 
+/-- **The argument check of a full-grade application** (task #353,
+official `infer_app`): the type of an `eagerReduce _ _` argument
+(`Expr.isEagerReduce`) is compared with the domain in the eager tower
+(`CoreFns.defeqE`: the official kernel sets `m_eager_reduce` for this
+one comparison), every other argument's in the knot's own. -/
+def defeqArg (r : CoreFns m) (depth : Nat) (a ta ty : Expr) : m Bool :=
+  if a.isEagerReduce then r.defeqE depth ta ty else r.defeq depth ta ty
+
 /-- The inference body at the full grade — official's
 `infer_type_core` with `infer_only = false`: every binder domain is
 checked to be a type, every application argument against its domain,
@@ -1120,7 +1136,7 @@ def inferBody (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
         -- The per-argument check, unconditional at this grade (the
         -- soundness proof needs `⟦a⟧ ∈ ⟦ty⟧`).
         let ta ← r.infer depth a
-        unless ← r.defeq depth ta ty do
+        unless ← defeqArg r depth a ta ty do
           throw (.invalid "application type mismatch")
         pure (body.instantiate1 a)
       | _ => throw (.invalid "function expected")
@@ -1270,7 +1286,8 @@ def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
 /-- **The eq-true shortcut** (the divergence audit's E2): official
 `is_def_eq_core`'s second clause (`type_checker.cpp:1093-1101`) — when
 the right side is the constant `Bool.true` and the left side has no
-free variables, the left side is fully head-normalised (`whnf`, the
+free variables (or the eager flag is set, task #353), the left side is
+fully head-normalised (`whnf`, the
 cached loop) and the verdict is `true` iff the reduct is `Bool.true`; on
 failure the comparison continues.  Only the reduction is here; the
 guard is `defeqBody`'s.
@@ -1287,7 +1304,16 @@ official kernel's `try_eq_const_app`): before unfolding both sides of
 `f as ≡ f bs`, try pairwise definitional equality of the levels and
 the spine arguments.  A `false` verdict is never final — the caller
 falls back to unfolding — so an inconclusive level comparison simply
-answers `false` here. -/
+answers `false` here.
+
+The arguments are compared **last to first** (task #353), as official
+`is_def_eq_args` walks `app_arg`/`app_fn` from the outermost
+application inwards: on `Nat.add (M+1) 1 =?= Nat.add M 2` the literals
+`1 =?= 2` fail at once and both sides unfold, where a first-to-first
+walk decides `M+1 =?= M` by unary successor descent first
+(`tests/e2e/src/spine_arg_order.lean`).  The stuck spine congruence
+(`defeqStuck`, official `is_def_eq_app`) stays first to last, as
+official's does. -/
 def defeqSpine (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     m Bool := do
   match a.getAppFn with
@@ -1296,7 +1322,8 @@ def defeqSpine (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
     | .const n' us' =>
       if n = n' ∧ a.getAppArgs.length = b.getAppArgs.length then
         match Level.isEquivList us us' with
-        | some true => defEqList r env depth a.getAppArgs b.getAppArgs
+        | some true =>
+          defEqList r env depth a.getAppArgs.reverse b.getAppArgs.reverse
         | _ => pure false
       else pure false
     | _ => pure false
@@ -1512,7 +1539,9 @@ Task #330: effectively unbounded for the same reason as
 acceleration — guarded on both sides being free of free variables, as
 in the official kernel and lean4lean (an open `Int32`/`Int64` pair
 would otherwise delta-grind the `Nat.brecOn` tower; the whnf-loop
-`reduceNat` stays unguarded, as the official whnf loop is) — whose
+`reduceNat` stays unguarded, as the official whnf loop is), unless the
+eager flag is set (`mode.eager`, task #353: official's
+`(!has_fvar(t_n) && !has_fvar(s_n)) || m_eager_reduce`) — whose
 reduct restarts the comparison (`defeq`, official `is_def_eq_core`),
 then one `lazyDeltaStep`.  Each unfolding is one iteration of this
 loop on its own step budget (task #106: not one unit of the knot's
@@ -1524,14 +1553,14 @@ def lazyDeltaReduction (r : CoreFns m) (env : Env) (depth : Nat) :
     match ← defeqOffset r depth a b with
     | some v => pure (.verdict v)
     | none =>
-    match ← (if !a.hasFvar && !b.hasFvar then reduceNat r env depth a
-        else pure none) with
+    match ← (if mode.eager || (!a.hasFvar && !b.hasFvar) then
+        reduceNat r env depth a else pure none) with
     | some a₂ => do
       let v ← r.defeq depth a₂ b
       pure (.verdict v)
     | none =>
-    match ← (if !a.hasFvar && !b.hasFvar then reduceNat r env depth b
-        else pure none) with
+    match ← (if mode.eager || (!a.hasFvar && !b.hasFvar) then
+        reduceNat r env depth b else pure none) with
     | some b₂ => do
       let v ← r.defeq depth a b₂
       pure (.verdict v)
@@ -1645,9 +1674,10 @@ def defeqStuck (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
 /-- **The definitional-equality body** (the official kernel's
 `is_def_eq_core`, clause for clause except one deliberate reordering):
 the syntactic fast path; the `Bool.true` shortcut (E2,
-`boolTrueShortcut`: right side `Bool.true`, left side fvar-free —
-official's `(!has_fvar(t) || m_eager_reduce) && is_constant(s,
-Bool.true)`; the eager flag is not mirrored); `quickDefEq` and proof
+`boolTrueShortcut`: right side `Bool.true`, left side fvar-free or the
+eager flag set — official's `(!has_fvar(t) || m_eager_reduce) &&
+is_constant(s, Bool.true)`, the flag being `mode.eager`, task #353);
+`quickDefEq` and proof
 irrelevance (`is_def_eq_proof_irrel`) on the UNREDUCED sides; the cheap
 head normalization of both sides (`whnfCore` with `cheap_proj`);
 `quickDefEq` again; the lazy-delta loop (`lazyDeltaReduction`); the
@@ -1674,8 +1704,8 @@ long chains — the unfoldings — are iterations of the lazy loops. -/
 def defeqBody (r : CoreFns m) (env : Env) : Nat → Expr → Expr → m Bool :=
   fun depth a b => do
     if a == b then pure true else
-    if ← (if b.isBoolTrue && !a.hasFvar then boolTrueShortcut r depth a
-        else pure false) then pure true else
+    if ← (if b.isBoolTrue && (mode.eager || !a.hasFvar) then
+        boolTrueShortcut r depth a else pure false) then pure true else
     match ← quickDefEq mode r depth a b with
     | some v => pure v
     | none =>
@@ -1717,6 +1747,7 @@ def coreKnot {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
       whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
       infer := fun _ _ => throw (.internal "fuel exhausted: infer")
       defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
+      defeqE := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
       inferIO := fun _ _ => throw (.internal "fuel exhausted: infer") }
   | fuel + 1 =>
     wrap
@@ -1727,6 +1758,11 @@ def coreKnot {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
           inferBody (coreKnot mode env wrap fuel) env d e
         defeq := fun d a b =>
           defeqBody mode (coreKnot mode env wrap fuel) env d a b
+        -- **The eager slot** (task #353): the eager tower, the knot at
+        -- `mode.toEager` one level down (the flag propagates to
+        -- everything the comparison calls, as official's does)
+        defeqE := fun d a b =>
+          defeqBody mode.toEager (coreKnot mode.toEager env wrap fuel) env d a b
         -- **The io slot** (task #170 / #172 B4, task #346): official's
         -- `infer_only`, tied to the io-grade view of the knot one level
         -- down (the grade propagates, as official's does)
@@ -1736,7 +1772,33 @@ def coreKnot {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- The shared fuel for the checker core: bounds the recursion depth of
 reduction, inference and definitional equality.  Exhaustion is an
-internal error, never a verdict. -/
-def checkFuel : Nat := 100000
+internal error, never a verdict.
+
+**The stack policy** (task #353).  Fuel is counted in knot levels, and
+each knot level is native recursion (the official kernel recurses on
+its native stack the same way: a `whnf` of `W*200033` is a 200033-deep
+first-argument recursion in both).  So the fuel must be small enough
+that running out of it is a clean exit 3 and never a native stack
+overflow (`Stack overflow detected`, an abort, exit 134), on any path.
+Every thread the checker runs on is a Lean runtime thread with the
+runtime's default 1 GiB stack (`LEAN_DEFAULT_THREAD_STACK_SIZE` on
+64-bit: the main thread, which `lean_run_main` starts as such a
+thread, and every `IO.asTask (prio := .dedicated)` worker of the
+install and check pools).  A knot level costs at most about 1.3 KB of
+it: the static bound over the compiled binary (the deepest chain of
+frames from a knot slot's closure to the next closure call) is 1.2 KB,
+on the ι path `whnfCore → iotaRecI → prepareMajorI → majorToCtorI →
+proofIrrelI` and on the projection-pair path into the λ-telescope
+comparison; the deepest measured is 0.8 KB per level
+(`tests/e2e/src/stack_fuel_offset.lean`).  500000 levels are therefore
+at most 0.65 GB of the 1 GiB, with room for the frames below the first
+level and the term walkers above the last; the deepest recursions met
+in practice need about 205000 (the openai/math PeriodicGroup
+`seed_run`, `tests/e2e/src/natmul_deep_major.lean`).  A run with
+`LEAN_STACK_SIZE_KB` below about 700000, or with `LEAN_MAIN_USE_THREAD=0`
+at `--jobs=1` (the main stack is then the process's, typically 8 MB),
+is outside the policy and can abort instead of exiting 3.  See
+DESIGN.md, task #353. -/
+def checkFuel : Nat := 500000
 
 end ConLeche

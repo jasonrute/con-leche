@@ -48,6 +48,14 @@ structure SSimC (mode : CheckMode) (env : Env) (f : Nat) : Prop where
     SimC mode env s₀ RelVC
       ((coreKnotI mode (mkFEnv env) f).defeq d i j)
       ((fueledFns mode env).defeq d a b)
+  /-- the eager slot (task #353): the eager tower's comparison, under
+  its own memos, simulates the fueled eager slot -/
+  defeqE : ∀ {s₀ : CState} {d : Nat} {i j : Expr} {a b : Expr},
+    CSOK mode env s₀ → RelC i a → RelC j b →
+    Expr.WScoped d a → Expr.WScoped d b →
+    SimC mode env s₀ RelVC
+      ((coreKnotI mode (mkFEnv env) f).defeqE d i j)
+      ((fueledFns mode env).defeqE d a b)
   /-- the io slot (task #172 B4): the memoized knot's `inferIO` entry
   simulates the fueled io-slot family -/
   inferIO : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
@@ -62,11 +70,27 @@ theorem ssimC_zero (env : Env) : SSimC mode env 0 :=
     whnf := fun _ _ _ => SimC.throw
     infer := fun _ _ _ => SimC.throw
     defeq := fun _ _ _ _ _ => SimC.throw
+    defeqE := fun _ _ _ _ _ => SimC.throw
     inferIO := fun _ _ _ => SimC.throw }
 
 section Walks
 
 variable {env : Env} {f : Nat}
+
+/-- The full-grade argument check simulates its fueled original: the
+same argument, so the same tower (task #353). -/
+theorem defeqArgC_sim (ih : SSimC mode env f) {s₀ : CState} {d : Nat}
+    {a ta ty : Expr} {xa xta xty : Expr} (hs : CSOK mode env s₀)
+    (ha : RelC a xa) (hta : RelC ta xta) (hty : RelC ty xty)
+    (hwta : Expr.WScoped d xta) (hwty : Expr.WScoped d xty) :
+    SimC mode env s₀ RelVC
+      (defeqArgI (coreKnotI mode (mkFEnv env) f) d a ta ty)
+      (defeqArg (fueledFns mode env) d xa xta xty) := by
+  obtain rfl := ha
+  unfold defeqArgI defeqArg
+  split
+  · exact ih.defeqE hs hta hty hwta hwty
+  · exact ih.defeq hs hta hty hwta hwty
 
 /-- The pairwise definitional-equality
 helper simulates its fueled original on related, well-scoped lists. -/
@@ -589,7 +613,7 @@ theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
             match ← isEquivListLM us us' with
             | some true =>
               defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
-                aargs bargs
+                aargs.reverse bargs.reverse
             | _ => pure false
           else pure false
         | _ => pure false
@@ -608,7 +632,7 @@ theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
             match Level.isEquivList us us' with
             | some true =>
               defEqList (fueledFns mode env) env d
-                (Expr.getAppArgs i) (Expr.getAppArgs j)
+                (Expr.getAppArgs i).reverse (Expr.getAppArgs j).reverse
             | _ => pure false
           else pure false
         | _ => pure false
@@ -643,8 +667,10 @@ theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
         | some tv =>
           cases tv with
           | true =>
-            exact defEqListC_sim ih hs₁ haargs hbargs
-              hwa.getAppArgs hwb.getAppArgs
+            exact defEqListC_sim ih hs₁ (congrArg List.reverse haargs)
+              (congrArg List.reverse hbargs)
+              (fun x hx => hwa.getAppArgs x (List.mem_reverse.mp hx))
+              (fun x hx => hwb.getAppArgs x (List.mem_reverse.mp hx))
           | false => exact SimC.pure hs₁ rfl
         | none => exact SimC.pure hs₁ rfl
       · rw [ite_eq_right hcnd, ite_eq_right hcnd]

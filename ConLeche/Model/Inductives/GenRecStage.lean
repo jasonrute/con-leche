@@ -99,7 +99,7 @@ telescope's own binders, its domain `∀ …, Sort u` with one binder per
 argument — opens at its binder count, and its conclusion infers to
 `Sort u`.  (`classGenRecTy_conclSort`'s argument, over any telescope: the
 head's opened variable carries its domain, which the inference types.) -/
-theorem genConclSort_core (hμ : μ.verifiedChecks = true) {envK : Env}
+theorem genConclSort_core (hμ : μ.isVerified = true) {envK : Env}
     {nds : List Expr} {k : Nat} {T0 Tm : Expr}
     {as : List Expr} {u : Level} {F : Nat} {S : Expr}
     (hcl : ∀ p ∈ nds, p.looseBVarsBounded 0 = true)
@@ -163,7 +163,7 @@ theorem classGenRecTy_prefix_plain {g : ClassGen} (hg : ClassGenScoped g) {c : N
 set_option maxHeartbeats 800000 in
 /-- **The generated type opens and its conclusion is sorted at `Sort elim`**
 (`genConclSort_core` at the generated telescope). -/
-theorem classGenRecTy_conclSort_plain (hμ : μ.verifiedChecks = true)
+theorem classGenRecTy_conclSort_plain (hμ : μ.isVerified = true)
     {envK : Env} {g : ClassGen} (hg : ClassGenScoped g) {c s : Nat}
     (hm : ConLeche.ClassRead.motiveSlot ⟨g.slots, []⟩ c = some s) {F : Nat}
     {gty S : Expr}
@@ -288,7 +288,7 @@ with the generated type under the record's name and level parameters
 (`ClassRecTyRun.hcvG`), checked as generated (`classConstOk`); it opens
 `mI + 1` binders, its conclusion is sorted at the family's elimination
 level, and it is a telescope over the shared prefix. -/
-theorem genRecTy_run (hμ : μ.verifiedChecks = true)
+theorem genRecTy_run (hμ : μ.isVerified = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
     (hg : ClassGenScoped R.g) {i c : Nat} {rc : RecShape}
@@ -353,7 +353,7 @@ the stage record's `.proj`-freedom of every stored term
 (`ConstChecked.noProj`, `RuleOutOk.hnoProj`) is the stored term's own full inference
 (`inferTypeCore_noProjAt`: a successful inference names only occupied
 slots). -/
-theorem recStage_of_gen (hμ : μ.verifiedChecks = true)
+theorem recStage_of_gen (hμ : μ.isVerified = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
     (hg : ClassGenScoped R.g) :

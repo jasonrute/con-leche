@@ -303,7 +303,7 @@ rules have the SHAPE (`RecRulesShape`), the `.nested` firings' pins
 facts (`hnest`), the stage's record at any majors (`RecStageG`), the
 stored names distinct (`hnd`), the LEAF's facts with the family premise
 (`BlockRecLeafOk`) and the rule seam (`hnew`). -/
-theorem blockRecStaged_runR {envC : Env} (hμ : μ.verifiedChecks = true)
+theorem blockRecStaged_runR {envC : Env} (hμ : μ.isVerified = true)
     (mpC : EnvModelM V μ envC) {p : BlockParts} {cvTas : List ConstantVal}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
     {s : (Name → Nat) → Nat} {eqs : (Name → Nat) → List Term}

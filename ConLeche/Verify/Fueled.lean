@@ -80,6 +80,8 @@ monotone by `Mono.lean`. -/
     fun hle h => inferTypeCore_mono hle h⟩
   defeq d a b := ⟨fun F => isDefEqCore mode env F d a b,
     fun hle h => isDefEqCore_mono hle h⟩
+  defeqE d a b := ⟨fun F => (pureFns mode env F).defeqE d a b,
+    fun hle h => (pureFns_mono env hle).2.2.2.2.1 d a b _ h⟩
   inferIO d e := ⟨fun F => inferTypeIO mode env F d e,
     fun hle h => inferTypeIO_mono hle h⟩
 
@@ -144,6 +146,11 @@ theorem defEqList_atF (d : Nat) (F : Nat) :
     | false => rfl
   | [], _ :: _ => rfl
   | _ :: _, [] => rfl
+
+theorem defeqArg_atF (d : Nat) (a ta ty : Expr) (F : Nat) :
+    (defeqArg (fueledFns mode env) d a ta ty).val F =
+      defeqArg (pureFns mode env F) d a ta ty := by
+  unfold defeqArg; split <;> rfl
 
 theorem defeqSpine_atF (d : Nat) (a b : Expr) (F : Nat) :
     (defeqSpine (fueledFns mode env) env d a b).val F =
@@ -485,6 +492,7 @@ macro "atF_core4" x:tactic : tactic =>
     | (rw [iotaRec_atF])
     | (rw [projLitToCtor_atF])
     | (rw [defeqSpine_atF])
+    | (rw [defeqArg_atF])
     | (rw [reduceProjCore_atF])
     | (rw [quickDefEq_atF])
     | (rw [lazyDeltaReduction_atF])

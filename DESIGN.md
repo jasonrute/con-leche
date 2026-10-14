@@ -105844,3 +105844,180 @@ first, the raw-major rescue only as the fallback the
 `eta-struct-major-no-whnf` fixtures need (strategy only, both orders
 are sound `Red` steps); (2) causes A + B (spine order last to first,
 fuel with a stack check); (3) cause C (let-variables in the checker).
+
+
+## TASK #353 — official reduction order: arguments last to first, fuel and stack, eagerReduce (2026-10-14, agent/353-official-order)
+
+The maintainer's ruling after #352: "there really is no way around
+matching official's reduction order."  Three divergences from the
+official kernel (v4.34.1, `type_checker.cpp`) are closed; #348's causes
+A and B are fixed with them.  The structure-η rescue order in
+`prepareMajor` is unchanged (it follows lean4#15351).
+
+**1. Arguments last to first.**  Official `is_def_eq_args` — used by
+the lazy-delta same-head shortcut only — walks `app_arg`/`app_fn` from
+the outermost application inwards.  `defeqSpine` and its cached twin
+`defeqSpineI` now compare the reversed spines (`getAppArgs.reverse`).
+Proofs: `DefEqList.reverse` in the rules tier (the relation does not
+see the order), `defeqSpine_inv` states the reversed lists, the shift
+lemma and the cached simulation read them.  Audit of the other
+list/spine comparisons against official, all already in its order:
+the stuck spine congruence (`defeqStuck`, official `is_def_eq_app`)
+compares the heads, then the arguments first to last (official
+compares the heads even when the argument counts differ and discards
+the result; con-leche tests the counts first — less work, never
+another verdict); the same-head shortcut compares the levels before
+the arguments, as official; structure η (`structEtaCertWith`) compares
+the fields first to last, as `try_eta_struct_core` (its parameter
+comparison is con-leche's own certificate in place of official's
+type comparison); the offset check, the unit-like test and the
+projection pair compare no lists; the ι case-3 parameter and index
+comparisons are certificates official does not run.
+`spine_arg_order`: exit 3 → accept.
+
+**2. Fuel and the stack policy.**  `checkFuel` 100000 → 500000.  Each
+knot level is native recursion (official recurses on its native stack
+the same way), so the fuel must run out before the stack does.  Every
+thread the checker runs on is a Lean runtime thread with the runtime's
+default stack, 1 GiB on 64-bit (`LEAN_DEFAULT_THREAD_STACK_SIZE`): the
+main thread (`lean_run_main` starts `main` on such a thread; at
+`--jobs=1` it runs the install) and every `IO.asTask (prio :=
+.dedicated)` worker.  Measured cost of a knot level:
+
+* empirically, by bisecting `LEAN_STACK_SIZE_KB` at fuel 100000 for
+  the smallest stack at which a run deeper than the fuel exits 3
+  instead of aborting (`_tmp/353-logs/stack/bisect.sh`): the
+  successor-offset chain (`stack_fuel_offset`) 78.6 MB → 0.79 KB per
+  level, the old-order `spine_arg_order` 53.2 MB, the `reduceNat`
+  first-argument recursion (`natmul_deep_major`) and an ι-major chain
+  (`List.append` on `rev n`) 53.8 MB, a projection chain 38.0 MB;
+* statically, over the compiled binary (`_tmp/353-logs/stack/frames2.py`
+  on `objdump -d`): the deepest chain of frames from a knot slot's
+  closure to the next closure call (`lean_apply_*`), only paths that
+  reach one counted — 1216 bytes (the eager `defeq` slot through
+  `defeqProjPairI → lazyDeltaProjReductionI → quickDefEqI →
+  defeqLamsI`), 1208 (`whnfCore → iotaRecI → prepareMajorI →
+  majorToCtorI`), inference 560, `whnf` 464.  Every loop of the core
+  (lazy delta, the `whnf`/`whnfCore` loops, `defEqListI`, `defeqLamsI`)
+  compiles to a `goto` (no non-tail self call in `CoreC.c` but the
+  term-sized `projNodesI`/`pinArgsI`), so the knot is the only
+  fuel-driven recursion.
+
+500000 × 1.22 KB = 0.61 GB of the 1 GiB, room for the frames below the
+first level and the term walkers above the last.  The deepest
+recursions met in practice: `seed_run` (PeriodicGroup) needs fuel
+∈ (198437, 205468], LogspaceEquality ∈ (114843, 129687], MatchingFPRAS
+∈ (100000, 114843] (bisected with an exe-only env-fuel probe) — not
+the 2M #348 assumed.  With 2M fuel `stack_fuel_offset` aborts (134),
+at 1.3M it still exits 3.  Outside the policy: `LEAN_STACK_SIZE_KB`
+below ~700000, or `LEAN_MAIN_USE_THREAD=0` at `--jobs=1` (the process
+stack, typically 8 MB).  A stack-pointer check (official's
+`check_stack`) would need an `@[extern]`, a trust-surface entry; not
+done.  Fixtures: `natmul_deep_major` exit 3 → accept;
+`stack_fuel_offset` (new, verdict 3: `h 3000000 ≡ 3000000` by a
+successor chain, deeper than the fuel; official accepts).
+
+**3. `eagerReduce`.**  Official's `m_eager_reduce` has one setter and
+two readers: `infer_app` (not at `infer_only`) sets it, `flet`-scoped,
+around `is_def_eq(a_type, d_type)` when the argument is
+`is_eager_reduce` (head constant `eagerReduce`, exactly two
+arguments); `lazy_delta_reduction` folds Nat literals when
+`(!has_fvar(t_n) && !has_fvar(s_n)) || m_eager_reduce`; the `Bool.true`
+shortcut of `is_def_eq_core` fires when `!has_fvar(t) ||
+m_eager_reduce`.  The flag is dynamic: everything the comparison calls
+(nested `whnf`, the K rescue's `to_cnstr_when_K` comparison, …) sees
+it.  In con-leche:
+
+* `CheckMode` gains `.verifiedEager` and `.trustedEager`
+  (`CheckMode.eager`, `toEager`; `verifiedChecks` is the base mode's).
+  The knot gains a slot `defeqE`, tied to `defeqBody` at `mode.toEager`
+  over the knot at `mode.toEager` — the *eager tower* — so the flag
+  covers the comparison and everything beneath it, as official's scope
+  does.  `defeqArg` (the full-grade argument check, pure and cached)
+  takes `defeqE` for an `Expr.isEagerReduce` argument; `defeqBody` and
+  `lazyDeltaReduction` read `mode.eager` in the two guards.
+* Cached: the eager slot runs under fresh mode-dependent memos
+  (`withFreshMemos`: the six entry-point memos are detached, the eager
+  run starts from empty ones, the caller's are put back; the level
+  memos, stored-constant caches and `instC` are shared) — the task-#170
+  memo ruling at the eager flag, without a second set of fields.
+  Official shares its caches across the flag; ours costs re-computation
+  inside an eager comparison, never a verdict.
+* Proofs: every knot induction runs over all modes at once (fuel
+  monotonicity, the shift bisimulation, the rules-tier bridge, the
+  cached simulation, the knot congruence).  The bridge tier
+  (`Verify/Rules/*`) is stated at any mode `μ` with `hμ :
+  μ.verifiedChecks = true` (`bridgeAt`): the eager tower is bridged to
+  the same rules, folding being a sound `Red` step either way, and
+  `Infer.app`'s `DefEq` premise comes from the argument's tower
+  (`CheckMode.argMode`).  The cached simulation's `SSimC` has a
+  `defeqE` field (`SimC.freshMemos`: the emptied state carries `CSOK` at
+  any mode, the restored one takes the memo clauses from the caller's
+  state).  The model tier (`Model/*`) and the capstones are stated under
+  `hμ : μ.isVerified = true` — the `--verified` mode itself
+  (`CheckMode.eq_verified`); the Verify tier keeps `verifiedChecks`
+  (`CheckMode.verified_cases` where a cached certificate switch must
+  reduce at a literal).  Three now-unused `hμ` hypotheses were dropped
+  (`structUnitCertC_sim`, `stuckIrrelC_sim`, `defeqStuckC_sim`), and
+  `iotaRecC_sim`'s separate ι mode went (its one caller passed the
+  knot's mode).
+
+Fixtures (`tests/e2e/src/eager_open_nat*.lean`, built with an `elab`
+that writes `@id T (eagerReduce (Eq.refl false))` without the
+elaborator deciding `T`, under `debug.skipKernelTC`):
+`eager_open_nat`, `Nat.ble (x*0 + 1000000) 999999 = false` under
+`x : Nat` with the `eagerReduce` argument (accept); its control
+`eager_open_nat_control`, the same without `eagerReduce` at 100000
+(accept).  Instructions:u, one run each (×10⁹):
+
+| fixture | official | con-leche master | con-leche #353 |
+|---|---|---|---|
+| eager_open_nat | 0.197 | 226 | 0.044 |
+| eager_open_nat_control | 15.6 | 22.5 | 22.6 |
+| spine_arg_order | 0.187 | 16.1 (exit 3) | 0.036 |
+| natmul_deep_major | 24.4 | 17.0 (exit 3) | 38.2 |
+| stack_fuel_offset | 305 | 15.0 (exit 3) | 74.9 (exit 3) |
+
+**Performance** (instructions:u, `--verified --jobs=1`, one run each,
+×10⁹): init-full 400.53 → 405.10 (+1.14 %); mathlib-prefix 547.87 →
+554.97 (+1.30 %); both accept the same declaration counts.  On init-full by part: part 1 399.86 (−0.17 %), part 2
+399.88 (fuel costs nothing), part 3 the rest.  Exe-only probes on part
+3: the seventh closure of the knot record +0.03 %, the guards and the
+argument dispatch +0.32 % (before `@[inline]` on `CheckMode.eager`,
+`Expr.isEagerReduce`, `defeqArgI`, which took 0.09 % back), the eager
+semantics proper +0.82 % (init-full has `eagerReduce` arguments, from
+`grind`/`omega`-style reflection; eager comparisons fold and
+`whnf` the `Bool.true` side with free variables present — official's
+work), the fresh memos +0.23 %.
+
+**openai/math** (`guard.sh 26214400 3600 <bin> --verified --jobs=8`,
+the #353 binary, one run each):
+
+| challenge | #352 (dd695ca) | #353 |
+|---|---|---|
+| RandomizedMeanPayoff | exit 3 | accept, 4.1 GB |
+| UniformFourier | exit 3 | accept, 0.4 GB |
+| PeriodicGroup | exit 3 | accept, 2.2 GB |
+| LogspaceEquality | exit 3 | accept, 3.7 GB |
+| MatchingFPRAS | exit 3 | accept, 4.1 GB |
+| SquareDifference | exit 3 | over 25 GB (cause C, out of scope) |
+| ContinuumCoulombHardness | exit 3 | exit 3 (fuel, 149 s, 19.4 GB) |
+| AuslanderReiten | 32.4 GB | over 25 GB after 47 s (the rescue order, #352) |
+| LaughlinFock | over 42 GB | accept, 850 s, 22.8 GB |
+
+The first five are #348's causes A and B, fixed.  ContinuumCoulombHardness
+now exhausts the 500000 levels instead of 100000, as cheaply as before
+(official, too, works hard on it: 13.6M unary unfolds).  LaughlinFock's
+blow-up is gone with part 1 (its unbounded `Nat.beq._f` peel came from
+the first-to-last walk), back to #348's accept at 22.7 GB;
+AuslanderReiten's extra work is the rescue order's, which part 1 does
+not touch.  Logs: `_tmp/353-logs/openai/`.
+
+**Gates** (this tree): `lake build` and `lake test` warning-free;
+`tests/arena.sh` green in every sub-gate (pindump included: the
+nightly-2026-09-10 pinner links again) once a stale shake-allowlist
+line was dropped (`Verify/Fueled` now uses `Verify/Mono`): arena 90/92
+as expected, e2e 487/487, the trusted, `--jobs=1` and `--jobs=4` sweeps
+as expected.  OVERVIEW's and the whitepaper's line anchors repointed
+(`bridge` → `bridgeAt`), their expectation files regenerated.
+

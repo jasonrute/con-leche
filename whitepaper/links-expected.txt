@@ -1284,18 +1284,18 @@
    795        Infer env Γ (b.inst v) B →
    796        Infer env Γ (letE T v b) B
 
-== ConLeche/Kernel/Core.lean#L971-L973
-   971      | .letE _ v b =>
-   972        -- Task #342 S0: ζ
-   973        r.whnfCore cheap depth (b.instantiate1 v)
+== ConLeche/Kernel/Core.lean#L979-L981
+   979      | .letE _ v b =>
+   980        -- Task #342 S0: ζ
+   981        r.whnfCore cheap depth (b.instantiate1 v)
 
-== ConLeche/Kernel/Core.lean#L1163-L1168
-  1163      | .letE ty v b => do
-  1164        -- Task #342 S0: official `infer_let`
-  1165        let _ ← ensureSort r env depth (← r.infer depth ty)
-  1166        unless ← r.defeq depth (← r.infer depth v) ty do
-  1167          throw (.invalid "let value type mismatch")
-  1168        r.infer depth (b.instantiate1 v)
+== ConLeche/Kernel/Core.lean#L1179-L1184
+  1179      | .letE ty v b => do
+  1180        -- Task #342 S0: official `infer_let`
+  1181        let _ ← ensureSort r env depth (← r.infer depth ty)
+  1182        unless ← r.defeq depth (← r.infer depth v) ty do
+  1183          throw (.invalid "let value type mismatch")
+  1184        r.infer depth (b.instantiate1 v)
 
 >>> whitepaper/sections/02b-model-proof.typ
 
@@ -2249,39 +2249,39 @@
    545  "reduce, then continue": `redL`.
    546  -/
 
-== ConLeche/Kernel/Core.lean#L1310-L1316
-  1310  /-- The innermost level of `defeqLams`: the opened bodies, and at the
-  1311  verified mode their FULL-grade types. -/
-  1312  def defeqLamsInner (r : CoreFns m) (depth : Nat) (b₁ b₂ : Expr) : m Bool := do
-  1313    unless ← r.defeq (depth + 1) b₁ b₂ do return false
-  1314    if mode.verifiedChecks then
-  1315      unless ← r.defeq (depth + 1) (← r.infer (depth + 1) b₁)
-  1316          (← r.infer (depth + 1) b₂) do return false
+== ConLeche/Kernel/Core.lean#L1337-L1343
+  1337  /-- The innermost level of `defeqLams`: the opened bodies, and at the
+  1338  verified mode their FULL-grade types. -/
+  1339  def defeqLamsInner (r : CoreFns m) (depth : Nat) (b₁ b₂ : Expr) : m Bool := do
+  1340    unless ← r.defeq (depth + 1) b₁ b₂ do return false
+  1341    if mode.verifiedChecks then
+  1342      unless ← r.defeq (depth + 1) (← r.infer (depth + 1) b₁)
+  1343          (← r.infer (depth + 1) b₂) do return false
 
-== ConLeche/Kernel/Core.lean#L475-L480
-   475        -- Task #342 S0: the λ/η tax (T2)
-   476        if mode.verifiedChecks then
-   477          unless ← r.defeq (depth + 1)
-   478              (← r.infer (depth + 1)
-   479                (body₁.instantiate1 (.fvar depth ty₁)))
-   480              (cod₂.instantiate1 (.fvar depth ty₁)) do return false
+== ConLeche/Kernel/Core.lean#L483-L488
+   483        -- Task #342 S0: the λ/η tax (T2)
+   484        if mode.verifiedChecks then
+   485          unless ← r.defeq (depth + 1)
+   486              (← r.infer (depth + 1)
+   487                (body₁.instantiate1 (.fvar depth ty₁)))
+   488              (cod₂.instantiate1 (.fvar depth ty₁)) do return false
 
-== ConLeche/Kernel/Core.lean#L843-L857
-   843                  if ← (if mode.verifiedChecks then
-   844                      (if iotaCase3 env.find? rl cvj cmp.1 then do
-   845                        if ← liftFueled "level comparison" (Level.isEquivList usj cmp.1) then
-   846                          if ← defEqList r env depth (margs.take rl.ctorParams) cmp.2 then
-   847                            if ← iotaCertsFull r env depth
-   848                                (cvj.type.instantiateLevelParams cvj.levelParams usj)
-   849                                margs then
-   850                              iotaIndexOk r env depth mI rP rl.ctorParams
-   851                                (cvj.type.instantiateLevelParams cvj.levelParams usj)
-   852                                margs ((args.take mI).drop rP)
-   853                            else pure false
-   854                          else pure false
-   855                        else pure false
-   856                      else pure true)
-   857                    else pure true) then
+== ConLeche/Kernel/Core.lean#L851-L865
+   851                  if ← (if mode.verifiedChecks then
+   852                      (if iotaCase3 env.find? rl cvj cmp.1 then do
+   853                        if ← liftFueled "level comparison" (Level.isEquivList usj cmp.1) then
+   854                          if ← defEqList r env depth (margs.take rl.ctorParams) cmp.2 then
+   855                            if ← iotaCertsFull r env depth
+   856                                (cvj.type.instantiateLevelParams cvj.levelParams usj)
+   857                                margs then
+   858                              iotaIndexOk r env depth mI rP rl.ctorParams
+   859                                (cvj.type.instantiateLevelParams cvj.levelParams usj)
+   860                                margs ((args.take mI).drop rP)
+   861                            else pure false
+   862                          else pure false
+   863                        else pure false
+   864                      else pure true)
+   865                    else pure true) then
 
 == whitepaper/Fragment/ValueReading.lean#L177-L184
    177  /-- **Untyped lambda congruence is unsound** in the value-driven model: the
@@ -2462,13 +2462,13 @@
    481      (hA : DefEqSem m φ Γ A₂ A₁)
    482      (hbody : DefEqSem m φ (A₁ :: Γ) b₁ (.app (b.liftN 1) (.bvar 0)))
 
-== ConLeche/Kernel/Core.lean#L1172-L1177
-  1172  /-- **The io inference body** (tasks #161, #170, #346): official's
-  1173  `infer_type_core` with `infer_only = true`.  It differs from
-  1174  `inferBody` at three clauses: an application's argument is not
-  1175  checked against the domain, a λ's domain is not checked to be a type,
-  1176  and a `let`'s type and value are not checked (the body is inferred at
-  1177  the value).  The computed types and the "function expected" rejection
+== ConLeche/Kernel/Core.lean#L1188-L1193
+  1188  /-- **The io inference body** (tasks #161, #170, #346): official's
+  1189  `infer_type_core` with `infer_only = true`.  It differs from
+  1190  `inferBody` at three clauses: an application's argument is not
+  1191  checked against the domain, a λ's domain is not checked to be a type,
+  1192  and a `let`'s type and value are not checked (the body is inferred at
+  1193  the value).  The computed types and the "function expected" rejection
 
 >>> whitepaper/sections/03-definitions.typ
 
@@ -2491,8 +2491,8 @@
    124  /-- Store one more constant. -/
    125  def add (env : Env) (n : Name) (ci : ConstInfo) : Env := ⟨(n, ci) :: env.consts⟩
 
-== ConLeche/Kernel/Env.lean#L522
-   522  structure Env where
+== ConLeche/Kernel/Env.lean#L562
+   562  structure Env where
 
 == whitepaper/Fragment/Env.lean#L63-L100
     63  /-- What kind of constant a name is stored as. -/
@@ -2534,22 +2534,22 @@
     99    kind : ConstKind
    100    deriving DecidableEq
 
-== ConLeche/Kernel/Env.lean#L323-L337
-   323  inductive ConstantInfo where
-   324    | axiomInfo (val : ConstantVal)
-   325    | defnInfo (val : ConstantVal) (value : Expr) (hint : ReducibilityHint)
-   326    | thmInfo (val : ConstantVal)
-   327    /-- An inductive type former (whnf-stuck) with its capabilities. -/
-   328    | indInfo (val : ConstantVal) (caps : IndCaps)
-   329    /-- A basis constructor (whnf-stuck; the iota target). -/
-   330    | ctorInfo (val : ConstantVal) (numParams numFields : Nat)
-   331    /-- A basis recursor with its iota rules.  Only the two sums the
-   332    firing path reads are stored: `majorIdx` (= numParams + numMotives +
-   333    numMinors + numIndices, the major premise's argument position) and
-   334    `rulePrefix` (= numParams + numMotives + numMinors, the length of the
-   335    argument prefix a rule's rhs is applied to).  The individual counts
-   336    are consumed at install time only and are not stored. -/
-   337    | recInfo (val : ConstantVal) (majorIdx rulePrefix : Nat)
+== ConLeche/Kernel/Env.lean#L363-L377
+   363  inductive ConstantInfo where
+   364    | axiomInfo (val : ConstantVal)
+   365    | defnInfo (val : ConstantVal) (value : Expr) (hint : ReducibilityHint)
+   366    | thmInfo (val : ConstantVal)
+   367    /-- An inductive type former (whnf-stuck) with its capabilities. -/
+   368    | indInfo (val : ConstantVal) (caps : IndCaps)
+   369    /-- A basis constructor (whnf-stuck; the iota target). -/
+   370    | ctorInfo (val : ConstantVal) (numParams numFields : Nat)
+   371    /-- A basis recursor with its iota rules.  Only the two sums the
+   372    firing path reads are stored: `majorIdx` (= numParams + numMotives +
+   373    numMinors + numIndices, the major premise's argument position) and
+   374    `rulePrefix` (= numParams + numMotives + numMinors, the length of the
+   375    argument prefix a rule's rhs is applied to).  The individual counts
+   376    are consumed at install time only and are not stored. -/
+   377    | recInfo (val : ConstantVal) (majorIdx rulePrefix : Nat)
 
 == whitepaper/Fragment/Syntax.lean#L35-L36
     35    /-- A constant of the environment at a level instantiation. -/
@@ -3371,25 +3371,25 @@
     79    | recursor (numParams numMotives numMinors numIndices : Nat) (rules : List RecRule)
     80    deriving DecidableEq
 
-== ConLeche/Kernel/Env.lean#L125-L142
-   125  structure RecRule where
-   126    ctor : Name
-   127    nfields : Nat
-   128    /-- The constructor's parameter count (install-computed; parse
-   129    placeholder `0`). -/
-   130    ctorParams : Nat
-   131    /-- The firing mode (install-computed, parse placeholder `.plain`):
-   132    `.plain` at a member major, `.nested` at an outside one. -/
-   133    fire : RecRuleFire
-   134    rhs : Expr
-   135    /-- **The K bit** (install-computed, parse placeholder `false`;
-   136    official `recursor_val::is_k`): this rule is its recursor's only
-   137    one, its constructor has no fields, and that constructor's
-   138    inductive is stored with the K capability — the standing condition
-   139    of `majorToCtor`'s K rescue, decided once at the block's install
-   140    instead of at every recursor application. -/
-   141    k : Bool := false
-   142    /-- **The η-rescue bit** (install-computed, parse placeholder
+== ConLeche/Kernel/Env.lean#L165-L182
+   165  structure RecRule where
+   166    ctor : Name
+   167    nfields : Nat
+   168    /-- The constructor's parameter count (install-computed; parse
+   169    placeholder `0`). -/
+   170    ctorParams : Nat
+   171    /-- The firing mode (install-computed, parse placeholder `.plain`):
+   172    `.plain` at a member major, `.nested` at an outside one. -/
+   173    fire : RecRuleFire
+   174    rhs : Expr
+   175    /-- **The K bit** (install-computed, parse placeholder `false`;
+   176    official `recursor_val::is_k`): this rule is its recursor's only
+   177    one, its constructor has no fields, and that constructor's
+   178    inductive is stored with the K capability — the standing condition
+   179    of `majorToCtor`'s K rescue, decided once at the block's install
+   180    instead of at every recursor application. -/
+   181    k : Bool := false
+   182    /-- **The η-rescue bit** (install-computed, parse placeholder
 
 == whitepaper/Fragment/Env.lean#L53-L60
     53    /-- **The K flag** (Lean's `RecursorVal.k`): the rule
@@ -3992,7 +3992,7 @@
    312  — whence the operator's accessibility, (W) and monotonicity: the block theorem with the
    313  container rules read at the walk's carrier (coverage) and the walk
    314  context's sort (the block's level). -/
-   315  theorem blockAcc_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
+   315  theorem blockAcc_of_run {μ : ConLeche.CheckMode} (hμ : μ.isVerified = true) {F : Nat}
 
 == ConLeche/SetModel/Access.lean#L56-L63
     56  /-- **`A`-accessibility** of an operator from `kI`-tuples over `IsI` to
@@ -5224,7 +5224,7 @@
    181    ⟨S.mInstall hpl hs m hok, fun n hn ls => (S.agree_M₃ hok m.M n hn ls).symm⟩
 
 == ConLeche/Model/Inductives/DeclBlockStep.lean#L71-L76
-    71  theorem declBlock (hμ : μ.verifiedChecks = true) {F : Nat} {env env₂ : Env}
+    71  theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
     72      {block : List ConstantInfo} {nPd : Nat} {p₀ : BlockParts}
     73      (mp : EnvModelM V μ env)
     74      (hE : ConLeche.EtaFamiliesClosed env) (hdp : ConLeche.blockParts? nPd block = some p₀)
@@ -5252,7 +5252,7 @@
 
 == ConLeche/Model/Fold.lean#L268-L275
    268  theorem no_proof_of_False_pure (V : Type w) [SetTheory V]
-   269      {μ : CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
+   269      {μ : CheckMode} (hμ : μ.isVerified = true) {F : Nat}
    270      {ds : List Declaration} {env' : Env}
    271      (h : checkDeclsPure μ (fueledOps μ F) pins ds = .ok env') :
    272      ∀ c ∈ env'.consts,
@@ -5261,7 +5261,7 @@
    275    exact fun c hc hty => no_constant_of_False mp c hc hty
 
 == ConLeche/Model/Fold.lean#L198-L200
-   198  theorem foldPM (hμ : μ.verifiedChecks = true) {F : Nat} :
+   198  theorem foldPM (hμ : μ.isVerified = true) {F : Nat} :
    199      ∀ (ds : List Declaration) (env : Env) {env' : Env},
    200        EnvModelOk V μ env →
 
@@ -5648,14 +5648,14 @@
    206          (Expr.mkAppN (.const r rlvls) (pvars ++ idx ++ [Expr.mkAppN f xs]))))
    207    pure (closeLams (pre ++ fvs.map g.binder) 0 (Expr.mkAppN (g.slotVar s) (fvs ++ ihs)))
 
-== ConLeche/Kernel/Env.lean#L104-L110
-   104  * `.nested lvls pins` — an auxiliary recursor's rule at an outside
-   105    major (a nested block): the comparands are fixed instantiations,
-   106    the class's levels and parameters the generated recursor type's major
-   107    domain applies the container to (`auxRuleFire`) — `lvls` are levels
-   108    over the recursor's level parameters, `pins` expressions in the
-   109    recursor's rule-prefix context, instantiated at the redex's levels and
-   110    leading arguments. -/
+== ConLeche/Kernel/Env.lean#L144-L150
+   144  * `.nested lvls pins` — an auxiliary recursor's rule at an outside
+   145    major (a nested block): the comparands are fixed instantiations,
+   146    the class's levels and parameters the generated recursor type's major
+   147    domain applies the container to (`auxRuleFire`) — `lvls` are levels
+   148    over the recursor's level parameters, `pins` expressions in the
+   149    recursor's rule-prefix context, instantiated at the redex's levels and
+   150    leading arguments. -/
 
 == ConLeche/Kernel/Inductives/RecCheck.lean#L602-L614
    602  /-- **One checked recursor's stored rules, at its major**: `sumRules` at the
@@ -5672,15 +5672,15 @@
    613      rules.map fun rl => { rl with fire := fire }
    614    | some _ => rules
 
-== ConLeche/Kernel/CoreDefs.lean#L906-L913
-   906  def recFireComparands (rl : RecRule) (lps : List Name)
-   907      (us : List Level) (cvjLps : List Name) (args : List Expr)
-   908      (rP : Nat) : List Level × List Expr :=
-   909    match rl.fire with
-   910    | .nested lvls pins =>
-   911      (lvls.map (Level.subst lps us),
-   912       pins.map fun p => Expr.instSpine (args.take rP) (rP - 1)
-   913         (p.instantiateLevelParams lps us))
+== ConLeche/Kernel/CoreDefs.lean#L917-L924
+   917  def recFireComparands (rl : RecRule) (lps : List Name)
+   918      (us : List Level) (cvjLps : List Name) (args : List Expr)
+   919      (rP : Nat) : List Level × List Expr :=
+   920    match rl.fire with
+   921    | .nested lvls pins =>
+   922      (lvls.map (Level.subst lps us),
+   923       pins.map fun p => Expr.instSpine (args.take rP) (rP - 1)
+   924         (p.instantiateLevelParams lps us))
 
 == ConLeche/Rules/Rel.lean#L213-L224
    213        (iotaCase3 env.find? rl cvj
@@ -6437,7 +6437,7 @@
    354  record in fold order.  Nothing here is `IO`. -/
 
 == ConLeche/Verify/Cached/MainC.lean#L37-L40
-    37  theorem checkDecls_sound (hμ : μ.verifiedChecks = true)
+    37  theorem checkDecls_sound (hμ : μ.isVerified = true)
     38      {ds : Array Declaration} {env' : Env}
     39      (h : checkDecls μ pins ds = .ok env') :
     40      Nonempty (EnvModelM V μ env') := by
@@ -6565,18 +6565,18 @@
    545          (body₂.instantiate1 (.fvar d ty₂)) →
    546        DefEqLams env d (.lam ty₁ body₁) (.lam ty₂ body₂)
 
-== ConLeche/Verify/Rules/Bridge.lean#L26-L29
-    26  theorem bridge (env : Env) :
-    27      ∀ fuel : Nat,
-    28        WhnfCoreBridge env fuel ∧ WhnfBridge env fuel ∧ DefEqBridge env fuel ∧
-    29          InferBridge env fuel ∧ InferIOBridge env fuel := by
+== ConLeche/Verify/Rules/Bridge.lean#L30-L33
+    30  theorem bridgeAt (env : Env) :
+    31      ∀ (fuel : Nat) (μ : CheckMode), μ.verifiedChecks = true →
+    32        WhnfCoreBridge μ env fuel ∧ WhnfBridge μ env fuel ∧ DefEqBridge μ env fuel ∧
+    33          InferBridge μ env fuel ∧ InferIOBridge μ env fuel := by
 
 == ConLeche/Model/Rules/Sound.lean#L49-L50
     49  theorem red_sound (hin : RulesInputs V m φ) :
     50      ∀ {d : Nat} {e e' : Expr}, Red env d e e' → RedSem m φ d e e'
 
 == ConLeche/Model/Rules/Recompose.lean#L50-L55
-    50  theorem checkSoundAtP5 (hμ : μ.verifiedChecks = true)
+    50  theorem checkSoundAtP5 (hμ : μ.isVerified = true)
     51      {m : EnvModel V env} (h : RulesInputs V m φ) :
     52      ∀ fuel : Nat,
     53        WhnfCoreClaim μ m φ fuel ∧ WhnfClaim μ m φ fuel ∧
@@ -6636,7 +6636,7 @@
     15  equality.
 
 == ConLeche/Verify/Cached/MainC.lean#L37-L40
-    37  theorem checkDecls_sound (hμ : μ.verifiedChecks = true)
+    37  theorem checkDecls_sound (hμ : μ.isVerified = true)
     38      {ds : Array Declaration} {env' : Env}
     39      (h : checkDecls μ pins ds = .ok env') :
     40      Nonempty (EnvModelM V μ env') := by

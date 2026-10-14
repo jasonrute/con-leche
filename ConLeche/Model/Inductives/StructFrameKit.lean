@@ -833,7 +833,7 @@ structure ClaimsAt (μ : CheckMode) {env : Env} (m : EnvModel V env)
   sort : SortSemAt m μ φ F
 
 /-- A P carrier answers them (the sealed capstone). -/
-theorem claimsAt_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
+theorem claimsAt_of (hμ : μ.isVerified = true) (mp : EnvModelM V μ env)
     (φ : Name → Nat) (F : Nat) : ClaimsAt μ mp.base2 φ F :=
   have h := checkSoundAt (V := V) hμ (Rules.RulesInputs.ofSem mp φ) F
   have hr : InferReads mp.base2 μ φ F :=
@@ -1541,7 +1541,7 @@ structure FormerData {env : Env} (m : EnvModel V env) (cvT : ConstantVal)
 
 /-- The former's data, from its `checkConstantVal` run at the
 pre-block environment and the stored type's telescope shape. -/
-theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
+theorem formerData_of (hμ : μ.isVerified = true) (mp : EnvModelM V μ env)
     {F : Nat} {cvT cvTa : ConstantVal} {nP : Nat} {resSort : Level}
     {bs : List Expr}
     (hccv : cvTa = cvT ∧
@@ -1559,7 +1559,7 @@ theorem formerData_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
   obtain ⟨fvs, hop⟩ := openPisAtFvars_of_stripPis_sort nP 0 hstrip
   -- the opened body is `Sort resSort`, of sort `succ resSort`
   obtain ⟨F', tb, vb, hib, hensb, -⟩ :=
-    piBits_of_infer hμ nP hop hst hens
+    piBits_of_infer (CheckMode.vc hμ) nP hop hst hens
   obtain rfl := inferTypeCore_sort_inv hib
   obtain rfl := ensureSortCore_sort_eq hensb
   -- per assignment: the reading, its peel, its grading

@@ -123,6 +123,23 @@ theorem DefEq.strLitR {d : Nat} {s : String} {a : Expr}
     DefEq env d a (.lit (.strVal s)) :=
   .redR (.strLit hsup) h
 
+/-- Pairwise lists concatenate pairwise. -/
+theorem DefEqList.append {d : Nat} : ∀ {as bs cs ds : List Expr},
+    DefEqList env d as bs → DefEqList env d cs ds →
+    DefEqList env d (as ++ cs) (bs ++ ds)
+  | _, _, _, _, .nil, h => h
+  | _, _, _, _, .cons hab hs, h => .cons hab (DefEqList.append hs h)
+
+/-- Pairwise lists, reversed, are pairwise: the order in which the
+checker walks a spine (`defeqSpine` compares last to first) is not
+part of the relation. -/
+theorem DefEqList.reverse {d : Nat} : ∀ {as bs : List Expr},
+    DefEqList env d as bs → DefEqList env d as.reverse bs.reverse
+  | _, _, .nil => .nil
+  | _, _, .cons hab hs => by
+    simp only [List.reverse_cons]
+    exact DefEqList.append (DefEqList.reverse hs) (.cons hab .nil)
+
 /-- Congruence along a spine: the head and the arguments pairwise. -/
 theorem DefEq.mkAppN {d : Nat} : ∀ {as bs : List Expr} {f g : Expr},
     DefEq env d f g → DefEqList env d as bs →
@@ -145,7 +162,8 @@ theorem DefEq.spine {d : Nat} {a b : Expr}
 
 /-- **The same-head short-circuit** (`defeqSpine`, `Core.lean:1426-1458`, at `:1570`;
 official `try_eq_const_app`): both heads the same constant at
-equivalent levels, the spines pairwise. -/
+equivalent levels, the spines pairwise (the checker compares them last
+to first, official `is_def_eq_args`; `DefEqList.reverse`). -/
 theorem DefEq.constSpine {d : Nat} {a b : Expr} {n : Name} {us us' : List Level}
     (ha : a.getAppFn = .const n us) (hb : b.getAppFn = .const n us')
     (hus : Level.isEquivList us us' = some true)

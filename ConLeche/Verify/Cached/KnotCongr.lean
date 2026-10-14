@@ -429,7 +429,9 @@ needs no lemma of its own: it takes the tied record, not the index. -/
 theorem coreKnotI_congr (hfe : fe₁.find? = fe₂.find?) :
     ∀ F, coreKnotI mode fe₁ F = coreKnotI mode fe₂ F := by
   intro F
-  induction F with
+  -- the eager slot ties the knot at `mode.toEager` (task #353): the
+  -- induction is over every mode at once
+  induction F generalizing mode with
   | zero => rfl
   | succ F ih =>
     unfold coreKnotI

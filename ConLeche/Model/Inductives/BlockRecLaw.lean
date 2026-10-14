@@ -400,7 +400,7 @@ theorem spineFit_of_teleFitPA {pds : List Term} {b : Term}
 
 /-- **The block recursor's own flip**, at the run: whatever fits the
 `i`-th stored recursor type's reading fits its domains. -/
-theorem spineFit_blockRecTy {envC : Env} (hμ : μ.verifiedChecks = true)
+theorem spineFit_blockRecTy {envC : Env} (hμ : μ.isVerified = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts}
     {cvTas : List ConstantVal}
     {rs : List RecDatum} {F : Nat}

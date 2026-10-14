@@ -29,7 +29,7 @@ variable {env : Env} {f : Nat}
 
 /-- The one-sided-λ (right) stuck arm (the cached representation
 stores `Name`s directly; `lam`/`forallE` carry only domain and body). -/
-private theorem defeqC_etaR_arm (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
+private theorem defeqC_etaR_arm (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {a' b' t₂ b₂ : Expr} {a'x ty₂x body₂x : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀)
     (haS : RelC a' a'x)
@@ -59,10 +59,10 @@ private theorem defeqC_etaR_arm (hμ : mode.verifiedChecks = true) (ih : SSimC m
     exact SimC.pure hs₁ rfl
   | false =>
     simp only [Bool.false_eq_true, ↓reduceIte]
-    exact stuckIrrelC_sim hμ ih henv hs₁ haS hbS hwa' hwb'
+    exact stuckIrrelC_sim ih henv hs₁ haS hbS hwa' hwb'
 
 /-- The one-sided-λ (left) stuck arm. -/
-private theorem defeqC_etaL_arm (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
+private theorem defeqC_etaL_arm (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {a' b' t₁ b₁ : Expr} {b'x ty₁x body₁x : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀)
     (haS : RelC a' (.lam ty₁x body₁x))
@@ -92,7 +92,7 @@ private theorem defeqC_etaL_arm (hμ : mode.verifiedChecks = true) (ih : SSimC m
     exact SimC.pure hs₁ rfl
   | false =>
     simp only [Bool.false_eq_true, ↓reduceIte]
-    exact stuckIrrelC_sim hμ ih henv hs₁ haS hbS hwa' hwb'
+    exact stuckIrrelC_sim ih henv hs₁ haS hbS hwa' hwb'
 
 /-- A lazy-delta step's outcome, related: equal, the handed-on pair in
 scope. -/
@@ -747,7 +747,7 @@ theorem defeqProjPairC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode e
 
 set_option maxHeartbeats 3200000 in
 /-- The stuck comparison simulates its specification. -/
-theorem defeqStuckC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
+theorem defeqStuckC_sim (ih : SSimC mode env f)
     (henv : EnvWF env)
     {d : Nat} {i j : Expr} {a b : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hdena : RelC i a) (hdenb : RelC j b)
@@ -762,14 +762,14 @@ theorem defeqStuckC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env 
   unfold defeqStuckI defeqStuck
   cases i <;> cases j <;> dsimp only <;>
     first
-    | exact stuckIrrelC_sim hμ ih henv hs haS hbS hwa hwb
-    | exact defeqC_etaL_arm hμ ih henv hs haS rfl rfl hbS hwa hwb
-    | exact defeqC_etaR_arm hμ ih henv hs haS rfl rfl hbS hwa hwb
+    | exact stuckIrrelC_sim ih henv hs haS hbS hwa hwb
+    | exact defeqC_etaL_arm ih henv hs haS rfl rfl hbS hwa hwb
+    | exact defeqC_etaR_arm ih henv hs haS rfl rfl hbS hwa hwb
     | skip
   case lit.app l f x =>
     cases l <;> cases f <;> dsimp only <;>
       first
-      | exact stuckIrrelC_sim hμ ih henv hs haS hbS hwa hwb
+      | exact stuckIrrelC_sim ih henv hs haS hbS hwa hwb
       | skip
     rename_i str cf usf
     rw [strLitSupportedF_eq]
@@ -783,11 +783,11 @@ theorem defeqStuckC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env 
         (fun s₇ sc hs₇ hQs => ?_)
       exact ih.defeq hs₇ hQs hbS (strLitToConstructor_WScoped str d) hwb
     · rw [ite_eq_right hsc, ite_eq_right hsc]
-      exact stuckIrrelC_sim hμ ih henv hs₆b haS hbS hwa hwb
+      exact stuckIrrelC_sim ih henv hs₆b haS hbS hwa hwb
   case app.lit f x l =>
     cases l <;> cases f <;> dsimp only <;>
       first
-      | exact stuckIrrelC_sim hμ ih henv hs haS hbS hwa hwb
+      | exact stuckIrrelC_sim ih henv hs haS hbS hwa hwb
       | skip
     rename_i str cf usf
     rw [strLitSupportedF_eq]
@@ -801,13 +801,13 @@ theorem defeqStuckC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env 
         (fun s₇ sc hs₇ hQs => ?_)
       exact ih.defeq hs₇ haS hQs hwa (strLitToConstructor_WScoped str d)
     · rw [ite_eq_right hsc, ite_eq_right hsc]
-      exact stuckIrrelC_sim hμ ih henv hs₆b haS hbS hwa hwb
+      exact stuckIrrelC_sim ih henv hs₆b haS hbS hwa hwb
   case fvar.fvar i₁ t₁ i₂ t₂ =>
     by_cases hij : (i₁ == i₂) = true
     · rw [ite_eq_left hij, ite_eq_left hij]
       exact SimC.pure hs rfl
     · rw [ite_eq_right hij, ite_eq_right hij]
-      exact stuckIrrelC_sim hμ ih henv hs haS hbS hwa hwb
+      exact stuckIrrelC_sim ih henv hs haS hbS hwa hwb
   case const.const c₁ us₁ c₂ us₂ =>
     by_cases hcc : c₁ = c₂
     · rw [ite_eq_left hcc, ite_eq_left hcc]
@@ -823,9 +823,9 @@ theorem defeqStuckC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env 
         exact SimC.pure hs₇ rfl
       | false =>
         simp only [Bool.false_eq_true, ↓reduceIte]
-        exact stuckIrrelC_sim hμ ih henv hs₇ haS hbS hwa hwb
+        exact stuckIrrelC_sim ih henv hs₇ haS hbS hwa hwb
     · rw [ite_eq_right hcc, ite_eq_right hcc]
-      exact stuckIrrelC_sim hμ ih henv hs haS hbS hwa hwb
+      exact stuckIrrelC_sim ih henv hs haS hbS hwa hwb
   case app.app f₁ x₁ f₂ x₂ =>
     refine SimC.pureB ?_
     refine SimC.pureB ?_
@@ -857,12 +857,12 @@ theorem defeqStuckC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env 
           exact SimC.pure hs₈ rfl
         | false =>
           simp only [Bool.false_eq_true, ↓reduceIte]
-          exact stuckIrrelC_sim hμ ih henv hs₈ haS hbS hwa hwb
+          exact stuckIrrelC_sim ih henv hs₈ haS hbS hwa hwb
       | false =>
         simp only [Bool.false_eq_true, ↓reduceIte]
-        exact stuckIrrelC_sim hμ ih henv hs₇ haS hbS hwa hwb
+        exact stuckIrrelC_sim ih henv hs₇ haS hbS hwa hwb
     · rw [ite_eq_right hlen, ite_eq_right hlen]
-      exact stuckIrrelC_sim hμ ih henv hs haS hbS hwa hwb
+      exact stuckIrrelC_sim ih henv hs haS hbS hwa hwb
 
 theorem defeqBodyC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {i j : Expr} {a b : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
@@ -939,7 +939,7 @@ theorem defeqBodyC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f
   simp only [Bool.false_eq_true, ↓reduceIte]
   by_cases hhp : (!a₁.headIsProj && !b₁.headIsProj) = true
   · rw [ite_eq_left hhp, ite_eq_left hhp]
-    exact defeqStuckC_sim hμ ih henv hs₆ rfl rfl hwa₁ hwb₁
+    exact defeqStuckC_sim ih henv hs₆ rfl rfl hwa₁ hwb₁
   rw [ite_eq_right hhp, ite_eq_right hhp]
   refine SimC.bind (ih.whnfCore hs₆ rfl hwa₁)
     (fun s₇ a₂ a₂x hs₇ hPa₂ => ?_)
@@ -949,7 +949,7 @@ theorem defeqBodyC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f
   obtain ⟨rfl, hwb₂⟩ := hPb₂
   by_cases hun : (a₂ == a₁ && b₂ == b₁) = true
   · rw [ite_eq_left hun, ite_eq_left hun]
-    exact defeqStuckC_sim hμ ih henv hs₈ rfl rfl hwa₁ hwb₁
+    exact defeqStuckC_sim ih henv hs₈ rfl rfl hwa₁ hwb₁
   · rw [ite_eq_right hun, ite_eq_right hun]
     exact ih.defeq hs₈ rfl rfl hwa₂ hwb₂
 

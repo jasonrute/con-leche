@@ -83,10 +83,12 @@ end Mono
 
 /-! ## Fuel monotonicity at the knot -/
 
-theorem pureFns_mono (env : Env) : ∀ {f f' : Nat}, f ≤ f' →
-    FnsRefines (pureFns mode env f) (pureFns mode env f')
-  | 0, f', _ => by
-    refine ⟨?_, ?_, ?_, ?_, ?_⟩
+/-- The knot induction, over every mode at once: the eager slot ties the
+knot at `mode.toEager` (task #353). -/
+private theorem pureFns_mono_all (env : Env) : ∀ {f f' : Nat}, f ≤ f' →
+    ∀ (mode : CheckMode), FnsRefines (pureFns mode env f) (pureFns mode env f')
+  | 0, f', _, mode => by
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro c d e v hv
       rw [show (pureFns mode env 0).whnfCore c d e = whnfCore mode env 0 d e c from rfl,
         whnfCore_zero] at hv
@@ -103,17 +105,27 @@ theorem pureFns_mono (env : Env) : ∀ {f f' : Nat}, f ≤ f' →
       rw [show (pureFns mode env 0).defeq d a b = isDefEqCore mode env 0 d a b from rfl,
         isDefEqCore_zero] at hv
       simp [throw, throwThe, MonadExceptOf.throw] at hv
+    · intro d a b v hv
+      rw [show (pureFns mode env 0).defeqE d a b =
+        throw (.internal "fuel exhausted: defeq") from rfl] at hv
+      simp [throw, throwThe, MonadExceptOf.throw] at hv
     · intro d e v hv
       rw [show (pureFns mode env 0).inferIO d e =
         throw (.internal "fuel exhausted: infer") from rfl] at hv
       simp [throw, throwThe, MonadExceptOf.throw] at hv
-  | f + 1, f' + 1, hle => by
-    have ih := pureFns_mono env (Nat.le_of_succ_le_succ hle)
+  | f + 1, f' + 1, hle, mode => by
+    have ih := pureFns_mono_all env (Nat.le_of_succ_le_succ hle) mode
+    have ihE := pureFns_mono_all env (Nat.le_of_succ_le_succ hle) mode.toEager
     refine ⟨fun c d e => whnfCoreBody_mono ih c d e,
       fun d e => whnfBody_mono ih d e,
       fun d e => inferBody_mono ih d e,
       fun d a b => defeqBody_mono ih d a b,
+      fun d a b => defeqBody_mono ihE d a b,
       fun d e => inferBodyIO_mono ih.ioView d e⟩
+
+theorem pureFns_mono (env : Env) {f f' : Nat} (hle : f ≤ f') :
+    FnsRefines (pureFns mode env f) (pureFns mode env f') :=
+  pureFns_mono_all env hle mode
 
 /-! ## Fueled corollaries -/
 
@@ -137,10 +149,19 @@ theorem isDefEqCore_mono {env : Env} {f f' : Nat} (hle : f ≤ f')
     isDefEqCore mode env f' d a b = .ok r :=
   (pureFns_mono env hle).2.2.2.1 d a b r h
 
+/-- The full-grade argument check at a larger fuel (task #353: at the
+argument's mode, `defeqArg_def`). -/
+theorem defeqArg_mono {env : Env} {f f' : Nat} (hle : f ≤ f')
+    {d : Nat} {a ta ty : Expr} {r : Bool}
+    (h : defeqArg (pureFns mode env f) d a ta ty = .ok r) :
+    defeqArg (pureFns mode env f') d a ta ty = .ok r := by
+  rw [defeqArg_def] at h ⊢
+  exact isDefEqCore_mono hle h
+
 theorem inferTypeIO_mono {env : Env} {f f' : Nat} (hle : f ≤ f')
     {d : Nat} {e r : Expr} (h : inferTypeIO mode env f d e = .ok r) :
     inferTypeIO mode env f' d e = .ok r :=
-  (pureFns_mono env hle).2.2.2.2 d e r h
+  (pureFns_mono env hle).2.2.2.2.2 d e r h
 
 theorem ensureSortCore_mono {env : Env} {f f' : Nat} (hle : f ≤ f')
     {d : Nat} {e : Expr} {u : Level}

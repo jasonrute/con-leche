@@ -278,8 +278,8 @@ def checkMain (file : String) (mode : CheckMode) (stride jobs : Nat)
     -- run — the unverified lane — must never be mistaken for a
     -- `--verified` one in a log, whatever it says.
     let modeTag : String := match mode with
-      | .verified => "--verified"
-      | .trusted => "--trusted"
+      | .verified | .verifiedEager => "--verified"
+      | .trusted | .trustedEager => "--trusted"
     -- THE BUILT-IN PRELUDE (`ConLeche/Frontend/Prelude.lean`): the
     -- pinned basis blocks, `Bool` and `And`, parsed from the
     -- committed `pins/<toolchain>.prelude.ndjson`.  `preparePrelude`

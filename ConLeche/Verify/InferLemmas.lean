@@ -176,10 +176,10 @@ theorem inferTypeCore_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
       whnf mode env fuel d tf = .ok (.forallE ty' body') ∧
       t = body'.instantiate1 a ∧
       ∃ ta, inferTypeCore mode env fuel d a = .ok ta ∧
-        isDefEqCore mode env fuel d ta ty' = .ok true := by
+        isDefEqCore (mode.argMode a) env fuel d ta ty' = .ok true := by
   rw [inferTypeCore_succ] at h
   simp only [inferBody, pure, Except.pure, Bind.bind, Except.bind] at h
-  simp only [infer_def, whnf_def, defeq_def] at h
+  simp only [infer_def, whnf_def, defeqArg_def] at h
   cases htf : inferTypeCore mode env fuel d f with
   | error err => rw [htf] at h; exact nomatch h
   | ok tf =>
@@ -207,7 +207,7 @@ theorem inferTypeCore_app_inv {env : Env} {fuel d : Nat} {f a t : Expr}
   | ok ta =>
   rw [hta] at h
   dsimp only at h
-  cases hde : isDefEqCore mode env fuel d ta ty' with
+  cases hde : isDefEqCore (mode.argMode a) env fuel d ta ty' with
   | error err => rw [hde] at h; exact nomatch h
   | ok r =>
   rw [hde] at h
@@ -368,7 +368,7 @@ theorem inferTypeCore_app_inv' {env : Env} {fuel d : Nat}
       whnf mode env fuel d tf = .ok (.forallE ty' body') ∧
       t = body'.instantiate1 a ∧
       ∃ ta, inferTypeCore mode env fuel d a = .ok ta ∧
-        isDefEqCore mode env fuel d ta ty' = .ok true := by
+        isDefEqCore (mode.argMode a) env fuel d ta ty' = .ok true := by
   match fuel, h with
   | 0, h => rw [inferTypeCore_zero] at h; exact nomatch h
   | fuel + 1, h =>
@@ -1412,13 +1412,15 @@ theorem defEqList_step_inv {env : Env} {fuel d : Nat} {a b : Expr}
 
 /-- Inversion of the lazy delta same-head spine congruence: both sides
 are applications of the same constant, at pointwise-equivalent levels,
-with pairwise definitionally equal spines of equal length. -/
+with pairwise definitionally equal spines of equal length, compared
+last to first (the reversed spines). -/
 theorem defeqSpine_inv {env : Env} {fuel d : Nat} {a b : Expr}
     (h : defeqSpineFueled mode env fuel d a b = .ok true) :
     ∃ n us us', a.getAppFn = .const n us ∧ b.getAppFn = .const n us' ∧
       a.getAppArgs.length = b.getAppArgs.length ∧
       Level.isEquivList us us' = some true ∧
-      defEqListFueled mode env fuel d a.getAppArgs b.getAppArgs = .ok true := by
+      defEqListFueled mode env fuel d a.getAppArgs.reverse
+        b.getAppArgs.reverse = .ok true := by
   dsimp only [defeqSpineFueled] at h
   simp only [defeqSpine, defEqList_fold] at h
   revert h
@@ -2871,7 +2873,7 @@ theorem lazyDeltaReduction_pres (P : Expr → Prop)
     | some v => simp [pure, Except.pure] at h
     | none =>
     dsimp only at h
-    cases hna : (if !a.hasFvar && !b.hasFvar then
+    cases hna : (if mode.eager || (!a.hasFvar && !b.hasFvar) then
         reduceNatFueled mode env fuel d a else pure none) with
     | error err => rw [hna] at h; exact nomatch h
     | ok o₁ =>
@@ -2885,7 +2887,7 @@ theorem lazyDeltaReduction_pres (P : Expr → Prop)
       | ok v => rw [hde] at h; simp [pure, Except.pure] at h
     | none =>
     dsimp only at h
-    cases hnb : (if !a.hasFvar && !b.hasFvar then
+    cases hnb : (if mode.eager || (!a.hasFvar && !b.hasFvar) then
         reduceNatFueled mode env fuel d b else pure none) with
     | error err => rw [hnb] at h; exact nomatch h
     | ok o₂ =>

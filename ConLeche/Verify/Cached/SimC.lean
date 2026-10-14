@@ -320,6 +320,64 @@ fueled counterpart. -/
     (Q : β → Prop) (c : CheckCM β) : Prop :=
   ∀ v' s', c s₀ = .ok (v', s') → CSOK mode env s' ∧ Q v'
 
+/-! ## The eager tower's memos (task #353)
+
+`withFreshMemos` runs the eager tower from empty mode-dependent memos
+and restores the caller's afterwards.  The invariant follows the two
+states: the emptied state carries the invariant at ANY mode (its
+mode-dependent clauses are vacuous, the others are mode-free), and the
+restored state takes its mode-dependent clauses from the caller's
+state and the rest from the run's. -/
+
+/-- The emptied state carries the invariant at any mode. -/
+theorem CSOK.takeModeMemos {mode' : CheckMode} {s : CState} (hs : CSOK mode env s) :
+    CSOK mode' env s.takeModeMemos.2 := by
+  refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, ?_, ?_, ?_, ?_, ?_, ?_, hs.lsimp, hs.lnz,
+    hs.eqv, hs.instC⟩ <;> (intros; simp_all [CState.takeModeMemos])
+
+/-- The restored state: the caller's mode-dependent memos, the run's
+mode-free caches. -/
+theorem CSOK.putModeMemos {mode' : CheckMode} {s₀ s₂ : CState} (hs₀ : CSOK mode env s₀)
+    (hs₂ : CSOK mode' env s₂) :
+    CSOK mode env (s₂.putModeMemos s₀.takeModeMemos.1) :=
+  ⟨hs₂.constTy, hs₂.constVal, hs₂.ruleRhs, hs₀.whnfCoreC, hs₀.whnfCoreCheapC, hs₀.whnfC,
+    hs₀.inferC, hs₀.inferIOC, hs₀.defeqC, hs₂.lsimp, hs₂.lnz, hs₂.eqv, hs₂.instC⟩
+
+/-- **A run under fresh memos** simulates what the run simulates at its
+own mode `mode'`, from the caller's invariant at `mode`. -/
+theorem SimC.freshMemos {mode' : CheckMode} {s₀ : CState} {β α : Type}
+    {P : β → α → Prop} {x : CheckCM β} {p : FueledM α}
+    (hs : CSOK mode env s₀)
+    (hx : ∀ {s₁ : CState}, CSOK mode' env s₁ → SimC mode' env s₁ P x p) :
+    SimC mode env s₀ P (withFreshMemos x) p := by
+  intro v' s' (hr : withFreshMemos x s₀ = .ok (v', s'))
+  have hrun : withFreshMemos x s₀ =
+      (match x s₀.takeModeMemos.2 with
+        | .ok (v, s₂) => .ok (v, s₂.putModeMemos s₀.takeModeMemos.1)
+        | .error e => .error e) := by
+    simp only [withFreshMemos, bind, StateT.bind, modifyGet, MonadStateOf.modifyGet,
+      StateT.modifyGet, modify, pure, StateT.pure, Except.pure, Except.bind]
+    cases x s₀.takeModeMemos.2 <;> rfl
+  rw [hrun] at hr
+  cases hx₁ : x s₀.takeModeMemos.2 with
+  | error err => rw [hx₁] at hr; exact nomatch hr
+  | ok pr =>
+    obtain ⟨v, s₂⟩ := pr
+    rw [hx₁] at hr
+    simp only [Except.ok.injEq, Prod.mk.injEq] at hr
+    obtain ⟨rfl, rfl⟩ := hr
+    obtain ⟨hs₂, w, hP, F, hF⟩ := hx (hs.takeModeMemos (mode' := mode')) v s₂ hx₁
+    exact ⟨hs.putModeMemos hs₂, w, hP, F, hF⟩
+
+/-- A simulation only reads its fueled side's runs: two fueled
+computations with the same runs are interchangeable. -/
+theorem SimC.congr_fueled {s₀ : CState} {β α : Type} {P : β → α → Prop}
+    {c : CheckCM β} {p q : FueledM α} (hpq : ∀ F, q.val F = p.val F)
+    (h : SimC mode env s₀ P c p) : SimC mode env s₀ P c q := by
+  intro v' s' hr
+  obtain ⟨hs', v, hP, F, hF⟩ := h v' s' hr
+  exact ⟨hs', v, hP, F, by rw [hpq]; exact hF⟩
+
 /-- The result relation for expression-valued entry points: the cached
 term is related to the fueled value, well scoped at the ambient
 depth. -/

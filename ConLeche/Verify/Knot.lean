@@ -142,6 +142,33 @@ theorem infer_def (env : Env) (f d : Nat) (e : Expr) :
 theorem defeq_def (env : Env) (f d : Nat) (a b : Expr) :
     (pureFns mode env f).defeq d a b = isDefEqCore mode env f d a b := rfl
 
+/-- **The eager slot is the eager tower's `defeq`** (task #353): the
+knot ties `defeqE` to the bodies at `mode.toEager`, which is what the
+knot at `mode.toEager` ties its `defeq` to. -/
+theorem defeqE_def (env : Env) (f d : Nat) (a b : Expr) :
+    (pureFns mode env f).defeqE d a b = isDefEqCore mode.toEager env f d a b := by
+  cases f <;> rfl
+
+/-- The mode an application argument's type is compared at (task #353):
+the eager tower for an `eagerReduce _ _` argument (`defeqArg`). -/
+@[expose] def CheckMode.argMode (mode : CheckMode) (a : Expr) : CheckMode :=
+  if a.isEagerReduce then mode.toEager else mode
+
+/-- The full-grade argument check, read as one comparison at the
+argument's mode. -/
+theorem defeqArg_def (env : Env) (f d : Nat) (a ta ty : Expr) :
+    defeqArg (pureFns mode env f) d a ta ty =
+      isDefEqCore (mode.argMode a) env f d ta ty := by
+  unfold defeqArg CheckMode.argMode
+  split
+  · exact defeqE_def env f d ta ty
+  · rfl
+
+/-- The argument's mode runs the checks the mode runs. -/
+@[simp] theorem CheckMode.argMode_verifiedChecks (a : Expr) :
+    (mode.argMode a).verifiedChecks = mode.verifiedChecks := by
+  unfold CheckMode.argMode; split <;> cases mode <;> rfl
+
 /-- Fuel-zero spellings throw. -/
 theorem whnfCore_zero (env : Env) (d : Nat) (e : Expr) {c : Bool} :
     whnfCore mode env 0 d e c = throw (.internal "fuel exhausted: whnfCore") := rfl

@@ -308,7 +308,7 @@ valued at the members' own values `hv` (values of the formers' types,
 passed (`ParamMatch`) has one reading at the prefix's valuation where
 neither reading is the point (the conditional `Rules.defeq_sound`; a
 syntactically equal pair, everywhere). -/
-theorem param_read_eq {μ : CheckMode} (hμ : μ.verifiedChecks = true)
+theorem param_read_eq {μ : CheckMode} (hμ : μ.isVerified = true)
     (hacl : ∀ (n : Name) (ψ : Name → Nat) (m k : Nat), (mT.acval n ψ).liftN m k = mT.acval n ψ)
     (hin : Rules.RulesInputs V mT φ) {F D : Nat} {pfvs : List Expr}
     (hL : FvarList D pfvs.reverse) {σ : Nat → V} {Δ : List Term}

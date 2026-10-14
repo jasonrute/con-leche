@@ -400,7 +400,7 @@ operator at the HOLE chains (`blockLeafH`), graded by the positivity
 stage's run (`hPos`, U2) at the dummy carrier; the record is
 `blockDataOf` at the REAL pick, which shares the dummy pick's fields
 with holes and normal forms. -/
-theorem blockTablesStage_of (hμ : μ.verifiedChecks = true) {F : Nat} {env envI : Env}
+theorem blockTablesStage_of (hμ : μ.isVerified = true) {F : Nat} {env envI : Env}
     {p₀ : BlockParts} {isRec : Bool} {cvTas : List ConstantVal} {q : BlockShape}
     {ctorsAs : List (List (ConstantVal × Nat))} {sortsss : List (List (List Level))}
     {isorts : List (List Level)}

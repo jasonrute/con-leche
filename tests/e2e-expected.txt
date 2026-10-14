@@ -2904,30 +2904,48 @@
 # way; today's official kernel unfolds it, accepts `proposition` and
 # rejects `observe`).  Target: reject.
 1 proj_of_subst_prop.ndjson
-# --- the openai/math completeness run (2026-10-10; parked by task #348,
-# see DESIGN.md "TASK #348"): two of its three exit-3 causes, pinned at
-# today's verdict, to be looked into later (after the checker rewrite).
+# --- the openai/math completeness run (2026-10-10; DESIGN.md "TASK #348",
+# fixed by task #353): two of its three exit-3 causes.
 # spine_arg_order.ndjson (cause A): `2*(x+5000000)+1+1 = 2*(x+5000000)+2`
 # by rfl.  From the challenges RandomizedMeanPayoff
 # (`OAI.MeanPayoff.DetRealizer.total_formula`) and UniformFourier
 # (`OAI.PowerSaving.Cluster.certificate`).  The lazy-delta same-head
-# shortcut `defeqSpine` compares the arguments first to last; official
-# `is_def_eq_args` compares them last to first, fails `1 =?= 2` at once
-# and unfolds.  con-leche first decides `M+1 =?= M` by unary succ descent
-# and exhausts checkFuel (exit 3).  Official accepts.  Today 3, TARGET 0.
-3 spine_arg_order.ndjson
+# shortcut `defeqSpine` compares the arguments last to first, as official
+# `is_def_eq_args`: `1 =?= 2` fails at once and both sides unfold.  (Until
+# task #353 it compared them first to last, decided `M+1 =?= M` by unary
+# succ descent and exhausted checkFuel: exit 3.)  Official accepts.
+0 spine_arg_order.ndjson
 # natmul_deep_major.ndjson (cause B): `st 0 1 = st (W*200033) 1` by rfl.
 # From the challenges PeriodicGroup (`OAI.SourceBurnside.RawNumberPrep.
 # seed_run`) and LogspaceEquality (`OAI.ExactDerandomization.Vessel.
 # Basket.Sack.Ground.advances._proof_1_2`; MatchingFPRAS's
 # `OAI.MatchingFPRAS.ExecutableEstimator.upperRealizer` has the same
 # cause).  ι on `List.replicate (W*200033) false` whnfs its major, a
-# 200033-deep whnf/reduceNat first-argument recursion; official performs
-# it on its native stack and accepts, con-leche's checkFuel (100000 knot
-# levels) is exhausted (exit 3).  A larger checkFuel alone accepts it but
-# overflows the native stack on spine_arg_order: the fix needs a stack
-# policy.  Today 3, TARGET 0.
-3 natmul_deep_major.ndjson
+# 200033-deep whnf/reduceNat first-argument recursion, which official
+# performs on its native stack.  Since task #353 checkFuel is 500000
+# knot levels (the stack policy in its docstring), so con-leche does
+# too and accepts.  (At the old 100000: exit 3.)
+0 natmul_deep_major.ndjson
+# stack_fuel_offset.ndjson (task #353, the stack policy): `h 3000000 ≡
+# 3000000`, a successor chain compared one `succ` at a time, ~0.8 KB of
+# native stack per knot level (the deepest path measured).  Deeper than
+# checkFuel (500000), so it must end in a clean exit 3 and not in a
+# native stack overflow (at a checkFuel of 2000000 it aborts, exit 134).
+# Official accepts (3000000 levels on its native stack).  Verdict 3 is
+# the policy's, not a target.
+3 stack_fuel_offset.ndjson
+# --- task #353, official's `eagerReduce` flag (`m_eager_reduce`).
+# eager_open_nat.ndjson: `@id (Nat.ble (x*0 + 1000000) 999999 = false)
+# (eagerReduce (Eq.refl false))` under `x : Nat`.  The argument's type
+# is compared in the eager tower, where the lazy-delta Nat-literal fold
+# fires despite the free `x`: instant, as in official.  (Before task
+# #353 the fold was blocked and `Nat.ble` peeled the literal in unary:
+# 64-83 s, a timeout here.)
+0 eager_open_nat.ndjson
+# eager_open_nat_control.ndjson: the same without `eagerReduce`, at
+# 100000: the free `x` blocks the fold and the literal is peeled in
+# unary, in official (~1 s) and in con-leche (~4 s) alike.
+0 eager_open_nat_control.ndjson
 # --- the let ζ-fold (task #348; the mechanism of the openai/math
 # SquareDifference blow-up, `source_ordered_contraction`): a `let`
 # bound to a closed Nat that is expensive to head-normalise (`bits 14 0`,
