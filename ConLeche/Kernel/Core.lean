@@ -1746,7 +1746,33 @@ def coreKnot {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 
 /-- The shared fuel for the checker core: bounds the recursion depth of
 reduction, inference and definitional equality.  Exhaustion is an
-internal error, never a verdict. -/
-def checkFuel : Nat := 100000
+internal error, never a verdict.
+
+**The stack policy** (task #353).  Fuel is counted in knot levels, and
+each knot level is native recursion (the official kernel recurses on
+its native stack the same way: a `whnf` of `W*200033` is a 200033-deep
+first-argument recursion in both).  So the fuel must be small enough
+that running out of it is a clean exit 3 and never a native stack
+overflow (`Stack overflow detected`, an abort, exit 134), on any path.
+Every thread the checker runs on is a Lean runtime thread with the
+runtime's default 1 GiB stack (`LEAN_DEFAULT_THREAD_STACK_SIZE` on
+64-bit: the main thread, which `lean_run_main` starts as such a
+thread, and every `IO.asTask (prio := .dedicated)` worker of the
+install and check pools).  A knot level costs at most about 1.3 KB of
+it: the static bound over the compiled binary (the deepest chain of
+frames from a knot slot's closure to the next closure call) is 1.2 KB,
+on the ι path `whnfCore → iotaRecI → prepareMajorI → majorToCtorI →
+proofIrrelI` and on the projection-pair path into the λ-telescope
+comparison; the deepest measured is 0.8 KB per level
+(`tests/e2e/src/stack_fuel_offset.lean`).  500000 levels are therefore
+at most 0.65 GB of the 1 GiB, with room for the frames below the first
+level and the term walkers above the last; the deepest recursions met
+in practice need about 205000 (the openai/math PeriodicGroup
+`seed_run`, `tests/e2e/src/natmul_deep_major.lean`).  A run with
+`LEAN_STACK_SIZE_KB` below about 700000, or with `LEAN_MAIN_USE_THREAD=0`
+at `--jobs=1` (the main stack is then the process's, typically 8 MB),
+is outside the policy and can abort instead of exiting 3.  See
+DESIGN.md, task #353. -/
+def checkFuel : Nat := 500000
 
 end ConLeche
