@@ -152,7 +152,7 @@ recorded identity-certificate run, converted through `DefEqClaim` at
 the pre-insertion environment over the one-entry element context; every
 other stored reduce operation crosses by `reduceOps_entry_cons`.  See
 the module docstring for the route. -/
-theorem reduceOps_install (hμ : μ.verifiedChecks = true)
+theorem reduceOps_install (hμ : μ.isVerified = true)
     (mp : EnvModelM V μ env) {F : Nat}
     {cv : ConstantVal} {value type' value' : Expr}
     {A Ta : (Name → Nat) → Term}

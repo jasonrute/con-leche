@@ -94,7 +94,7 @@ theorem inferTypeCore_spine_defeq {envK : Env} {F d : Nat} :
       inferTypeCore μ envK F d (Expr.mkAppN f as) = .ok t →
       ∀ l, l < m → ∃ D b ta, instPisWith (as.take l) tf = some (.forallE D b) ∧
         inferTypeCore μ envK F d (as.getD l default) = .ok ta ∧
-        isDefEqCore μ envK F d ta D = .ok true
+        isDefEqCore (μ.argMode (as.getD l default)) envK F d ta D = .ok true
   | [], _, _, _, m, hm, _, _, _, l, hl => absurd hl (by simp at hm; omega)
   | a :: as, f, tf, t, m, hm, hsd, hf, h, l, hl => by
     obtain ⟨tfa, hfa⟩ := Model.inferTypeCore_mkAppN_fn_inv as (f := .app f a) h
@@ -202,7 +202,7 @@ member `T_t` infers its major domain `T_t p⃗ ı⃗` — over the prefix's own
 parameter variables — and the application rule compares each variable's
 type, the stored `l`-th prefix domain, with `T_t`'s `l`-th parameter
 domain at the earlier variables; moved to the prefix's depth. -/
-theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche.EnvWF envC)
+theorem genMemberRec_paramDefeq (hμ : μ.isVerified = true) (hwf : ConLeche.EnvWF envC)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
     (hg : ClassGenScoped R.g) {i c : Nat} {rc : RecShape} {cvG : ConstantVal}
@@ -352,6 +352,8 @@ theorem genMemberRec_paramDefeq (hμ : μ.verifiedChecks = true) (hwf : ConLeche
   have hasl : as'.getD l default = .fvar l Al := by
     rw [List.getD_eq_getElem?_getD, hargEq l hl, hxl, Option.getD_some]
   rw [hasl] at hta
+  -- a free variable is no `eagerReduce _ _`: the knot's own mode
+  rw [hasl, show μ.argMode (.fvar l Al) = μ from rfl] at hde
   obtain ⟨F₁, rfl⟩ : ∃ F₁, F₀ = F₁ + 1 := ⟨F₀ - 1, by have := inferTypeCore_pos hta; omega⟩
   obtain ⟨-, htaA⟩ := ConLeche.Rules.inferTypeCore_fvar_inv hta
   rw [htaA] at hde
@@ -531,7 +533,7 @@ universe w
 
 variable {V : Type w} [SetTheory V]
 
-variable {envT : Env} (hμ : μ.verifiedChecks = true)
+variable {envT : Env} (hμ : μ.isVerified = true)
   (mp : EnvModelM V μ envT) {ψ : Name → Nat} {fuel rP : Nat}
   {tyA : Expr} {fvsA : List Expr} {oA : Expr}
   (hopA : openPisAtFvars rP tyA 0 = some (fvsA, oA))
@@ -685,7 +687,7 @@ set_option maxHeartbeats 1600000 in
 the members' run facts (`BlockMembersRun`): a spine fitting any stored
 recursor's rule prefix fits the block's parameters on its first `nP`
 values. -/
-theorem genParams_fit_run (hμ : μ.verifiedChecks = true) {F : Nat} {envI envC : Env}
+theorem genParams_fit_run (hμ : μ.isVerified = true) {F : Nat} {envI envC : Env}
     {pp : BlockParts} {nestedBit : Bool} {pos : NestState} {cvTas : List ConstantVal}
     {block : List ConstantInfo} {ctorsAs : List (List (ConstantVal × Nat))}
     {out : List (ConstantVal × TargetMajor × List Expr)} (mpC : EnvModelM V μ envC)

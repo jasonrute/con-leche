@@ -461,7 +461,7 @@ variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 /-- **`nestedRecCtx_nodes` at the generated stage's context**: the node
 list over the generated run's table `R.st.ctorNfs` (the seeds' walk). -/
-theorem genRecCtx_nodes (hμ : μ.verifiedChecks = true) {F : Nat} {block : List ConstantInfo}
+theorem genRecCtx_nodes (hμ : μ.isVerified = true) {F : Nat} {block : List ConstantInfo}
     {envC envI : Env} {pp : BlockParts} {cvTasR : List ConstantVal}
     {ctorsAsR : List (List (ConstantVal × Nat))}
     {out : List (ConstantVal × ConLeche.TargetMajor × List Expr)} {mpC : EnvModelM V μ envC}

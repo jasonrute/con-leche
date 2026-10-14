@@ -241,7 +241,7 @@ theorem whnfAppIotaC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env
       have h := hQfa
       rw [hv, hax] at h
       exact h
-    refine SimC.bind (iotaRecC_sim hμ ih henv hμ hs₁ hQfa' hwapp)
+    refine SimC.bind (iotaRecC_sim hμ ih henv hs₁ hQfa' hwapp)
       (fun s₂ o ox hs₂ hPo => ?_)
     cases o with
     | some e'' =>
@@ -617,7 +617,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
       refine SimC.bind (ih.infer hs₁ hax hwxa)
         (fun s₂ ta tax hs₂ hP => ?_)
       obtain ⟨htad, hwta⟩ := hP
-      refine SimC.bind (ih.defeq hs₂ htad hQdom hwta hcomp.1)
+      refine SimC.bind (defeqArgC_sim ih hs₂ hax htad hQdom hwta hcomp.1)
         (fun s₃ b b' hs₃ hPb => ?_)
       obtain rfl : b = b' := hPb
       cases b with
@@ -655,7 +655,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
         refine SimC.bind (ih.infer hs₂ hax hwxa)
           (fun s₃ ta tax hs₃ hP₃ => ?_)
         obtain ⟨htad, hwta⟩ := hP₃
-        refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
+        refine SimC.bind (defeqArgC_sim ih hs₃ hax htad rfl hwta hwtb.1)
           (fun s₄ b b' hs₄ hPb => ?_)
         obtain rfl : b = b' := hPb
         cases b with
@@ -702,7 +702,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
         refine SimC.bind (ih.infer hs₂ hax hwxa)
           (fun s₃ ta tax hs₃ hP₃ => ?_)
         obtain ⟨htad, hwta⟩ := hP₃
-        refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
+        refine SimC.bind (defeqArgC_sim ih hs₃ hax htad rfl hwta hwtb.1)
           (fun s₄ b b' hs₄ hPb => ?_)
         obtain rfl : b = b' := hPb
         cases b with
@@ -749,7 +749,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
         refine SimC.bind (ih.infer hs₂ hax hwxa)
           (fun s₃ ta tax hs₃ hP₃ => ?_)
         obtain ⟨htad, hwta⟩ := hP₃
-        refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
+        refine SimC.bind (defeqArgC_sim ih hs₃ hax htad rfl hwta hwtb.1)
           (fun s₄ b b' hs₄ hPb => ?_)
         obtain rfl : b = b' := hPb
         cases b with
@@ -796,7 +796,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
         refine SimC.bind (ih.infer hs₂ hax hwxa)
           (fun s₃ ta tax hs₃ hP₃ => ?_)
         obtain ⟨htad, hwta⟩ := hP₃
-        refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
+        refine SimC.bind (defeqArgC_sim ih hs₃ hax htad rfl hwta hwtb.1)
           (fun s₄ b b' hs₄ hPb => ?_)
         obtain rfl : b = b' := hPb
         cases b with
@@ -843,7 +843,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
         refine SimC.bind (ih.infer hs₂ hax hwxa)
           (fun s₃ ta tax hs₃ hP₃ => ?_)
         obtain ⟨htad, hwta⟩ := hP₃
-        refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
+        refine SimC.bind (defeqArgC_sim ih hs₃ hax htad rfl hwta hwtb.1)
           (fun s₄ b b' hs₄ hPb => ?_)
         obtain rfl : b = b' := hPb
         cases b with
@@ -890,7 +890,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
         refine SimC.bind (ih.infer hs₂ hax hwxa)
           (fun s₃ ta tax hs₃ hP₃ => ?_)
         obtain ⟨htad, hwta⟩ := hP₃
-        refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
+        refine SimC.bind (defeqArgC_sim ih hs₃ hax htad rfl hwta hwtb.1)
           (fun s₄ b b' hs₄ hPb => ?_)
         obtain rfl : b = b' := hPb
         cases b with
@@ -937,7 +937,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
         refine SimC.bind (ih.infer hs₂ hax hwxa)
           (fun s₃ ta tax hs₃ hP₃ => ?_)
         obtain ⟨htad, hwta⟩ := hP₃
-        refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
+        refine SimC.bind (defeqArgC_sim ih hs₃ hax htad rfl hwta hwtb.1)
           (fun s₄ b b' hs₄ hPb => ?_)
         obtain rfl : b = b' := hPb
         cases b with
@@ -984,7 +984,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
         refine SimC.bind (ih.infer hs₂ hax hwxa)
           (fun s₃ ta tax hs₃ hP₃ => ?_)
         obtain ⟨htad, hwta⟩ := hP₃
-        refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
+        refine SimC.bind (defeqArgC_sim ih hs₃ hax htad rfl hwta hwtb.1)
           (fun s₄ b b' hs₄ hPb => ?_)
         obtain rfl : b = b' := hPb
         cases b with
@@ -1031,7 +1031,7 @@ theorem inferSpineC_sim (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
         refine SimC.bind (ih.infer hs₂ hax hwxa)
           (fun s₃ ta tax hs₃ hP₃ => ?_)
         obtain ⟨htad, hwta⟩ := hP₃
-        refine SimC.bind (ih.defeq hs₃ htad rfl hwta hwtb.1)
+        refine SimC.bind (defeqArgC_sim ih hs₃ hax htad rfl hwta hwtb.1)
           (fun s₄ b b' hs₄ hPb => ?_)
         obtain rfl : b = b' := hPb
         cases b with

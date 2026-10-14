@@ -374,17 +374,16 @@ theorem projCertAtF_mkFEnv (env : Env) (v : Bool) (c : Name) (args : List Expr) 
   split <;> rfl
 
 /-- `structUnitCertI` simulates its fueled original. -/
-theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (_henv : EnvWF env)
+theorem structUnitCertC_sim (ih : SSimC mode env f) (_henv : EnvWF env)
     {d : Nat} {i j : Expr} {a b : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hdena : RelC i a) (hdenb : RelC j b)
     (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
     SimC mode env s₀ RelVC
       (structUnitCertI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j)
       (structUnitCert (fueledFns mode env) env d a b) := by
-  obtain rfl := CheckMode.eq_verified hμ
-  show SimC .verified env s₀ RelVC
-    ((coreKnotI .verified (mkFEnv env) f).inferIO d i >>= fun ta =>
-      (coreKnotI .verified (mkFEnv env) f).whnf d ta >>= fun wta =>
+  show SimC mode env s₀ RelVC
+    ((coreKnotI mode (mkFEnv env) f).inferIO d i >>= fun ta =>
+      (coreKnotI mode (mkFEnv env) f).whnf d ta >>= fun wta =>
       
       match (Expr.getAppFn wta) with
       | .const T us' =>
@@ -396,15 +395,15 @@ theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode 
               reservedBasisNames.contains Tn = false ∧
               targs.length = caps.unitParams ∧
               us'.length = cvT.levelParams.length then
-            (coreKnotI .verified (mkFEnv env) f).inferIO d j >>= fun tb =>
-            (coreKnotI .verified (mkFEnv env) f).whnf d tb >>= fun wtb =>
+            (coreKnotI mode (mkFEnv env) f).inferIO d j >>= fun tb =>
+            (coreKnotI mode (mkFEnv env) f).whnf d tb >>= fun wtb =>
             if wtb.isForallE then pure false else
-            (coreKnotI .verified (mkFEnv env) f).defeq d wta wtb
+            (coreKnotI mode (mkFEnv env) f).defeq d wta wtb
           else pure false
         | _ => pure false
       | _ => pure false)
-    ((fueledFns .verified env).inferIO d a >>= fun ta =>
-      (fueledFns .verified env).whnf d ta >>= fun wta =>
+    ((fueledFns mode env).inferIO d a >>= fun ta =>
+      (fueledFns mode env).whnf d ta >>= fun wta =>
       match wta.getAppFn with
       | .const T us' =>
         match env.find? T with
@@ -413,10 +412,10 @@ theorem structUnitCertC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode 
               reservedBasisNames.contains T = false ∧
               wta.getAppArgs.length = caps.unitParams ∧
               us'.length = cvT.levelParams.length then
-            (fueledFns .verified env).inferIO d b >>= fun tb =>
-            (fueledFns .verified env).whnf d tb >>= fun wtb =>
+            (fueledFns mode env).inferIO d b >>= fun tb =>
+            (fueledFns mode env).whnf d tb >>= fun wtb =>
             if wtb.isForallE then pure false else
-            (fueledFns .verified env).defeq d wta wtb
+            (fueledFns mode env).defeq d wta wtb
           else pure false
         | _ => pure false
       | _ => pure false)
@@ -804,7 +803,7 @@ theorem structEtaCertC_sim (ih : SSimC mode env f)
   exact structEtaCertWithC_sim ih hs₂ hdena hdenb hwtbd hwa hwb hwwtb
 
 /-- `stuckIrrelI` simulates its fueled original. -/
-theorem stuckIrrelC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env)
+theorem stuckIrrelC_sim (ih : SSimC mode env f) (henv : EnvWF env)
     {d : Nat} {i j : Expr} {a b : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hdena : RelC i a) (hdenb : RelC j b)
     (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
@@ -843,7 +842,7 @@ theorem stuckIrrelC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env 
     | true => simp only [↓reduceIte]; exact SimC.pure hs₄ rfl
     | false =>
       simp only [Bool.false_eq_true, ↓reduceIte]
-      refine SimC.bind (structUnitCertC_sim hμ ih henv hs₄ hdena hdenb
+      refine SimC.bind (structUnitCertC_sim ih henv hs₄ hdena hdenb
         hwa hwb) (fun s₅ r₅ r₅' hs₅ hP₅ => ?_)
       obtain rfl : r₅ = r₅' := hP₅
       cases r₅ with

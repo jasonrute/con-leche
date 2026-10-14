@@ -42,6 +42,9 @@ structure CoreFnsI where
   whnf : Nat → Expr → CheckCM Expr
   infer : Nat → Expr → CheckCM Expr
   defeq : Nat → Expr → Expr → CheckCM Bool
+  /-- Definitional equality in the **eager tower** (task #353) — the
+  twin of `CoreFns.defeqE`. -/
+  defeqE : Nat → Expr → Expr → CheckCM Bool
   /-- Type inference at the **infer-only grade** (task #170 / #172 B4)
   — the twin of `CoreFns.inferIO` (`ConLeche/Kernel/Core.lean`): what
   every internal inference call site runs: the io body under its own
@@ -275,6 +278,12 @@ families; otherwise it is `true` without running. -/
 constant `true`, by `rfl`. -/
 @[simp] theorem certAtI_verified (c : CheckCM Bool) :
     certAtI .verified c = c := rfl
+
+/-- At any mode that runs the verified checks — `.verified` or its
+eager tower (task #353) — the wrapper is the certificate. -/
+theorem certAtI_of {mode : CheckMode} (h : mode.verifiedChecks = true)
+    (c : CheckCM Bool) : certAtI mode c = c := by
+  simp only [certAtI, h, ↓reduceIte]
 /-- Twin of `propIrrel` (task #168): the hoisted `Prop`-branch test
 with both head-symbol arms.  Ungated since 2026-09-06 — the readers
 run in both modes, so this body takes no `CheckMode` at all. -/
@@ -822,6 +831,11 @@ budget. -/
 def whnfCoreBodyI (r : CoreFnsI) (fe : FEnv) : Bool → Nat → Expr → CheckCM Expr :=
   fun cheap depth e => whnfCoreLoopI mode r fe cheap depth whnfCoreLoopFuel e
 
+/-- Twin of `defeqArg`: an `eagerReduce _ _` argument's type is
+compared in the eager tower. -/
+def defeqArgI (r : CoreFnsI) (depth : Nat) (a ta ty : Expr) : CheckCM Bool :=
+  if Expr.isEagerReduce a then r.defeqE depth ta ty else r.defeq depth ta ty
+
 /-- Application-inference spine loop (task #50): walk the raw
 Π-telescope against the arguments with deferred substitution — each
 argument's certificate substitutes only its *domain*; the codomain is
@@ -839,7 +853,7 @@ def inferSpineI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
       -- in the spec body `inferBody`
       let dom' ← instListRevM dom acc
       let ta ← r.infer depth a
-      unless ← r.defeq depth ta dom' do
+      unless ← defeqArgI r depth a ta dom' do
         throw (.invalid "application type mismatch")
       inferSpineI r fe depth body (acc.push a) rest
     | _ => do
@@ -848,7 +862,7 @@ def inferSpineI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
       match w with
       | .forallE dom body => do
         let ta ← r.infer depth a
-        unless ← r.defeq depth ta dom do
+        unless ← defeqArgI r depth a ta dom do
           throw (.invalid "application type mismatch")
         inferSpineI r fe depth body #[a] rest
       | _ => throw (.invalid "function expected")
@@ -1316,7 +1330,8 @@ def lazyDeltaReductionI (r : CoreFnsI) (fe : FEnv) (depth : Nat) :
     match ← defeqOffsetI r depth a b with
     | some v => pure (.verdict v)
     | none =>
-    let fold ← pure (!Expr.hasFvar a && !Expr.hasFvar b)
+    -- the eager flag (task #353) folds with free variables present
+    let fold ← pure (mode.eager || (!Expr.hasFvar a && !Expr.hasFvar b))
     match ← (if fold then reduceNatI r fe depth a else pure none) with
     | some a₂ => do
       let v ← r.defeq depth a₂ b
@@ -1415,7 +1430,7 @@ def defeqBodyI (r : CoreFnsI) (fe : FEnv) : Nat → Expr → Expr → CheckCM Bo
     -- the eq-true shortcut (E2), as in the spec
     let bt ← pure (Expr.isBoolTrue b)
     let af ← pure (Expr.hasFvar a)
-    if ← (if bt && !af then boolTrueShortcutI r depth a
+    if ← (if bt && (mode.eager || !af) then boolTrueShortcutI r depth a
         else pure false) then pure true else
     match ← quickDefEqI mode r depth a b with
     | some v => pure v
@@ -1485,12 +1500,13 @@ is the verified core the capstones are stated about, and
 function at the other mode.  The mode-parametric simulation tower
 (`ConLeche/Verify/Cached/*`) is stated at `coreKnotI mode` under
 `hμ : mode.verifiedChecks = true`. -/
-def coreKnotI (fe : FEnv) : Nat → CoreFnsI
+def coreKnotI (mode : CheckMode) (fe : FEnv) : Nat → CoreFnsI
   | 0 =>
     { whnfCore := fun _ _ _ => throw (.internal "fuel exhausted: whnfCore")
       whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
       infer := fun _ _ => throw (.internal "fuel exhausted: infer")
       defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
+      defeqE := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
       inferIO := fun _ _ => throw (.internal "fuel exhausted: infer") }
   | fuel + 1 =>
     -- **NOT a `Thunk`** (task #179).  The previous fuel level used to be
@@ -1514,7 +1530,7 @@ def coreKnotI (fe : FEnv) : Nat → CoreFnsI
     -- cache-missing call) and that is the smaller number by 5×.
     -- `Thunk.get ⟨f⟩` is `f ()` by structure eta, so this is the same
     -- term: no proof in `ConLeche/Verify/Cached/*` moved.
-    let prev : Unit → CoreFnsI := fun _ => coreKnotI fe fuel
+    let prev : Unit → CoreFnsI := fun _ => coreKnotI mode fe fuel
     -- task #172 B2 / #185: the template's parameter is the mode, an
     -- enum passed down once per *driver* — nothing is built per knot
     -- level or per call (at B2 a record allocation at every
@@ -1534,6 +1550,12 @@ def coreKnotI (fe : FEnv) : Nat → CoreFnsI
         (fun d e => inferBodyI (prev ()) fe d e)
       defeq := memoBI
         (fun d a b => defeqBodyI mode (prev ()) fe d a b)
+      -- **The eager slot** (task #353): the eager tower — the knot at
+      -- `mode.toEager` one level down — under its own memos
+      -- (`withFreshMemos`: an eager entry never serves a plain query)
+      defeqE := fun d a b => withFreshMemos
+        (memoBI (fun d a b =>
+          defeqBodyI mode.toEager (coreKnotI mode.toEager fe fuel) fe d a b) d a b)
       -- **The io slot** (task #170 / #172 B4, task #346): the io body
       -- under its OWN memo (`CState.inferIOC` — the task-#170 memo
       -- ruling: a hit in the io memo never serves a full-infer query),

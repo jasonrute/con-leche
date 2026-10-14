@@ -74,7 +74,7 @@ theorem eval_le_idxUniv {ψ : Name → Nat} {isorts : List Level} {j : Nat} {s :
 
 /-- **The former's index telescope**, graded and bounded by the tuple
 universe at every parameter frame. -/
-theorem idxOk_of (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env)
+theorem idxOk_of (hμ : μ.isVerified = true) (mp : EnvModelM V μ env)
     {F : Nat} {nP nIdx : Nat} {resSort : Level} {cvTa : ConstantVal} {T : Name}
     {caps : IndCaps} (hfT : env.find? T = some (.indInfo cvTa caps))
     {tfvs : List Expr} {trest : Expr}
@@ -299,7 +299,7 @@ that it refutes the head as another stored family's η constructor
 (`hEtaOther`, `capsOk_cons_native`'s `hother`).  At a block it is
 `ConLeche.BlockEtaInv` (`BlockCtorsLoop.lean`), since `checkBlockInds`
 leaves up to `k` families pending. -/
-theorem ctorsLoopEta (hμ : μ.verifiedChecks = true)
+theorem ctorsLoopEta (hμ : μ.isVerified = true)
     {F : Nat} {p : InductiveShape} {env₀ envI : Env} {cvTa : ConstantVal}
     {ctors ctorsA : List (ConstantVal × Nat)} {sortss : List (List Level)}
     (hCtors : ConLeche.checkSumCtors (ConLeche.fueledOps μ F) env₀ envI p.cvT.name
@@ -1651,7 +1651,7 @@ each domain, at the frame under the earlier ones, into `univ w`
 frame satisfying the earlier domains, the next domain's reading is
 graded and lies in `univ w` — the sort claim at the context opened by
 the earlier binders. -/
-theorem teleBound_walk (hμ : μ.verifiedChecks = true) (mp : EnvModelM V μ env) (ψ : Name → Nat)
+theorem teleBound_walk (hμ : μ.isVerified = true) (mp : EnvModelM V μ env) (ψ : Name → Nat)
     {w : Nat} :
     ∀ (n : Nat) {d : Nat} {e : Expr} {fvs : List Expr} {o : Expr} {Δ : List Term}
       {tl : List Term},

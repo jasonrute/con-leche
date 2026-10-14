@@ -525,40 +525,62 @@ end Wrappers
 
 /-! ## The knot induction -/
 
-/-- The cached knot simulates the fueled families at
-every fuel.  The wrapper steps tie each entry point at `f + 1` to the
-body walks at `f`, which consume the simulation at `f` as their
-induction hypothesis. -/
-theorem ssimC (hμ : mode.verifiedChecks = true) (env : Env) (henv : EnvWF env) : ∀ f, SSimC mode env f
-  | 0 => ssimC_zero env
-  | f + 1 =>
+private theorem ssimC_all (env : Env) (henv : EnvWF env) :
+    ∀ (f : Nat) (mode : CheckMode), mode.verifiedChecks = true → SSimC mode env f
+  | 0, _, _ => ssimC_zero env
+  | f + 1, mode, hμ =>
     { whnfCore := fun hs hden hw =>
         memoEI_whnfCore_sim henv
           (fun hs' hden' hw' =>
-            whnfCoreBodyC_sim hμ (ssimC hμ env henv f) henv hs' hden' hw')
+            whnfCoreBodyC_sim hμ (ssimC_all env henv f mode hμ) henv hs' hden' hw')
           hs hden hw
       whnf := fun hs hden hw =>
         memoEI_whnf_sim henv
           (fun hs' hden' hw' =>
-            whnfBodyC_sim (ssimC hμ env henv f) henv hs' hden' hw')
+            whnfBodyC_sim (ssimC_all env henv f mode hμ) henv hs' hden' hw')
           hs hden hw
       infer := fun hs hden hw =>
         memoEI_infer_sim henv
           (fun hs' hden' hw' =>
-            inferBodyC_sim (ssimC hμ env henv f) henv hs' hden' hw')
+            inferBodyC_sim (ssimC_all env henv f mode hμ) henv hs' hden' hw')
           hs hden hw
       defeq := fun hs hdena hdenb hwa hwb =>
         memoBI_defeq_sim henv
           (fun hs' hdena' hdenb' hwa' hwb' =>
-            defeqBodyC_sim hμ (ssimC hμ env henv f) henv hs' hdena' hdenb'
+            defeqBodyC_sim hμ (ssimC_all env henv f mode hμ) henv hs' hdena' hdenb'
               hwa' hwb')
           hs hdena hdenb hwa hwb
+      -- the eager slot (task #353): the eager tower's memoized `defeq`
+      -- under fresh memos; its fueled side has the eager tower's runs
+      -- (`defeqE_def`)
+      defeqE := fun {s₀ d i j a b} hs hdena hdenb hwa hwb => by
+        have hE : mode.toEager.verifiedChecks = true := by
+          rw [CheckMode.verifiedChecks_toEager]; exact hμ
+        refine SimC.congr_fueled (p := (fueledFns mode.toEager env).defeq d a b)
+          (fun F => defeqE_def env F d a b) ?_
+        show SimC mode env s₀ RelVC
+          (withFreshMemos ((coreKnotI mode.toEager (mkFEnv env) (f + 1)).defeq d i j)) _
+        exact SimC.freshMemos hs (fun hs₁ =>
+          memoBI_defeq_sim henv
+            (fun hs' hdena' hdenb' hwa' hwb' =>
+              defeqBodyC_sim hE (ssimC_all env henv f mode.toEager hE) henv hs'
+                hdena' hdenb' hwa' hwb')
+            hs₁ hdena hdenb hwa hwb)
       -- the io slot (task #172 B4): the io body at every mode, in both
       -- knots
       inferIO := fun hs hden hw =>
         memoEI_inferIO_sim henv
           (fun hs' hden' hw' =>
-            inferBodyIOC_sim hμ (ssimC hμ env henv f) henv hs' hden' hw')
+            inferBodyIOC_sim hμ (ssimC_all env henv f mode hμ) henv hs' hden' hw')
           hs hden hw }
+
+/-- The cached knot simulates the fueled families at
+every fuel.  The wrapper steps tie each entry point at `f + 1` to the
+body walks at `f`, which consume the simulation at `f` as their
+induction hypothesis — at the knot's mode and, for the eager slot, at
+its eager tower's (task #353), so the induction runs over every mode. -/
+theorem ssimC (hμ : mode.verifiedChecks = true) (env : Env) (henv : EnvWF env) (f : Nat) :
+    SSimC mode env f :=
+  ssimC_all env henv f mode hμ
 
 end ConLeche.Cached

@@ -41,8 +41,8 @@ namespace ConLeche
 variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 variable (mode : CheckMode)
 
-/-- **The io knot** (the leaf lane).  `whnfCore`/`whnf`/`defeq` are
-the *full* knot's at the same fuel — the io lane consumes reduction
+/-- **The io knot** (the leaf lane).  `whnfCore`/`whnf`/`defeq`/`defeqE`
+are the *full* knot's at the same fuel — the io lane consumes reduction
 and definitional equality and never supplies them — and `infer` is
 `inferBodyIO` tied to the io knot one level down.  This leaf lane is
 the *statement subject* the io claims are phrased at, and the knot
@@ -55,11 +55,13 @@ def coreKnotIO (env : Env) : Nat → CoreFns m
       whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
       infer := fun _ _ => throw (.internal "fuel exhausted: infer")
       defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
+      defeqE := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
       inferIO := fun _ _ => throw (.internal "fuel exhausted: infer") }
   | fuel + 1 =>
     { whnfCore := (coreKnot mode env id (fuel + 1)).whnfCore
       whnf := (coreKnot mode env id (fuel + 1)).whnf
       defeq := (coreKnot mode env id (fuel + 1)).defeq
+      defeqE := (coreKnot mode env id (fuel + 1)).defeqE
       infer := fun d e => inferBodyIO (coreKnotIO env fuel) env d e
       inferIO := fun d e => inferBodyIO (coreKnotIO env fuel) env d e }
 

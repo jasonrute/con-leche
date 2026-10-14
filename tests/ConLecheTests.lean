@@ -43,8 +43,9 @@ is silently vacuous if a flag it assumes is compiled the other way;
 these guards pin the actual values.  One `#guard` per pinned value,
 each naming the theorem family that depends on it. -/
 
--- `CheckMode` has TWO values, and `.verified` -- the verified graded
--- lane, `--verified` -- is the first constructor, so it is both the
+-- `CheckMode` has two command-line values (and their two eager towers,
+-- task #353), and `.verified` -- the verified graded lane,
+-- `--verified` -- is the first constructor, so it is both the
 -- `Inhabited` default and `Main.lean`'s `Args.mode`.
 #guard (default : CheckMode) == .verified
 
@@ -56,6 +57,16 @@ each naming the theorem family that depends on it. -/
 -- trusted lane (the reference kernel runs none of them).
 #guard CheckMode.verifiedChecks .verified == true
 #guard CheckMode.verifiedChecks .trusted == false
+
+-- The eager towers (task #353, official's `m_eager_reduce`): each runs
+-- its base mode's checks, with the eager flag set; only `.verified`
+-- itself is the model tier's mode.
+#guard CheckMode.verifiedChecks .verifiedEager == true
+#guard CheckMode.verifiedChecks .trustedEager == false
+#guard CheckMode.toEager .verified == .verifiedEager
+#guard CheckMode.toEager .trusted == .trustedEager
+#guard (CheckMode.toEager .verified).eager && !CheckMode.eager .verified
+#guard CheckMode.isVerified .verified && !CheckMode.isVerified .verifiedEager
 
 def dummyAxiom : Declaration :=
   .axiomDecl { name := .str .anonymous "foo", levelParams := [], type := .sort .zero }

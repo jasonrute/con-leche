@@ -416,6 +416,17 @@ def natXorName : Name := natName.str "xor"
 def natShiftLeftName : Name := natName.str "shiftLeft"
 def natShiftRightName : Name := natName.str "shiftRight"
 def boolName : Name := .str .anonymous "Bool"
+
+/-- `eagerReduce` (`Init/Core.lean`: `def eagerReduce (a : α) : α := a`),
+the gadget that sets the official kernel's eager flag (task #353). -/
+def eagerReduceName : Name := .str .anonymous "eagerReduce"
+
+/-- Is `e` of the form `eagerReduce _ _` — official `is_eager_reduce`
+(`type_checker.cpp`): the head constant `eagerReduce`, exactly two
+arguments, any universe levels. -/
+def Expr.isEagerReduce : Expr → Bool
+  | .app (.app (.const c _) _) _ => c == eagerReduceName
+  | _ => false
 def boolTrueName : Name := boolName.str "true"
 def boolFalseName : Name := boolName.str "false"
 

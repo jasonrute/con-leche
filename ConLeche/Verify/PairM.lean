@@ -95,6 +95,7 @@ io slot joins as the sixth component.) -/
   (∀ d e, rel.R (r₁.whnf d e) (r₂.whnf d e)) ∧
   (∀ d e, rel.R (r₁.infer d e) (r₂.infer d e)) ∧
   (∀ d a b, rel.R (r₁.defeq d a b) (r₂.defeq d a b)) ∧
+  (∀ d a b, rel.R (r₁.defeqE d a b) (r₂.defeqE d a b)) ∧
   (∀ d e, rel.R (r₁.inferIO d e) (r₂.inferIO d e))
 
 /-- Relatedness transports along the io-grade view: the view only
@@ -102,7 +103,7 @@ permutes fields. -/
 theorem FnsRel.ioView {rel : MonadRel M₁ M₂} {r₁ : CoreFns M₁}
     {r₂ : CoreFns M₂} (h : FnsRel rel r₁ r₂) :
     FnsRel rel r₁.ioView r₂.ioView :=
-  ⟨h.1, h.2.1, h.2.2.2.2, h.2.2.2.1, h.2.2.2.2⟩
+  ⟨h.1, h.2.1, h.2.2.2.2.2, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2⟩
 
 /-- The paired record. -/
 def pairFns {rel : MonadRel M₁ M₂} (r₁ : CoreFns M₁) (r₂ : CoreFns M₂)
@@ -111,7 +112,8 @@ def pairFns {rel : MonadRel M₁ M₂} (r₁ : CoreFns M₁) (r₂ : CoreFns M�
   whnf d e := ⟨(r₁.whnf d e, r₂.whnf d e), h.2.1 d e⟩
   infer d e := ⟨(r₁.infer d e, r₂.infer d e), h.2.2.1 d e⟩
   defeq d a b := ⟨(r₁.defeq d a b, r₂.defeq d a b), h.2.2.2.1 d a b⟩
-  inferIO d e := ⟨(r₁.inferIO d e, r₂.inferIO d e), h.2.2.2.2 d e⟩
+  defeqE d a b := ⟨(r₁.defeqE d a b, r₂.defeqE d a b), h.2.2.2.2.1 d a b⟩
+  inferIO d e := ⟨(r₁.inferIO d e, r₂.inferIO d e), h.2.2.2.2.2 d e⟩
 
 section Commute
 
@@ -305,6 +307,14 @@ theorem iotaIndexOk_snd (d : Nat) (mI rP cnP : Nat) (tyCtor : Expr)
     cases piResidual tyCtor margs with
     | none => rfl
     | some residual => exact defEqList_snd d _ _
+
+theorem defeqArg_fst (d : Nat) (a ta ty : Expr) :
+    (defeqArg (pairFns r₁ r₂ h) d a ta ty).val.1 = defeqArg r₁ d a ta ty := by
+  unfold defeqArg; split <;> rfl
+
+theorem defeqArg_snd (d : Nat) (a ta ty : Expr) :
+    (defeqArg (pairFns r₁ r₂ h) d a ta ty).val.2 = defeqArg r₂ d a ta ty := by
+  unfold defeqArg; split <;> rfl
 
 theorem defeqSpine_fst (d : Nat) (a b : Expr) :
     (defeqSpine (pairFns r₁ r₂ h) env d a b).val.1 =
@@ -895,6 +905,7 @@ macro "fst_core4" x:tactic : tactic =>
     | (rw [iotaRec_fst_proj])
     | (rw [projLitToCtor_fst_proj])
     | (rw [defeqSpine_fst])
+    | (rw [defeqArg_fst])
     | (rw [reduceProjCore_fst_proj])
     | (rw [quickDefEq_fst_proj])
     | (rw [lazyDeltaReduction_fst_proj])
@@ -950,6 +961,7 @@ macro "snd_core4" x:tactic : tactic =>
     | (rw [iotaRec_snd_proj])
     | (rw [projLitToCtor_snd_proj])
     | (rw [defeqSpine_snd])
+    | (rw [defeqArg_snd])
     | (rw [reduceProjCore_snd_proj])
     | (rw [quickDefEq_snd_proj])
     | (rw [lazyDeltaReduction_snd_proj])

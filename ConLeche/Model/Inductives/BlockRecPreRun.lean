@@ -357,7 +357,7 @@ theorem exists_uniform_univ {n : Nat} {g : (Name → Nat) → Nat → (Nat → V
 level is the max of the `K` inferred sorts, each of them a `Level` the
 run fixed; every recursor type's reading lands in it by cumulativity,
 and its grading is the same run's. -/
-theorem blockRecTy_univ_run {envC : Env} (hμ : μ.verifiedChecks = true)
+theorem blockRecTy_univ_run {envC : Env} (hμ : μ.isVerified = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
     (h : ConLeche.RecStageG μ F envC p cvTas rs) :
@@ -859,7 +859,7 @@ entries.**  Stage (b') opens the stored type at the rule prefix alone;
 its reading opens it at the full `mI + 1` binders.  The shorter opening
 is the longer one's prefix (`openPisAtFvars_prefix_getElem`), so the two
 carry the same annotations at every position below `rP`. -/
-theorem blockRulePdomsAV_reads (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
+theorem blockRulePdomsAV_reads (hμ : μ.isVerified = true) (mpC : EnvModelM V μ envC)
     (h : ConLeche.RecStageG μ F envC p cvTas rs)
     {i : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[i]? = some r) (ψ : Name → Nat) {fvs : List Expr} {o : Expr}
@@ -918,7 +918,7 @@ theorem prefixDoms_graded_of_tower {rds : List Term} {cc : Term}
   exact hres
 
 /-- **The rule prefix's domains are GRADED at the run.** -/
-theorem blockRulePdomsAV_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
+theorem blockRulePdomsAV_graded (hμ : μ.isVerified = true) (mpC : EnvModelM V μ envC)
     (h : ConLeche.RecStageG μ F envC p cvTas rs)
     {i : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[i]? = some r) (ψ : Name → Nat) :
@@ -936,7 +936,7 @@ theorem blockRulePdomsAV_graded (hμ : μ.verifiedChecks = true) (mpC : EnvModel
 domains are bounded at their own depths, so `blockRecPdomsK`'s `K`
 lift is the identity.  `recStage_tyBounds` says it of the whole
 binder list; the prefix is its `take`. -/
-theorem blockRulePdomsAV_bounded (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
+theorem blockRulePdomsAV_bounded (hμ : μ.isVerified = true) (mpC : EnvModelM V μ envC)
     (h : ConLeche.RecStageG μ F envC p cvTas rs)
     {i : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[i]? = some r) (ψ : Name → Nat) :
@@ -965,7 +965,7 @@ theorem blockRulePdomsAV_bounded (hμ : μ.verifiedChecks = true) (mpC : EnvMode
 
 /-- **§20's guard is the base form, at the run** — `blockRecPdomsK_eq`
 with its premise discharged. -/
-theorem blockRecPdomsK_run (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
+theorem blockRecPdomsK_run (hμ : μ.isVerified = true) (mpC : EnvModelM V μ envC)
     (h : ConLeche.RecStageG μ F envC p cvTas rs)
     {i : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
     (hr : rs[i]? = some r) (ψ : Name → Nat) (K : Nat) :
@@ -1532,7 +1532,7 @@ lemmas below share: the recursor stage's run at a member recursor `c`
 variable {envC : Env} {p : ConLeche.BlockParts}
   {cvTas : List ConstantVal} {ctorsAs : List (List (ConstantVal × Nat))}
   {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
-  (hμ : μ.verifiedChecks = true) (mpC : EnvModelM V μ envC)
+  (hμ : μ.isVerified = true) (mpC : EnvModelM V μ envC)
   (h : ConLeche.RecStageG μ F envC p cvTas rs)
   {c : Nat} {r : ConstantVal × List Expr × Nat × List (ConstantVal × Nat)}
   (hr : rs[c]? = some r) (ψ : Name → Nat)
@@ -1583,7 +1583,7 @@ theorem fvarLeaves_nil_of_wscoped_zero {e : Expr} (hw : Expr.WScoped 0 e) :
 inferred sort**, at every frame satisfying the type's own domains:
 the claims' `SortSemAt` at the type's opened frame (its context is the
 domains reversed). -/
-theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
+theorem piConcl_univ {envC : Env} (hμ : μ.isVerified = true)
     (mpC : EnvModelM V μ envC) {F : Nat} (ψ : Name → Nat) {n : Nat} {T : Expr}
     {ea : Term} {rds : List Term} {cc : Term}
     {fvs : List Expr} {conclE sty : Expr} {u : Level}
@@ -1673,7 +1673,7 @@ theorem piConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
 /-- **THE `univZero` PRODUCER**, in its general form: the recursor's
 conclusion reads into `univ (u.eval ψ)` at every frame satisfying the
 type's own domains. -/
-theorem blockRecConcl_univ {envC : Env} (hμ : μ.verifiedChecks = true)
+theorem blockRecConcl_univ {envC : Env} (hμ : μ.isVerified = true)
     (mpC : EnvModelM V μ envC) {p : ConLeche.BlockParts} {cvTas : List ConstantVal}
     {rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))} {F : Nat}
     (h : ConLeche.RecStageG μ F envC p cvTas rs)

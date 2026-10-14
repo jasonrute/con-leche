@@ -48,6 +48,14 @@ structure SSimC (mode : CheckMode) (env : Env) (f : Nat) : Prop where
     SimC mode env s₀ RelVC
       ((coreKnotI mode (mkFEnv env) f).defeq d i j)
       ((fueledFns mode env).defeq d a b)
+  /-- the eager slot (task #353): the eager tower's comparison, under
+  its own memos, simulates the fueled eager slot -/
+  defeqE : ∀ {s₀ : CState} {d : Nat} {i j : Expr} {a b : Expr},
+    CSOK mode env s₀ → RelC i a → RelC j b →
+    Expr.WScoped d a → Expr.WScoped d b →
+    SimC mode env s₀ RelVC
+      ((coreKnotI mode (mkFEnv env) f).defeqE d i j)
+      ((fueledFns mode env).defeqE d a b)
   /-- the io slot (task #172 B4): the memoized knot's `inferIO` entry
   simulates the fueled io-slot family -/
   inferIO : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
@@ -62,11 +70,27 @@ theorem ssimC_zero (env : Env) : SSimC mode env 0 :=
     whnf := fun _ _ _ => SimC.throw
     infer := fun _ _ _ => SimC.throw
     defeq := fun _ _ _ _ _ => SimC.throw
+    defeqE := fun _ _ _ _ _ => SimC.throw
     inferIO := fun _ _ _ => SimC.throw }
 
 section Walks
 
 variable {env : Env} {f : Nat}
+
+/-- The full-grade argument check simulates its fueled original: the
+same argument, so the same tower (task #353). -/
+theorem defeqArgC_sim (ih : SSimC mode env f) {s₀ : CState} {d : Nat}
+    {a ta ty : Expr} {xa xta xty : Expr} (hs : CSOK mode env s₀)
+    (ha : RelC a xa) (hta : RelC ta xta) (hty : RelC ty xty)
+    (hwta : Expr.WScoped d xta) (hwty : Expr.WScoped d xty) :
+    SimC mode env s₀ RelVC
+      (defeqArgI (coreKnotI mode (mkFEnv env) f) d a ta ty)
+      (defeqArg (fueledFns mode env) d xa xta xty) := by
+  obtain rfl := ha
+  unfold defeqArgI defeqArg
+  split
+  · exact ih.defeqE hs hta hty hwta hwty
+  · exact ih.defeq hs hta hty hwta hwty
 
 /-- The pairwise definitional-equality
 helper simulates its fueled original on related, well-scoped lists. -/

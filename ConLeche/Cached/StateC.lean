@@ -321,6 +321,45 @@ def CState.flushed (s : CState) : CState :=
 
 def flushC : CheckCM Unit := modify (·.flushed)
 
+/-- **The mode-dependent memos** (task #353): the six entry-point
+memos, whose entries are results of the knot at ONE mode.  The level
+memos, the stored-constant caches and the bulk-instantiation memo are
+functions of their keys alone and are not among them. -/
+structure ModeMemos where
+  whnfCoreC : Std.HashMap Expr Expr
+  whnfCoreCheapC : Std.HashMap Expr Expr
+  whnfC : Std.HashMap Expr Expr
+  inferC : Std.HashMap Expr Expr
+  inferIOC : Std.HashMap Expr Expr
+  defeqC : Std.HashMap (Expr × Expr) Bool
+
+/-- Detach the mode-dependent memos, leaving empty ones (the maps move
+out of the state: they are not shared, so the run that follows
+mutates its own maps in place). -/
+def CState.takeModeMemos (s : CState) : ModeMemos × CState :=
+  (⟨s.whnfCoreC, s.whnfCoreCheapC, s.whnfC, s.inferC, s.inferIOC, s.defeqC⟩,
+   { s with whnfCoreC := {}, whnfCoreCheapC := {}, whnfC := {}, inferC := {},
+            inferIOC := {}, defeqC := {} })
+
+/-- Put detached mode-dependent memos back, dropping the state's own. -/
+def CState.putModeMemos (s : CState) (mm : ModeMemos) : CState :=
+  { s with whnfCoreC := mm.whnfCoreC, whnfCoreCheapC := mm.whnfCoreCheapC,
+           whnfC := mm.whnfC, inferC := mm.inferC, inferIOC := mm.inferIOC,
+           defeqC := mm.defeqC }
+
+/-- **Run at another mode's memos** (task #353): the eager tower's
+comparison (`CoreFnsI.defeqE`) starts from empty mode-dependent memos
+and the caller's are restored afterwards — the task-#170 memo ruling
+("since caching has no access to semantic reasoning we need two memos,
+one with and one without the flag") at the eager flag, without a
+second set of fields: an eager entry never serves a plain query, nor
+the other way round.  The mode-independent caches are shared. -/
+@[inline] def withFreshMemos (x : CheckCM α) : CheckCM α := do
+  let saved ← modifyGet CState.takeModeMemos
+  let r ← x
+  modify (·.putModeMemos saved)
+  pure r
+
 /-! ## The parsed-index driver's syntactic guards
 
 `Expr.constsResolveF` as a memoized `Expr` DAG walk: the tree-walking `Expr` version is what makes

@@ -312,7 +312,7 @@ frame**, with a bound that is a set of the level at a `Type`-valued one
 — whence the operator's accessibility, (W) and monotonicity: the block theorem with the
 container rules read at the walk's carrier (coverage) and the walk
 context's sort (the block's level). -/
-theorem blockAcc_of_run {μ : ConLeche.CheckMode} (hμ : μ.verifiedChecks = true) {F : Nat}
+theorem blockAcc_of_run {μ : ConLeche.CheckMode} (hμ : μ.isVerified = true) {F : Nat}
     {env : Env} (mp : EnvModelM V μ env) {d : BlockData V} {lps : List Name}
     {cvTas : List ConstantVal} {p₁ : BlockShape} {isRec : Bool} {p : BlockParts}
     {ctorsAs : List (List (ConstantVal × Nat))}

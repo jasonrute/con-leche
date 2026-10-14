@@ -1120,7 +1120,7 @@ def inferStep (r : CoreFns m) (depth : Nat) (tf a : Expr) : m Expr := do
   match ← r.whnf depth tf with
   | .forallE ty body => do
     let ta ← r.infer depth a
-    unless ← r.defeq depth ta ty do
+    unless ← defeqArg r depth a ta ty do
       throw (.invalid "application type mismatch")
     pure (body.instantiate1 a)
   | _ => throw (.invalid "function expected")
@@ -1142,14 +1142,14 @@ their arguments (innermost first). -/
     match ty with
     | .forallE dom body => do
       let ta ← r.infer depth a
-      unless ← r.defeq depth ta (dom.instantiateList acc) do
+      unless ← defeqArg r depth a ta (dom.instantiateList acc) do
         throw (.invalid "application type mismatch")
       inferSpine r depth body (a :: acc) rest
     | ty => do
       match ← r.whnf depth (ty.instantiateList acc) with
       | .forallE dom body => do
         let ta ← r.infer depth a
-        unless ← r.defeq depth ta dom do
+        unless ← defeqArg r depth a ta dom do
           throw (.invalid "application type mismatch")
         inferSpine r depth body [a] rest
       | _ => throw (.invalid "function expected")
@@ -1159,7 +1159,7 @@ their arguments (innermost first). -/
     (acc : List Expr) (a : Expr) (rest : List Expr) :
     m Expr := do
   let ta ← r.infer depth a
-  unless ← r.defeq depth ta (dom.instantiateList acc) do
+  unless ← defeqArg r depth a ta (dom.instantiateList acc) do
     throw (.invalid "application type mismatch")
   inferSpine r depth body (a :: acc) rest
 
@@ -1169,7 +1169,7 @@ their arguments (innermost first). -/
   match ← r.whnf depth (ty.instantiateList acc) with
   | .forallE dom body => do
     let ta ← r.infer depth a
-    unless ← r.defeq depth ta dom do
+    unless ← defeqArg r depth a ta dom do
       throw (.invalid "application type mismatch")
     inferSpine r depth body [a] rest
   | _ => throw (.invalid "function expected")
@@ -1228,6 +1228,7 @@ theorem inferSpine_atF (d : Nat) :
       funext ta
       rw [FueledM.atF_bind]
       congr 1
+      · exact defeqArg_atF d a ta _ F
       funext b
       cases b with
       | true =>
@@ -1250,6 +1251,7 @@ theorem inferSpine_atF (d : Nat) :
         funext ta
         rw [FueledM.atF_bind]
         congr 1
+        · exact defeqArg_atF d a ta _ F
         funext b
         cases b with
         | true =>
@@ -1321,7 +1323,7 @@ theorem inferSpine_snoc {d : Nat} :
         rw [instList_forallE, whnf_def, whnf_forallE, ok_bind]
         dsimp only
         rw [infer_def, inferTypeCore_mono (Nat.le_add_right F 2) hta,
-          ok_bind, defeq_def, isDefEqCore_mono (Nat.le_add_right F 2) hb,
+          ok_bind, defeqArg_mono (Nat.le_add_right F 2) hb,
           ok_bind]
         simp only [↓reduceIte]
         rw [← instList_cons0]
@@ -1382,7 +1384,7 @@ theorem inferSpine_snoc {d : Nat} :
         rw [inferSpine_pi]
         unfold inferSpinePi
         rw [infer_def, inferTypeCore_mono (Nat.le_max_left F F₁) hta,
-          ok_bind, defeq_def, isDefEqCore_mono (Nat.le_max_left F F₁) hb,
+          ok_bind, defeqArg_mono (Nat.le_max_left F F₁) hb,
           ok_bind]
         simp only [↓reduceIte]
         exact inferSpine_mono (Nat.le_max_right F F₁) hw
@@ -1413,8 +1415,7 @@ theorem inferSpine_snoc {d : Nat} :
           rw [whnf_mono (Nat.le_max_left F F₁) hw₀, ok_bind]
           dsimp only
           rw [infer_def, inferTypeCore_mono (Nat.le_max_left F F₁) hta,
-            ok_bind, defeq_def,
-            isDefEqCore_mono (Nat.le_max_left F F₁) hb, ok_bind]
+            ok_bind, defeqArg_mono (Nat.le_max_left F F₁) hb, ok_bind]
           simp only [↓reduceIte]
           exact inferSpine_mono (Nat.le_max_right F F₁) hw
       | bvar i => exact nomatch H

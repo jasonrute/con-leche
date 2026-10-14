@@ -2934,6 +2934,18 @@
 # Official accepts (3000000 levels on its native stack).  Verdict 3 is
 # the policy's, not a target.
 3 stack_fuel_offset.ndjson
+# --- task #353, official's `eagerReduce` flag (`m_eager_reduce`).
+# eager_open_nat.ndjson: `@id (Nat.ble (x*0 + 1000000) 999999 = false)
+# (eagerReduce (Eq.refl false))` under `x : Nat`.  The argument's type
+# is compared in the eager tower, where the lazy-delta Nat-literal fold
+# fires despite the free `x`: instant, as in official.  (Before task
+# #353 the fold was blocked and `Nat.ble` peeled the literal in unary:
+# 64-83 s, a timeout here.)
+0 eager_open_nat.ndjson
+# eager_open_nat_control.ndjson: the same without `eagerReduce`, at
+# 100000: the free `x` blocks the fold and the literal is peeled in
+# unary, in official (~1 s) and in con-leche (~4 s) alike.
+0 eager_open_nat_control.ndjson
 # --- the let ζ-fold (task #348; the mechanism of the openai/math
 # SquareDifference blow-up, `source_ordered_contraction`): a `let`
 # bound to a closed Nat that is expensive to head-normalise (`bits 14 0`,

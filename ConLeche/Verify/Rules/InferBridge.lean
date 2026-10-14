@@ -32,7 +32,7 @@ whose `infer` is the lane at `fuel` (`inferIO_def`).
 
 namespace ConLeche.Rules
 
-variable {env : Env} {fuel : Nat}
+variable {μ : CheckMode} {env : Env} {fuel : Nat}
 
 /-! ## The leaf clauses' inversions
 
@@ -134,9 +134,9 @@ theorem inferTypeCoreIO_bvar_inv {d i : Nat} {t : Expr}
   simp [inferBodyIO, throw, throwThe, MonadExceptOf.throw] at h
 
 /-- **`inferTypeCore` at `fuel + 1`**, full grade. -/
-theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
-    (hi : InferBridge env fuel) :
-    InferBridge env (fuel + 1) := by
+theorem infer_bridge_succ (hw : WhnfBridge μ env fuel) (hd : DefEqBridge μ env fuel)
+    (hdE : DefEqBridge μ.toEager env fuel) (hi : InferBridge μ env fuel) :
+    InferBridge μ env (fuel + 1) := by
   intro d e t h
   match e, h with
   | .bvar _, h => exact (inferTypeCore_bvar_inv h).elim
@@ -166,7 +166,14 @@ theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
   | .app f a, h =>
     obtain ⟨tf, ty', body', htf, hwf, rfl, ta, hta, hde⟩ :=
       inferTypeCore_app_inv h
-    exact .app (hi htf) (hw hwf) (fun _ => hi hta) (fun _ => hd hde)
+    -- an `eagerReduce _ _` argument was compared in the eager tower
+    -- (task #353): the same rule, from that tower's bridge
+    have hD : DefEq env d ta ty' := by
+      unfold CheckMode.argMode at hde
+      split at hde
+      · exact hdE hde
+      · exact hd hde
+    exact .app (hi htf) (hw hwf) (fun _ => hi hta) (fun _ => hD)
   | .proj sn i pe, h =>
     obtain ⟨tpe, te, T, us, entry, hpe, hwpe, hfn, hentry, hlen, hlvl, hprop,
       rfl, rfl⟩ := inferTypeCore_proj_inv h
@@ -178,9 +185,9 @@ theorem infer_bridge_succ (hw : WhnfBridge env fuel) (hd : DefEqBridge env fuel)
     exact .lam (fun _ => hi hty) (fun _ => hw hwt) (hi hbt)
 
 /-- **`inferTypeCoreIO` at `fuel + 1`**, io grade. -/
-theorem inferIO_bridge_succ (hw : WhnfBridge env fuel)
-    (hio : InferIOBridge env fuel) :
-    InferIOBridge env (fuel + 1) := by
+theorem inferIO_bridge_succ (hw : WhnfBridge μ env fuel)
+    (hio : InferIOBridge μ env fuel) :
+    InferIOBridge μ env (fuel + 1) := by
   intro d e t h
   match e, h with
   | .bvar _, h => exact (inferTypeCoreIO_bvar_inv h).elim
