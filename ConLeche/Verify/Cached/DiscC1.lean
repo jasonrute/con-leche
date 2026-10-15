@@ -3,6 +3,7 @@ module
 import ConLeche.Cached.CoreC
 public import ConLeche.Verify.Cached.GuardsC
 public import ConLeche.Verify.Cached.SimCEff
+public import ConLeche.Verify.Cached.Grind
 import ConLeche.Verify.InstSpine
 
 public section
@@ -16,9 +17,12 @@ at the fueled record, on well-scoped inputs (value relations
 `RelC`/`RelCL`, node inversion by `cases`).
 -/
 
+set_option experimental.vcgen true
+
 namespace ConLeche.Cached
 
-open ConLeche.Expr
+open ConLeche.Expr Std.WP
+open scoped Lean.Order
 
 variable {mode : CheckMode}
 
@@ -73,12 +77,154 @@ theorem ssimC_zero (env : Env) : SSimC mode env 0 :=
     defeqE := fun _ _ _ _ _ => SimC.throw
     inferIO := fun _ _ _ => SimC.throw }
 
+/-! ## Vocabulary candidates (for Grind.lean)
+
+The triple forms of a data-valued simulation (`RelVC`: the cached value
+IS the pure answer, no side condition) and of the knot's entry points
+(`SSimC`'s fields), for `vcgen`'s list. -/
+
+/-- A simulation at `RelVC` is a triple whose post names the cached
+value as the pure side's answer. -/
+theorem SimC.triple_eq {env : Env} {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
+    (h : SimC mode env s₀ RelVC c p) :
+    ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄ := by
+  refine triple_iff_run.mpr fun v' s' hr => ?_
+  obtain ⟨hs', v, rfl, F, hF⟩ := h v' s' hr
+  exact ⟨hs', F, hF⟩
+
+/-- The converse of `SimC.triple_eq`. -/
+theorem SimC.of_triple_eq {env : Env} {β : Type} {s₀ : CState} {c : CheckCM β}
+    {p : FueledM β}
+    (h : ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄) :
+    SimC mode env s₀ RelVC c p := by
+  intro v' s' hr
+  obtain ⟨hs', F, hF⟩ := triple_iff_run.mp h v' s' hr
+  exact ⟨hs', v', rfl, F, hF⟩
+
+section SSimCSpecs
+
+variable {env : Env} {f : Nat}
+
+theorem SSimC.whnfCore_spec (ih : SSimC mode env f) {c : Bool} {s₀ : CState} {d : Nat}
+    {i : Expr} (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).whnfCore c d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).whnfCore c d i) r ∧
+      Expr.WScoped d r; ⊤⦄ :=
+  (ih.whnfCore hs rfl hw).triple relEC_inv
+
+theorem SSimC.whnf_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {i : Expr}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).whnf d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).whnf d i) r ∧
+      Expr.WScoped d r; ⊤⦄ :=
+  (ih.whnf hs rfl hw).triple relEC_inv
+
+theorem SSimC.infer_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {i : Expr}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).infer d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).infer d i) r ∧
+      Expr.WScoped d r; ⊤⦄ :=
+  (ih.infer hs rfl hw).triple relEC_inv
+
+theorem SSimC.inferIO_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {i : Expr}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).inferIO d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).inferIO d i) r ∧
+      Expr.WScoped d r; ⊤⦄ :=
+  (ih.inferIO hs rfl hw).triple relEC_inv
+
+theorem SSimC.defeq_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {i j : Expr}
+    (hs : CSOK mode env s₀) (hwi : Expr.WScoped d i) (hwj : Expr.WScoped d j) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).defeq d i j
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).defeq d i j) r; ⊤⦄ :=
+  (ih.defeq hs rfl rfl hwi hwj).triple_eq
+
+theorem SSimC.defeqE_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {i j : Expr}
+    (hs : CSOK mode env s₀) (hwi : Expr.WScoped d i) (hwj : Expr.WScoped d j) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).defeqE d i j
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).defeqE d i j) r; ⊤⦄ :=
+  (ih.defeqE hs rfl rfl hwi hwj).triple_eq
+
+end SSimCSpecs
+
+/-- `instListM_eff` as a triple. -/
+theorem instListM_spec {env : Env} {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr)
+    (vs : List Expr) (d : Nat) :
+    ⦃fun s => s = s₀⦄ instListM e vs d
+    ⦃fun r s' => CSOK mode env s' ∧ r = e.instantiateList vs d; ⊤⦄ :=
+  (instListM_eff hs (RelC.refl e) (show RelCL vs vs from rfl) :
+    CEff mode env s₀ (fun i => i = e.instantiateList vs d) _).triple
+
+/-- The level-instantiated value of the stored definition `n`, where
+there is one: what `constValAtM` answers. -/
+@[expose] def constValAt? (env : Env) (n : Name) (us : List Level) : Option Expr :=
+  match env.find? n with
+  | some (.defnInfo cv v _) => some (v.instantiateLevelParams cv.levelParams us)
+  | _ => none
+
+/-- `constValAtM` answers the stored definition's instantiated value
+(a run succeeds only at a stored definition: a hit is backed by the
+invariant, a miss elsewhere throws). -/
+theorem constValAtM_spec {env : Env} {s₀ : CState} (hs : CSOK mode env s₀) (nI n : Name)
+    (us : List Level) :
+    ⦃fun s => s = s₀⦄ constValAtM (mkFEnv env) nI n us
+    ⦃fun r s' => CSOK mode env s' ∧ constValAt? env n us = some r; ⊤⦄ := by
+  refine triple_iff_run.mpr fun r s' hr => ?_
+  have hdef : ∃ cv v h, env.find? n = some (.defnInfo cv v h) := by
+    cases hl : s₀.constValAt[(n, us)]? with
+    | some i =>
+      obtain ⟨cv, v, h, hf, -⟩ := hs.constVal n us i hl
+      exact ⟨cv, v, h, hf⟩
+    | none =>
+      -- a miss: off a stored definition the run throws
+      cases hf : env.find? n with
+      | some ci =>
+        cases ci <;> first | exact ⟨_, _, _, rfl⟩ | (exfalso; revert hr; simp [constValAtM,
+          bind, StateT.bind, modifyGet, MonadStateOf.modifyGet, StateT.modifyGet, Except.bind,
+          pure, Except.pure, hl, mkFEnv_find?, hf] <;> exact fun h => nomatch h)
+      | none =>
+        exfalso; revert hr; simp [constValAtM, bind, StateT.bind, modifyGet,
+          MonadStateOf.modifyGet, StateT.modifyGet, Except.bind, pure, Except.pure, hl,
+          mkFEnv_find?, hf] <;> exact fun h => nomatch h
+  obtain ⟨cv, v, h, hf⟩ := hdef
+  obtain ⟨hs', hrel⟩ := constValAtM_eff hs hf r s' hr
+  exact ⟨hs', by rw [constValAt?, hf, show r = _ from hrel]⟩
+
+/-- The domain of a well-scoped instantiated `∀` is well scoped. -/
+theorem wscoped_piDom {d : Nat} {dom body : Expr} {acc : List Expr}
+    (hw : Expr.WScoped d ((Expr.forallE dom body).instantiateList acc)) :
+    Expr.WScoped d (dom.instantiateList acc) := by
+  rw [Expr.instantiateList, Expr.WScoped] at hw
+  exact hw.1
+grind_pattern [conleche_grind] wscoped_piDom =>
+  Expr.WScoped d ((Expr.forallE dom body).instantiateList acc), dom.instantiateList acc
+
+/-- The peel step's scope under a `∀` (`wscoped_peel`'s twin). -/
+theorem wscoped_piPeel {d : Nat} {dom body a : Expr} {acc : List Expr}
+    (hw : Expr.WScoped d ((Expr.forallE dom body).instantiateList acc))
+    (ha : Expr.WScoped d a) :
+    Expr.WScoped d (body.instantiateList (a :: acc)) := by
+  rw [Expr.instantiateList, Expr.WScoped] at hw
+  rw [Expr.instantiateList_cons]
+  exact Expr.WScoped.instantiate1_gen ha 0 hw.2
+grind_pattern [conleche_grind] wscoped_piPeel =>
+  Expr.WScoped d ((Expr.forallE dom body).instantiateList acc),
+  body.instantiateList (a :: acc)
+
 section Walks
 
 variable {env : Env} {f : Nat}
 
 /-- The full-grade argument check simulates its fueled original: the
 same argument, so the same tower (task #353). -/
+theorem defeqArgC_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {a ta ty : Expr}
+    (hs : CSOK mode env s₀) (hwta : Expr.WScoped d ta) (hwty : Expr.WScoped d ty) :
+    ⦃fun s => s = s₀⦄ defeqArgI (coreKnotI mode (mkFEnv env) f) d a ta ty
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (defeqArg (fueledFns mode env) d a ta ty) v; ⊤⦄ := by
+  sym only [conleche_grind, defeqArg] =>
+    vcgen [defeqArgI, ih.defeq_spec hs, ih.defeqE_spec hs] <;> finish
+
+/-- `defeqArgC_spec` as a simulation, for the unconverted callers. -/
 theorem defeqArgC_sim (ih : SSimC mode env f) {s₀ : CState} {d : Nat}
     {a ta ty : Expr} {xa xta xty : Expr} (hs : CSOK mode env s₀)
     (ha : RelC a xa) (hta : RelC ta xta) (hty : RelC ty xty)
@@ -86,184 +232,113 @@ theorem defeqArgC_sim (ih : SSimC mode env f) {s₀ : CState} {d : Nat}
     SimC mode env s₀ RelVC
       (defeqArgI (coreKnotI mode (mkFEnv env) f) d a ta ty)
       (defeqArg (fueledFns mode env) d xa xta xty) := by
-  obtain rfl := ha
-  unfold defeqArgI defeqArg
-  split
-  · exact ih.defeqE hs hta hty hwta hwty
-  · exact ih.defeq hs hta hty hwta hwty
+  subst ha hta hty; exact SimC.of_triple_eq (defeqArgC_spec ih hs hwta hwty)
 
-/-- The pairwise definitional-equality
-helper simulates its fueled original on related, well-scoped lists. -/
-theorem defEqListC_sim (ih : SSimC mode env f) {d : Nat} :
-    ∀ {args : List Expr} {xs : List Expr} {brgs : List Expr}
-      {ys : List Expr} {s₀ : CState}, CSOK mode env s₀ →
-      RelCL args xs → RelCL brgs ys →
-      (∀ x ∈ xs, Expr.WScoped d x) → (∀ y ∈ ys, Expr.WScoped d y) →
-      SimC mode env s₀ RelVC
-        (defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d args brgs)
-        (defEqList (fueledFns mode env) env d xs ys) := by
-  intro args
-  induction args with
-  | nil =>
-    intro xs brgs ys s₀ hs hargs hbrgs _ _
-    obtain rfl := hargs.nil_inv
-    match brgs, ys, hbrgs.length with
-    | [], [], _ => exact SimC.pure hs rfl
-    | b :: bs, y :: ys, _ => exact SimC.pure hs rfl
-  | cons a as iha =>
-    intro xs brgs ys s₀ hs hargs hbrgs hwx hwy
-    obtain ⟨x, xs, rfl, hax, hasxs⟩ := hargs.cons_inv
-    match brgs, ys, hbrgs.length with
-    | [], [], _ => exact SimC.pure hs rfl
-    | b :: bs, ys', hlen =>
-      obtain ⟨y, ys, rfl, hby, hbsys⟩ := hbrgs.cons_inv
-      show SimC mode env s₀ RelVC
-        ((coreKnotI mode (mkFEnv env) f).defeq d a b >>= fun r =>
-          if r then defEqListI (coreKnotI mode (mkFEnv env) f)
-            (mkFEnv env) d as bs
-          else pure false)
-        ((fueledFns mode env).defeq d x y >>= fun r =>
-          if r then defEqList (fueledFns mode env) env d xs ys
-          else pure false)
-      refine SimC.bind (ih.defeq hs hax hby
-        (hwx x (List.mem_cons_self ..)) (hwy y (List.mem_cons_self ..)))
-        (fun s₁ rb r hs₁ hP => ?_)
-      obtain rfl : rb = r := hP
-      cases rb with
-      | true =>
-        simp only [↓reduceIte]
-        exact iha hs₁ hasxs hbsys
-          (fun x hx => hwx x (List.mem_cons_of_mem _ hx))
-          (fun y hy => hwy y (List.mem_cons_of_mem _ hy))
-      | false =>
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        exact SimC.pure hs₁ rfl
+/-- `defEqListI`'s fall-through arms as unconditional equations
+(`vcgen` cannot use the conditional `defEqListI.eq_3`). -/
+theorem defEqListI_nil_cons (r : CoreFnsI) (fe : FEnv) (d : Nat) (b : Expr) (bs : List Expr) :
+    defEqListI r fe d [] (b :: bs) = pure false := rfl
+
+theorem defEqListI_cons_nil (r : CoreFnsI) (fe : FEnv) (d : Nat) (a : Expr) (as : List Expr) :
+    defEqListI r fe d (a :: as) [] = pure false := rfl
+
+/-- The pure side's fall-through arms likewise: `grind` does not
+discharge the premise `∀ a as b bs, True` that `defEqList.eq_3` reduces
+to. -/
+theorem defEqList_nil_cons (env : Env) (d : Nat) (b : Expr) (bs : List Expr) :
+    defEqList (fueledFns mode env) env d [] (b :: bs) = pure false := rfl
+
+theorem defEqList_cons_nil (env : Env) (d : Nat) (a : Expr) (as : List Expr) :
+    defEqList (fueledFns mode env) env d (a :: as) [] = pure false := rfl
+
+/-- The pairwise definitional-equality helper simulates its fueled
+original on well-scoped lists. -/
+theorem defEqListC_spec (ih : SSimC mode env f) {d : Nat} :
+    ∀ {args brgs : List Expr} {s₀ : CState}, CSOK mode env s₀ →
+      AllWS d args → AllWS d brgs →
+      ⦃fun s => s = s₀⦄ defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d args brgs
+      ⦃fun v s' => CSOK mode env s' ∧
+          Runs (defEqList (fueledFns mode env) env d args brgs) v; ⊤⦄
+  | [], [], _, _, _, _ => by
+    sym only [conleche_grind, defEqList.eq_1] =>
+      vcgen [defEqListI] <;> finish
+  | _ :: as, _ :: _, _, _, _, _ => by
+    sym only [conleche_grind, defEqList.eq_2] =>
+      vcgen [defEqListI, ih.defeq_spec, defEqListC_spec ih (args := as)] <;> finish
+  | [], _ :: _, _, _, _, _ => by
+    sym only [conleche_grind, defEqList_nil_cons] =>
+      vcgen [defEqListI_nil_cons] <;> finish
+  | _ :: _, [], _, _, _, _ => by
+    sym only [conleche_grind, defEqList_cons_nil] =>
+      vcgen [defEqListI_cons_nil] <;> finish
+
+/-- `defEqListC_spec` as a simulation, for the unconverted callers. -/
+theorem defEqListC_sim (ih : SSimC mode env f) {d : Nat} {args xs brgs ys : List Expr}
+    {s₀ : CState} (hs : CSOK mode env s₀) (hargs : RelCL args xs) (hbrgs : RelCL brgs ys)
+    (hwx : ∀ x ∈ xs, Expr.WScoped d x) (hwy : ∀ y ∈ ys, Expr.WScoped d y) :
+    SimC mode env s₀ RelVC
+      (defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d args brgs)
+      (defEqList (fueledFns mode env) env d xs ys) :=
+  by subst hargs hbrgs; exact SimC.of_triple_eq (defEqListC_spec ih hs hwx hwy)
+
+/-- `iotaCertsFullIAux`'s step as one unconditional equation (the
+equation compiler's fall-through arm is conditional). -/
+theorem iotaCertsFullIAux_cons (r : CoreFnsI) (fe : FEnv) (d : Nat) (ty : Expr)
+    (acc : List Expr) (a : Expr) (rest : List Expr) :
+    iotaCertsFullIAux r fe d ty acc (a :: rest) =
+      match ty, acc with
+      | .forallE dom body, acc => instListM dom acc >>= fun dom' =>
+          r.infer d a >>= fun ta => r.defeq d ta dom' >>= fun c =>
+          if c then iotaCertsFullIAux r fe d body (a :: acc) rest else pure false
+      | .bvar _, [] => pure false
+      | .bvar k, acc@(_ :: _) => instListM (.bvar k) acc >>= fun ty' =>
+          iotaCertsFullIAux r fe d ty' [] (a :: rest)
+      | _, _ => pure false := by
+  cases ty <;> cases acc <;> rw [iotaCertsFullIAux] <;> (try rfl) <;> (intros; contradiction)
+
+/-- The pure certificate loop at a bulk-instantiated telescope, stepped
+in the cached loop's shape. -/
+theorem iotaCertsFull_instList_cons {m : Type → Type} [Monad m] (r : CoreFns m) (env : Env)
+    (d : Nat) (ty : Expr) (acc : List Expr) (a : Expr) (rest : List Expr) :
+    iotaCertsFull r env d (ty.instantiateList acc) (a :: rest) =
+      match ty, acc with
+      | .forallE dom body, acc =>
+          r.infer d a >>= fun ta => r.defeq d ta (dom.instantiateList acc) >>= fun c =>
+          if c then iotaCertsFull r env d (body.instantiateList (a :: acc)) rest
+          else pure false
+      | .bvar _, [] => pure false
+      | .bvar k, acc@(_ :: _) =>
+          iotaCertsFull r env d ((Expr.bvar k).instantiateList acc) (a :: rest)
+      | _, _ => pure false := by
+  cases ty with
+  | forallE dom body =>
+    rw [Expr.instantiateList, iotaCertsFull.eq_2]; dsimp only; rw [Expr.instantiateList_cons]
+  | bvar k => cases acc with
+    | nil => rw [Expr.instantiateList_nil]; rfl
+    | cons => rfl
+  | _ => rw [Expr.instantiateList]; cases acc <;> rfl
 
 /-- The bulk-accumulating full-grade certificate loop (task #342 L10)
 simulates its fueled original. -/
-theorem iotaCertsFullCAux_sim (ih : SSimC mode env f) {d : Nat} :
-    ∀ {args : List Expr} {xs : List Expr} {acc : List Expr}
-      {ws : List Expr} {ty : Expr} {tyx : Expr} {s₀ : CState},
-      CSOK mode env s₀ →
-      RelC ty tyx → RelCL acc ws →
-      Expr.WScoped d (tyx.instantiateList ws) →
-      RelCL args xs → (∀ x ∈ xs, Expr.WScoped d x) →
-      SimC mode env s₀ RelVC
-        (iotaCertsFullIAux (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d ty acc
-          args)
-        (iotaCertsFull (fueledFns mode env) env d (tyx.instantiateList ws) xs)
-  | [], xs, acc, ws, ty, tyx, s₀, hs, hty, hacc, hwty, hargs, hwargs => by
-    obtain rfl := hargs.nil_inv
-    rw [iotaCertsFullIAux.eq_def]
-    dsimp only
-    exact SimC.pure hs rfl
-  | a :: as, xs, acc, ws, ty, tyx, s₀, hs, hty, hacc, hwty, hargs, hwargs => by
-    obtain ⟨x, xs, rfl, hax, hasxs⟩ := hargs.cons_inv
-    rw [iotaCertsFullIAux.eq_def]
-    obtain rfl := hty
-    cases ty with
-    | forallE t b =>
-      rw [show (Expr.instantiateList (Expr.forallE t b) ws)
-          = .forallE ((Expr.instantiateList t ws))
-              ((Expr.instantiateList b ws 1)) by
-        simp [Expr.instantiateList]] at hwty ⊢
-      have hwtb : Expr.WScoped d ((Expr.instantiateList t ws))
-          ∧ Expr.WScoped d ((Expr.instantiateList b ws 1)) := by
-        simpa only [Expr.WScoped] using hwty
-      show SimC mode env s₀ RelVC
-        (instListM t acc >>= fun dom' =>
-          (coreKnotI mode (mkFEnv env) f).infer d a >>= fun ta =>
-          (coreKnotI mode (mkFEnv env) f).defeq d ta dom' >>= fun r =>
-          if r then iotaCertsFullIAux (coreKnotI mode (mkFEnv env) f)
-            (mkFEnv env) d b (a :: acc) as
-          else pure false)
-        ((fueledFns mode env).infer d x >>= fun ta =>
-          (fueledFns mode env).defeq d ta ((Expr.instantiateList t ws)) >>=
-            fun r =>
-          if r then iotaCertsFull (fueledFns mode env) env d
-            (((Expr.instantiateList b ws 1)).instantiate1 x) xs
-          else pure false)
-      have hwx : Expr.WScoped d x := hwargs x (List.mem_cons_self ..)
-      refine SimC.bind_left (instListM_eff (d := 0) hs rfl hacc)
-        (fun s₁ dom' hs₁ hQdom => ?_)
-      refine SimC.bind (ih.infer hs₁ hax hwx) (fun s₂ ta tax hs₂ hP => ?_)
-      obtain ⟨htax, hwtax⟩ := hP
-      refine SimC.bind (ih.defeq hs₂ htax hQdom hwtax hwtb.1)
-        (fun s₃ rb r hs₃ hP₂ => ?_)
-      obtain rfl : rb = r := hP₂
-      cases rb with
-      | true =>
-        simp only [↓reduceIte]
-        rw [← Expr.instantiateList_cons]
-        refine iotaCertsFullCAux_sim ih hs₃ rfl (RelCL.cons hax hacc) ?_
-          hasxs (fun x' hx' => hwargs x' (List.mem_cons_of_mem _ hx'))
-        rw [Expr.instantiateList_cons]
-        exact Expr.WScoped.instantiate1_gen hwx 0 hwtb.2
-      | false =>
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        exact SimC.pure hs₃ rfl
-    | bvar k =>
-      match acc with
-      | [] =>
-        obtain rfl := hacc.nil_inv
-        rw [Expr.instantiateList_nil]
-        exact SimC.pure hs rfl
-      | a' :: acc' =>
-        obtain ⟨w, ws', rfl, ha'w, hacc'⟩ := hacc.cons_inv
-        show SimC mode env s₀ RelVC
-          (instListM (Expr.bvar k) (a' :: acc') >>= fun ty' =>
-            iotaCertsFullIAux (coreKnotI mode (mkFEnv env) f) (mkFEnv env)
-              d ty' [] (a :: as))
-          (iotaCertsFull (fueledFns mode env) env d
-            ((Expr.instantiateList (Expr.bvar k) (w :: ws')))
-            (x :: xs))
-        refine SimC.bind_left (instListM_eff (d := 0) hs rfl hacc)
-          (fun s₁ ty' hs₁ hQty => ?_)
-        have := iotaCertsFullCAux_sim ih (acc := []) (ws := [])
-          (args := a :: as) (xs := x :: xs) hs₁ hQty RelCL.nil
-          (by rw [Expr.instantiateList_nil]; exact hwty)
-          (RelCL.cons hax hasxs) hwargs
-        rwa [Expr.instantiateList_nil] at this
-    | sort u =>
-      rw [show (Expr.instantiateList (Expr.sort u) ws)
-          = .sort u by simp [Expr.instantiateList]]
-      exact SimC.pure hs rfl
-    | const nm us =>
-      rw [show (Expr.instantiateList (Expr.const nm us) ws)
-          = .const nm us by simp [Expr.instantiateList]]
-      exact SimC.pure hs rfl
-    | lit l =>
-      rw [show (Expr.instantiateList (Expr.lit l) ws)
-          = .lit l by simp [Expr.instantiateList]]
-      exact SimC.pure hs rfl
-    | fvar idx t =>
-      rw [show (Expr.instantiateList (Expr.fvar idx t) ws)
-          = .fvar idx t by simp [Expr.instantiateList]]
-      exact SimC.pure hs rfl
-    | app f' a' =>
-      rw [show (Expr.instantiateList (Expr.app f' a') ws)
-          = .app ((Expr.instantiateList f' ws))
-              ((Expr.instantiateList a' ws)) by
-        simp [Expr.instantiateList]]
-      exact SimC.pure hs rfl
-    | lam t b =>
-      rw [show (Expr.instantiateList (Expr.lam t b) ws)
-          = .lam ((Expr.instantiateList t ws))
-              ((Expr.instantiateList b ws 1)) by
-        simp [Expr.instantiateList]]
-      exact SimC.pure hs rfl
-    | letE t v b =>
-      rw [show (Expr.instantiateList (Expr.letE t v b) ws)
-          = .letE ((Expr.instantiateList t ws))
-              ((Expr.instantiateList v ws))
-              ((Expr.instantiateList b ws 1)) by
-        simp [Expr.instantiateList]]
-      exact SimC.pure hs rfl
-    | proj sn j e' =>
-      rw [show (Expr.instantiateList (Expr.proj sn j e') ws)
-          = .proj sn j ((Expr.instantiateList e' ws)) by
-        simp [Expr.instantiateList]]
-      exact SimC.pure hs rfl
+theorem iotaCertsFullCAux_spec (ih : SSimC mode env f) {d : Nat} :
+    ∀ {args : List Expr} {ty : Expr} {acc : List Expr} {s₀ : CState},
+      CSOK mode env s₀ → Expr.WScoped d (ty.instantiateList acc) → AllWS d args →
+      ⦃fun s => s = s₀⦄
+        iotaCertsFullIAux (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d ty acc args
+      ⦃fun v s' => CSOK mode env s' ∧
+          Runs (iotaCertsFull (fueledFns mode env) env d (ty.instantiateList acc) args) v; ⊤⦄
+  | [], _, _, _, _, _, _ => by
+    sym only [conleche_grind, iotaCertsFull.eq_1] =>
+      vcgen [iotaCertsFullIAux.eq_1] <;> finish
+  | _ :: as, _, [], _, hs, _, _ => by
+    sym only [conleche_grind, iotaCertsFull_instList_cons] =>
+      vcgen [iotaCertsFullIAux_cons, instListM_spec hs, ih.infer_spec, ih.defeq_spec,
+        iotaCertsFullCAux_spec ih (args := as)] <;> finish
+  | a :: as, _, _ :: _, _, hs, _, _ => by
+    sym only [conleche_grind, iotaCertsFull_instList_cons, Expr.instantiateList_nil] =>
+      vcgen [iotaCertsFullIAux_cons, instListM_spec hs, ih.infer_spec, ih.defeq_spec,
+        iotaCertsFullCAux_spec ih (args := as),
+        iotaCertsFullCAux_spec ih (args := a :: as) (acc := [])] <;> finish
 termination_by args _ acc => (args.length, acc.length)
 decreasing_by
   all_goals first
@@ -271,19 +346,22 @@ decreasing_by
     | (apply Prod.Lex.right' <;> simp)
 
 /-- `iotaCertsFullI` simulates its fueled original. -/
-theorem iotaCertsFullC_sim (ih : SSimC mode env f) {d : Nat} :
-    ∀ {args : List Expr} {xs : List Expr} {ty : Expr} {tyx : Expr}
-      {s₀ : CState}, CSOK mode env s₀ →
-      RelC ty tyx → Expr.WScoped d tyx →
-      RelCL args xs → (∀ x ∈ xs, Expr.WScoped d x) →
-      SimC mode env s₀ RelVC
-        (iotaCertsFullI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d ty args)
-        (iotaCertsFull (fueledFns mode env) env d tyx xs) := by
-  intro args xs ty tyx s₀ hs hty hwty hargs hwargs
-  have := iotaCertsFullCAux_sim ih (acc := []) (ws := []) hs hty RelCL.nil
-    (by rw [Expr.instantiateList_nil]; exact hwty) hargs hwargs
-  rw [Expr.instantiateList_nil] at this
-  exact this
+theorem iotaCertsFullC_spec (ih : SSimC mode env f) {d : Nat} {args : List Expr} {ty : Expr}
+    {s₀ : CState} (hs : CSOK mode env s₀) (hw : Expr.WScoped d ty) (hargs : AllWS d args) :
+    ⦃fun s => s = s₀⦄ iotaCertsFullI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d ty args
+    ⦃fun v s' => CSOK mode env s' ∧
+        Runs (iotaCertsFull (fueledFns mode env) env d ty args) v; ⊤⦄ := by
+  sym only [conleche_grind, Expr.instantiateList_nil] =>
+    vcgen [iotaCertsFullI, iotaCertsFullCAux_spec ih] <;> finish
+
+/-- `iotaCertsFullC_spec` as a simulation, for the unconverted callers. -/
+theorem iotaCertsFullC_sim (ih : SSimC mode env f) {d : Nat} {args xs : List Expr}
+    {ty tyx : Expr} {s₀ : CState} (hs : CSOK mode env s₀) (hty : RelC ty tyx)
+    (hwty : Expr.WScoped d tyx) (hargs : RelCL args xs) (hwargs : ∀ x ∈ xs, Expr.WScoped d x) :
+    SimC mode env s₀ RelVC
+      (iotaCertsFullI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d ty args)
+      (iotaCertsFull (fueledFns mode env) env d tyx xs) := by
+  subst hty hargs; exact SimC.of_triple_eq (iotaCertsFullC_spec ih hs hwty hwargs)
 
 end Walks
 
@@ -292,191 +370,44 @@ section Walks2
 variable {env : Env} {f : Nat}
 
 /-- `ensureSortI` simulates its fueled original. -/
+theorem ensureSortC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ ensureSortI (coreKnotI mode (mkFEnv env) f) d i
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (ensureSort (fueledFns mode env) env d i) v; ⊤⦄ := by
+  sym only [conleche_grind, ensureSort] =>
+    vcgen [ensureSortI, ih.whnf_spec] <;> finish
+
+/-- `ensureSortC_spec` as a simulation, for the unconverted callers. -/
 theorem ensureSortC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
     {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i e) (hw : Expr.WScoped d e) :
     SimC mode env s₀ RelVC (ensureSortI (coreKnotI mode (mkFEnv env) f) d i)
       (ensureSort (fueledFns mode env) env d e) := by
-  show SimC mode env s₀ RelVC
-    ((coreKnotI mode (mkFEnv env) f).whnf d i >>= fun w =>
-      
-      match w with
-      | .sort u => pure u
-      | _ => throw (.invalid "expected a sort"))
-    ((fueledFns mode env).whnf d e >>= fun w =>
-      match w with
-      | .sort u => pure u
-      | _ => throw (.invalid "expected a sort"))
-  refine SimC.bind (ih.whnf hs hden hw) (fun s₁ w wx hs₁ hP => ?_)
-  obtain ⟨hwden, hww⟩ := hP
-  obtain rfl := hwden
-  cases w with
-  | sort u => exact SimC.pure hs₁ rfl
-  | bvar k => exact SimC.throw
-  | const nm us => exact SimC.throw
-  | lit l => exact SimC.throw
-  | fvar idx t => exact SimC.throw
-  | app f' a' => exact SimC.throw
-  | lam t b => exact SimC.throw
-  | forallE t b => exact SimC.throw
-  | letE t v b => exact SimC.throw
-  | proj sn j e' => exact SimC.throw
+  subst hden; exact SimC.of_triple_eq (ensureSortC_spec ih hs hw)
 
-/-- The cached twin computes the spec's
-`litToCtorIfNat`. -/
-theorem litToCtorIfNatC_eff {s₀ : CState} (hs : CSOK mode env s₀)
-    {i : Expr} {e : Expr} (hden : RelC i e) :
-    CEff mode env s₀ (fun r => RelC r (litToCtorIfNat env e))
-      (litToCtorIfNatI (mkFEnv env) i) := by
-  show CEff mode env s₀ _ (
-    match i with
-    | .lit (.natVal n) =>
-      if natLitSupportedF (mkFEnv env) then
-        pure (natLitToConstructor n)
-      else pure i
-    | _ => pure i)
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  cases i with
-  | lit l =>
-    cases l with
-    | natVal k =>
-      dsimp only
-      rw [natLitSupportedF_eq]
-      rw [show litToCtorIfNat env ((Expr.lit (.natVal k))) =
-        (if natLitSupported env then natLitToConstructor k
-         else .lit (.natVal k)) from rfl]
-      by_cases hg : natLitSupported env
-      · rw [ite_eq_left hg, ite_eq_left hg]
-        exact pureC_eff hs _
-      · rw [ite_eq_right hg, ite_eq_right hg]
-        exact CEff.pure hs hden
-    | strVal str => exact CEff.pure hs hden
-  | bvar k =>
-    exact CEff.pure hs hden
-  | sort u =>
-    exact CEff.pure hs hden
-  | const nm us =>
-    exact CEff.pure hs hden
-  | fvar idx t =>
-    exact CEff.pure hs hden
-  | app f' a' =>
-    exact CEff.pure hs hden
-  | lam t b =>
-    exact CEff.pure hs hden
-  | forallE t b =>
-    exact CEff.pure hs hden
-  | letE t v b =>
-    exact CEff.pure hs hden
-  | proj sn j e' =>
-    exact CEff.pure hs hden
+/-- The cached twin computes the spec's `litToCtorIfNat`. -/
+theorem litToCtorIfNatC_spec {s₀ : CState} (hs : CSOK mode env s₀) (i : Expr) :
+    ⦃fun s => s = s₀⦄ litToCtorIfNatI (mkFEnv env) i
+    ⦃fun r s' => CSOK mode env s' ∧ r = litToCtorIfNat env i; ⊤⦄ := by
+  sym only [conleche_grind, litToCtorIfNat, natLitSupportedF_eq] =>
+    vcgen [litToCtorIfNatI] <;> finish
 
-/-- The cached twin computes the
-spec's pure `unfoldDefinition`. -/
+/-- The cached twin computes the spec's pure `unfoldDefinition`. -/
+theorem unfoldDefinitionC_spec {s₀ : CState} (hs : CSOK mode env s₀) (i : Expr) :
+    ⦃fun s => s = s₀⦄ unfoldDefinitionI (mkFEnv env) i
+    ⦃fun o s' => CSOK mode env s' ∧ o = unfoldDefinition env i; ⊤⦄ := by
+  sym only [conleche_grind, unfoldDefinition, constValAt?, mkFEnv_find?, Expr.getAppArgsC_spec] =>
+    vcgen [unfoldDefinitionI, mkAppNM, constValAtM_spec hs] <;> finish
+
+/-- `unfoldDefinitionC_spec` as an effect, for the unconverted callers. -/
 theorem unfoldDefinitionC_eff {s₀ : CState} (hs : CSOK mode env s₀)
     {i : Expr} {e : Expr} (hden : RelC i e) :
     CEff mode env s₀ (fun o => OptEr o (unfoldDefinition env e))
       (unfoldDefinitionI (mkFEnv env) i) := by
-  show CEff mode env s₀ _
-    (
-      match (Expr.getAppFn i) with
-      | .const n us => do
-        let nm ← pure n
-        match (mkFEnv env).find? nm with
-        | some (.defnInfo cv _ _) =>
-          if us.length = cv.levelParams.length then do
-            let v ← constValAtM (mkFEnv env) n nm us
-            let args ← pure (Expr.getAppArgsC i)
-            let r ← mkAppNM v args
-            pure (some r)
-          else pure none
-        | _ => pure none
-      | _ => pure none)
-  refine CEff.pureB ?_
-  obtain rfl := hden
-  have hspec : unfoldDefinition env i =
-      (match (Expr.getAppFn i) with
-      | .const n us =>
-        match env.find? n with
-        | some (.defnInfo cv value _) =>
-          if us.length = cv.levelParams.length then
-            some (Expr.mkAppN (value.instantiateLevelParams cv.levelParams us)
-              (Expr.getAppArgs i))
-          else none
-        | _ => none
-      | _ => none) := rfl
-  generalize hg : Expr.getAppFn i = g
-  cases g with
-  | const nm us =>
-    have hfn' : (Expr.getAppFn i) = Expr.const nm us := hg
-    rw [hspec, hfn']
-    dsimp only
-    refine (pureEq_eff hs nm).bind ?_
-    intro s₀' nmv hs hnmv
-    subst hnmv
-    rw [mkFEnv_find?]
-    cases hfc : env.find? nmv with
-    | none => exact CEff.pure hs trivial
-    | some ci =>
-      cases ci with
-      | defnInfo cv value hint =>
-        dsimp only
-        by_cases hlen : us.length = cv.levelParams.length
-        · rw [ite_eq_left hlen, ite_eq_left hlen]
-          refine CEff.bind (constValAtM_eff hs hfc) ?_
-          intro s₁ v hs₁ hQv
-          refine CEff.pureB ?_
-          refine CEff.bind (mkAppNM_eff hs₁ hQv (Expr.getAppArgsC_spec _)) ?_
-          intro s₂ r hs₂ hQr
-          exact CEff.pure hs₂ hQr
-        · rw [ite_eq_right hlen, ite_eq_right hlen]
-          exact CEff.pure hs trivial
-      | axiomInfo cv => exact CEff.pure hs trivial
-      | thmInfo cv => exact CEff.pure hs trivial
-      | indInfo cv caps => exact CEff.pure hs trivial
-      | ctorInfo cv nP nF => exact CEff.pure hs trivial
-      | recInfo cv mI rP rules => exact CEff.pure hs trivial
-      | projInfo entry => exact CEff.pure hs trivial
-  | bvar k =>
-    have hfn' : (Expr.getAppFn i) = Expr.bvar k := hg
-    rw [hspec, hfn']
-    exact CEff.pure hs trivial
-  | sort u =>
-    have hfn' : (Expr.getAppFn i) = Expr.sort u := hg
-    rw [hspec, hfn']
-    exact CEff.pure hs trivial
-  | lit l =>
-    have hfn' : (Expr.getAppFn i) = Expr.lit l := hg
-    rw [hspec, hfn']
-    exact CEff.pure hs trivial
-  | fvar idx t =>
-    have hfn' : (Expr.getAppFn i) = Expr.fvar idx t := hg
-    rw [hspec, hfn']
-    exact CEff.pure hs trivial
-  | app f' a' =>
-    have hfn' : (Expr.getAppFn i) = Expr.app f' a' :=
-      hg
-    rw [hspec, hfn']
-    exact CEff.pure hs trivial
-  | lam t b =>
-    have hfn' : (Expr.getAppFn i) = Expr.lam t b :=
-      hg
-    rw [hspec, hfn']
-    exact CEff.pure hs trivial
-  | forallE t b =>
-    have hfn' : (Expr.getAppFn i)
-        = Expr.forallE t b := hg
-    rw [hspec, hfn']
-    exact CEff.pure hs trivial
-  | letE t v b =>
-    have hfn' : (Expr.getAppFn i)
-        = Expr.letE t v b := hg
-    rw [hspec, hfn']
-    exact CEff.pure hs trivial
-  | proj sn j e' =>
-    have hfn' : (Expr.getAppFn i) = Expr.proj sn j e' := hg
-    rw [hspec, hfn']
-    exact CEff.pure hs trivial
+  subst hden
+  intro v s' hr
+  obtain ⟨hs', rfl⟩ := triple_iff_run.mp (unfoldDefinitionC_spec hs i) v s' hr
+  exact ⟨hs', by cases unfoldDefinition env i <;> trivial⟩
 
 end Walks2
 
@@ -494,103 +425,41 @@ theorem SimC.of_eff {s₀ : CState} {β α : Type} {Q : β → Prop}
   exact ⟨hs', a, hPa v' hQ, 0, rfl⟩
 
 /-- `litMajorToCtorI` simulates its fueled original. -/
+theorem litMajorToCtorC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ litMajorToCtorI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs (litMajorToCtor (fueledFns mode env) env d i) r ∧
+      Expr.WScoped d r; ⊤⦄ := by
+  sym only [conleche_grind, litMajorToCtor, strLitSupportedF_eq, strLitToConstructor_WScoped,
+      litToCtorIfNat_WScoped] =>
+    vcgen [litMajorToCtorI, litToCtorIfNatC_spec hs, ih.whnf_spec] <;> finish
+
+/-- `litMajorToCtorC_spec` as a simulation, for the unconverted callers. -/
 theorem litMajorToCtorC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
     {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i e) (hw : Expr.WScoped d e) :
     SimC mode env s₀ (RelEC d)
       (litMajorToCtorI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
       (litMajorToCtor (fueledFns mode env) env d e) := by
-  unfold litMajorToCtorI
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  cases i with
-  | lit l =>
-    cases l with
-    | strVal str =>
-      dsimp only
-      rw [show litMajorToCtor (fueledFns mode env) env d
-          ((Expr.lit (.strVal str))) =
-        (if strLitSupported env then
-          (fueledFns mode env).whnf d (strLitToConstructor str)
-         else pure (.lit (.strVal str))) from rfl]
-      rw [strLitSupportedF_eq]
-      by_cases hg : strLitSupported env
-      · rw [ite_eq_left hg, ite_eq_left hg]
-        refine SimC.bind_left (pureC_eff hs (strLitToConstructor str))
-          (fun s₁ x hs₁ hQ => ?_)
-        exact ih.whnf hs₁ hQ (strLitToConstructor_WScoped str d)
-      · rw [ite_eq_right hg, ite_eq_right hg]
-        exact SimC.pure hs ⟨hden, hw⟩
-    | natVal k =>
-      refine SimC.of_eff (litToCtorIfNatC_eff hs hden) _ ?_
-      intro b hQ
-      exact ⟨hQ, litToCtorIfNat_WScoped hw⟩
-  | bvar k =>
-    exact SimC.of_eff (litToCtorIfNatC_eff hs hden) _
-      (fun b hQ => ⟨hQ, litToCtorIfNat_WScoped hw⟩)
-  | sort u =>
-    exact SimC.of_eff (litToCtorIfNatC_eff hs hden) _
-      (fun b hQ => ⟨hQ, litToCtorIfNat_WScoped hw⟩)
-  | const nm us =>
-    exact SimC.of_eff (litToCtorIfNatC_eff hs hden) _
-      (fun b hQ => ⟨hQ, litToCtorIfNat_WScoped hw⟩)
-  | fvar idx t =>
-    exact SimC.of_eff (litToCtorIfNatC_eff hs hden) _
-      (fun b hQ => ⟨hQ, litToCtorIfNat_WScoped hw⟩)
-  | app f' a' =>
-    exact SimC.of_eff (litToCtorIfNatC_eff hs hden) _
-      (fun b hQ => ⟨hQ, litToCtorIfNat_WScoped hw⟩)
-  | lam t b =>
-    exact SimC.of_eff (litToCtorIfNatC_eff hs hden) _
-      (fun b hQ => ⟨hQ, litToCtorIfNat_WScoped hw⟩)
-  | forallE t b =>
-    exact SimC.of_eff (litToCtorIfNatC_eff hs hden) _
-      (fun b hQ => ⟨hQ, litToCtorIfNat_WScoped hw⟩)
-  | letE t v b =>
-    exact SimC.of_eff (litToCtorIfNatC_eff hs hden) _
-      (fun b hQ => ⟨hQ, litToCtorIfNat_WScoped hw⟩)
-  | proj sn jj e' =>
-    exact SimC.of_eff (litToCtorIfNatC_eff hs hden) _
-      (fun b hQ => ⟨hQ, litToCtorIfNat_WScoped hw⟩)
+  subst hden; exact SimC.of_triple relEC_diag (litMajorToCtorC_spec ih hs hw)
 
 /-- `projLitToCtorI` simulates its fueled original. -/
+theorem projLitToCtorC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ projLitToCtorI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs (projLitToCtor (fueledFns mode env) env d i) r ∧
+      Expr.WScoped d r; ⊤⦄ := by
+  sym only [conleche_grind, projLitToCtor, strLitSupportedF_eq, strLitToConstructor_WScoped] =>
+    vcgen [projLitToCtorI, ih.whnf_spec] <;> finish
+
+/-- `projLitToCtorC_spec` as a simulation, for the unconverted callers. -/
 theorem projLitToCtorC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
     {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i e) (hw : Expr.WScoped d e) :
     SimC mode env s₀ (RelEC d)
       (projLitToCtorI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
       (projLitToCtor (fueledFns mode env) env d e) := by
-  unfold projLitToCtorI
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  cases i with
-  | lit l =>
-    cases l with
-    | strVal str =>
-      dsimp only
-      rw [show projLitToCtor (fueledFns mode env) env d
-          ((Expr.lit (.strVal str))) =
-        (if strLitSupported env then
-          (fueledFns mode env).whnf d (strLitToConstructor str)
-         else pure (.lit (.strVal str))) from rfl]
-      rw [strLitSupportedF_eq]
-      by_cases hg : strLitSupported env
-      · rw [ite_eq_left hg, ite_eq_left hg]
-        refine SimC.bind_left (pureC_eff hs (strLitToConstructor str))
-          (fun s₁ x hs₁ hQ => ?_)
-        exact ih.whnf hs₁ hQ (strLitToConstructor_WScoped str d)
-      · rw [ite_eq_right hg, ite_eq_right hg]
-        exact SimC.pure hs ⟨hden, hw⟩
-    | natVal k => exact SimC.pure hs ⟨hden, hw⟩
-  | bvar k => exact SimC.pure hs ⟨hden, hw⟩
-  | sort u => exact SimC.pure hs ⟨hden, hw⟩
-  | const nm us => exact SimC.pure hs ⟨hden, hw⟩
-  | fvar idx t => exact SimC.pure hs ⟨hden, hw⟩
-  | app f' a' => exact SimC.pure hs ⟨hden, hw⟩
-  | lam t b => exact SimC.pure hs ⟨hden, hw⟩
-  | forallE t b => exact SimC.pure hs ⟨hden, hw⟩
-  | letE t v b => exact SimC.pure hs ⟨hden, hw⟩
-  | proj sn jj e' => exact SimC.pure hs ⟨hden, hw⟩
+  subst hden; exact SimC.of_triple relEC_diag (projLitToCtorC_spec ih hs hw)
 
 /-- `defeqSpineI` simulates its fueled original. -/
 theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
