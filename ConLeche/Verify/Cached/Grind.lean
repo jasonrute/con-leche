@@ -219,12 +219,6 @@ theorem relEC_inv {d : Nat} (v' v : Expr) (h : RelEC d v' v) : v' = v ∧ Expr.W
 
 theorem relEC_diag {d : Nat} (v : Expr) (h : Expr.WScoped d v) : RelEC d v v := ⟨rfl, h⟩
 
-theorem relOC_inv {d : Nat} : ∀ o' o, RelOC d o' o → o' = o ∧ OptWS d o'
-  | none, none, _ => ⟨rfl, trivial⟩
-  | some _, some _, h => ⟨congrArg some h.1, h.1 ▸ h.2⟩
-  | none, some _, h => nomatch h
-  | some _, none, h => nomatch h
-
 /-! ## 6. The knot's unary slots
 
 A memo wrapper's body is specified as a named predicate (`BodySpec`), not
@@ -246,12 +240,5 @@ theorem BodySpec.triple {body : Nat → Expr → CheckCM Expr} {spec : Nat → E
     (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
     ⦃fun s => s = s₀⦄ body d i
     ⦃fun r s' => CSOK mode env s' ∧ Runs (spec d i) r ∧ Expr.WScoped d r; ⊤⦄ := h hs hw
-
-/-- A body simulation (`SimC` at `RelEC`) is a `BodySpec`. -/
-theorem BodySpec.of_sim {body : Nat → Expr → CheckCM Expr} {spec : Nat → Expr → FueledM Expr}
-    (h : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}, CSOK mode env s₀ → RelC i e →
-      Expr.WScoped d e → SimC mode env s₀ (RelEC d) (body d i) (spec d e)) :
-    BodySpec mode env body spec :=
-  fun hs hw => (h hs rfl hw).triple relEC_inv
 
 end ConLeche.Cached

@@ -85,12 +85,6 @@ theorem wscoped_mkAppN_const {d : Nat} {n : Name} {us : List Level} {xs : List E
   Expr.WScoped.mkAppN (by rw [Expr.WScoped]; trivial) h
 grind_pattern [conleche_grind] wscoped_mkAppN_const => AllWS d xs, Expr.mkAppN (.const n us) xs
 
-/-- Closing a binder over a variable. -/
-theorem wscoped_close {d : Nat} {b : Expr} (hb : WScoped (d + 1) b) :
-    WScoped d (b.abstract1 d) :=
-  WScoped.abstract1 0 hb
-grind_pattern [conleche_grind] wscoped_close => WScoped (d + 1) b, b.abstract1 d
-
 theorem AllWS.mono {d d' : Nat} {xs : List Expr} (hle : d ≤ d') (h : AllWS d xs) :
     AllWS d' xs := fun x hx => WScoped.mono hle (h x hx)
 

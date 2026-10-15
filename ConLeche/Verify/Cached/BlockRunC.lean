@@ -289,64 +289,6 @@ namespace SimG
 
 variable {A B C : CState → Prop}
 
-theorem ofC {env : Env} {β α : Type} {P : β → α → Prop} {c : CheckCM β} {p : FueledM α}
-    (h : ∀ s₀, CSOK mode env s₀ → SimC mode env s₀ P c p) :
-    SimG (CSOK mode env) (CSOK mode env) P c p :=
-  fun s₀ hs v' s' hr => h s₀ hs v' s' hr
-
-theorem pure {β α : Type} {P : β → α → Prop} {b : β} {a : α} (hAB : ∀ s, A s → B s)
-    (h : P b a) : SimG A B P (Pure.pure b) (Pure.pure a) := by
-  intro s₀ hs v' s' hr
-  simp only [Pure.pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
-  obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-  exact ⟨hAB _ hs, a, h, 0, rfl⟩
-
-theorem throw_bind {β β' α : Type} {P : β' → α → Prop} {er : CheckError}
-    {k : β → CheckCM β'} {p : FueledM α} :
-    SimG A B P ((throw er : CheckCM β) >>= k) p := by
-  intro s₀ _ v' s' hr
-  exact nomatch hr
-
-theorem throw {β α : Type} {P : β → α → Prop} {er : CheckError} {p : FueledM α} :
-    SimG A B P (throw er : CheckCM β) p := by
-  intro s₀ _ v' s' hr
-  exact nomatch hr
-
-theorem bind {β β' α α' : Type} {P : β → α → Prop} {Q : β' → α' → Prop}
-    {c : CheckCM β} {k : β → CheckCM β'} {p : FueledM α} {q : α → FueledM α'}
-    (hx : SimG A B P c p) (hf : ∀ b a, P b a → SimG B C Q (k b) (q a)) :
-    SimG A C Q (c >>= k) (p >>= q) := by
-  intro s₀ hs v' s' hr
-  simp only [Bind.bind, StateT.bind] at hr
-  cases hc : c s₀ with
-  | error e => rw [hc] at hr; exact nomatch hr
-  | ok pr =>
-    obtain ⟨b, s₁⟩ := pr
-    rw [hc] at hr
-    dsimp only [Except.bind] at hr
-    obtain ⟨hs₁, a, hP, F₁, hp₁⟩ := hx s₀ hs b s₁ hc
-    obtain ⟨hs', a', hQ, F₂, hp₂⟩ := hf b a hP s₁ hs₁ v' s' hr
-    refine ⟨hs', a', hQ, max F₁ F₂, ?_⟩
-    rw [FueledM.atF_bind]
-    simp only [Bind.bind]
-    rw [p.property (Nat.le_max_left F₁ F₂) hp₁]
-    dsimp only [Except.bind]
-    exact (q a).property (Nat.le_max_right F₁ F₂) hp₂
-
-theorem unwrapOr {α : Type} {o : Option α} {err : CheckError} (hAB : ∀ s, A s → B s) :
-    SimG A B (fun v w => v = w ∧ o = some v)
-      (ConLeche.unwrapOr o err : CheckCM α) (ConLeche.unwrapOr o err : FueledM α) := by
-  cases o with
-  | none => exact SimG.throw
-  | some a => exact SimG.pure hAB ⟨rfl, rfl⟩
-
-theorem mono {β α : Type} {P : β → α → Prop} {c : CheckCM β} {p : FueledM α}
-    {A' B' : CState → Prop} (h : SimG A B P c p) (hA : ∀ s, A' s → A s)
-    (hB : ∀ s, B s → B' s) : SimG A' B' P c p :=
-  fun s₀ hs v' s' hr =>
-    let ⟨h1, h2⟩ := h s₀ (hA s₀ hs) v' s' hr
-    ⟨hB s' h1, h2⟩
-
 end SimG
 
 /-- The rule stage's `inferType` at the rule-less recursors'

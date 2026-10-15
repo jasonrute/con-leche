@@ -61,14 +61,6 @@ instance : LawfulHashable (Expr × β) where
     rw [show Prod.fst a = Prod.fst b from beq_eq h.1]
     exact congrArg _ h₂
 
-omit [Hashable β] [EquivBEq β] [LawfulHashable β] in
-/-- The key components of a `BEq`-equal pair key: the `Expr` halves
-have equal erasures, the rest is honest equality. -/
-theorem pairKey_inv {a c : Expr} {b d : β} (h : ((a, b) == (c, d)) = true) :
-    a = c ∧ (b == d) = true := by
-  simp only [BEq.beq, Bool.and_eq_true] at h
-  exact ⟨beq_sound h.1, h.2⟩
-
 end PairKey
 
 /-! ## Optional results -/

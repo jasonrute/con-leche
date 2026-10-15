@@ -54,15 +54,6 @@ theorem BodySpecB.triple {body : Nat → Expr → Expr → CheckCM Bool}
     ⦃fun s => s = s₀⦄ body d a b ⦃fun r s' => CSOK mode env s' ∧ Runs (spec d a b) r; ⊤⦄ :=
   h hs hwa hwb
 
-/-- A body simulation (`SimC` at `RelVC`) is a `BodySpecB`. -/
-theorem BodySpecB.of_sim {body : Nat → Expr → Expr → CheckCM Bool}
-    {spec : Nat → Expr → Expr → FueledM Bool}
-    (h : ∀ {s₀ : CState} {d : Nat} {i j : Expr} {a b : Expr}, CSOK mode env s₀ → RelC i a →
-      RelC j b → Expr.WScoped d a → Expr.WScoped d b →
-      SimC mode env s₀ RelVC (body d i j) (spec d a b)) :
-    BodySpecB mode env body spec :=
-  fun hs hwa hwb => (h hs rfl rfl hwa hwb).triple_eq
-
 end Vocabulary
 
 /-! ## The memo-wrapper steps -/

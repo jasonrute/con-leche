@@ -65,11 +65,4 @@ theorem throwC_bind_ok {α β : Type} {e : CheckError} {k : α → CheckCM β}
     (h : ((throw e : CheckCM α) >>= k) s₀ = .ok (v, s')) : False := by
   exact nomatch h
 
-/-- A bare `CheckCM` throw never succeeds (the last-guard shape, with no
-continuation to bind: a Unit-returning guard's final condition). -/
-theorem throwC_ok {α : Type} {e : CheckError}
-    {s₀ : CState} {v : α} {s' : CState}
-    (h : (throw e : CheckCM α) s₀ = .ok (v, s')) : False := by
-  exact nomatch h
-
 end ConLeche.Cached

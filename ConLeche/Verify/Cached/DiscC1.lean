@@ -279,10 +279,6 @@ grind_pattern [conleche_grind] allWS_getAppArgs => Expr.WScoped d e, e.getAppArg
     AllWS d xs.reverse = AllWS d xs := by
   simp [AllWS]
 
-theorem relOC_diag {d : Nat} : ∀ o : Option Expr, OptWS d o → RelOC d o o
-  | none, _ => trivial
-  | some _, h => ⟨rfl, h⟩
-
 @[conleche_grind =] theorem OptWS.none_eq (d : Nat) : OptWS d none = True := rfl
 
 @[conleche_grind =] theorem wscoped_lit_eq (d : Nat) (l : Literal) :
@@ -331,16 +327,6 @@ theorem defeqArgC_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {a ta t
   sym only [conleche_grind, defeqArg] =>
     vcgen [defeqArgI, ih.defeq_spec hs, ih.defeqE_spec hs] <;> finish
 
-/-- `defeqArgC_spec` as a simulation, for the unconverted callers. -/
-theorem defeqArgC_sim (ih : SSimC mode env f) {s₀ : CState} {d : Nat}
-    {a ta ty : Expr} {xa xta xty : Expr} (hs : CSOK mode env s₀)
-    (ha : RelC a xa) (hta : RelC ta xta) (hty : RelC ty xty)
-    (hwta : Expr.WScoped d xta) (hwty : Expr.WScoped d xty) :
-    SimC mode env s₀ RelVC
-      (defeqArgI (coreKnotI mode (mkFEnv env) f) d a ta ty)
-      (defeqArg (fueledFns mode env) d xa xta xty) := by
-  subst ha hta hty; exact SimC.of_triple_eq (defeqArgC_spec ih hs hwta hwty)
-
 /-- `defEqListI`'s fall-through arms as unconditional equations
 (`vcgen` cannot use the conditional `defEqListI.eq_3`). -/
 theorem defEqListI_nil_cons (r : CoreFnsI) (fe : FEnv) (d : Nat) (b : Expr) (bs : List Expr) :
@@ -378,15 +364,6 @@ theorem defEqListC_spec (ih : SSimC mode env f) {d : Nat} :
   | _ :: _, [], _, _, _, _ => by
     sym only [conleche_grind, defEqList_cons_nil] =>
       vcgen [defEqListI_cons_nil] <;> finish
-
-/-- `defEqListC_spec` as a simulation, for the unconverted callers. -/
-theorem defEqListC_sim (ih : SSimC mode env f) {d : Nat} {args xs brgs ys : List Expr}
-    {s₀ : CState} (hs : CSOK mode env s₀) (hargs : RelCL args xs) (hbrgs : RelCL brgs ys)
-    (hwx : ∀ x ∈ xs, Expr.WScoped d x) (hwy : ∀ y ∈ ys, Expr.WScoped d y) :
-    SimC mode env s₀ RelVC
-      (defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d args brgs)
-      (defEqList (fueledFns mode env) env d xs ys) :=
-  by subst hargs hbrgs; exact SimC.of_triple_eq (defEqListC_spec ih hs hwx hwy)
 
 /-- `iotaCertsFullIAux`'s step as one unconditional equation (the
 equation compiler's fall-through arm is conditional). -/
@@ -461,15 +438,6 @@ theorem iotaCertsFullC_spec (ih : SSimC mode env f) {d : Nat} {args : List Expr}
   sym only [conleche_grind, Expr.instantiateList_nil] =>
     vcgen [iotaCertsFullI, iotaCertsFullCAux_spec ih] <;> finish
 
-/-- `iotaCertsFullC_spec` as a simulation, for the unconverted callers. -/
-theorem iotaCertsFullC_sim (ih : SSimC mode env f) {d : Nat} {args xs : List Expr}
-    {ty tyx : Expr} {s₀ : CState} (hs : CSOK mode env s₀) (hty : RelC ty tyx)
-    (hwty : Expr.WScoped d tyx) (hargs : RelCL args xs) (hwargs : ∀ x ∈ xs, Expr.WScoped d x) :
-    SimC mode env s₀ RelVC
-      (iotaCertsFullI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d ty args)
-      (iotaCertsFull (fueledFns mode env) env d tyx xs) := by
-  subst hty hargs; exact SimC.of_triple_eq (iotaCertsFullC_spec ih hs hwty hwargs)
-
 end Walks
 
 section Walks2
@@ -506,30 +474,11 @@ theorem unfoldDefinitionC_spec {s₀ : CState} (hs : CSOK mode env s₀) (i : Ex
   sym only [conleche_grind, unfoldDefinition, constValAt?, mkFEnv_find?, Expr.getAppArgsC_spec] =>
     vcgen [unfoldDefinitionI, mkAppNM, constValAtM_specO hs] <;> finish
 
-/-- `unfoldDefinitionC_spec` as an effect, for the unconverted callers. -/
-theorem unfoldDefinitionC_eff {s₀ : CState} (hs : CSOK mode env s₀)
-    {i : Expr} {e : Expr} (hden : RelC i e) :
-    CEff mode env s₀ (fun o => OptEr o (unfoldDefinition env e))
-      (unfoldDefinitionI (mkFEnv env) i) := by
-  subst hden
-  intro v s' hr
-  obtain ⟨hs', rfl⟩ := triple_iff_run.mp (unfoldDefinitionC_spec hs i) v s' hr
-  exact ⟨hs', by cases unfoldDefinition env i <;> trivial⟩
-
 end Walks2
 
 section Walks3
 
 variable {env : Env} {f : Nat}
-
-/-- A twin-only effect against a pure fueled value. -/
-theorem SimC.of_eff {s₀ : CState} {β α : Type} {Q : β → Prop}
-    {P : β → α → Prop} {c : CheckCM β}
-    (h : CEff mode env s₀ Q c) (a : α) (hPa : ∀ b, Q b → P b a) :
-    SimC mode env s₀ P c (pure a) := by
-  intro v' s' hr
-  obtain ⟨hs', hQ⟩ := h v' s' hr
-  exact ⟨hs', a, hPa v' hQ, 0, rfl⟩
 
 /-- `litMajorToCtorI` simulates its fueled original. -/
 theorem litMajorToCtorC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
@@ -541,15 +490,6 @@ theorem litMajorToCtorC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ 
       litToCtorIfNat_WScoped] =>
     vcgen [litMajorToCtorI, litToCtorIfNatC_spec hs, ih.whnf_spec] <;> finish
 
-/-- `litMajorToCtorC_spec` as a simulation, for the unconverted callers. -/
-theorem litMajorToCtorC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
-    {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelEC d)
-      (litMajorToCtorI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-      (litMajorToCtor (fueledFns mode env) env d e) := by
-  subst hden; exact SimC.of_triple relEC_diag (litMajorToCtorC_spec ih hs hw)
-
 /-- `projLitToCtorI` simulates its fueled original. -/
 theorem projLitToCtorC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
@@ -559,15 +499,6 @@ theorem projLitToCtorC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ :
   sym only [conleche_grind, projLitToCtor, strLitSupportedF_eq, strLitToConstructor_WScoped] =>
     vcgen [projLitToCtorI, ih.whnf_spec] <;> finish
 
-/-- `projLitToCtorC_spec` as a simulation, for the unconverted callers. -/
-theorem projLitToCtorC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
-    {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelEC d)
-      (projLitToCtorI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-      (projLitToCtor (fueledFns mode env) env d e) := by
-  subst hden; exact SimC.of_triple relEC_diag (projLitToCtorC_spec ih hs hw)
-
 /-- `defeqSpineI` simulates its fueled original. -/
 theorem defeqSpineC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
@@ -575,16 +506,6 @@ theorem defeqSpineC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : 
     ⦃fun v s' => CSOK mode env s' ∧ Runs (defeqSpine (fueledFns mode env) env d a b) v; ⊤⦄ := by
   sym only [conleche_grind, defeqSpine, Expr.getAppArgsC_spec] =>
     vcgen [defeqSpineI, isEquivListLM_spec hs, defEqListC_spec ih] <;> finish
-
-/-- `defeqSpineC_spec` as a simulation, for the unconverted callers. -/
-theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
-    {a b : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hdena : RelC i a) (hdenb : RelC j b)
-    (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
-    SimC mode env s₀ RelVC
-      (defeqSpineI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j)
-      (defeqSpine (fueledFns mode env) env d a b) := by
-  subst hdena hdenb; exact SimC.of_triple_eq (defeqSpineC_spec ih hs hwa hwb)
 
 end Walks3
 
@@ -634,37 +555,6 @@ theorem reduceNatC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CSt
   sym only [conleche_grind, reduceNat_nested, reduceNat.eq_1, reduceNat.eq_2,
       natLitSupportedF_eq, natOpStoredF_eq, rawNatLitC?_spec] =>
     vcgen [reduceNatI, ih.whnf_spec] <;> finish
-
-/-- `reduceNatC_spec` as a simulation, for the unconverted callers. -/
-theorem reduceNatC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
-    {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelOC d)
-      (reduceNatI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-      (reduceNat (fueledFns mode env) env d e) := by
-  subst hden; exact SimC.of_triple relOC_diag (reduceNatC_spec ih hs hw)
-
-/-- `reduceNatC_spec` under the defeq-side fvar guard (the same `Bool`
-on both sides). -/
-theorem reduceNatIfC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
-    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) (g : Bool) :
-    ⦃fun s => s = s₀⦄
-      (if g then reduceNatI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i else pure none)
-    ⦃fun o s' => CSOK mode env s' ∧
-      Runs (if g then reduceNat (fueledFns mode env) env d i else pure none) o ∧
-      OptWS d o; ⊤⦄ := by
-  sym only [conleche_grind] =>
-    vcgen [reduceNatC_spec ih hs hw] <;> finish
-
-/-- `reduceNatIfC_spec` as a simulation, for the unconverted callers. -/
-theorem reduceNatIfC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
-    {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hden : RelC i e) (hw : Expr.WScoped d e) (g : Bool) :
-    SimC mode env s₀ (RelOC d)
-      (if g then reduceNatI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i
-        else pure none)
-      (if g then reduceNat (fueledFns mode env) env d e else pure none) := by
-  subst hden; exact SimC.of_triple relOC_diag (reduceNatIfC_spec ih hs hw g)
 
 end Walks4
 

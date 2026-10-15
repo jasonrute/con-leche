@@ -195,37 +195,6 @@ end Sims
 
 /-! ## 3. The assembly -/
 
-/-- `SimG.bind` that remembers the first component's fueled run. -/
-theorem SimG.bindR {A B C : CState → Prop} {β β' α α' : Type} {P : β → α → Prop}
-    {Q : β' → α' → Prop} {c : CheckCM β} {k : β → CheckCM β'} {p : FueledM α}
-    {q : α → FueledM α'} (hx : SimG A B P c p)
-    (hf : ∀ b a, P b a → (∃ F, p.val F = .ok a) → SimG B C Q (k b) (q a)) :
-    SimG A C Q (c >>= k) (p >>= q) := by
-  intro s₀ hs v' s' hr
-  simp only [Bind.bind, StateT.bind] at hr
-  cases hc : c s₀ with
-  | error e => rw [hc] at hr; exact nomatch hr
-  | ok pr =>
-    obtain ⟨b, s₁⟩ := pr
-    rw [hc] at hr
-    dsimp only [Except.bind] at hr
-    obtain ⟨hs₁, a, hP, F₁, hp₁⟩ := hx s₀ hs b s₁ hc
-    obtain ⟨hs', a', hQ, F₂, hp₂⟩ := hf b a hP ⟨F₁, hp₁⟩ s₁ hs₁ v' s' hr
-    refine ⟨hs', a', hQ, max F₁ F₂, ?_⟩
-    rw [FueledM.atF_bind]
-    simp only [Bind.bind]
-    rw [p.property (Nat.le_max_left F₁ F₂) hp₁]
-    dsimp only [Except.bind]
-    exact (q a).property (Nat.le_max_right F₁ F₂) hp₂
-
-/-- The stage's closing flush: the pure side's is no operation. -/
-theorem flushC_simG : SimG CSOKF CSOKF RelVC flushC (Pure.pure () : FueledM Unit) := by
-  intro s₀ hs v' s' hr
-  rw [flushC_run] at hr
-  injection hr with hr
-  obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-  exact ⟨hs.flushed, (), rfl, 0, rfl⟩
-
 /-- The shared operations read the index only through `find?`
 (`coreKnotI_congr`). -/
 theorem sharedOpsC_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) :

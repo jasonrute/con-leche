@@ -189,30 +189,9 @@ theorem RelC.refl (x : Expr) : RelC x x := by rfl
 
 namespace RelCL
 
-theorem nil : RelCL [] [] := by rfl
-
-theorem cons {x : Expr} {v : Expr} {l : List Expr} {xs : List Expr}
-    (hx : RelC x v) (hl : RelCL l xs) : RelCL (x :: l) (v :: xs) := by
-  rw [show x = v from hx, show l = xs from hl]; rfl
-
 /-- The list projection. -/
 theorem map {l : List Expr} {xs : List Expr} (h : RelCL l xs) :
     l = xs := h
-
-theorem nil_inv {xs : List Expr} (h : RelCL [] xs) : xs = [] := h.symm
-
-theorem cons_inv {x : Expr} {l : List Expr} {xs : List Expr}
-    (h : RelCL (x :: l) xs) :
-    ∃ v vs, xs = v :: vs ∧ RelC x v ∧ RelCL l vs :=
-  ⟨x, l, h.symm, rfl, rfl⟩
-
-theorem length {l : List Expr} {xs : List Expr} (h : RelCL l xs) :
-    l.length = xs.length := by rw [h]
-
-theorem append {l₁ l₂ : List Expr} {xs₁ xs₂ : List Expr}
-    (h₁ : RelCL l₁ xs₁) (h₂ : RelCL l₂ xs₂) :
-    RelCL (l₁ ++ l₂) (xs₁ ++ xs₂) := by
-  rw [show l₁ = xs₁ from h₁, show l₂ = xs₂ from h₂]; rfl
 
 end RelCL
 
@@ -387,12 +366,6 @@ depth. -/
 /-- The result relation for `Bool` and other data results. -/
 @[expose] def RelVC {α : Type} (b a : α) : Prop := b = a
 
-/-- The result relation for optional expression results. -/
-@[expose] def RelOC (d : Nat) : Option Expr → Option Expr → Prop
-  | none, none => True
-  | some j, some v => RelEC d j v
-  | _, _ => False
-
 namespace SimC
 
 variable {env : Env} {s₀ : CState}
@@ -410,91 +383,6 @@ protected theorem throw {β α : Type} {P : β → α → Prop}
     SimC mode env s₀ P (throw e) p := by
   intro v' s' hr
   exact nomatch hr
-
-/-- Bind: run the first components, hand the continuation the
-intermediate state (with the invariant and the value relation). -/
-protected theorem bind {β β' α α' : Type}
-    {P : β → α → Prop} {Q : β' → α' → Prop}
-    {c : CheckCM β} {k : β → CheckCM β'}
-    {p : FueledM α} {q : α → FueledM α'}
-    (hx : SimC mode env s₀ P c p)
-    (hf : ∀ s₁ b a, CSOK mode env s₁ → P b a →
-      SimC mode env s₁ Q (k b) (q a)) :
-    SimC mode env s₀ Q (c >>= k) (p >>= q) := by
-  intro v' s' hr
-  simp only [Bind.bind, StateT.bind] at hr
-  cases hc : c s₀ with
-  | error e => rw [hc] at hr; exact nomatch hr
-  | ok pr =>
-    obtain ⟨b, s₁⟩ := pr
-    rw [hc] at hr
-    dsimp only [Except.bind] at hr
-    obtain ⟨hs₁, a, hP, F₁, hp₁⟩ := hx b s₁ hc
-    obtain ⟨hs', a', hQ, F₂, hp₂⟩ := hf s₁ b a hs₁ hP v' s' hr
-    refine ⟨hs', a', hQ, max F₁ F₂, ?_⟩
-    rw [FueledM.atF_bind]
-    simp only [Bind.bind]
-    rw [p.property (Nat.le_max_left F₁ F₂) hp₁]
-    dsimp only [Except.bind]
-    exact (q a).property (Nat.le_max_right F₁ F₂) hp₂
-
-/-- Left bind: a twin-only effect before the simulated remainder. -/
-protected theorem bind_left {β β' α : Type}
-    {Q : β → Prop} {P : β' → α → Prop}
-    {c : CheckCM β} {k : β → CheckCM β'} {p : FueledM α}
-    (hx : CEff mode env s₀ Q c)
-    (hf : ∀ s₁ b, CSOK mode env s₁ → Q b → SimC mode env s₁ P (k b) p) :
-    SimC mode env s₀ P (c >>= k) p := by
-  intro v' s' hr
-  simp only [Bind.bind, StateT.bind] at hr
-  cases hc : c s₀ with
-  | error e => rw [hc] at hr; exact nomatch hr
-  | ok pr =>
-    obtain ⟨b, s₁⟩ := pr
-    rw [hc] at hr
-    dsimp only [Except.bind] at hr
-    obtain ⟨hs₁, hQ⟩ := hx b s₁ hc
-    exact hf s₁ b hs₁ hQ v' s' hr
-
-/-- Peel a pure value bound on the twin side. -/
-protected theorem bind_pure_left {β β' α : Type}
-    {P : β' → α → Prop} {c : β} {k : β → CheckCM β'}
-    {p : FueledM α}
-    (h : SimC mode env s₀ P (k c) p) :
-    SimC mode env s₀ P (pure c >>= k) p := by
-  intro v' s' hr
-  apply h v' s'
-  simpa only [Bind.bind, StateT.bind, pure, StateT.pure, Except.pure,
-    Except.bind] using hr
-
-/-- Peel a pure value bound on the fueled side. -/
-protected theorem bind_pure_right {β α α' : Type}
-    {P : β → α' → Prop} {c : CheckCM β} {a : α}
-    {k : α → FueledM α'}
-    (h : SimC mode env s₀ P c (k a)) :
-    SimC mode env s₀ P c (pure a >>= k) := by
-  intro v' s' hr
-  obtain ⟨hs', v, hP, F, hp⟩ := h v' s' hr
-  exact ⟨hs', v, hP, F, hp⟩
-
-/-- A twin-side `throw` composed with anything never succeeds. -/
-protected theorem throw_bind {β β' α : Type}
-    {P : β' → α → Prop} {er : CheckError}
-    {k : β → CheckCM β'} {p : FueledM α} :
-    SimC mode env s₀ P ((throw er : CheckCM β) >>= k) p := by
-  intro v' s' hr
-  exact nomatch hr
-
-/-- Peel a pure read: same state, the continuation at the value.
-(Task #198: the cached checker's syntactic reads are plain `pure`s.) -/
-protected theorem pureB {β α γ : Type} {P : β → α → Prop}
-    {x : γ} {k : γ → CheckCM β} {p : FueledM α}
-    (h : SimC mode env s₀ P (k x) p) :
-    SimC mode env s₀ P ((pure x : CheckCM γ) >>= k) p := by
-  intro v' s' hr
-  apply h v' s'
-  simpa only [Bind.bind, StateT.bind, pure,
-    StateT.pure, Except.pure, Except.bind] using hr
 
 /-- Strengthen the value relation using the fueled run's success. -/
 protected theorem wp {β α : Type} {P Q : β → α → Prop}
@@ -518,15 +406,6 @@ protected theorem wr {β α : Type} {P : β → α → Prop}
   obtain ⟨F', hq⟩ := himp v F hp
   exact ⟨hs', v, hP, F', hq⟩
 
-/-- Weaken the value relation. -/
-protected theorem mono {β α : Type} {P Q : β → α → Prop}
-    {c : CheckCM β} {p : FueledM α}
-    (hPQ : ∀ b a, P b a → Q b a) (h : SimC mode env s₀ P c p) :
-    SimC mode env s₀ Q c p := by
-  intro v' s' hr
-  obtain ⟨hs', a, hP, F, hp⟩ := h v' s' hr
-  exact ⟨hs', a, hPQ v' a hP, F, hp⟩
-
 protected theorem liftFueled {α : Type} (what : String) (o : Option α)
     (hs : CSOK mode env s₀) :
     SimC mode env s₀ RelVC (liftFueled what o) (liftFueled what o) := by
@@ -546,32 +425,6 @@ protected theorem pure {β : Type} {Q : β → Prop} {b : β}
   simp only [pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
   obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
   exact ⟨hs, h⟩
-
-protected theorem bind {β β' : Type} {Q : β → Prop} {R : β' → Prop}
-    {c : CheckCM β} {k : β → CheckCM β'}
-    (hx : CEff mode env s₀ Q c)
-    (hf : ∀ s₁ b, CSOK mode env s₁ → Q b → CEff mode env s₁ R (k b)) :
-    CEff mode env s₀ R (c >>= k) := by
-  intro v' s' hr
-  simp only [Bind.bind, StateT.bind] at hr
-  cases hc : c s₀ with
-  | error e => rw [hc] at hr; exact nomatch hr
-  | ok pr =>
-    obtain ⟨b, s₁⟩ := pr
-    rw [hc] at hr
-    dsimp only [Except.bind] at hr
-    obtain ⟨hs₁, hQ⟩ := hx b s₁ hc
-    exact hf s₁ b hs₁ hQ v' s' hr
-
-@[inherit_doc SimC.pureB]
-protected theorem pureB {β γ : Type} {Q : β → Prop}
-    {x : γ} {k : γ → CheckCM β}
-    (h : CEff mode env s₀ Q (k x)) :
-    CEff mode env s₀ Q ((pure x : CheckCM γ) >>= k) := by
-  intro v' s' hr
-  apply h v' s'
-  simpa only [Bind.bind, StateT.bind, pure,
-    StateT.pure, Except.pure, Except.bind] using hr
 
 end CEff
 

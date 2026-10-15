@@ -57,18 +57,6 @@ section Effects
 
 variable {s₀ : CState}
 
-/-- Building one node: the cached core allocates it outright, so the
-effect is the value's own reflexivity (task #198). -/
-theorem pureC_eff (hs : CSOK mode env s₀) (x : Expr) :
-    CEff mode env s₀ (fun i => RelC i x) (pure x) :=
-  CEff.pure hs (RelC.refl x)
-
-/-- The `bvar` allocation goes through `Expr.mkBvar` (the shared small
-nodes), which is the constructor (`Expr.mkBvar_eq`). -/
-theorem pureBvar_eff (hs : CSOK mode env s₀) (i : Nat) :
-    CEff mode env s₀ (fun e => RelC e (Expr.bvar i)) (pure (Expr.mkBvar i)) :=
-  CEff.pure hs (Expr.mkBvar_eq i)
-
 theorem inst1M_eff (hs : CSOK mode env s₀) {e v : Expr} {d : Nat}
     {a w : Expr} (he : RelC e a) (hv : RelC v w) :
     CEff mode env s₀ (fun i => RelC i (a.instantiate1 w d)) (inst1M e v d) := by
@@ -85,13 +73,6 @@ theorem instListRevM_eff (hs : CSOK mode env s₀) {e : Expr}
   show _ = _
   rw [instantiateRev_spec (d := d), he.erase, hvs.map]
 
-theorem abstract1M_eff (hs : CSOK mode env s₀) {e : Expr} {d : Nat}
-    {a : Expr} (he : RelC e a) :
-    CEff mode env s₀ (fun i => RelC i (a.abstract1 d)) (abstract1M e d) := by
-  refine CEff.pure hs ?_
-  show _ = _
-  rw [abstract1C_spec (d := d) (k := 0), he.erase]
-
 theorem abstractRangeM_eff (hs : CSOK mode env s₀) {e : Expr} {d k : Nat}
     {a : Expr} (he : RelC e a) :
     CEff mode env s₀ (fun i => RelC i (a.abstractRange d k))
@@ -99,23 +80,6 @@ theorem abstractRangeM_eff (hs : CSOK mode env s₀) {e : Expr} {d k : Nat}
   refine CEff.pure hs ?_
   show _ = _
   rw [abstractRangeC_spec (d := d) (k := k) (c := 0), he.erase]
-
-theorem mkAppNM_eff (hs : CSOK mode env s₀) {f : Expr} {args : List Expr}
-    {x : Expr} {xs : List Expr}
-    (hf : RelC f x) (hargs : RelCL args xs) :
-    CEff mode env s₀ (fun i => RelC i (Expr.mkAppN x xs)) (mkAppNM f args) := by
-  refine CEff.pure hs ?_
-  show _ = _
-  rw [hf.erase, hargs.map]
-
-theorem instSpineM_eff (hs : CSOK mode env s₀) {args : List Expr} {t : Nat}
-    {e : Expr} {x : Expr} {xs : List Expr}
-    (he : RelC e x) (hargs : RelCL args xs) :
-    CEff mode env s₀ (fun i => RelC i (Expr.instSpine xs t x))
-      (instSpineM args t e) := by
-  refine CEff.pure hs ?_
-  show _ = _
-  rw [instSpineC_spec (t := t), he.erase, hargs.map]
 
 theorem piResidualM_eff (hs : CSOK mode env s₀) {e : Expr}
     {args : List Expr} {x : Expr} {xs : List Expr}
@@ -127,37 +91,12 @@ theorem piResidualM_eff (hs : CSOK mode env s₀) {e : Expr}
   rw [← he.erase, ← hargs.map]
   exact h
 
-theorem instLevelParamsM_eff (hs : CSOK mode env s₀) {ks : List Name}
-    {us : List Level} {e : Expr} {a : Expr} (he : RelC e a) :
-    CEff mode env s₀
-      (fun i => RelC i (a.instantiateLevelParams ks us))
-      (instLevelParamsM ks us e) := by
-  refine CEff.pure hs ?_
-  show _ = _
-  rw [instLevelParams_spec (ks := ks) (us := us), he.erase]
-
-/-- The binder-telescope peel fuel is a constant. -/
-theorem peelFuelM_eff (hs : CSOK mode env s₀) :
-    CEff mode env s₀ (fun n => n = peelFuel) peelFuelM :=
-  CEff.pure hs rfl
-
 /-! ## Pure reads
 
 The names and levels the core fabricates are ordinary values: the
 cached checker's name/level "interning" and "readback" wrappers were
 identities and went at task #198, so what the walks peel is a `pure`
 and what they consume is its value equation. -/
-
-/-- A `pure` read: the value is what was handed in. -/
-theorem pureEq_eff {α : Type} (hs : CSOK mode env s₀) (x : α) :
-    CEff mode env s₀ (fun v => v = x) (pure x) :=
-  CEff.pure hs rfl
-
-theorem substLevelTreesM_eff (hs : CSOK mode env s₀) (ks : List Name)
-    (us : List Level) (ls : List Level) :
-    CEff mode env s₀ (fun vs => vs = ls.map (Level.subst ks us))
-      (substLevelTreesM ks us ls) :=
-  CEff.pure hs rfl
 
 end Effects
 
@@ -316,10 +255,6 @@ theorem isEquivLM_spec (hs : CSOK mode env s₀) (l r : Level) :
       CSOK.withLsimp, CSOK.withLsimpEqv] =>
     vcgen [isEquivLM_eq] <;> finish
 
-theorem isEquivLM_eff (hs : CSOK mode env s₀) (l r : Level) :
-    CEff mode env s₀ (fun ob => ob = Level.isEquiv l r) (isEquivLM l r) :=
-  triple_iff_run.mp (isEquivLM_spec hs l r)
-
 /-- `Level.isEquivList`'s step as one `match`. -/
 theorem isEquivList_cons (l r : Level) (ls rs : List Level) :
     Level.isEquivList (l :: ls) (r :: rs) =
@@ -353,10 +288,6 @@ theorem isEquivListLM_spec :
     sym only [conleche_grind, isEquivList_cons] =>
       vcgen [isEquivListLM, isEquivLM_spec hs, isEquivListLM_spec (ls := ls) (rs := rs)] <;>
         finish
-
-theorem isEquivListLM_eff {ls rs : List Level} (hs : CSOK mode env s₀) :
-    CEff mode env s₀ (fun ob => ob = Level.isEquivList ls rs) (isEquivListLM ls rs) :=
-  triple_iff_run.mp (isEquivListLM_spec hs)
 
 end LevelEffects
 
@@ -423,13 +354,6 @@ theorem instListM_spec (hs : CSOK mode env s₀) (e : Expr) (vs : List Expr) (d 
   sym only [conleche_grind, instantiateList_of_bvarB, Expr.instantiateListC_spec,
       CSOK.instC_insert] =>
     vcgen [instListM_eq] <;> finish
-
-theorem instListM_eff (hs : CSOK mode env s₀) {e : Expr} {vs : List Expr}
-    {d : Nat} {a : Expr} {ws : List Expr}
-    (he : RelC e a) (hvs : RelCL vs ws) :
-    CEff mode env s₀ (fun i => RelC i (a.instantiateList ws d))
-      (instListM e vs d) := by
-  obtain rfl := he.erase; obtain rfl := hvs.map; exact triple_iff_run.mp (instListM_spec hs e vs d)
 
 end InstMemo
 
