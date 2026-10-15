@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Verify.Cached.BinderLoopC
+public import ConLeche.Verify.Cached.Grind
 import ConLeche.Verify.BetaSpine
 
 public section
@@ -21,10 +22,12 @@ fuel.
 -/
 
 set_option linter.unusedSimpArgs false
+set_option experimental.vcgen true
 
 namespace ConLeche.Cached
 
-open ConLeche.Expr
+open ConLeche.Expr Std.WP
+open scoped Lean.Order
 
 variable {mode : CheckMode}
 
@@ -142,183 +145,105 @@ outcome, with related and scoped terms. -/
   | .cont a, .cont b => RelEC d a b
   | _, _ => False
 
-private theorem whnfAppI_ne_lam {r : CoreFnsI} {fe : FEnv} {d : Nat} {v : Expr}
-    (hv : ∀ ty body, v ≠ .lam ty body) (a : Expr) (rest : List Expr) :
-    whnfAppI mode r fe d v (a :: rest) =
-      (pure (Expr.app v a) >>= fun fa =>
-        (if iotaArityOk fe fa then iotaRecI mode r fe d fa else pure none) >>= fun o =>
-        match o with
-        | some e'' => mkAppNM e'' rest >>= fun e' => pure (WhnfStep.cont e')
-        | none => whnfAppI mode r fe d fa rest) := by
-  cases v with
-  | lam ty body => exact absurd rfl (hv ty body)
-  | _ => rw [whnfAppI.eq_def] <;> rfl
+theorem relWC_diag {d : Nat} : ∀ v : WhnfStep, StepWS d v → RelWC d v v
+  | .done _, h => ⟨rfl, h⟩
+  | .cont _, h => ⟨rfl, h⟩
 
-private theorem betaPeelI_ne_lam {r : CoreFnsI} {fe : FEnv} {d : Nat} {t : Expr}
-    (ht : ∀ ty body, t ≠ .lam ty body) (acc : List Expr) (a : Expr) (rest : List Expr) :
+/-! ### The argument loop, by `vcgen` and `grind`
+
+Each walk below is `sym only [conleche_grind, …] => vcgen […] <;> finish`
+(`ConLeche/Verify/Cached/Grind.lean`).  The cached loops match their
+head on `.lam`, and the equation compiler states their `a :: rest` step
+as one equation per arm, the fall-through one conditional; `vcgen` needs
+a single unconditional equation to unfold, so each loop gets one
+(`betaPeelI_cons`, `whnfAppI_cons`, the latter with the ι arity guard
+already discharged by `iotaArityOk_guard`).  `vcgen` splits the `match`
+and hands each arm its fall-through hypothesis; the pure mirrors'
+own equation lemmas (`betaPeelW.eq_*`, `whnfAppW.eq_*`, the fall-through
+one included) go into the `sym` list, and `grind` discharges the
+fall-through premise from the arm's hypothesis. -/
+
+theorem betaPeelI_cons (r : CoreFnsI) (fe : FEnv) (d : Nat) (t : Expr) (acc : List Expr)
+    (a : Expr) (rest : List Expr) :
     betaPeelI r fe d t acc (a :: rest) =
-      (instListM t acc >>= fun e' =>
-        mkAppNM e' (a :: rest) >>= fun e'' => pure (WhnfStep.cont e'')) := by
-  cases t with
-  | lam ty body => exact absurd rfl (ht ty body)
-  | _ => rw [betaPeelI.eq_def] <;> rfl
+      match t with
+      | .lam _ body => betaPeelI r fe d body (a :: acc) rest
+      | t => instListM t acc >>= fun e' => mkAppNM e' (a :: rest) >>= fun e'' =>
+          pure (WhnfStep.cont e'') := by
+  cases t <;> rw [betaPeelI] <;> (intro _ _ h; cases h)
 
-mutual
-
-/-- The bulk-beta argument loop simulates its pure mirror. -/
-theorem whnfAppC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
-    ∀ {args : List Expr} {xs : List Expr} {v : Expr} {vx : Expr}
-      {s₀ : CState}, CSOK mode env s₀ →
-      RelC v vx → Expr.WScoped d vx →
-      RelCL args xs → (∀ x ∈ xs, Expr.WScoped d x) →
-      SimC mode env s₀ (RelWC d)
-        (whnfAppI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d v args)
-        (whnfAppW mode (fueledFns mode env) env d vx xs)
-  | [], xs, v, vx, s₀, hs, hv, hwv, hargs, hwargs => by
-    obtain rfl := hargs.nil_inv
-    rw [whnfAppI.eq_def]
-    dsimp only
-    rw [whnfAppW_nil]
-    exact SimC.pure (P := RelWC d) hs (show RelEC d v vx from ⟨hv, hwv⟩)
-  | a :: rest, xs, v, vx, s₀, hs, hv, hwv, hargs, hwargs => by
-    obtain ⟨xa, xs, rfl, hax, hrest⟩ := hargs.cons_inv
-    obtain rfl := hv
-    have hvr : RelC v v := rfl
-    have hwxa : Expr.WScoped d xa := hwargs xa (List.mem_cons_self ..)
-    have hwrest : ∀ x ∈ xs, Expr.WScoped d x :=
-      fun x hx => hwargs x (List.mem_cons_of_mem _ hx)
-    by_cases hlam : ∃ ty body, v = Expr.lam ty body
-    · obtain ⟨ty, body, rfl⟩ := hlam
-      rw [whnfAppI.eq_def]
-      dsimp only
-      have hwtb : Expr.WScoped d ty ∧ Expr.WScoped d body := by
-        have hw' : Expr.WScoped d
-          (.lam ty body) := hwv
-        simpa only [Expr.WScoped] using hw'
-      have hwsub : Expr.WScoped d ((Expr.instantiateList body [xa])) := by
-        rw [show (Expr.instantiateList body [xa])
-            = (Expr.instantiate1 body xa) by
-          rw [Expr.instantiateList_cons, Expr.instantiateList_nil]]
-        exact Expr.WScoped.instantiate1_gen hwxa 0 hwtb.2
-      rw [whnfAppW_lam]
-      exact betaPeelC_sim hμ ih henv hs rfl
-        (RelCL.cons hax RelCL.nil) hwsub hrest hwrest
-    · have hnl : ∀ ty body, v ≠ Expr.lam ty body :=
-        fun ty b hh => hlam ⟨ty, b, hh⟩
-      rw [whnfAppI_ne_lam hnl, whnfAppW_ne_lam _ _ _ hnl]
-      exact whnfAppIotaC_sim hμ ih henv hs hvr hwv hax hwxa hrest hwrest
-  termination_by args _ => (args.length, 0)
-
-/-- The iota arm of the loop simulates its mirror. -/
-theorem whnfAppIotaC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat}
-    {v a : Expr} {vx xa : Expr} {rest : List Expr} {xs : List Expr}
-    {s₀ : CState} (hs : CSOK mode env s₀)
-    (hv : RelC v vx) (hwv : Expr.WScoped d vx)
-    (hax : RelC a xa) (hwxa : Expr.WScoped d xa)
-    (hrest : RelCL rest xs) (hwrest : ∀ x ∈ xs, Expr.WScoped d x) :
-    SimC mode env s₀ (RelWC d)
-      (pure (Expr.app v a) >>= fun fa =>
-        (if iotaArityOk (mkFEnv env) fa then
-            iotaRecI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d fa
-          else pure none) >>= fun o =>
+theorem whnfAppI_cons (r : CoreFnsI) (fe : FEnv) (d : Nat) (v a : Expr) (rest : List Expr) :
+    whnfAppI mode r fe d v (a :: rest) =
+      match v with
+      | .lam _ body => betaPeelI r fe d body [a] rest
+      | v => iotaRecI mode r fe d (.app v a) >>= fun o =>
         match o with
         | some e'' => mkAppNM e'' rest >>= fun e' => pure (WhnfStep.cont e')
-        | none =>
-          whnfAppI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d fa rest)
-      (do
-        match ← iotaRec mode (fueledFns mode env) env d (.app vx xa) with
-        | some e'' => pure (.cont (Expr.mkAppN e'' xs))
-        | none => whnfAppW mode (fueledFns mode env) env d (.app vx xa) xs) := by
-    simp only [iotaArityOk_guard]
-    have hwapp : Expr.WScoped d (.app vx xa) := by
-      simp only [Expr.WScoped]
-      exact ⟨hwv, hwxa⟩
-    refine SimC.bind_left
-      (pureC_eff hs (x := Expr.app v a))
-      (fun s₁ fa hs₁ hQfa => ?_)
-    have hQfa' : RelC fa (Expr.app vx xa) := by
-      show _ = _
-      have h := hQfa
-      rw [hv, hax] at h
-      exact h
-    refine SimC.bind (iotaRecC_sim hμ ih henv hs₁ hQfa' hwapp)
-      (fun s₂ o ox hs₂ hPo => ?_)
-    cases o with
-    | some e'' =>
-      cases ox with
-      | none => exact absurd hPo (by simp [RelOC])
-      | some e''x =>
-        obtain ⟨hred, hwred⟩ := hPo
-        dsimp only
-        refine SimC.bind_left (mkAppNM_eff hs₂ hred hrest)
-          (fun s₃ e' hs₃ hQ => ?_)
-        exact SimC.pure (P := RelWC d) hs₃
-          (show RelEC d e' (Expr.mkAppN e''x xs) from
-            ⟨hQ, Expr.WScoped.mkAppN hwred hwrest⟩)
-    | none =>
-      cases ox with
-      | some e''x => exact absurd hPo (by simp [RelOC])
-      | none =>
-        exact whnfAppC_sim hμ ih henv hs₂ hQfa' hwapp hrest hwrest
-  termination_by (rest.length, 1)
+        | none => whnfAppI mode r fe d (.app v a) rest := by
+  cases v <;> (rw [whnfAppI] <;> first
+    | rfl | (intro _ _ h; cases h)
+    | (simp only [pure_bind, iotaArityOk_guard]; try congr 1))
+
+/-- The peel step's scope: a binder peeled off a well-scoped
+instantiated lambda, instantiated with one more well-scoped argument. -/
+theorem wscoped_peel {d : Nat} {ty body a : Expr} {acc : List Expr}
+    (hw : Expr.WScoped d ((Expr.lam ty body).instantiateList acc)) (ha : Expr.WScoped d a) :
+    Expr.WScoped d (body.instantiateList (a :: acc)) := by
+  rw [instList_lam, Expr.WScoped] at hw
+  rw [Expr.instantiateList_cons]
+  exact Expr.WScoped.instantiate1_gen ha 0 hw.2
+grind_pattern [conleche_grind] wscoped_peel =>
+  Expr.WScoped d ((Expr.lam ty body).instantiateList acc), body.instantiateList (a :: acc)
+
+/-- `iotaRecC_sim` as a triple. -/
+theorem iotaRecC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
+    (henv : EnvWF env) {d : Nat} {i : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
+    (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ iotaRecI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i
+    ⦃fun o s' => CSOK mode env s' ∧ Runs (iotaRec mode (fueledFns mode env) env d i) o ∧
+      OptWS d o; ⊤⦄ :=
+  (iotaRecC_sim hμ ih henv hs (RelC.refl i) hw).triple relOC_inv
+
+/-- `instListM_eff` as a triple. -/
+theorem instListM_spec {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr) (vs : List Expr)
+    (d : Nat) :
+    ⦃fun s => s = s₀⦄ instListM e vs d
+    ⦃fun r s' => CSOK mode env s' ∧ r = e.instantiateList vs d; ⊤⦄ :=
+  (instListM_eff hs (RelC.refl e) (show RelCL vs vs from rfl) :
+    CEff mode env s₀ (fun i => i = e.instantiateList vs d) _).triple
 
 /-- The peel loop simulates its pure mirror. -/
-theorem betaPeelC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} :
-    ∀ {args : List Expr} {xs : List Expr} {t : Expr} {tx : Expr}
-      {acc : List Expr} {ws : List Expr} {s₀ : CState}, CSOK mode env s₀ →
-      RelC t tx → RelCL acc ws →
-      Expr.WScoped d (tx.instantiateList ws) →
-      RelCL args xs → (∀ x ∈ xs, Expr.WScoped d x) →
-      SimC mode env s₀ (RelWC d)
-        (betaPeelI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d t acc args)
-        (betaPeelW mode (fueledFns mode env) env d tx ws xs)
-  | [], xs, t, tx, acc, ws, s₀, hs, ht, hacc, hwty, hargs, hwargs => by
-    obtain rfl := hargs.nil_inv
-    rw [betaPeelI.eq_def]
-    dsimp only
-    rw [betaPeelW_nil]
-    refine SimC.bind_left (instListM_eff (d := 0) hs ht hacc)
-      (fun s₁ e' hs₁ hQ => ?_)
-    exact SimC.pure (P := RelWC d) hs₁
-      (show RelEC d e' (tx.instantiateList ws) from ⟨hQ, hwty⟩)
-  | a :: rest, xs, t, tx, acc, ws, s₀, hs, ht, hacc, hwty, hargs,
-      hwargs => by
-    obtain ⟨xa, xs, rfl, hax, hrest⟩ := hargs.cons_inv
-    obtain rfl := ht
-    have htr : RelC t t := rfl
-    have hwxa : Expr.WScoped d xa := hwargs xa (List.mem_cons_self ..)
-    have hwrest : ∀ x ∈ xs, Expr.WScoped d x :=
-      fun x hx => hwargs x (List.mem_cons_of_mem _ hx)
-    by_cases hlam : ∃ ty body, t = Expr.lam ty body
-    · obtain ⟨ty, body, rfl⟩ := hlam
-      rw [betaPeelI.eq_def]
-      dsimp only
-      rw [betaPeelW_lam]
-      have hcomp : Expr.WScoped d ((Expr.instantiateList ty ws))
-          ∧ Expr.WScoped d ((Expr.instantiateList body ws 1)) := by
-        have hw' : Expr.WScoped d
-            ((Expr.lam ty body).instantiateList ws) :=
-          hwty
-        rw [instList_lam] at hw'
-        simpa only [Expr.WScoped] using hw'
-      have hwsub : Expr.WScoped d ((Expr.instantiateList body (xa :: ws))) := by
-        rw [Expr.instantiateList_cons]
-        exact Expr.WScoped.instantiate1_gen hwxa 0 hcomp.2
-      exact betaPeelC_sim hμ ih henv hs rfl
-        (RelCL.cons hax hacc) hwsub hrest hwrest
-    · have hnl : ∀ ty body, t ≠ Expr.lam ty body :=
-        fun ty b hh => hlam ⟨ty, b, hh⟩
-      rw [betaPeelI_ne_lam hnl, betaPeelW_ne_lam _ _ _ hnl]
-      refine SimC.bind_left (instListM_eff (d := 0) hs htr hacc)
-        (fun s₁ e' hs₁ hQ => ?_)
-      refine SimC.bind_left (mkAppNM_eff hs₁ hQ (RelCL.cons hax hrest))
-        (fun s₂ e'' hs₂ hQ₂ => ?_)
-      exact SimC.pure (P := RelWC d) hs₂
-        (show RelEC d e'' (Expr.mkAppN (t.instantiateList ws) (xa :: xs)) from
-          ⟨hQ₂, Expr.WScoped.mkAppN hwty hwargs⟩)
-  termination_by args _ => (args.length, 1)
+theorem betaPeelC_spec (r : CoreFnsI) {d : Nat} :
+    ∀ {args : List Expr} {t : Expr} {acc : List Expr} {s₀ : CState}, CSOK mode env s₀ →
+      Expr.WScoped d (t.instantiateList acc) → AllWS d args →
+      ⦃fun s => s = s₀⦄ betaPeelI r (mkFEnv env) d t acc args
+      ⦃fun v s' => CSOK mode env s' ∧
+          Runs (betaPeelW mode (fueledFns mode env) env d t acc args) v ∧ StepWS d v; ⊤⦄
+  | [], _, _, _, hs, _, _ => by
+    sym only [conleche_grind, betaPeelW.eq_1] =>
+      vcgen [betaPeelI, instListM_spec hs] <;> finish
+  | _ :: rest, _, _, _, hs, _, _ => by
+    sym only [conleche_grind, betaPeelW.eq_2, betaPeelW.eq_3] =>
+      vcgen [betaPeelI_cons, mkAppNM, instListM_spec hs,
+        betaPeelC_spec r (args := rest)] <;> finish
 
-end
+/-- The bulk-beta argument loop simulates its pure mirror. -/
+theorem whnfAppC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
+    (henv : EnvWF env) {d : Nat} :
+    ∀ {args : List Expr} {v : Expr} {s₀ : CState}, CSOK mode env s₀ →
+      Expr.WScoped d v → AllWS d args →
+      ⦃fun s => s = s₀⦄ whnfAppI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d v args
+      ⦃fun w s' => CSOK mode env s' ∧
+          Runs (whnfAppW mode (fueledFns mode env) env d v args) w ∧ StepWS d w; ⊤⦄
+  | [], _, _, _, _, _ => by
+    sym only [conleche_grind, whnfAppW.eq_1] =>
+      vcgen [whnfAppI] <;> finish
+  | _ :: rest, _, _, _, _, _ => by
+    sym only [conleche_grind, whnfAppW.eq_2, whnfAppW.eq_3] =>
+      vcgen [whnfAppI_cons, mkAppNM, iotaRecC_spec hμ ih henv,
+        betaPeelC_spec (coreKnotI mode (mkFEnv env) f),
+        whnfAppC_spec hμ ih henv (args := rest)] <;> finish
+termination_by args => args.length
 
 private theorem whnfCoreStepW_unfold (env : Env) (cheap : Bool) (d : Nat) (e : Expr) :
     whnfCoreStepW mode (fueledFns mode env) env cheap d e =
@@ -389,7 +314,9 @@ theorem whnfCoreStepC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode en
       Expr.getAppArgsC_spec (Expr.app g' a)
     refine SimC.bind (ih.whnfCore hs hhead hw.getAppFn)
       (fun s₁ v vh hs₁ hP => ?_)
-    exact whnfAppC_sim hμ ih henv hs₁ hP.1 hP.2 hargs hw.getAppArgs
+    obtain ⟨rfl, hwv⟩ := hP
+    rw [show Expr.getAppArgsC (Expr.app g' a) = (Expr.app g' a).getAppArgs from hargs]
+    exact SimC.of_triple relWC_diag (whnfAppC_spec hμ ih henv hs₁ hwv hw.getAppArgs)
   | proj sn ip pe =>
     dsimp only
     have hwpe : Expr.WScoped d pe := by

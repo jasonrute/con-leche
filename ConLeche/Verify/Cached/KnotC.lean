@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Verify.Cached.DiscC5
+public import ConLeche.Verify.Cached.Grind
 
 public section
 
@@ -22,11 +23,13 @@ fuel induction.
 -/
 
 set_option linter.unusedSimpArgs false
+set_option experimental.vcgen true
 
 namespace ConLeche.Cached
 
 open ConLeche
-open ConLeche.Expr
+open ConLeche.Expr Std.WP
+open scoped Lean.Order
 
 variable {mode : CheckMode}
 
@@ -286,58 +289,61 @@ theorem memoEI_whnfCore_sim (henv : EnvWF env)
   · exact memoEI_whnfCoreFull_sim henv hbody hs hden hw
   · exact memoEI_whnfCoreCheap_sim henv hbody hs hden hw
 
-theorem memoEI_whnf_sim (henv : EnvWF env)
-    (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
-      CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
-      SimC mode env s₀ (RelEC d)
-        (whnfBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-        (whnfBody (fueledFns mode env) env d e))
-    {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}
-    (hs : CSOK mode env s₀) (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelEC d) ((coreKnotI mode (mkFEnv env) (f + 1)).whnf d i)
-      ((fueledFns mode env).whnf d e) := by
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  intro v' s' hr
-  rw [show (coreKnotI mode (mkFEnv env) (f + 1)).whnf d i =
-    memoEI (·.whnfC) (fun st mp => { st with whnfC := mp })
-      (fun d e => whnfBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d e)
-      d i from rfl] at hr
-  simp only [memoEI, Bind.bind, StateT.bind, get, getThe,
-    MonadStateOf.get, StateT.get, pure, StateT.pure, Except.pure,
-    Except.bind] at hr
-  cases hl : s₀.whnfC[i]? with
-  | some j =>
-    rw [hl] at hr
-    simp only [pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
-    obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-    obtain ⟨F, hall⟩ := hs.whnfC i _ hl
-    have hrun := hall d hw.to_wscopedB
-    exact ⟨hs, j, ⟨rfl, whnf_WScoped henv F hrun hw⟩, F, hrun⟩
-  | none =>
-    rw [hl] at hr
-    try dsimp only at hr
-    try simp only [StateT.bind] at hr
-    cases hb : whnfBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i s₀ with
-    | error err =>
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind] at hr
-      exact nomatch hr
-    | ok pr =>
-      obtain ⟨r, s₁⟩ := pr
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind, modify, modifyGet,
-        MonadStateOf.modifyGet, StateT.modifyGet, StateT.pure, pure,
-        Except.pure, Except.ok.injEq] at hr
-      obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-      obtain ⟨hs₁, v, ⟨rfl, hwv⟩, F, hF⟩ := hbody hs hden hw r s₁ hb
-      rw [whnfBody_atF] at hF
-      rw [← whnf_succ] at hF
-      have hins := hs₁.insertWhnfC
-        ⟨F + 1, fun d' hd' => by
-          rw [whnf_depth_inv henv (F + 1) hd' hw.to_wscopedB]
-          exact hF⟩
-      exact ⟨hins, r, ⟨rfl, hwv⟩, F + 1, hF⟩
+/-! ### The whnf memo, by `vcgen` and `grind`
+
+A hit reads the backed `CSOK.whnfC` clause at the query (`CSOK.whnf_hit`);
+a miss runs the body and inserts its answer, backed one fuel up by the
+depth-invariant run (`CSOK.whnf_insert`, `Runs.whnf_of_body`). -/
+
+theorem coreKnotI_whnf_succ (d : Nat) (i : Expr) :
+    (coreKnotI mode (mkFEnv env) (f + 1)).whnf d i =
+      memoEI (·.whnfC) (fun st mp => { st with whnfC := mp })
+        (fun d e => whnfBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d e) d i := rfl
+
+/-- A whnf memo hit answers the fueled whnf, well scoped. -/
+theorem CSOK.whnf_hit (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hl : s.whnfC[i]? = some r) (hw : Expr.WScoped d i) :
+    Runs ((fueledFns mode env).whnf d i) r ∧ Expr.WScoped d r := by
+  obtain ⟨F, hall⟩ := hs.whnfC i r hl
+  have hrun := hall d hw.to_wscopedB
+  exact ⟨⟨F, hrun⟩, whnf_WScoped henv F hrun hw⟩
+grind_pattern [conleche_grind] CSOK.whnf_hit =>
+  CSOK mode env s, s.whnfC[i]?, Runs ((fueledFns mode env).whnf d i) r
+
+/-- A body answer is a whnf answer one fuel up. -/
+theorem Runs.whnf_of_body {d : Nat} {i r : Expr}
+    (h : Runs (whnfBody (fueledFns mode env) env d i) r) :
+    Runs ((fueledFns mode env).whnf d i) r := by
+  obtain ⟨F, hF⟩ := h
+  rw [whnfBody_atF, ← whnf_succ] at hF
+  exact ⟨F + 1, hF⟩
+grind_pattern [conleche_grind] Runs.whnf_of_body =>
+  Runs (whnfBody (fueledFns mode env) env d i) r, (fueledFns mode env).whnf d i
+
+/-- Inserting a body answer into the whnf memo keeps the invariant: the
+entry is backed one fuel up at every depth the key is scoped at. -/
+theorem CSOK.whnf_insert (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hw : Expr.WScoped d i)
+    (h : Runs (whnfBody (fueledFns mode env) env d i) r) :
+    CSOK mode env { s with whnfC := s.whnfC.insert i r } := by
+  obtain ⟨F, hF⟩ := h
+  rw [whnfBody_atF, ← whnf_succ] at hF
+  exact hs.insertWhnfC ⟨F + 1, fun d' hd' => by
+    rw [whnf_depth_inv henv (F + 1) hd' hw.to_wscopedB]; exact hF⟩
+
+/-- The whnf memo wrapper simulates the fueled whnf at one fuel more
+than its body.  `CSOK.whnf_insert` is in the `sym` list instantiated at
+`henv`: its pattern is the inserted state, which every miss builds. -/
+theorem memoEI_whnf_spec (henv : EnvWF env)
+    (hbody : BodySpec mode env (whnfBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env))
+      (whnfBody (fueledFns mode env) env))
+    {s₀ : CState} {d : Nat} {i : Expr} (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) (f + 1)).whnf d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).whnf d i) r ∧
+      Expr.WScoped d r; ⊤⦄ := by
+  rw [coreKnotI_whnf_succ]
+  sym only [conleche_grind, CSOK.whnf_insert henv] =>
+    vcgen [memoEI, hbody.triple] <;> finish
 
 theorem memoEI_infer_sim (henv : EnvWF env)
     (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
@@ -534,11 +540,10 @@ private theorem ssimC_all (env : Env) (henv : EnvWF env) :
           (fun hs' hden' hw' =>
             whnfCoreBodyC_sim hμ (ssimC_all env henv f mode hμ) henv hs' hden' hw')
           hs hden hw
-      whnf := fun hs hden hw =>
-        memoEI_whnf_sim henv
-          (fun hs' hden' hw' =>
-            whnfBodyC_sim (ssimC_all env henv f mode hμ) henv hs' hden' hw')
-          hs hden hw
+      whnf := fun hs hden hw => by
+        obtain rfl := hden
+        exact SimC.of_triple relEC_diag (memoEI_whnf_spec henv
+          (BodySpec.of_sim (whnfBodyC_sim (ssimC_all env henv f mode hμ) henv)) hs hw)
       infer := fun hs hden hw =>
         memoEI_infer_sim henv
           (fun hs' hden' hw' =>
