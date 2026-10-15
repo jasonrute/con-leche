@@ -48,7 +48,7 @@ the repository toolchain: a toolchain bump whose Init a committed pin set
 still matches adds nothing (maintainer's ruling, task #328:
 *"if the previous works with the new Init we should not add one"*) —
 it only moves that dump to the front.  Today the repository toolchain
-is v4.35.0-rc3 and its dump is the nightly-2026-09-10 one.  "Matches"
+is v4.35.0 and its dump is the nightly-2026-09-10 one.  "Matches"
 is the install gate's own criterion — the stored values definitionally
 equal to a variant's pins, its certificates checking — so it is
 decided by the checker: `tests/pindump.sh` exports the pinned

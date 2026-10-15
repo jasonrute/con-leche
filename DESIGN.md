@@ -106095,3 +106095,33 @@ record:**
 `tests/arena.sh` green (e2e 487/487 with `stack_fuel_offset` at 134,
 the trusted, `--jobs=1` and `--jobs=4` sweeps as expected) after the
 `checkFuel` anchor in OVERVIEW was repointed; whitepaper links gate OK.
+
+## TASK #355 — toolchain v4.35.0-rc3 → v4.35.0 (2026-10-15, agent/355-lean-4.35.0)
+
+The release after the release candidate. No source change was needed:
+`lake build` and `lake test` are warning-free on v4.35.0 as they were.
+
+- `lean-toolchain`: leanprover/lean4:v4.35.0.
+- The built-in prelude is renamed to
+  `pins/leanprover-lean4-v4.35.0.prelude.ndjson` and regenerated with
+  `lake exe natop-pins-export`. Only its meta line (version 4.35.0,
+  githash `eb6cafb`) changed; the body is byte-identical to rc3's.
+  `Frontend/Prelude.lean`'s `include_str` follows.
+- No new pin dump: the nightly-2026-09-10 set still matches v4.35.0's
+  `Init` (`tests/pindump.sh`, task #328's rule).
+- The bridge (`bridge/lean4lean-model`) moves to v4.35.0 and Mathlib's
+  `v4.35.0` tag (`lake update`), and builds with no source change.
+  v4.35.0's Lake now prints three advisory warnings for
+  `ConLecheBridge/Carneiro.lean`: it imports Mathlib modules "designed
+  for use with the module system" from a non-`module` file. The bridge
+  stays classic, as `bridge/*` does by rule, so they stay.
+- Version mentions in `NatOpPins.lean`'s header, `pins/README.md`,
+  `pinners/README.md` and the CI comment now say v4.35.0. PERF.md
+  keeps rc3: it records the toolchain its numbers were measured on.
+
+**Gates.** `lake build`, `lake test` warning-free; `tests/arena.sh`
+green: pindump (the nightly set matches v4.35.0's `Init`, the root
+generator reproduces the new prelude byte-for-byte, three of three
+pinners reproduced), fragment, links, quote, shake, challenge,
+selfcheck (46,980 declarations), arena 90/92, e2e 487/487, the
+trusted and `--jobs` sweeps.

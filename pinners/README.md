@@ -32,7 +32,7 @@ and name its output, and refuses to run if that name disagrees with
 `<toolchain>.prelude.ndjson` and prints both paths.
 
 There is no pinner for a toolchain whose `Init` a committed pin set
-already matches — the repository toolchain, v4.35.0-rc3, is one
+already matches — the repository toolchain, v4.35.0, is one
 (task #328; `pins/README.md`).  Its prelude comes from the root
 project's own `lake exe natop-pins-export`.
 
@@ -84,7 +84,7 @@ sources with deprecation warnings only, and produce byte-identical
 dumps.  (Since task #328 `ConLeche/PinGen/Certs.lean` silences the
 deprecation linter — it keeps the `if_pos`/`dif_pos` spellings every
 toolchain has and the blobs cite — so the repository toolchain,
-v4.35.0-rc3, builds the cone warning-free in the root project.)
+v4.35.0, builds the cone warning-free in the root project.)
 
 ## Adding or dropping a toolchain
 
