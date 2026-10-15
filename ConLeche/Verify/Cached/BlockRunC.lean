@@ -307,13 +307,13 @@ theorem ruleR_infer_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR 
   obtain rfl : s₀.flushed = s₀' := congrArg Prod.snd hfl₀
   have hs₀' : CSOK mode envR s₀.flushed := flushC_csok hs.residue
   obtain ⟨t, s₁, hinf, hr⟩ := bindC_ok hr
-  obtain ⟨hs₁, w, hrel, F, hF⟩ := opE_infer_sim hμ henvR hs₀' hw t s₁ hinf
+  obtain ⟨hs₁, ⟨F, hF⟩, hwt⟩ := triple_iff_run.mp (opE_infer_spec hμ henvR hs₀' hw) t s₁ hinf
   obtain ⟨u, s₂, hfl, hr⟩ := bindC_ok hr
   rw [flushC_run] at hfl
   injection hfl with hfl
   obtain rfl : s₁.flushed = s₂ := congrArg Prod.snd hfl
   obtain ⟨rfl, rfl⟩ := pureC_ok hr
-  exact ⟨flushC_csok hs₁.residue, w, hrel, F, hF⟩
+  exact ⟨flushC_csok hs₁.residue, t, relW_diag t hwt, F, hF⟩
 
 /-! ## 5. The assembly -/
 

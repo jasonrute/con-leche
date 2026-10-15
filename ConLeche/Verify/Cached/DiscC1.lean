@@ -332,14 +332,6 @@ theorem ensureSortC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CS
   sym only [conleche_grind, ensureSort] =>
     vcgen [ensureSortI, ih.whnf_spec] <;> finish
 
-/-- `ensureSortC_spec` as a simulation, for the unconverted callers. -/
-theorem ensureSortC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
-    {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ RelVC (ensureSortI (coreKnotI mode (mkFEnv env) f) d i)
-      (ensureSort (fueledFns mode env) env d e) := by
-  subst hden; exact SimC.of_tripleVC (ensureSortC_spec ih hs hw)
-
 /-- The cached twin computes the spec's `litToCtorIfNat`. -/
 theorem litToCtorIfNatC_spec {s₀ : CState} (hs : CSOK mode env s₀) (i : Expr) :
     ⦃fun s => s = s₀⦄ litToCtorIfNatI (mkFEnv env) i
