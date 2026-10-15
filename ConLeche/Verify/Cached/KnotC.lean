@@ -39,21 +39,6 @@ section Vocabulary
 
 variable {env : Env}
 
-/-- A binary `Bool`-valued entry point's body simulates its fueled body
-on well-scoped inputs (`BodySpec` for the defeq slot). -/
-@[expose] def BodySpecB (mode : CheckMode) (env : Env) (body : Nat → Expr → Expr → CheckCM Bool)
-    (spec : Nat → Expr → Expr → FueledM Bool) : Prop :=
-  ∀ {s₀ : CState} {d : Nat} {a b : Expr}, CSOK mode env s₀ → Expr.WScoped d a →
-    Expr.WScoped d b →
-    ⦃fun s => s = s₀⦄ body d a b ⦃fun r s' => CSOK mode env s' ∧ Runs (spec d a b) r; ⊤⦄
-
-theorem BodySpecB.triple {body : Nat → Expr → Expr → CheckCM Bool}
-    {spec : Nat → Expr → Expr → FueledM Bool} (h : BodySpecB mode env body spec)
-    {s₀ : CState} {d : Nat} {a b : Expr} (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a)
-    (hwb : Expr.WScoped d b) :
-    ⦃fun s => s = s₀⦄ body d a b ⦃fun r s' => CSOK mode env s' ∧ Runs (spec d a b) r; ⊤⦄ :=
-  h hs hwa hwb
-
 end Vocabulary
 
 /-! ## The memo-wrapper steps -/
@@ -386,7 +371,7 @@ private theorem ssimC_all (env : Env) (henv : EnvWF env) :
       defeq := fun hs hdena hdenb hwa hwb => by
         obtain rfl := hdena
         obtain rfl := hdenb
-        exact SimC.of_triple_eq (memoBI_defeq_spec henv
+        exact SimC.of_tripleVC (memoBI_defeq_spec henv
           (fun hs hwa hwb => defeqBodyC_spec (ssimC_all env henv f mode hμ) henv hs hwa hwb)
           hs hwa hwb)
       -- the eager slot (task #353): the eager tower's memoized `defeq`
@@ -401,7 +386,7 @@ private theorem ssimC_all (env : Env) (henv : EnvWF env) :
           (withFreshMemos ((coreKnotI mode.toEager (mkFEnv env) (f + 1)).defeq d i j)) _
         obtain rfl := hdena
         obtain rfl := hdenb
-        exact SimC.freshMemos hs (fun hs₁ => SimC.of_triple_eq (memoBI_defeq_spec henv
+        exact SimC.freshMemos hs (fun hs₁ => SimC.of_tripleVC (memoBI_defeq_spec henv
           (fun hs hwa hwb =>
             defeqBodyC_spec (ssimC_all env henv f mode.toEager hE) henv hs hwa hwb)
           hs₁ hwa hwb))

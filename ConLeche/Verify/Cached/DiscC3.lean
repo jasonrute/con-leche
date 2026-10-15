@@ -41,71 +41,12 @@ section Vocabulary
 
 variable {env : Env}
 
-@[conleche_grind =] theorem getAppArgsC_eq (e : Expr) :
-    Expr.getAppArgsC e = Expr.getAppArgs e :=
-  Expr.getAppArgsC_spec e
-
-@[conleche_grind =] theorem mkFEnv_find_eq (env : Env) (n : Name) :
-    (mkFEnv env).find? n = env.find? n :=
-  mkFEnv_find? env n
-
-/-- The index as a function (`iotaCase3` takes the lookup itself). -/
-@[conleche_grind =] theorem mkFEnv_find_fun (env : Env) :
-    (mkFEnv env).find? = env.find? :=
-  funext (mkFEnv_find? env)
-
-@[conleche_grind =] theorem mkBvar_eq' (i : Nat) : Expr.mkBvar i = .bvar i :=
-  Expr.mkBvar_eq i
-
-@[conleche_grind =] theorem instSpineC_eq (args : List Expr) (t : Nat) (e : Expr) :
-    Expr.instSpineC args t e = Expr.instSpine args t e :=
-  instSpineC_spec
-
-@[conleche_grind =] theorem instLevelParams_eq (ks : List Name) (us : List Level) (e : Expr) :
-    Expr.instLevelParams ks us e = e.instantiateLevelParams ks us :=
-  instLevelParams_spec
-
-@[conleche_grind =] theorem FueledM.pure_bind_eq {α β : Type} (a : α) (g : α → FueledM β) :
-    (pure a >>= g : FueledM β) = g a := rfl
-
-/-- A `liftFueled` of a present answer is that answer. -/
-@[conleche_grind =] theorem liftFueled_some_bind {α β : Type} (w : String) (a : α)
-    (g : α → FueledM β) : (liftFueled w (some a) >>= g : FueledM β) = g a := rfl
-
-theorem allWS_append {d : Nat} {xs ys : List Expr} (h : AllWS d xs) (h' : AllWS d ys) :
-    AllWS d (xs ++ ys) := by
-  intro x hx
-  rcases List.mem_append.mp hx with hx | hx
-  · exact h x hx
-  · exact h' x hx
-grind_pattern [conleche_grind] allWS_append => AllWS d (xs ++ ys)
-
-theorem allWS_getD {d : Nat} {xs : List Expr} (h : AllWS d xs) (n : Nat) :
-    Expr.WScoped d (xs.getD n (.bvar 0)) :=
-  wscoped_getD h n
-grind_pattern [conleche_grind] allWS_getD => AllWS d xs, xs.getD n (.bvar 0)
-
 theorem wscoped_piResidual {d : Nat} {t : Expr} {ys : List Expr} (ht : Expr.WScoped d t)
     (hys : AllWS d ys) : OptWS d (piResidual t ys) := by
   cases h : piResidual t ys with
   | none => trivial
   | some r => exact piResidual_WScoped h ht hys
 grind_pattern [conleche_grind] wscoped_piResidual => Expr.WScoped d t, piResidual t ys
-
-/-- A level instantiation of an `fvar`-free term (a stored type or rule
-right-hand side) is well scoped. -/
-theorem wscoped_instLevels {d : Nat} {e : Expr} (h : e.hasFvar = false) (ps : List Name)
-    (us : List Level) : Expr.WScoped d (e.instantiateLevelParams ps us) :=
-  wscoped_instLevels_of_not_hasFvar h ps us
-grind_pattern [conleche_grind] wscoped_instLevels =>
-  Expr.WScoped d (e.instantiateLevelParams ps us)
-
-/-- `wscoped_mkAppN` keyed by its goal (the head is a term the walk
-computed, whose scope is derived on demand). -/
-theorem wscoped_mkAppN_bwd {d : Nat} {g : Expr} {xs : List Expr} (hg : Expr.WScoped d g)
-    (hxs : AllWS d xs) : Expr.WScoped d (Expr.mkAppN g xs) :=
-  Expr.WScoped.mkAppN hg hxs
-grind_pattern [conleche_grind] wscoped_mkAppN_bwd => Expr.WScoped d (Expr.mkAppN g xs)
 
 /-- The stored type of a constant at levels `us` (a dummy where there is
 no constant). -/

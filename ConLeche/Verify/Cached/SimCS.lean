@@ -92,14 +92,14 @@ theorem opB_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat}
     (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
     ⦃fun s => s = s₀⦄ opB mode (mkFEnv env) d a b
     ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).isDefEq env d a b) v; ⊤⦄ :=
-  ((ssimC hμ env henv checkFuel).defeq hs rfl rfl hwa hwb).triple_eq
+  ((ssimC hμ env henv checkFuel).defeq hs rfl rfl hwa hwb).tripleVC
 
 theorem opB_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {a b : Expr}
     (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a)
     (hwb : Expr.WScoped d b) :
     SimC mode env s₀ RelVC (opB mode (mkFEnv env) d a b)
       ((fueledOpsM mode).isDefEq env d a b) :=
-  SimC.of_triple_eq (opB_spec hμ henv hs hwa hwb)
+  SimC.of_tripleVC (opB_spec hμ henv hs hwa hwb)
 
 /-- Shared `ensureSort` simulates the fueled family: the body walk's
 answer at the fueled helper is the shared operation's (`ensureSort_def`). -/
@@ -117,7 +117,7 @@ theorem opS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} 
     (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
     SimC mode env s₀ RelVC (opS mode (mkFEnv env) d e)
       ((fueledOpsM mode).ensureSort env d e) :=
-  SimC.of_triple_eq (opS_spec hμ henv hs hw)
+  SimC.of_tripleVC (opS_spec hμ henv hs hw)
 
 /-! The shared operations as triples at the `sharedOpsC` projections, the
 form a walk calls them in (`vcgen` finds a spec by the program's head). -/

@@ -82,7 +82,7 @@ theorem checkConstantValC_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF 
     ⦃fun s => s = s₀⦄ checkConstantValC mode (mkFEnv env) cv
     ⦃fun v s' => CSOK mode env s' ∧ Runs (checkConstantVal (fueledOpsM mode) env cv) v ∧
       Expr.WScoped 0 cv.type; ⊤⦄ := by
-  sym only [conleche_grind, checkConstantVal.eq_1, mkFEnv_find?,
+  sym only [conleche_grind, checkConstantVal.eq_1,
       Expr.allLevelParamsDefinedC_spec, constsResolveFC_spec, constsResolveF_eq,
       @wscoped_of_hasFvar_false 0 cv.type] =>
     vcgen [checkConstantValC, inferK_spec hμ henv hs, opSIxC_spec hμ henv] <;> finish
@@ -190,7 +190,7 @@ theorem checkBasisDeclC_spec (hs : CSOK mode env s₀) (kind : BasisKind) :
     ⦃fun s => s = s₀⦄ checkBasisDeclC (mkFEnv env) kind
     ⦃fun v s' => CSOK mode env s' ∧ Runs (checkBasisDecl (m := FueledM) env kind) v.env ∧
       v = mkFEnv v.env; ⊤⦄ := by
-  sym only [conleche_grind, checkBasisDecl.eq_1, mkFEnv_find?, mkFEnv_env] =>
+  sym only [conleche_grind, checkBasisDecl.eq_1, mkFEnv_env] =>
     vcgen [checkBasisDeclC, installBasisFoldF_pushC, installBasisFoldS_spec (mode := mode) (env := env)] <;> finish
 
 /-- The non-inductive branches of the converted-declaration driver

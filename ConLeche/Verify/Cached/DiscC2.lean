@@ -29,12 +29,12 @@ section Walks
 variable {env : Env} {f : Nat}
 
 /-- The hoisted `Prop`-branch test (task #168): the fast arms are the
-same pure reads on both sides (`mkFEnv_find?_eq`). -/
+same pure reads on both sides (`mkFEnv_find_fun`). -/
 theorem propIrrelC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
     ⦃fun s => s = s₀⦄ propIrrelI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b
     ⦃fun v s' => CSOK mode env s' ∧ Runs (propIrrel (fueledFns mode env) env d a b) v; ⊤⦄ := by
-  sym only [conleche_grind, propIrrel, mkFEnv_find?_eq] =>
+  sym only [conleche_grind, propIrrel, mkFEnv_find_fun] =>
     vcgen [propIrrelI, ih.inferIO_spec, ih.whnf_spec, isEquivLM_spec (mode := mode) (env := env),
       liftFueled_spec (mode := mode) (env := env)] <;>
       -- the pure side is nine binds deep, one `Runs.bind_eq` generation each
@@ -92,7 +92,7 @@ theorem structUnitCertC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s�
     ⦃fun s => s = s₀⦄ structUnitCertI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b
     ⦃fun v s' => CSOK mode env s' ∧
         Runs (structUnitCert (fueledFns mode env) env d a b) v; ⊤⦄ := by
-  sym only [conleche_grind, structUnitCert, mkFEnv_find?, Expr.getAppArgsC_spec] =>
+  sym only [conleche_grind, structUnitCert] =>
     vcgen [structUnitCertI, ih.inferIO_spec, ih.whnf_spec, ih.defeq_spec] <;> finish
 
 end Walks2
@@ -141,7 +141,7 @@ theorem structEtaCertWithC_spec (ih : SSimC mode env f) {d : Nat} {a b wtb : Exp
       structEtaCertWithI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b wtb
     ⦃fun v s' => CSOK mode env s' ∧
         Runs (structEtaCertWith (fueledFns mode env) env d a b wtb) v; ⊤⦄ := by
-  sym only [conleche_grind, structEtaCertWith, mkFEnv_find?, Expr.getAppArgsC_spec,
+  sym only [conleche_grind, structEtaCertWith,
       towerSlotsAllF_mkFEnv] =>
     vcgen [structEtaCertWithI, isEquivListLM_spec (mode := mode) (env := env),
       liftFueled_spec (mode := mode) (env := env), defEqListC_spec ih,

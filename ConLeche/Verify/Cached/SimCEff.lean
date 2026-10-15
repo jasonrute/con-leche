@@ -35,20 +35,6 @@ open scoped Lean.Order
 
 variable {mode : CheckMode}
 
-/-! ## Vocabulary candidates (for Grind.lean) -/
-
-/-- A memo whose entries all satisfy `P` keeps them so under the insert of
-an entry satisfying `P`: with a lawful key equality a colliding key IS the
-inserted one.  Every `CSOK` memo clause is such a `P`. -/
-theorem HashMap.insert_backed {K V : Type} [BEq K] [LawfulBEq K] [Hashable K]
-    {P : K → V → Prop} {m : Std.HashMap K V} (hm : ∀ k v, m[k]? = some v → P k v)
-    {i : K} {j : V} (hij : P i j) : ∀ k v, (m.insert i j)[k]? = some v → P k v := by
-  intro k v h
-  rw [Std.HashMap.getElem?_insert] at h
-  split at h
-  · rename_i hk; cases h; exact eq_of_beq hk ▸ hij
-  · exact hm k v h
-
 variable {env : Env}
 
 /-! ## The pure syntactic wrappers -/
@@ -393,7 +379,7 @@ theorem constTyAtM_spec (hs : CSOK mode env s₀) {nI n : Name}
     ⦃fun s => s = s₀⦄ constTyAtM (mkFEnv env) nI n us
     ⦃fun i s' => CSOK mode env s' ∧
       i = ci.toConstantVal.type.instantiateLevelParams ci.toConstantVal.levelParams us; ⊤⦄ := by
-  sym only [conleche_grind, mkFEnv_find?, Expr.instLevelParams_spec,
+  sym only [conleche_grind,
       CSOK.constTy_hit (mode := mode) hfind, CSOK.constTy_insert hfind] =>
     vcgen [constTyAtM, instLevelParamsM] <;> finish
 
@@ -433,7 +419,7 @@ theorem constValAtM_spec (hs : CSOK mode env s₀) {nI n : Name}
     (hfind : env.find? n = some (.defnInfo cv v hint)) :
     ⦃fun s => s = s₀⦄ constValAtM (mkFEnv env) nI n us
     ⦃fun i s' => CSOK mode env s' ∧ i = v.instantiateLevelParams cv.levelParams us; ⊤⦄ := by
-  sym only [conleche_grind, mkFEnv_find?, Expr.instLevelParams_spec,
+  sym only [conleche_grind,
       CSOK.constVal_hit (mode := mode) hfind, CSOK.constVal_insert hfind] =>
     vcgen [constValAtM, instLevelParamsM] <;> finish
 
@@ -477,7 +463,7 @@ theorem ruleRhsAtM_spec (hs : CSOK mode env s₀) {cI jI c j : Name}
     (hrl : rules.find? (fun r' => r'.ctor == j) = some rl) :
     ⦃fun s => s = s₀⦄ ruleRhsAtM (mkFEnv env) cI jI c j us
     ⦃fun i s' => CSOK mode env s' ∧ i = rl.rhs.instantiateLevelParams cv.levelParams us; ⊤⦄ := by
-  sym only [conleche_grind, mkFEnv_find?, Expr.instLevelParams_spec,
+  sym only [conleche_grind,
       CSOK.ruleRhs_hit (mode := mode) hfind hrl, CSOK.ruleRhs_insert hfind hrl] =>
     vcgen [ruleRhsAtM, instLevelParamsM] <;> finish
 

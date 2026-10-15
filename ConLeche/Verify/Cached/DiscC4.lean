@@ -44,36 +44,6 @@ variable {mode : CheckMode}
 
 section Vocabulary
 
-@[conleche_grind =] theorem wscoped_sort_eq (d : Nat) (u : Level) :
-    Expr.WScoped d (.sort u) = True := by
-  rw [Expr.WScoped]
-
-@[conleche_grind =] theorem wscoped_const_eq (d : Nat) (n : Name) (us : List Level) :
-    Expr.WScoped d (.const n us) = True := by
-  rw [Expr.WScoped]
-
-@[conleche_grind =] theorem wscoped_letE_eq (d : Nat) (ty v b : Expr) :
-    Expr.WScoped d (.letE ty v b) =
-      (Expr.WScoped d ty ∧ Expr.WScoped d v ∧ Expr.WScoped d b) := by
-  rw [Expr.WScoped]
-
-@[conleche_grind =] theorem wscoped_proj_eq (d : Nat) (sn : Name) (i : Nat) (e : Expr) :
-    Expr.WScoped d (.proj sn i e) = Expr.WScoped d e := by
-  rw [Expr.WScoped]
-
-/-- A well-scoped spine's head is well scoped. -/
-theorem wscoped_getAppFn {d : Nat} {e : Expr} (h : Expr.WScoped d e) :
-    Expr.WScoped d e.getAppFn :=
-  h.getAppFn
-grind_pattern [conleche_grind] wscoped_getAppFn => Expr.WScoped d e, e.getAppFn
-
-/-- Instantiation with a well-scoped value keeps a term well scoped. -/
-theorem wscoped_instantiate1_gen {d : Nat} {e v : Expr} (k : Nat) (hv : Expr.WScoped d v)
-    (he : Expr.WScoped d e) : Expr.WScoped d (e.instantiate1 v k) :=
-  Expr.WScoped.instantiate1_gen hv k he
-grind_pattern [conleche_grind] wscoped_instantiate1_gen =>
-  Expr.WScoped d v, Expr.WScoped d e, e.instantiate1 v k
-
 end Vocabulary
 
 section Walks

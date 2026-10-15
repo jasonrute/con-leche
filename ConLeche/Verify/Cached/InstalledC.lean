@@ -94,7 +94,7 @@ theorem installHeaderC_spec {env : Env} {cv : ConstantVal} {s₀ : CState}
     ⦃fun s => s = s₀⦄ installHeaderC (mkFEnv env) cv
     ⦃fun v s' => CSOK μ env s' ∧
       Runs (installHeader (m := FueledM) env cv) v ∧ Expr.WScoped 0 cv.type; ⊤⦄ := by
-  sym only [conleche_grind, installHeader.eq_1, mkFEnv_find?, Expr.allLevelParamsDefinedC_spec,
+  sym only [conleche_grind, installHeader.eq_1, Expr.allLevelParamsDefinedC_spec,
       constsResolveFC_spec, constsResolveF_eq, @wscoped_of_hasFvar_false 0 cv.type] =>
     vcgen [installHeaderC] <;> finish
 

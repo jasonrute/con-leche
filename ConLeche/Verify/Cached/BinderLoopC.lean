@@ -41,30 +41,6 @@ The triple form of a `SimC` at plain equality, the core knot's
 entry points and the pure cached operations as triples, and the
 scoping of one opened binder. -/
 
-/-- A simulation at plain equality is a triple whose post names the
-cached value as the pure answer. -/
-theorem SimC.tripleVC {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
-    (h : SimC mode env s₀ RelVC c p) :
-    ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄ := by
-  refine triple_iff_run.mpr fun v' s' hr => ?_
-  obtain ⟨hs', v, rfl, F, hF⟩ := h v' s' hr
-  exact ⟨hs', ⟨F, hF⟩⟩
-
-/-- The converse of `SimC.tripleVC`. -/
-theorem SimC.of_tripleVC {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
-    (h : ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄) :
-    SimC mode env s₀ RelVC c p := by
-  intro v' s' hr
-  obtain ⟨hs', ⟨F, hF⟩⟩ := triple_iff_run.mp h v' s' hr
-  exact ⟨hs', v', rfl, F, hF⟩
-
-/-- Past a first step that is a `pure`, a bind answers what its
-continuation answers (`Runs.bind_eq` needs a `Runs` term of the first
-step, which no callee spec supplies when the step is operation-free). -/
-@[conleche_grind =] theorem Runs.pure_bind_eq {α β : Type} (a : α) (f : α → FueledM β) (b : β) :
-    Runs (Pure.pure a >>= f) b = Runs (f a) b :=
-  Runs.bind_eq b (Runs.pure a)
-
 /-- `instListRevM_eff` as a triple. -/
 theorem instListRevM_spec {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr) (vs : Array Expr)
     (d : Nat) :
@@ -79,45 +55,6 @@ theorem abstractRangeM_spec {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr)
     ⦃fun r s' => CSOK mode env s' ∧ r = e.abstractRange d k; ⊤⦄ :=
   (abstractRangeM_eff hs (RelC.refl e) :
     CEff mode env s₀ (fun i => i = e.abstractRange d k) _).triple
-
-theorem instList_lam_eq (ty body : Expr) (ws : List Expr) :
-    (Expr.lam ty body).instantiateList ws
-      = .lam (ty.instantiateList ws) (body.instantiateList ws 1) := by
-  simp [Expr.instantiateList]
-grind_pattern [conleche_grind] instList_lam_eq => (Expr.lam ty body).instantiateList ws
-
-theorem instList_forallE_eq (ty body : Expr) (ws : List Expr) :
-    (Expr.forallE ty body).instantiateList ws
-      = .forallE (ty.instantiateList ws) (body.instantiateList ws 1) := by
-  simp [Expr.instantiateList]
-grind_pattern [conleche_grind] instList_forallE_eq => (Expr.forallE ty body).instantiateList ws
-
-/-- One binder opened at the next free variable: the body, instantiated
-with it in front of the accumulator, is scoped one deeper. -/
-theorem wscoped_open_binder {D D' : Nat} {ty body : Expr} {ws : List Expr}
-    (hty : Expr.WScoped D ty) (hb : Expr.WScoped D (body.instantiateList ws 1))
-    (hD : D' = D + 1) :
-    Expr.WScoped D' (body.instantiateList (Expr.fvar D ty :: ws)) := by
-  subst hD
-  rw [Expr.instantiateList_cons]
-  exact Expr.WScoped.instantiate1 hty 0 hb
-grind_pattern [conleche_grind] wscoped_open_binder =>
-  Expr.WScoped D' (body.instantiateList (Expr.fvar D ty :: ws))
-
-/-- Pushing on the accumulator array conses on its reversed read
-(task #97: the loops keep the opened fvars innermost-**last**; the
-mirrors' lists stay innermost-first). -/
-@[conleche_grind =] theorem toListRev_push {α} (a : Array α) (x : α) :
-    (a.push x).toList.reverse = x :: a.toList.reverse := by
-  simp
-
-theorem toListRev_singleton {α} (x : α) :
-    (#[x] : Array α).toList.reverse = [x] := by
-  simp
-
-theorem toListRev_empty {α} :
-    (#[] : Array α).toList.reverse = ([] : List α) := by
-  simp
 
 /-! ## The infer-λ loop walks
 

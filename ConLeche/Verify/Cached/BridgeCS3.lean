@@ -36,12 +36,6 @@ variable {mode : CheckMode}
 
 /-! ## Vocabulary candidates (for Grind.lean) -/
 
-/-- Opening a binder at the next free variable scopes the body one deeper. -/
-theorem wscoped_instantiate1_fvar {d : Nat} {ty e : Expr} (k : Nat) (hty : WScoped d ty)
-    (he : WScoped d e) : WScoped (d + 1) (e.instantiate1 (.fvar d ty) k) :=
-  WScoped.instantiate1 hty k he
-grind_pattern [conleche_grind] wscoped_instantiate1_fvar => e.instantiate1 (.fvar d ty) k
-
 /-- An opened telescope's variables carry types scoped at their own
 frame. -/
 theorem openers_fvarTypeD_WScoped {n off : Nat} {e : Expr} {fvs : List Expr} {body : Expr}

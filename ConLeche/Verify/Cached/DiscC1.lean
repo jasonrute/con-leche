@@ -92,24 +92,6 @@ The triple forms of a data-valued simulation (`RelVC`: the cached value
 IS the pure answer, no side condition) and of the knot's entry points
 (`SSimC`'s fields), for `vcgen`'s list. -/
 
-/-- A simulation at `RelVC` is a triple whose post names the cached
-value as the pure side's answer. -/
-theorem SimC.triple_eq {env : Env} {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
-    (h : SimC mode env s₀ RelVC c p) :
-    ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄ := by
-  refine triple_iff_run.mpr fun v' s' hr => ?_
-  obtain ⟨hs', v, rfl, F, hF⟩ := h v' s' hr
-  exact ⟨hs', F, hF⟩
-
-/-- The converse of `SimC.triple_eq`. -/
-theorem SimC.of_triple_eq {env : Env} {β : Type} {s₀ : CState} {c : CheckCM β}
-    {p : FueledM β}
-    (h : ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄) :
-    SimC mode env s₀ RelVC c p := by
-  intro v' s' hr
-  obtain ⟨hs', F, hF⟩ := triple_iff_run.mp h v' s' hr
-  exact ⟨hs', v', rfl, F, hF⟩
-
 section SSimCSpecs
 
 variable {env : Env} {f : Nat}
@@ -146,13 +128,13 @@ theorem SSimC.defeq_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {i j 
     (hs : CSOK mode env s₀) (hwi : Expr.WScoped d i) (hwj : Expr.WScoped d j) :
     ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).defeq d i j
     ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).defeq d i j) r; ⊤⦄ :=
-  (ih.defeq hs rfl rfl hwi hwj).triple_eq
+  (ih.defeq hs rfl rfl hwi hwj).tripleVC
 
 theorem SSimC.defeqE_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {i j : Expr}
     (hs : CSOK mode env s₀) (hwi : Expr.WScoped d i) (hwj : Expr.WScoped d j) :
     ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).defeqE d i j
     ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).defeqE d i j) r; ⊤⦄ :=
-  (ih.defeqE hs rfl rfl hwi hwj).triple_eq
+  (ih.defeqE hs rfl rfl hwi hwj).tripleVC
 
 end SSimCSpecs
 
@@ -191,56 +173,12 @@ theorem constValAtM_specO {env : Env} {s₀ : CState} (hs : CSOK mode env s₀) 
   obtain ⟨hs', hrel⟩ := constValAtM_eff hs hf r s' hr
   exact ⟨hs', by rw [constValAt?, hf, show r = _ from hrel]⟩
 
-/-- The fuel-exhaustion lift is the same on both sides. -/
-theorem liftFueled_spec {env : Env} {α : Type} {s₀ : CState} (hs : CSOK mode env s₀)
-    (what : String) (o : Option α) :
-    ⦃fun s => s = s₀⦄ (liftFueled what o : CheckCM α)
-    ⦃fun a s' => CSOK mode env s' ∧ Runs (liftFueled what o) a; ⊤⦄ :=
-  (SimC.liftFueled what o hs).triple_eq
-
-/-- The cached index's lookup function is the environment's (unapplied,
-for the head-symbol readers that take it as an argument). -/
-theorem mkFEnv_find?_eq (env : Env) : FEnv.find? (mkFEnv env) = env.find? :=
-  funext (mkFEnv_find? env)
-
 /-- `inst1M_eff` as a triple. -/
 theorem inst1M_spec {env : Env} {s₀ : CState} (hs : CSOK mode env s₀) (e v : Expr) (d : Nat) :
     ⦃fun s => s = s₀⦄ inst1M e v d
     ⦃fun r s' => CSOK mode env s' ∧ r = e.instantiate1 v d; ⊤⦄ :=
   (inst1M_eff hs (RelC.refl e) (RelC.refl v) :
     CEff mode env s₀ (fun i => i = e.instantiate1 v d) _).triple
-
-@[conleche_grind =] theorem wscoped_fvar_eq (k i : Nat) (ty : Expr) :
-    Expr.WScoped k (.fvar i ty) = (i < k ∧ Expr.WScoped i ty) := by
-  rw [Expr.WScoped]
-
-@[conleche_grind =] theorem wscoped_forallE_eq (d : Nat) (ty body : Expr) :
-    Expr.WScoped d (.forallE ty body) = (Expr.WScoped d ty ∧ Expr.WScoped d body) := by
-  rw [Expr.WScoped]
-
-/-- One more binder in scope keeps a term well scoped. -/
-theorem wscoped_succ {d : Nat} {e : Expr} (h : Expr.WScoped d e) : Expr.WScoped (d + 1) e :=
-  h.mono (Nat.le_succ d)
-grind_pattern [conleche_grind] wscoped_succ => Expr.WScoped d e, Expr.WScoped (d + 1) e
-
-/-- Opening a binder at the next free variable. -/
-theorem wscoped_open {d : Nat} {ty e : Expr} (k : Nat) (hty : Expr.WScoped d ty)
-    (he : Expr.WScoped d e) : Expr.WScoped (d + 1) (e.instantiate1 (.fvar d ty) k) :=
-  Expr.WScoped.instantiate1 hty k he
-grind_pattern [conleche_grind] wscoped_open =>
-  Expr.WScoped d e, e.instantiate1 (.fvar d ty) k
-
-/-- A prefix of well-scoped terms is well scoped. -/
-theorem AllWS.take {d : Nat} {xs : List Expr} (h : AllWS d xs) (k : Nat) :
-    AllWS d (xs.take k) :=
-  fun x hx => h x (List.mem_of_mem_take hx)
-grind_pattern [conleche_grind] AllWS.take => AllWS d xs, xs.take k
-
-/-- A suffix of well-scoped terms is well scoped. -/
-theorem AllWS.drop {d : Nat} {xs : List Expr} (h : AllWS d xs) (k : Nat) :
-    AllWS d (xs.drop k) :=
-  fun x hx => h x (List.mem_of_mem_drop hx)
-grind_pattern [conleche_grind] AllWS.drop => AllWS d xs, xs.drop k
 
 /-- The `.proj T i b` nodes over the indices `l` (a named function, so
 that its scope fact has a pattern: a `List.map` pattern loses its
@@ -268,22 +206,6 @@ grind_pattern [conleche_grind] allWS_projsOf => Expr.WScoped d b, projsOf T b l
 @[conleche_grind =] theorem etaCtorShapeC_eq (env : Env) (e : Expr) :
     etaCtorShapeC (mkFEnv env) e = etaCtorShape env e :=
   etaCtorShapeC_spec' rfl
-
-/-- A well-scoped spine's arguments are well scoped. -/
-theorem allWS_getAppArgs {d : Nat} {e : Expr} (h : Expr.WScoped d e) :
-    AllWS d e.getAppArgs :=
-  h.getAppArgs
-grind_pattern [conleche_grind] allWS_getAppArgs => Expr.WScoped d e, e.getAppArgs
-
-@[conleche_grind =] theorem AllWS.reverse_eq (d : Nat) (xs : List Expr) :
-    AllWS d xs.reverse = AllWS d xs := by
-  simp [AllWS]
-
-@[conleche_grind =] theorem OptWS.none_eq (d : Nat) : OptWS d none = True := rfl
-
-@[conleche_grind =] theorem wscoped_lit_eq (d : Nat) (l : Literal) :
-    Expr.WScoped d (.lit l) = True := by
-  rw [Expr.WScoped]
 
 /-- A native `Nat` operation's answer is closed. -/
 @[conleche_grind .] theorem optWS_natOpResult (d : Nat) (c : Name) (a b : Nat) :
@@ -458,7 +380,7 @@ theorem ensureSortC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
     (hden : RelC i e) (hw : Expr.WScoped d e) :
     SimC mode env s₀ RelVC (ensureSortI (coreKnotI mode (mkFEnv env) f) d i)
       (ensureSort (fueledFns mode env) env d e) := by
-  subst hden; exact SimC.of_triple_eq (ensureSortC_spec ih hs hw)
+  subst hden; exact SimC.of_tripleVC (ensureSortC_spec ih hs hw)
 
 /-- The cached twin computes the spec's `litToCtorIfNat`. -/
 theorem litToCtorIfNatC_spec {s₀ : CState} (hs : CSOK mode env s₀) (i : Expr) :
@@ -471,7 +393,7 @@ theorem litToCtorIfNatC_spec {s₀ : CState} (hs : CSOK mode env s₀) (i : Expr
 theorem unfoldDefinitionC_spec {s₀ : CState} (hs : CSOK mode env s₀) (i : Expr) :
     ⦃fun s => s = s₀⦄ unfoldDefinitionI (mkFEnv env) i
     ⦃fun o s' => CSOK mode env s' ∧ o = unfoldDefinition env i; ⊤⦄ := by
-  sym only [conleche_grind, unfoldDefinition, constValAt?, mkFEnv_find?, Expr.getAppArgsC_spec] =>
+  sym only [conleche_grind, unfoldDefinition, constValAt?] =>
     vcgen [unfoldDefinitionI, mkAppNM, constValAtM_specO hs] <;> finish
 
 end Walks2
@@ -504,7 +426,7 @@ theorem defeqSpineC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : 
     (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
     ⦃fun s => s = s₀⦄ defeqSpineI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b
     ⦃fun v s' => CSOK mode env s' ∧ Runs (defeqSpine (fueledFns mode env) env d a b) v; ⊤⦄ := by
-  sym only [conleche_grind, defeqSpine, Expr.getAppArgsC_spec] =>
+  sym only [conleche_grind, defeqSpine] =>
     vcgen [defeqSpineI, isEquivListLM_spec hs, defEqListC_spec ih] <;> finish
 
 end Walks3

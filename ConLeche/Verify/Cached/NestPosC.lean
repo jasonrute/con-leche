@@ -56,38 +56,6 @@ variable {mode : CheckMode}
 `nil`/`cons`/`append`/`reverse` equations), the constant-spine and
 binder-close scope rules, and `AllWS.mono`. -/
 
-/-- Every element of the list satisfies `P` (a named predicate, so that
-no `∀` reaches `grind`; `P` is itself a named predicate, never a
-`fun`). -/
-@[expose] def ListAll {α : Type} (P : α → Prop) (xs : List α) : Prop := ∀ x ∈ xs, P x
-
-@[conleche_grind =] theorem ListAll.nil_eq {α : Type} (P : α → Prop) :
-    ListAll P [] = True := by
-  simp [ListAll]
-
-@[conleche_grind =] theorem ListAll.cons_eq {α : Type} (P : α → Prop) (x : α) (xs : List α) :
-    ListAll P (x :: xs) = (P x ∧ ListAll P xs) := by
-  simp [ListAll]
-
-@[conleche_grind =] theorem ListAll.append_eq {α : Type} (P : α → Prop) (xs ys : List α) :
-    ListAll P (xs ++ ys) = (ListAll P xs ∧ ListAll P ys) := by
-  simp only [ListAll, List.mem_append]
-  exact propext ⟨fun h => ⟨fun x hx => h x (Or.inl hx), fun x hx => h x (Or.inr hx)⟩,
-    fun h x hx => hx.elim (h.1 x) (h.2 x)⟩
-
-@[conleche_grind =] theorem ListAll.reverse_eq {α : Type} (P : α → Prop) (xs : List α) :
-    ListAll P xs.reverse = ListAll P xs := by
-  simp [ListAll]
-
-/-- A constant applied to well-scoped arguments is well scoped. -/
-theorem wscoped_mkAppN_const {d : Nat} {n : Name} {us : List Level} {xs : List Expr}
-    (h : AllWS d xs) : WScoped d (Expr.mkAppN (.const n us) xs) :=
-  Expr.WScoped.mkAppN (by rw [Expr.WScoped]; trivial) h
-grind_pattern [conleche_grind] wscoped_mkAppN_const => AllWS d xs, Expr.mkAppN (.const n us) xs
-
-theorem AllWS.mono {d d' : Nat} {xs : List Expr} (hle : d ≤ d') (h : AllWS d xs) :
-    AllWS d' xs := fun x hx => WScoped.mono hle (h x hx)
-
 /-! ## Container lookups read closed constructor types -/
 
 /-- A stored constructor's type is closed. -/

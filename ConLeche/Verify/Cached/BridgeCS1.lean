@@ -47,13 +47,6 @@ section Vocabulary
 
 variable {env : Env}
 
-/-- A closed term is scoped at every depth (a fact the walks state at
-the depths they need: as a pattern on every `WScoped` term it costs
-every walk its instances). -/
-theorem wscoped_of_hasFvar_false {d : Nat} {e : Expr} (h : e.hasFvar = false) :
-    Expr.WScoped d e :=
-  Expr.WScoped.of_not_hasFvar h
-
 end Vocabulary
 
 section Walks1
