@@ -67,6 +67,9 @@ variable {env : Env}
 
 @[conleche_grind =] theorem OptWS.none_eq (d : Nat) : OptWS d none = True := rfl
 
+@[conleche_grind =] theorem FueledM.pure_bind_eq {α β : Type} (a : α) (g : α → FueledM β) :
+    (pure a >>= g : FueledM β) = g a := rfl
+
 /-- A `liftFueled` of a present answer is that answer. -/
 @[conleche_grind =] theorem liftFueled_some_bind {α β : Type} (w : String) (a : α)
     (g : α → FueledM β) : (liftFueled w (some a) >>= g : FueledM β) = g a := rfl
@@ -178,15 +181,322 @@ theorem iotaCertsFullC_spec (ih : SSimC mode env f) {d : Nat} {s₀ : CState}
     iotaCertsFullC_sim ih hs (RelC.refl ty) hty (show RelCL xs xs from rfl) hxs b s' hr
   exact ⟨hs', h⟩
 
+@[conleche_grind =] theorem isCtorAppC_eq (env : Env) (e : Expr) :
+    isCtorAppC (mkFEnv env) e = isCtorApp env e :=
+  isCtorAppC_spec
+
+/-! The knot's slots as triples (the cached value is the fueled slot's
+answer, well scoped where the slot returns a term). -/
+
+theorem SSimC.whnf_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).whnf d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).whnf d i) r ∧
+      Expr.WScoped d r; ⊤⦄ :=
+  (ih.whnf hs rfl hw).triple relEC_inv
+
+theorem SSimC.inferIO_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).inferIO d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).inferIO d i) r ∧
+      Expr.WScoped d r; ⊤⦄ :=
+  (ih.inferIO hs rfl hw).triple relEC_inv
+
+theorem SSimC.defeq_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (ha : Expr.WScoped d a) (hb : Expr.WScoped d b) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).defeq d a b
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).defeq d a b) r; ⊤⦄ := by
+  refine triple_iff_run.mpr fun r s' hr => ?_
+  obtain ⟨hs', _, (rfl : r = _), h⟩ := ih.defeq hs rfl rfl ha hb r s' hr
+  exact ⟨hs', h⟩
+
+theorem litMajorToCtorC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ litMajorToCtorI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs (litMajorToCtor (fueledFns mode env) env d i) r ∧
+      Expr.WScoped d r; ⊤⦄ :=
+  (litMajorToCtorC_sim ih hs rfl hw).triple relEC_inv
+
 end Vocabulary
 
 section Walks
 
 variable {env : Env} {f : Nat}
 
-private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
+/-! ### The stuck-major rescue's named pieces
+
+The cached rescue's three blocks (`mtcKI`, `mtcEtaI`, `mtcAndI`) and the
+pure ones (`mtcKP`/`mtcKCont`, …) are the bodies' own code, named so
+that each block is one triple and no `fun` or `match` tree of the pure
+side reaches grind. -/
+
+/-- The leaf guard of a fabrication (the pure side's `fun` named). -/
+@[expose] def leafGuardP (fab major : Expr) : Bool :=
+  fab.fvarLeaves.all (fun l => major.fvarLeaves.contains l)
+
+@[conleche_grind =] theorem leafGuard_eq (fab major : Expr) :
+    Expr.leafGuard fab major = leafGuardP fab major :=
+  leafGuard_spec' rfl rfl
+
+@[conleche_grind =] theorem wscopedBC_eq (d : Nat) (e : Expr) :
+    Expr.wscopedBC d e = e.wscopedB d :=
+  wscopedB_spec' rfl
+
+theorem wscoped_of_wscopedB {d : Nat} {e : Expr} (h : e.wscopedB d = true) :
+    Expr.WScoped d e :=
+  WScoped.of_wscopedB h
+grind_pattern [conleche_grind] wscoped_of_wscopedB => e.wscopedB d
+
+@[conleche_grind =] theorem towerSlotsAllF_eq (env : Env) (T : Name) (n : Nat) :
+    (mkFEnv env).towerSlotsAllF T n = towerSlotsAll env T n :=
+  towerSlotsAllF_mkFEnv env T n
+
+@[conleche_grind =] theorem andRescueSlotsF_eq (env : Env) (ctor : Name) (nP : Nat)
+    (ust : List Level) :
+    (mkFEnv env).andRescueSlotsF ctor nP ust = andRescueSlots env ctor nP ust :=
+  andRescueSlotsF_spec
+
+theorem projNodesI_range_spec {s₀ : CState} (hs : CSOK mode env s₀) (T : Name) (b : Expr)
+    (n : Nat) :
+    ⦃fun s => s = s₀⦄ projNodesI T b (List.range n)
+    ⦃fun rs s' => CSOK mode env s' ∧ rs = etaProjs T b n; ⊤⦄ :=
+  CEff.triple (etaProjsC_eff T n hs (RelC.refl b))
+
+theorem projNodesI_pair_spec {s₀ : CState} (hs : CSOK mode env s₀) (T : Name) (b : Expr) :
+    ⦃fun s => s = s₀⦄ projNodesI T b [0, 1]
+    ⦃fun rs s' => CSOK mode env s' ∧ rs = [.proj T 0 b, .proj T 1 b]; ⊤⦄ :=
+  CEff.triple (projNodesC_eff T [0, 1] hs (RelC.refl b))
+
+theorem proofIrrelC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (ha : Expr.WScoped d a) (hb : Expr.WScoped d b) :
+    ⦃fun s => s = s₀⦄ proofIrrelI (coreKnotI mode (mkFEnv env) f) d a b
+    ⦃fun r s' => CSOK mode env s' ∧ Runs (proofIrrel (fueledFns mode env) d a b) r; ⊤⦄ := by
+  refine triple_iff_run.mpr fun r s' hr => ?_
+  obtain ⟨hs', _, (rfl : r = _), h⟩ := proofIrrelC_sim ih hs rfl rfl ha hb r s' hr
+  exact ⟨hs', h⟩
+
+/-- The proof-irrelevance certificate behind its mode gate. -/
+@[expose] def proofIrrelGate {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
+    (mode : CheckMode) (r : CoreFns m) (depth : Nat) (a b : Expr) : m Bool :=
+  if mode.verifiedChecks then proofIrrel r depth a b else pure true
+
+theorem proofIrrelGate_of {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
+    (hμ : mode.verifiedChecks = true) (r : CoreFns m) (depth : Nat) (a b : Expr) :
+    proofIrrelGate mode r depth a b = proofIrrel r depth a b := by
+  simp [proofIrrelGate, hμ]
+
+/-- The cached K rescue. -/
+@[expose] def mtcKI (mode : CheckMode) (r : CoreFnsI) (depth : Nat) (major : Expr) (rl : RecRule)
+    (cvj : ConstantVal) (cnP : Nat) (T : Name) : CheckCM Expr := do
+  let tmaj₀ ← r.inferIO depth major
+  let tmaj ← r.whnf depth tmaj₀
+  match Expr.getAppFn tmaj with
+  | .const T' ust =>
+    if (← pure (T' == T)) ∧ cvj.levelParams.length = ust.length then do
+      let margs ← pure (Expr.getAppArgsC tmaj)
+      if cnP ≤ margs.length then do
+        let ctorI ← pure rl.ctor
+        let h ← pure (Expr.const ctorI ust)
+        let fab ← mkAppNM h (margs.take cnP)
+        if ← pure (Expr.wscopedBC depth fab &&
+            Expr.looseBVarsBounded 0 fab &&
+            Expr.leafGuard fab major) then do
+          let tfab ← r.inferIO depth fab
+          if ← r.defeq depth tmaj tfab then
+            if ← certAtI mode (proofIrrelI r depth fab major) then
+              pure fab
+            else pure major
+          else pure major
+        else pure major
+      else pure major
+    else pure major
+  | _ => pure major
+
+/-- The cached η rescue. -/
+@[expose] def mtcEtaI (r : CoreFnsI) (fe : FEnv) (depth : Nat) (major : Expr) (T : Name)
+    (cvT : ConstantVal) (caps : IndCaps) : CheckCM Expr := do
+  let tmaj₀ ← r.inferIO depth major
+  let tmaj ← r.whnf depth tmaj₀
+  match Expr.getAppFn tmaj with
+  | .const T' ust => do
+    let margs ← pure (Expr.getAppArgsC tmaj)
+    let ustL ← pure ust
+    if (← pure (T' == T)) ∧ margs.length = caps.etaParams ∧
+        ust.length = cvT.levelParams.length ∧
+        capsNeverZero cvT.levelParams ustL caps = true ∧
+        reservedBasisNames.contains T = false ∧
+        reservedBasisNames.contains caps.etaCtor = false ∧
+        fe.towerSlotsAllF T caps.etaFields = true then do
+      let TI ← pure T
+      let projs ← projNodesI TI major (List.range caps.etaFields)
+      let ctorI ← pure caps.etaCtor
+      let h ← pure (Expr.const ctorI ust)
+      let fab ← mkAppNM h (margs ++ projs)
+      if ← pure (Expr.wscopedBC depth fab &&
+          Expr.looseBVarsBounded 0 fab &&
+          Expr.leafGuard fab major) then
+        pure fab
+      else pure major
+    else pure major
+  | _ => pure major
+
+/-- The cached `And` rescue. -/
+@[expose] def mtcAndI (mode : CheckMode) (r : CoreFnsI) (fe : FEnv) (depth : Nat) (major : Expr) (rl : RecRule)
+    (cvj : ConstantVal) (cnP : Nat) (T : Name) : CheckCM Expr := do
+  let tmaj₀ ← r.inferIO depth major
+  let tmaj ← r.whnf depth tmaj₀
+  match Expr.getAppFn tmaj with
+  | .const T' ust => do
+    let margs ← pure (Expr.getAppArgsC tmaj)
+    if (← pure (T' == T)) ∧ margs.length = cnP ∧
+        cvj.levelParams.length = ust.length ∧
+        fe.andRescueSlotsF rl.ctor cnP ust = true then do
+      let TI ← pure T
+      let projs ← projNodesI TI major [0, 1]
+      let ctorI ← pure rl.ctor
+      let h ← pure (Expr.const ctorI ust)
+      let fab ← mkAppNM h (margs ++ projs)
+      if ← pure (Expr.wscopedBC depth fab &&
+          Expr.looseBVarsBounded 0 fab &&
+          Expr.leafGuard fab major) then do
+        let tfab ← r.inferIO depth fab
+        if ← r.defeq depth tmaj tfab then
+          if ← certAtI mode (proofIrrelI r depth fab major) then
+            pure fab
+          else pure major
+        else pure major
+      else pure major
+    else pure major
+  | _ => pure major
+
+/-- The cached rescue past its syntactic gates. -/
+@[expose] def mtcBodyI (mode : CheckMode) (r : CoreFnsI) (fe : FEnv) (depth : Nat) (major : Expr) (rl : RecRule)
+    (cvj : ConstantVal) (cnP : Nat) (T : Name) (cvT : ConstantVal) (caps : IndCaps) :
+    CheckCM Expr :=
+  if rl.k = true then mtcKI mode r depth major rl cvj cnP T
+  else if rl.eta = true then mtcEtaI r fe depth major T cvT caps
+  else if T = andName then mtcAndI mode r fe depth major rl cvj cnP T
+  else pure major
+
+/-- `majorToCtorI` with its blocks named. -/
+theorem majorToCtorI_eq (r : CoreFnsI) (fe : FEnv) (depth : Nat) (recName : Name)
     (rules : List RecRule) (major : Expr) :
-    majorToCtor mode (fueledFns mode env) env d recName rules major =
+    majorToCtorI mode r fe depth recName rules major =
+    (do
+      if ← pure (isCtorAppC fe major) then pure major else
+      match rules with
+      | [rl] =>
+        match fe.find? rl.ctor with
+        | some (.ctorInfo cvj cnP _cnF) =>
+          match (cvj.type.piResult).getAppFn with
+          | .const T _ =>
+            match fe.find? T with
+            | some (.indInfo cvT caps) => mtcBodyI mode r fe depth major rl cvj cnP T cvT caps
+            | _ => pure major
+          | _ => pure major
+        | _ => pure major
+      | _ => pure major) := rfl
+
+section PureMtc
+
+variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m] {r : CoreFns m} {d : Nat}
+
+/-- The pure K rescue past the major's type. -/
+@[expose] def mtcKCont (mode : CheckMode) (r : CoreFns m) (depth : Nat) (major : Expr)
+    (rl : RecRule) (cvj : ConstantVal) (cnP : Nat) (T : Name) (tmaj : Expr) : m Expr :=
+  match tmaj.getAppFn with
+  | .const T' ust =>
+    if T' = T ∧ cvj.levelParams.length = ust.length then
+      if cnP ≤ tmaj.getAppArgs.length then
+        if (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)).wscopedB depth &&
+            (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)).looseBVarsBounded 0 &&
+            leafGuardP (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)) major then
+          r.inferIO depth (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)) >>=
+            fun tfab => r.defeq depth tmaj tfab >>= fun rd =>
+            if rd then
+              proofIrrelGate mode r depth
+                  (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)) major >>=
+                fun ok =>
+                if ok then pure (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP))
+                else pure major
+            else pure major
+        else pure major
+      else pure major
+    else pure major
+  | _ => pure major
+
+/-- The pure η rescue past the major's type. -/
+@[expose] def mtcEtaCont (env : Env) (depth : Nat) (major : Expr) (T : Name)
+    (cvT : ConstantVal) (caps : IndCaps) (tmaj : Expr) : m Expr :=
+  match tmaj.getAppFn with
+  | .const T' ust =>
+    if T' = T ∧ tmaj.getAppArgs.length = caps.etaParams ∧
+        ust.length = cvT.levelParams.length ∧
+        capsNeverZero cvT.levelParams ust caps = true ∧
+        reservedBasisNames.contains T = false ∧
+        reservedBasisNames.contains caps.etaCtor = false ∧
+        towerSlotsAll env T caps.etaFields = true then
+      if (Expr.mkAppN (.const caps.etaCtor ust)
+            (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)).wscopedB depth &&
+          (Expr.mkAppN (.const caps.etaCtor ust)
+            (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)).looseBVarsBounded 0 &&
+          leafGuardP (Expr.mkAppN (.const caps.etaCtor ust)
+            (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)) major then
+        pure (Expr.mkAppN (.const caps.etaCtor ust)
+          (etaFabArgsE T tmaj.getAppArgs major caps.etaFields))
+      else pure major
+    else pure major
+  | _ => pure major
+
+/-- The pure `And` rescue past the major's type. -/
+@[expose] def mtcAndCont (mode : CheckMode) (r : CoreFns m) (env : Env) (depth : Nat)
+    (major : Expr) (rl : RecRule) (cvj : ConstantVal) (cnP : Nat) (T : Name) (tmaj : Expr) :
+    m Expr :=
+  match tmaj.getAppFn with
+  | .const T' ust =>
+    if T' = T ∧ tmaj.getAppArgs.length = cnP ∧
+        cvj.levelParams.length = ust.length ∧
+        andRescueSlots env rl.ctor cnP ust = true then
+      if (Expr.mkAppN (.const rl.ctor ust)
+            (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])).wscopedB depth &&
+          (Expr.mkAppN (.const rl.ctor ust)
+            (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])).looseBVarsBounded 0 &&
+          leafGuardP (Expr.mkAppN (.const rl.ctor ust)
+            (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])) major then
+        r.inferIO depth (Expr.mkAppN (.const rl.ctor ust)
+            (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])) >>=
+          fun tfab => r.defeq depth tmaj tfab >>= fun rd =>
+          if rd then
+            proofIrrelGate mode r depth (Expr.mkAppN (.const rl.ctor ust)
+                (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])) major >>=
+              fun ok =>
+              if ok then
+                pure (Expr.mkAppN (.const rl.ctor ust)
+                  (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major]))
+              else pure major
+          else pure major
+      else pure major
+    else pure major
+  | _ => pure major
+
+/-- The pure rescue past its syntactic gates. -/
+@[expose] def mtcBodyP (mode : CheckMode) (r : CoreFns m) (env : Env) (depth : Nat)
+    (major : Expr) (rl : RecRule) (cvj : ConstantVal) (cnP : Nat) (T : Name)
+    (cvT : ConstantVal) (caps : IndCaps) : m Expr :=
+  if rl.k = true then
+    r.inferIO depth major >>= fun tm => r.whnf depth tm >>=
+      mtcKCont mode r depth major rl cvj cnP T
+  else if rl.eta = true then
+    r.inferIO depth major >>= fun tm => r.whnf depth tm >>=
+      mtcEtaCont env depth major T cvT caps
+  else if T = andName then
+    r.inferIO depth major >>= fun tm => r.whnf depth tm >>=
+      mtcAndCont mode r env depth major rl cvj cnP T
+  else pure major
+
+/-- `majorToCtor` with its blocks named. -/
+theorem majorToCtor_eq (recName : Name) (rules : List RecRule) (major : Expr) :
+    majorToCtor mode r env d recName rules major =
     (if isCtorApp env major then pure major else
     match rules with
     | [rl] =>
@@ -195,602 +505,250 @@ private theorem majorToCtor_unfold (env : Env) (d : Nat) (recName : Name)
         match (cvj.type.piResult).getAppFn with
         | .const T _ =>
           match env.find? T with
-          | some (.indInfo cvT caps) =>
-            if rl.k = true then
-              (fueledFns mode env).inferIO d major >>= fun tm =>
-              (fueledFns mode env).whnf d tm >>= fun tmaj =>
-              match tmaj.getAppFn with
-              | .const T' ust =>
-                if T' = T ∧ cvj.levelParams.length = ust.length then
-                  if cnP ≤ tmaj.getAppArgs.length then
-                    let fab := Expr.mkAppN (.const rl.ctor ust)
-                      (tmaj.getAppArgs.take cnP)
-                    if fab.wscopedB d && fab.looseBVarsBounded 0 &&
-                        fab.fvarLeaves.all
-                          (fun l => major.fvarLeaves.contains l) then
-                      (fueledFns mode env).inferIO d fab >>= fun tfab =>
-                      (fueledFns mode env).defeq d tmaj tfab >>= fun rd =>
-                      if rd then
-                        (if mode.verifiedChecks then
-                          proofIrrel (fueledFns mode env) d fab major
-                        else pure true) >>=
-                          fun r =>
-                        if r then pure fab
-                        else pure major
-                      else pure major
-                    else pure major
-                  else pure major
-                else pure major
-              | _ => pure major
-            else if rl.eta = true then
-              (fueledFns mode env).inferIO d major >>= fun tm =>
-              (fueledFns mode env).whnf d tm >>= fun tmaj =>
-              match tmaj.getAppFn with
-              | .const T' ust =>
-                if T' = T ∧ tmaj.getAppArgs.length = caps.etaParams ∧
-                    ust.length = cvT.levelParams.length ∧
-                    capsNeverZero cvT.levelParams ust caps = true ∧
-                    reservedBasisNames.contains T = false ∧
-                    reservedBasisNames.contains caps.etaCtor = false ∧
-                    towerSlotsAll env T caps.etaFields = true then
-                  let fab := Expr.mkAppN (.const caps.etaCtor ust)
-                    (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)
-                  if fab.wscopedB d && fab.looseBVarsBounded 0 &&
-                      fab.fvarLeaves.all
-                        (fun l => major.fvarLeaves.contains l) then
-                    pure fab
-                  else pure major
-                else pure major
-              | _ => pure major
-            else if T = andName then
-              (fueledFns mode env).inferIO d major >>= fun tm =>
-              (fueledFns mode env).whnf d tm >>= fun tmaj =>
-              match tmaj.getAppFn with
-              | .const T' ust =>
-                if T' = T ∧ tmaj.getAppArgs.length = cnP ∧
-                    cvj.levelParams.length = ust.length ∧
-                    andRescueSlots env rl.ctor cnP ust = true then
-                  let fab := Expr.mkAppN (.const rl.ctor ust)
-                    (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])
-                  if fab.wscopedB d && fab.looseBVarsBounded 0 &&
-                      fab.fvarLeaves.all
-                        (fun l => major.fvarLeaves.contains l) then
-                    (fueledFns mode env).inferIO d fab >>= fun tfab =>
-                    (fueledFns mode env).defeq d tmaj tfab >>= fun rd =>
-                    if rd then
-                      (if mode.verifiedChecks then
-                        proofIrrel (fueledFns mode env) d fab major
-                      else pure true) >>=
-                        fun r =>
-                      if r then pure fab
-                      else pure major
-                    else pure major
-                  else pure major
-                else pure major
-              | _ => pure major
-            else pure major
+          | some (.indInfo cvT caps) => mtcBodyP mode r env d major rl cvj cnP T cvT caps
           | _ => pure major
         | _ => pure major
       | _ => pure major
     | _ => pure major) := rfl
 
+/-! The pure rescue's arms, one equation each. -/
+
+theorem mtc_isCtor {recName : Name} {rules : List RecRule} {major : Expr}
+    (h : isCtorApp env major = true) :
+    majorToCtor mode r env d recName rules major = pure major := by
+  rw [majorToCtor_eq]; simp only [h, ↓reduceIte]
+grind_pattern [conleche_grind] mtc_isCtor => majorToCtor mode r env d recName rules major where
+  guard isCtorApp env major = true
+
+theorem mtc_body {recName : Name} {rules : List RecRule} {major : Expr} {rl : RecRule}
+    {cvj : ConstantVal} {cnP cnF : Nat} {T : Name} {lus : List Level} {cvT : ConstantVal}
+    {caps : IndCaps} (h0 : isCtorApp env major = false) (h1 : rules = [rl])
+    (h2 : env.find? rl.ctor = some (.ctorInfo cvj cnP cnF))
+    (h3 : (cvj.type.piResult).getAppFn = .const T lus)
+    (h4 : env.find? T = some (.indInfo cvT caps)) :
+    majorToCtor mode r env d recName rules major =
+      mtcBodyP mode r env d major rl cvj cnP T cvT caps := by
+  rw [majorToCtor_eq]; subst h1; simp only [h0, h2, h3, h4, Bool.false_eq_true, ↓reduceIte]
+grind_pattern [conleche_grind] mtc_body =>
+    majorToCtor mode r env d recName rules major, [rl], ConstantInfo.ctorInfo cvj cnP cnF,
+      Expr.const T lus, ConstantInfo.indInfo cvT caps where
+  guard isCtorApp env major = false
+  guard rules = [rl]
+  guard env.find? rl.ctor = some (.ctorInfo cvj cnP cnF)
+  guard (cvj.type.piResult).getAppFn = .const T lus
+  guard env.find? T = some (.indInfo cvT caps)
+
+theorem mtc_notSingle {recName : Name} {rules : List RecRule} {major : Expr}
+    (h0 : isCtorApp env major = false) (h1 : ∀ rl, rules = [rl] → False) :
+    majorToCtor mode r env d recName rules major = pure major := by
+  rw [majorToCtor_eq]; simp only [h0, Bool.false_eq_true, ↓reduceIte]
+
+theorem mtc_notCtor {recName : Name} {rules : List RecRule} {major : Expr} {rl : RecRule}
+    (h0 : isCtorApp env major = false) (h1 : rules = [rl])
+    (h2 : ∀ cvj cnP cnF, env.find? rl.ctor = some (.ctorInfo cvj cnP cnF) → False) :
+    majorToCtor mode r env d recName rules major = pure major := by
+  rw [majorToCtor_eq]; subst h1; simp only [h0, Bool.false_eq_true, ↓reduceIte]
+grind_pattern [conleche_grind] mtc_notCtor => majorToCtor mode r env d recName rules major, [rl] where
+  guard rules = [rl]
+
+theorem mtc_notConst {recName : Name} {rules : List RecRule} {major : Expr} {rl : RecRule}
+    {cvj : ConstantVal} {cnP cnF : Nat} (h0 : isCtorApp env major = false)
+    (h1 : rules = [rl]) (h2 : env.find? rl.ctor = some (.ctorInfo cvj cnP cnF))
+    (h3 : ∀ T lus, (cvj.type.piResult).getAppFn = .const T lus → False) :
+    majorToCtor mode r env d recName rules major = pure major := by
+  rw [majorToCtor_eq]; subst h1; simp only [h0, h2, Bool.false_eq_true, ↓reduceIte]
+grind_pattern [conleche_grind] mtc_notConst =>
+    majorToCtor mode r env d recName rules major, [rl], ConstantInfo.ctorInfo cvj cnP cnF where
+  guard rules = [rl]
+  guard env.find? rl.ctor = some (.ctorInfo cvj cnP cnF)
+
+theorem mtc_notInd {recName : Name} {rules : List RecRule} {major : Expr} {rl : RecRule}
+    {cvj : ConstantVal} {cnP cnF : Nat} {T : Name} {lus : List Level}
+    (h0 : isCtorApp env major = false) (h1 : rules = [rl])
+    (h2 : env.find? rl.ctor = some (.ctorInfo cvj cnP cnF))
+    (h3 : (cvj.type.piResult).getAppFn = .const T lus)
+    (h4 : ∀ cvT caps, env.find? T = some (.indInfo cvT caps) → False) :
+    majorToCtor mode r env d recName rules major = pure major := by
+  rw [majorToCtor_eq]; subst h1; simp only [h0, h2, h3, Bool.false_eq_true, ↓reduceIte]
+grind_pattern [conleche_grind] mtc_notInd =>
+    majorToCtor mode r env d recName rules major, [rl], ConstantInfo.ctorInfo cvj cnP cnF,
+      Expr.const T lus where
+  guard rules = [rl]
+  guard env.find? rl.ctor = some (.ctorInfo cvj cnP cnF)
+  guard (cvj.type.piResult).getAppFn = .const T lus
+
+theorem mtcKCont_const {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat} {T : Name}
+    {tmaj : Expr} {T' : Name} {ust : List Level} (h : tmaj.getAppFn = .const T' ust) :
+    mtcKCont mode r d major rl cvj cnP T tmaj =
+      if T' = T ∧ cvj.levelParams.length = ust.length then
+        if cnP ≤ tmaj.getAppArgs.length then
+          if (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)).wscopedB d &&
+              (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)).looseBVarsBounded 0 &&
+              leafGuardP (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)) major then
+            r.inferIO d (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)) >>=
+              fun tfab => r.defeq d tmaj tfab >>= fun rd =>
+              if rd then
+                proofIrrelGate mode r d
+                    (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)) major >>=
+                  fun ok =>
+                  if ok then pure (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP))
+                  else pure major
+              else pure major
+          else pure major
+        else pure major
+      else pure major := by
+  rw [mtcKCont]; simp only [h]
+grind_pattern [conleche_grind] mtcKCont_const =>
+    mtcKCont mode r d major rl cvj cnP T tmaj, Expr.const T' ust where
+  guard tmaj.getAppFn = .const T' ust
+
+theorem mtcKCont_other {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat} {T : Name}
+    {tmaj : Expr} (h : ∀ T' ust, tmaj.getAppFn = .const T' ust → False) :
+    mtcKCont mode r d major rl cvj cnP T tmaj = pure major := by
+  rw [mtcKCont]; split
+  · next h' => exact (h _ _ h').elim
+  · rfl
+
+omit [MonadExceptOf CheckError m] in
+theorem mtcEtaCont_const {major : Expr} {T : Name} {cvT : ConstantVal} {caps : IndCaps}
+    {tmaj : Expr} {T' : Name} {ust : List Level} (h : tmaj.getAppFn = .const T' ust) :
+    (mtcEtaCont env d major T cvT caps tmaj : m Expr) =
+      if T' = T ∧ tmaj.getAppArgs.length = caps.etaParams ∧
+          ust.length = cvT.levelParams.length ∧
+          capsNeverZero cvT.levelParams ust caps = true ∧
+          reservedBasisNames.contains T = false ∧
+          reservedBasisNames.contains caps.etaCtor = false ∧
+          towerSlotsAll env T caps.etaFields = true then
+        if (Expr.mkAppN (.const caps.etaCtor ust)
+              (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)).wscopedB d &&
+            (Expr.mkAppN (.const caps.etaCtor ust)
+              (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)).looseBVarsBounded 0 &&
+            leafGuardP (Expr.mkAppN (.const caps.etaCtor ust)
+              (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)) major then
+          pure (Expr.mkAppN (.const caps.etaCtor ust)
+            (etaFabArgsE T tmaj.getAppArgs major caps.etaFields))
+        else pure major
+      else pure major := by
+  rw [mtcEtaCont]; simp only [h]
+grind_pattern [conleche_grind] mtcEtaCont_const =>
+    (mtcEtaCont env d major T cvT caps tmaj : m Expr), Expr.const T' ust where
+  guard tmaj.getAppFn = .const T' ust
+
+omit [MonadExceptOf CheckError m] in
+theorem mtcEtaCont_other {major : Expr} {T : Name} {cvT : ConstantVal} {caps : IndCaps}
+    {tmaj : Expr} (h : ∀ T' ust, tmaj.getAppFn = .const T' ust → False) :
+    (mtcEtaCont env d major T cvT caps tmaj : m Expr) = pure major := by
+  rw [mtcEtaCont]; split
+  · next h' => exact (h _ _ h').elim
+  · rfl
+
+theorem mtcAndCont_const {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat}
+    {T : Name} {tmaj : Expr} {T' : Name} {ust : List Level}
+    (h : tmaj.getAppFn = .const T' ust) :
+    mtcAndCont mode r env d major rl cvj cnP T tmaj =
+      if T' = T ∧ tmaj.getAppArgs.length = cnP ∧
+          cvj.levelParams.length = ust.length ∧
+          andRescueSlots env rl.ctor cnP ust = true then
+        if (Expr.mkAppN (.const rl.ctor ust)
+              (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])).wscopedB d &&
+            (Expr.mkAppN (.const rl.ctor ust)
+              (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])).looseBVarsBounded 0 &&
+            leafGuardP (Expr.mkAppN (.const rl.ctor ust)
+              (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])) major then
+          r.inferIO d (Expr.mkAppN (.const rl.ctor ust)
+              (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])) >>=
+            fun tfab => r.defeq d tmaj tfab >>= fun rd =>
+            if rd then
+              proofIrrelGate mode r d (Expr.mkAppN (.const rl.ctor ust)
+                  (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])) major >>=
+                fun ok =>
+                if ok then
+                  pure (Expr.mkAppN (.const rl.ctor ust)
+                    (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major]))
+                else pure major
+            else pure major
+        else pure major
+      else pure major := by
+  rw [mtcAndCont]; simp only [h]
+grind_pattern [conleche_grind] mtcAndCont_const =>
+    mtcAndCont mode r env d major rl cvj cnP T tmaj, Expr.const T' ust where
+  guard tmaj.getAppFn = .const T' ust
+
+theorem mtcAndCont_other {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat}
+    {T : Name} {tmaj : Expr} (h : ∀ T' ust, tmaj.getAppFn = .const T' ust → False) :
+    mtcAndCont mode r env d major rl cvj cnP T tmaj = pure major := by
+  rw [mtcAndCont]; split
+  · next h' => exact (h _ _ h').elim
+  · rfl
+
+end PureMtc
+
+/-! ### The rescue's walks -/
+
+theorem mtcKC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) {d : Nat}
+    {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat} {T : Name} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d major) :
+    ⦃fun s => s = s₀⦄ mtcKI mode (coreKnotI mode (mkFEnv env) f) d major rl cvj cnP T
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs ((fueledFns mode env).inferIO d major >>= fun tm => (fueledFns mode env).whnf d tm >>=
+        mtcKCont mode (fueledFns mode env) d major rl cvj cnP T) v ∧
+      Expr.WScoped d v; ⊤⦄ := by
+  sym only [conleche_grind, mtcKCont_other, proofIrrelGate_of hμ] =>
+    vcgen [mtcKI, certAtI, mkAppNM, ih.inferIO_spec, ih.whnf_spec,
+      ih.defeq_spec, proofIrrelC_spec ih] <;> finish
+
+theorem mtcEtaC_spec (ih : SSimC mode env f) {d : Nat} {major : Expr} {T : Name}
+    {cvT : ConstantVal} {caps : IndCaps} {s₀ : CState} (hs : CSOK mode env s₀)
+    (hw : Expr.WScoped d major) :
+    ⦃fun s => s = s₀⦄ mtcEtaI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d major T cvT caps
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs ((fueledFns mode env).inferIO d major >>= fun tm => (fueledFns mode env).whnf d tm >>=
+        mtcEtaCont env d major T cvT caps) v ∧
+      Expr.WScoped d v; ⊤⦄ := by
+  sym only [conleche_grind, mtcEtaCont_other, etaFabArgsE] =>
+    vcgen [mtcEtaI, mkAppNM, ih.inferIO_spec, ih.whnf_spec,
+      projNodesI_range_spec (mode := mode) (env := env)] <;> finish
+
+theorem mtcAndC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) {d : Nat}
+    {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat} {T : Name} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d major) :
+    ⦃fun s => s = s₀⦄ mtcAndI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d major rl cvj cnP T
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs ((fueledFns mode env).inferIO d major >>= fun tm => (fueledFns mode env).whnf d tm >>=
+        mtcAndCont mode (fueledFns mode env) env d major rl cvj cnP T) v ∧
+      Expr.WScoped d v; ⊤⦄ := by
+  sym only [conleche_grind, mtcAndCont_other, proofIrrelGate_of hμ] =>
+    vcgen [mtcAndI, certAtI, mkAppNM, ih.inferIO_spec, ih.whnf_spec,
+      ih.defeq_spec, proofIrrelC_spec ih, projNodesI_pair_spec (mode := mode) (env := env)] <;>
+      finish
+
+theorem mtcBodyC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) {d : Nat}
+    {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat} {T : Name} {cvT : ConstantVal}
+    {caps : IndCaps} {s₀ : CState} (hs : CSOK mode env s₀) (hw : Expr.WScoped d major) :
+    ⦃fun s => s = s₀⦄
+      mtcBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d major rl cvj cnP T cvT caps
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs (mtcBodyP mode (fueledFns mode env) env d major rl cvj cnP T cvT caps) v ∧
+      Expr.WScoped d v; ⊤⦄ := by
+  sym only [conleche_grind, mtcBodyP] =>
+    vcgen [mtcBodyI, mtcKC_spec hμ ih hs hw, mtcEtaC_spec ih hs hw,
+      mtcAndC_spec hμ ih hs hw] <;> finish
+
 /-- `majorToCtorI` simulates its fueled original. -/
-theorem majorToCtorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
-    {d : Nat} {recName : Name} {rules : List RecRule} {i : Expr}
-    {major : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hden : RelC i major) (hmaj : Expr.WScoped d major) :
-    SimC mode env s₀ (RelEC d)
-      (majorToCtorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName
-        rules i)
-      (majorToCtor mode (fueledFns mode env) env d recName rules major) := by
-  -- `.verified` or its eager tower (task #353): the same walk at either
-  -- literal mode
-  rcases CheckMode.verified_cases hμ with rfl | rfl
-  all_goals
-    show SimC _ env s₀ (RelEC d)
-      (pure (isCtorAppC (mkFEnv env) i) >>=
-        fun ctor =>
-        if ctor then pure i else
-        match rules with
-        | [rl] =>
-          match (mkFEnv env).find? rl.ctor with
-          | some (.ctorInfo cvj cnP cnF) =>
-            match (cvj.type.piResult).getAppFn with
-            | .const T _ =>
-              match (mkFEnv env).find? T with
-              | some (.indInfo cvT caps) =>
-                if rl.k = true then
-                  (coreKnotI _ (mkFEnv env) f).inferIO d i >>= fun tm =>
-                  (coreKnotI _ (mkFEnv env) f).whnf d tm >>= fun tmaj =>
-                
-                  match (Expr.getAppFn tmaj) with
-                  | .const T' ust =>
-                    pure (T' == T) >>= fun bq =>
-                    if bq ∧ cvj.levelParams.length = ust.length then
-                      pure (Expr.getAppArgsC tmaj) >>= fun margs =>
-                      if cnP ≤ margs.length then
-                        pure rl.ctor >>= fun ctorI =>
-                        pure (Expr.const ctorI ust) >>= fun h =>
-                        mkAppNM h (margs.take cnP) >>= fun fab =>
-                        pure (Expr.wscopedBC d fab &&
-                          Expr.looseBVarsBounded 0 fab &&
-                          Expr.leafGuard fab i) >>=
-                          fun g =>
-                        if g then
-                          (coreKnotI _ (mkFEnv env) f).inferIO d fab >>=
-                            fun tfab =>
-                          (coreKnotI _ (mkFEnv env) f).defeq d tmaj
-                              tfab >>= fun rd =>
-                          if rd then
-                            proofIrrelI (coreKnotI _ (mkFEnv env) f)
-                                d fab i >>= fun r =>
-                            if r then pure fab
-                            else pure i
-                          else pure i
-                        else pure i
-                      else pure i
-                    else pure i
-                  | _ => pure i
-                else if rl.eta = true then
-                  (coreKnotI _ (mkFEnv env) f).inferIO d i >>= fun tm =>
-                  (coreKnotI _ (mkFEnv env) f).whnf d tm >>= fun tmaj =>
-                
-                  match (Expr.getAppFn tmaj) with
-                  | .const T' ust =>
-                    pure (Expr.getAppArgsC tmaj) >>= fun margs =>
-                    pure ust >>= fun ustL =>
-                    pure (T' == T) >>= fun bq =>
-                    if bq ∧ margs.length = caps.etaParams ∧
-                        ust.length = cvT.levelParams.length ∧
-                        capsNeverZero cvT.levelParams ustL caps
-                          = true ∧
-                        reservedBasisNames.contains T = false ∧
-                        reservedBasisNames.contains caps.etaCtor = false ∧
-                        (mkFEnv env).towerSlotsAllF T caps.etaFields = true then
-                      pure T >>= fun TI =>
-                      projNodesI TI i (List.range caps.etaFields) >>= fun projs =>
-                      pure caps.etaCtor >>= fun ctorI =>
-                      pure (Expr.const ctorI ust) >>= fun h =>
-                      mkAppNM h (margs ++ projs) >>= fun fab =>
-                      pure (Expr.wscopedBC d fab &&
-                        Expr.looseBVarsBounded 0 fab &&
-                        Expr.leafGuard fab i) >>=
-                        fun g =>
-                      if g then pure fab
-                      else pure i
-                    else pure i
-                  | _ => pure i
-                else if T = andName then
-                  (coreKnotI _ (mkFEnv env) f).inferIO d i >>= fun tm =>
-                  (coreKnotI _ (mkFEnv env) f).whnf d tm >>= fun tmaj =>
+theorem majorToCtorC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
+    {d : Nat} {recName : Name} {rules : List RecRule} {i : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄
+      majorToCtorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName rules i
+    ⦃fun m s' => CSOK mode env s' ∧
+      Runs (majorToCtor mode (fueledFns mode env) env d recName rules i) m ∧
+      Expr.WScoped d m; ⊤⦄ := by
+  sym only [conleche_grind, mtc_notSingle] =>
+    vcgen [majorToCtorI_eq, mtcBodyC_spec hμ ih hs hw] <;> finish
 
-                  match (Expr.getAppFn tmaj) with
-                  | .const T' ust =>
-                    pure (Expr.getAppArgsC tmaj) >>= fun margs =>
-                    pure (T' == T) >>= fun bq =>
-                    if bq ∧ margs.length = cnP ∧
-                        cvj.levelParams.length = ust.length ∧
-                        (mkFEnv env).andRescueSlotsF rl.ctor cnP ust = true then
-                      pure T >>= fun TI =>
-                      projNodesI TI i [0, 1] >>= fun projs =>
-                      pure rl.ctor >>= fun ctorI =>
-                      pure (Expr.const ctorI ust) >>= fun h =>
-                      mkAppNM h (margs ++ projs) >>= fun fab =>
-                      pure (Expr.wscopedBC d fab &&
-                        Expr.looseBVarsBounded 0 fab &&
-                        Expr.leafGuard fab i) >>=
-                        fun g =>
-                      if g then
-                        (coreKnotI _ (mkFEnv env) f).inferIO d fab >>=
-                          fun tfab =>
-                        (coreKnotI _ (mkFEnv env) f).defeq d tmaj
-                            tfab >>= fun rd =>
-                        if rd then
-                          proofIrrelI (coreKnotI _ (mkFEnv env) f)
-                              d fab i >>= fun r =>
-                          if r then pure fab
-                          else pure i
-                        else pure i
-                      else pure i
-                    else pure i
-                  | _ => pure i
-                else pure i
-              | _ => pure i
-            | _ => pure i
-          | _ => pure i
-        | _ => pure i)
-      (majorToCtor _ (fueledFns _ env) env d recName rules major)
-    rw [majorToCtor_unfold]
-    refine SimC.pureB ?_
-    obtain rfl := hden
-    have hden : RelC i i := rfl
-    rw [isCtorAppC_spec' rfl]
-    by_cases hctor : isCtorApp env i
-    · rw [ite_eq_left hctor, ite_eq_left hctor]
-      exact SimC.pure hs ⟨hden, hmaj⟩
-    · rw [ite_eq_right hctor, ite_eq_right hctor]
-      match rules with
-      | [] => exact SimC.pure hs ⟨hden, hmaj⟩
-      | _ :: _ :: _ => exact SimC.pure hs ⟨hden, hmaj⟩
-      | [rl] =>
-        dsimp only
-        rw [show (mkFEnv env).find? rl.ctor = env.find? rl.ctor from
-          mkFEnv_find? env rl.ctor]
-        cases hfj : env.find? rl.ctor with
-        | none => exact SimC.pure hs ⟨hden, hmaj⟩
-        | some ci =>
-          cases ci with
-          | ctorInfo cvj cnP cnF =>
-            dsimp only
-            cases hpr : (cvj.type.piResult).getAppFn with
-            | const T lus =>
-              dsimp only
-              rw [show (mkFEnv env).find? T = env.find? T from
-                mkFEnv_find? env T]
-              cases hfT : env.find? T with
-              | none => exact SimC.pure hs ⟨hden, hmaj⟩
-              | some ciT =>
-                cases ciT with
-                | indInfo cvT caps =>
-                  dsimp only
-                  by_cases hK : rl.k = true
-                  · rw [ite_eq_left hK, ite_eq_left hK]
-                    refine SimC.bind (ih.inferIO hs hden hmaj)
-                      (fun s₁ tm tmx hs₁ hP => ?_)
-                    obtain ⟨htmd, hwtm⟩ := hP
-                    refine SimC.bind (ih.whnf hs₁ htmd hwtm)
-                      (fun s₂ tmaj tmajx hs₂ hP₂ => ?_)
-                    obtain ⟨rfl, hwtmaj⟩ := hP₂
-                    have hmargs : RelCL (Expr.getAppArgsC tmaj)
-                        (Expr.getAppArgs tmaj) :=
-                      Expr.getAppArgsC_spec _
-                    refine SimC.pureB ?_
-                    generalize hg : Expr.getAppFn tmaj = g
-                    cases g with
-                    | const T' ust =>
-                      dsimp only
-                      refine SimC.bind_left (pureEq_eff hs₂ (T' == T))
-                        (fun s₂b bq hs₂ hbq => ?_)
-                      subst bq
-                      simp only [beq_iff_eq]
-                      split
-                      · refine SimC.pureB ?_
-                        simp only [hmargs.length]
-                        split
-                        rotate_left
-                        · exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        refine SimC.bind_left (pureEq_eff hs₂ rl.ctor)
-                          (fun s₂n ctorI hs₂ hQctorI => ?_)
-                        subst hQctorI
-                        refine SimC.bind_left (pureC_eff hs₂
-                          (x := Expr.const rl.ctor ust))
-                          (fun s₃ hd hs₃ hQh => ?_)
-                        refine SimC.bind_left (mkAppNM_eff hs₃ hQh
-                          (hmargs.take cnP))
-                          (fun s₄ fab hs₄ hQfab => ?_)
-                        have hQfab' : RelC fab
-                            (Expr.mkAppN (.const rl.ctor ust)
-                              ((Expr.getAppArgs tmaj).take cnP)) := hQfab
-                        refine SimC.pureB ?_
-                        rw [wscopedB_spec' hQfab',
-                          looseBVarsBounded_spec' hQfab',
-                          leafGuard_spec' hQfab' rfl]
-                        split
-                        · rename_i hguard
-                          have hwfab := Expr.WScoped.of_wscopedB
-                            (by simp only [Bool.and_eq_true] at hguard
-                                exact hguard.1.1)
-                          -- the official `to_cnstr_when_K` type check
-                          refine SimC.bind (ih.inferIO hs₄ hQfab' hwfab)
-                            (fun s₄e tfab tfabx hs₄e hPtf => ?_)
-                          obtain ⟨htfd, hwtf⟩ := hPtf
-                          refine SimC.bind (ih.defeq hs₄e rfl
-                            htfd hwtmaj hwtf)
-                            (fun s₄f rd rd' hs₄f hPrd => ?_)
-                          obtain rfl : rd = rd' := hPrd
-                          cases rd with
-                          | false =>
-                            simp only [Bool.false_eq_true, ↓reduceIte]
-                            exact SimC.pure hs₄f ⟨hden, hmaj⟩
-                          | true =>
-                            simp only [↓reduceIte]
-                            refine SimC.bind (proofIrrelC_sim ih hs₄f
-                              hQfab' hden hwfab hmaj)
-                              (fun s₅ r r' hs₅ hPr => ?_)
-                            obtain rfl : r = r' := hPr
-                            cases r with
-                            | true =>
-                              simp only [↓reduceIte]
-                              exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
-                            | false =>
-                              simp only [Bool.false_eq_true, ↓reduceIte]
-                              exact SimC.pure hs₅ ⟨hden, hmaj⟩
-                        · exact SimC.pure hs₄ ⟨hden, hmaj⟩
-                      · exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | bvar k =>
-                      exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | sort u =>
-                      exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | lit l =>
-                      exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | fvar ix t =>
-                      exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | app f' a' =>
-                      exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | lam t b' =>
-                      exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | forallE t b' =>
-                      exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | letE t v b' =>
-                      exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    | proj sn jx e' =>
-                      exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                  · rw [ite_eq_right hK, ite_eq_right hK]
-                    by_cases hEta : rl.eta = true
-                    · rw [ite_eq_left hEta, ite_eq_left hEta]
-                      refine SimC.bind (ih.inferIO hs hden hmaj)
-                        (fun s₁ tm tmx hs₁ hP => ?_)
-                      obtain ⟨htmd, hwtm⟩ := hP
-                      refine SimC.bind (ih.whnf hs₁ htmd hwtm)
-                        (fun s₂ tmaj tmajx hs₂ hP₂ => ?_)
-                      obtain ⟨rfl, hwtmaj⟩ := hP₂
-                      have hmargs : RelCL (Expr.getAppArgsC tmaj)
-                          (Expr.getAppArgs tmaj) :=
-                        Expr.getAppArgsC_spec _
-                      refine SimC.pureB ?_
-                      generalize hg : Expr.getAppFn tmaj = g
-                      cases g with
-                      | const T' ust =>
-                        dsimp only
-                        refine SimC.pureB ?_
-                        refine SimC.bind_left (pureEq_eff hs₂ ust)
-                          (fun s₂r ustL hs₂r hustL => ?_)
-                        subst ustL
-                        refine SimC.bind_left (pureEq_eff hs₂r (T' == T))
-                          (fun s₂rb bq hs₂r hbq => ?_)
-                        subst bq
-                        simp only [hmargs.length,
-                          beq_iff_eq]
-                        rw [towerSlotsAllF_mkFEnv]
-                        split
-                        · refine SimC.bind_left (pureEq_eff hs₂r T)
-                            (fun s₂t TI hs₂r hQTI => ?_)
-                          subst TI
-                          refine SimC.bind_left (etaProjsC_eff T caps.etaFields hs₂r hden)
-                            (fun s₃ projs hs₃ hQp => ?_)
-                          refine SimC.bind_left (pureEq_eff hs₃
-                            caps.etaCtor)
-                            (fun s₃n ctorI hs₃ hQctorI => ?_)
-                          subst hQctorI
-                          refine SimC.bind_left (pureC_eff hs₃
-                            (x := Expr.const caps.etaCtor ust))
-                            (fun s₄ hd hs₄ hQh => ?_)
-                          refine SimC.bind_left (mkAppNM_eff hs₄ hQh
-                            (hmargs.append hQp))
-                            (fun s₅ fab hs₅ hQfab => ?_)
-                          have hQfab' : RelC fab
-                              (Expr.mkAppN (.const caps.etaCtor ust)
-                                (etaFabArgsE T (Expr.getAppArgs tmaj) i
-                                  caps.etaFields)) := hQfab
-                          refine SimC.pureB ?_
-                          rw [wscopedB_spec' hQfab',
-                            looseBVarsBounded_spec' hQfab',
-                            leafGuard_spec' hQfab' rfl]
-                          split
-                          · rename_i hguard
-                            have hwfab := Expr.WScoped.of_wscopedB
-                              (by simp only [Bool.and_eq_true] at hguard
-                                  exact hguard.1.1)
-                            exact SimC.pure hs₅ ⟨hQfab', hwfab⟩
-                          · exact SimC.pure hs₅ ⟨hden, hmaj⟩
-                        · exact SimC.pure hs₂r ⟨hden, hmaj⟩
-                      | bvar k =>
-                        exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | sort u =>
-                        exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | lit l =>
-                        exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | fvar ix t =>
-                        exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | app f' a' =>
-                        exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | lam t b' =>
-                        exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | forallE t b' =>
-                        exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | letE t v b' =>
-                        exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      | proj sn jx e' =>
-                        exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                    · rw [ite_eq_right hEta, ite_eq_right hEta]
-                      by_cases hAnd : T = andName
-                      · rw [ite_eq_left hAnd, ite_eq_left hAnd]
-                        refine SimC.bind (ih.inferIO hs hden hmaj)
-                          (fun s₁ tm tmx hs₁ hP => ?_)
-                        obtain ⟨htmd, hwtm⟩ := hP
-                        refine SimC.bind (ih.whnf hs₁ htmd hwtm)
-                          (fun s₂ tmaj tmajx hs₂ hP₂ => ?_)
-                        obtain ⟨rfl, hwtmaj⟩ := hP₂
-                        have hmargs : RelCL (Expr.getAppArgsC tmaj)
-                            (Expr.getAppArgs tmaj) :=
-                          Expr.getAppArgsC_spec _
-                        refine SimC.pureB ?_
-                        generalize hg : Expr.getAppFn tmaj = g
-                        cases g with
-                        | const T' ust =>
-                          dsimp only
-                          refine SimC.pureB ?_
-                          refine SimC.bind_left (pureEq_eff hs₂ (T' == T))
-                            (fun s₂b bq hs₂ hbq => ?_)
-                          subst bq
-                          rw [andRescueSlotsF_spec]
-                          simp only [hmargs.length, beq_iff_eq]
-                          split
-                          · refine SimC.bind_left (pureEq_eff hs₂ T)
-                              (fun s₂t TI hs₂ hQTI => ?_)
-                            subst TI
-                            refine SimC.bind_left
-                              (projNodesC_eff T [0, 1] hs₂ hden)
-                              (fun s₃ projs hs₃ hQp => ?_)
-                            have hQp' : RelCL projs
-                                [Expr.proj T 0 i, Expr.proj T 1 i] := hQp
-                            refine SimC.bind_left (pureEq_eff hs₃ rl.ctor)
-                              (fun s₃n ctorI hs₃ hQctorI => ?_)
-                            subst hQctorI
-                            refine SimC.bind_left (pureC_eff hs₃
-                              (x := Expr.const rl.ctor ust))
-                              (fun s₄ hd hs₄ hQh => ?_)
-                            refine SimC.bind_left (mkAppNM_eff hs₄ hQh
-                              (hmargs.append hQp'))
-                              (fun s₅ fab hs₅ hQfab => ?_)
-                            have hQfab' : RelC fab
-                                (Expr.mkAppN (.const rl.ctor ust)
-                                  (Expr.getAppArgs tmaj ++
-                                    [Expr.proj T 0 i, Expr.proj T 1 i])) := hQfab
-                            refine SimC.pureB ?_
-                            rw [wscopedB_spec' hQfab',
-                              looseBVarsBounded_spec' hQfab',
-                              leafGuard_spec' hQfab' rfl]
-                            split
-                            · rename_i hguard
-                              have hwfab := Expr.WScoped.of_wscopedB
-                                (by simp only [Bool.and_eq_true] at hguard
-                                    exact hguard.1.1)
-                              -- the fabrication's type against the major's
-                              refine SimC.bind (ih.inferIO hs₅ hQfab' hwfab)
-                                (fun s₅e tfab tfabx hs₅e hPtf => ?_)
-                              obtain ⟨htfd, hwtf⟩ := hPtf
-                              refine SimC.bind (ih.defeq hs₅e rfl
-                                htfd hwtmaj hwtf)
-                                (fun s₅f rd rd' hs₅f hPrd => ?_)
-                              obtain rfl : rd = rd' := hPrd
-                              cases rd with
-                              | false =>
-                                simp only [Bool.false_eq_true, ↓reduceIte]
-                                exact SimC.pure hs₅f ⟨hden, hmaj⟩
-                              | true =>
-                                simp only [↓reduceIte]
-                                refine SimC.bind (proofIrrelC_sim ih hs₅f
-                                  hQfab' hden hwfab hmaj)
-                                  (fun s₆ r r' hs₆ hPr => ?_)
-                                obtain rfl : r = r' := hPr
-                                cases r with
-                                | true =>
-                                  simp only [↓reduceIte]
-                                  exact SimC.pure hs₆ ⟨hQfab', hwfab⟩
-                                | false =>
-                                  simp only [Bool.false_eq_true, ↓reduceIte]
-                                  exact SimC.pure hs₆ ⟨hden, hmaj⟩
-                            · exact SimC.pure hs₅ ⟨hden, hmaj⟩
-                          · exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        | bvar k =>
-                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        | sort u =>
-                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        | lit l =>
-                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        | fvar ix t =>
-                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        | app f' a' =>
-                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        | lam t b' =>
-                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        | forallE t b' =>
-                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        | letE t v b' =>
-                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                        | proj sn jx e' =>
-                          exact SimC.pure hs₂ ⟨hden, hmaj⟩
-                      · rw [ite_eq_right hAnd, ite_eq_right hAnd]
-                        exact SimC.pure hs ⟨hden, hmaj⟩
-                | axiomInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
-                | defnInfo cv v h => exact SimC.pure hs ⟨hden, hmaj⟩
-                | thmInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
-                | ctorInfo cv nP' nF' => exact SimC.pure hs ⟨hden, hmaj⟩
-                | recInfo cv mI rP rules' => exact SimC.pure hs ⟨hden, hmaj⟩
-                | projInfo entry => exact SimC.pure hs ⟨hden, hmaj⟩
-            | bvar k => exact SimC.pure hs ⟨hden, hmaj⟩
-            | fvar ix t => exact SimC.pure hs ⟨hden, hmaj⟩
-            | sort u => exact SimC.pure hs ⟨hden, hmaj⟩
-            | app f' a' => exact SimC.pure hs ⟨hden, hmaj⟩
-            | lam t b' => exact SimC.pure hs ⟨hden, hmaj⟩
-            | forallE t b' => exact SimC.pure hs ⟨hden, hmaj⟩
-            | letE t v b' => exact SimC.pure hs ⟨hden, hmaj⟩
-            | lit l => exact SimC.pure hs ⟨hden, hmaj⟩
-            | proj s'ᵢ j' e' => exact SimC.pure hs ⟨hden, hmaj⟩
-          | axiomInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
-          | defnInfo cv v h => exact SimC.pure hs ⟨hden, hmaj⟩
-          | thmInfo cv => exact SimC.pure hs ⟨hden, hmaj⟩
-          | indInfo cv caps => exact SimC.pure hs ⟨hden, hmaj⟩
-          | recInfo cv mI rP rules' => exact SimC.pure hs ⟨hden, hmaj⟩
-          | projInfo entry => exact SimC.pure hs ⟨hden, hmaj⟩
-
-end Walks
-
-section Walks2
-
-variable {env : Env} {f : Nat}
-
-/-- Simulation of the major chain, in either order (the K flag is the
-single rule's stored bit, read identically on both sides; off K, the
-rescue on the raw major, then, failing a constructor, the whnf chain). -/
-theorem prepareMajorC_sim (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
-    {d : Nat} {recName : Name} {rules : List RecRule} {i : Expr}
-    {major : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hden : RelC i major) (hmaj : Expr.WScoped d major) :
-    SimC mode env s₀ (RelEC d)
-      (prepareMajorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName
-        rules i)
-      (prepareMajor mode (fueledFns mode env) env d recName rules major) := by
-  unfold prepareMajorI prepareMajor
-  by_cases hk : recRuleK rules = true
-  · rw [ite_eq_left hk, ite_eq_left hk]
-    refine SimC.bind (majorToCtorC_sim hμ ih hs hden hmaj)
-      (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
-    obtain ⟨hd₁, hw₁⟩ := hP₁
-    rw [isCtorAppC_spec' hd₁]
-    by_cases hca : isCtorApp env m₁x
-    · rw [ite_eq_left hca, ite_eq_left hca]
-      exact litMajorToCtorC_sim ih hs₁ hd₁ hw₁
-    · rw [ite_eq_right hca, ite_eq_right hca]
-      exact SimC.pure hs₁ ⟨hd₁, hw₁⟩
-  · -- the structure rescues on the raw major first (task #342 R2)
-    rw [ite_eq_right hk, ite_eq_right hk]
-    obtain rfl := hden
-    by_cases hsl : i.isStrLit = true
-    · rw [ite_eq_left hsl, ite_eq_left hsl]
-      refine SimC.bind (SimC.pure (P := RelEC d) hs (show RelEC d i i from ⟨rfl, hmaj⟩))
-        (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
-      obtain ⟨hd₁, hw₁⟩ := hP₁
-      dsimp only
-      rw [isCtorAppC_spec' hd₁]
-      by_cases hca : isCtorApp env m₁x
-      · rw [ite_eq_left hca, ite_eq_left hca]
-        exact SimC.pure hs₁ ⟨hd₁, hw₁⟩
-      · rw [ite_eq_right hca, ite_eq_right hca]
-        refine SimC.bind (ih.whnf hs₁ hd₁ hw₁) (fun s₂ m₂ m₂x hs₂ hP₂ => ?_)
-        obtain ⟨hd₂, hw₂⟩ := hP₂
-        refine SimC.bind (litMajorToCtorC_sim ih hs₂ hd₂ hw₂)
-          (fun s₃ m₃ m₃x hs₃ hP₃ => ?_)
-        obtain ⟨hd₃, hw₃⟩ := hP₃
-        exact majorToCtorC_sim hμ ih hs₃ hd₃ hw₃
-    · rw [ite_eq_right hsl, ite_eq_right hsl]
-      refine SimC.bind (majorToCtorC_sim hμ ih hs rfl hmaj)
-        (fun s₁ m₁ m₁x hs₁ hP₁ => ?_)
-      obtain ⟨hd₁, hw₁⟩ := hP₁
-      dsimp only
-      rw [isCtorAppC_spec' hd₁]
-      by_cases hca : isCtorApp env m₁x
-      · rw [ite_eq_left hca, ite_eq_left hca]
-        exact SimC.pure hs₁ ⟨hd₁, hw₁⟩
-      · rw [ite_eq_right hca, ite_eq_right hca]
-        refine SimC.bind (ih.whnf hs₁ hd₁ hw₁) (fun s₂ m₂ m₂x hs₂ hP₂ => ?_)
-        obtain ⟨hd₂, hw₂⟩ := hP₂
-        refine SimC.bind (litMajorToCtorC_sim ih hs₂ hd₂ hw₂)
-          (fun s₃ m₃ m₃x hs₃ hP₃ => ?_)
-        obtain ⟨hd₃, hw₃⟩ := hP₃
-        exact majorToCtorC_sim hμ ih hs₃ hd₃ hw₃
-
+/-- The major's preparation, in either order (the K flag is the single
+rule's stored bit, read identically on both sides; off K, the rescue on
+the raw major, then, failing a constructor, the whnf chain). -/
 theorem prepareMajorC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
     {d : Nat} {recName : Name} {rules : List RecRule} {i : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
@@ -798,8 +756,10 @@ theorem prepareMajorC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode e
       prepareMajorI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d recName rules i
     ⦃fun m s' => CSOK mode env s' ∧
       Runs (prepareMajor mode (fueledFns mode env) env d recName rules i) m ∧
-      Expr.WScoped d m; ⊤⦄ :=
-  (prepareMajorC_sim hμ ih hs (RelC.refl i) hw).triple relEC_inv
+      Expr.WScoped d m; ⊤⦄ := by
+  sym only [conleche_grind, prepareMajor] =>
+    vcgen [prepareMajorI, majorToCtorC_spec (mode := mode) (env := env) hμ ih,
+      litMajorToCtorC_spec (mode := mode) (env := env) ih, ih.whnf_spec] <;> finish
 
 /-! ### The ι step's named pieces -/
 
@@ -1244,6 +1204,6 @@ theorem iotaRecC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
       iotaCertC_spec ih henv (mode := mode) (env := env),
       ruleRhsAtM_spec (mode := mode) (env := env)] <;> finish
 
-end Walks2
+end Walks
 
 end ConLeche.Cached
