@@ -464,12 +464,11 @@ theorem checkStructFieldSortsIS_spec (hμ : mode.verifiedChecks = true) (henv : 
     sym only [conleche_grind, checkStructFieldSortsI.eq_1] =>
       vcgen [checkStructFieldSortsI] <;> finish
   | j + 1, _, hs => by
-    -- `gen`: the pure side, evaluated bind by bind, through four binds and two guards
     sym only [conleche_grind, checkStructFieldSortsI.eq_2, unwrapOr.eq_1, liftFueled.eq_1,
         → hfvs.get] =>
       vcgen [checkStructFieldSortsI, unwrapOr, liftFueled, inferS_spec hμ henv,
         sortS_spec hμ henv, checkStructFieldSortsIS_spec hμ henv hfvs (j := j)] <;>
-        finish (gen := 12)
+        finish
 
 /-- An abstracted constructor's fields, opened at the holes' depth. -/
 theorem fvsWS_openPis {n d : Nat} {e : Expr} {fvs : List Expr} {body : Expr}

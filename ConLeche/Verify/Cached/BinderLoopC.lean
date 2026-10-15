@@ -22,8 +22,6 @@ theorem quantifies over the fuel, so the constant `peelFuel` is an
 instance, and no proof below reads a property of the fuel value.
 -/
 
-set_option linter.unusedSimpArgs false
-set_option maxHeartbeats 1000000
 set_option experimental.vcgen true
 
 namespace ConLeche.Cached

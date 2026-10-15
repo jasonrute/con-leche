@@ -21,7 +21,6 @@ scoping facts they need, and the cons at the majors
 uniform install are simulated in `GenRecC.lean`.
 -/
 
-set_option linter.unusedSimpArgs false
 set_option experimental.vcgen true
 
 namespace ConLeche.Cached

@@ -35,7 +35,6 @@ The file follows `BridgeCSDecl.lean`'s layout:
 5. the assembly, and the dispatch.
 -/
 
-set_option linter.unusedSimpArgs false
 set_option experimental.vcgen true
 
 namespace ConLeche.Cached

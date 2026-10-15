@@ -22,7 +22,6 @@ theorems (`ConLeche/Verify/Deep.lean`).  `ssimC` then ties the two by
 fuel induction.
 -/
 
-set_option linter.unusedSimpArgs false
 set_option experimental.vcgen true
 
 namespace ConLeche.Cached
