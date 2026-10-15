@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Verify.Cached.BlockRunC
+import ConLeche.Verify.Cached.NestPosC
 import ConLeche.Verify.Inductives.BlockWF
 import ConLeche.Verify.Inductives.RecCheckScope
 public import ConLeche.Verify.Inductives.NestedRead
@@ -21,11 +22,14 @@ uniform install are simulated in `GenRecC.lean`.
 -/
 
 set_option linter.unusedSimpArgs false
+set_option experimental.vcgen true
 
 namespace ConLeche.Cached
 
 open ConLeche
 open Expr
+open Std.WP
+open scoped Lean.Order
 
 variable {mode : CheckMode}
 
@@ -54,227 +58,113 @@ theorem targetHoles_WScoped {formerTys : List Expr} (hF : ∀ t ∈ formerTys, W
 
 /-! ## 2. The stages, simulated -/
 
-/-- A simulation keeps what the cached run is known to yield. -/
-theorem SimC.withYields {env : Env} {s₀ : CState} {β α : Type} {P : β → α → Prop}
-    {Q : β → Prop} {c : CheckCM β} {p : FueledM α} (h : SimC mode env s₀ P c p)
-    (hy : ∀ s a s', c s = .ok (a, s') → Q a) :
-    SimC mode env s₀ (fun v w => P v w ∧ Q v) c p := by
-  intro v' s' hr
-  obtain ⟨hs', v, hP, F, hF⟩ := h v' s' hr
-  exact ⟨hs', v, ⟨hP, hy s₀ v' s' hr⟩, F, hF⟩
-
 section Sims
 
 variable {env : Env}
 
+/-! ### Vocabulary candidates (for Grind.lean) -/
+
 /-- `targetOutsideInst` is operation-free: at the cached driver it
 leaves the state alone and computes the pure value. -/
-theorem targetOutsideInst_C {fe : FEnv} {I : Name} {us : List Level} {ds : List Expr}
-    (s : CState) :
-    targetOutsideInst (m := CheckCM) fe I us ds s =
-      (match targetOutsideInst (m := CheckM) fe I us ds with
-        | .ok v => .ok (v, s)
-        | .error e => .error e) := by
-  unfold targetOutsideInst
-  cases h1 : fe.find? I with
-  | none => rfl
-  | some ci =>
-    cases ci with
-    | indInfo cvI caps =>
-      dsimp only
-      cases h2 : instPisWith ds (cvI.type.instantiateLevelParams cvI.levelParams us) with
-      | none => rfl
-      | some ty =>
-        dsimp only
-        rcases h3 : ty.piBinders with ⟨ibs, e⟩
-        cases e <;> rfl
-    | _ => rfl
-
-theorem targetOutsideInstS_sim {fe : FEnv} {I : Name} {us : List Level} {ds : List Expr}
+theorem targetOutsideInstS_spec {fe : FEnv} {I : Name} {us : List Level} {ds : List Expr}
     {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC (targetOutsideInst (m := CheckCM) fe I us ds)
-      (targetOutsideInst (m := FueledM) fe I us ds) := by
-  intro v' s' h
-  rw [targetOutsideInst_C] at h
-  cases hr : targetOutsideInst (m := CheckM) fe I us ds with
-  | error e => rw [hr] at h; exact nomatch h
-  | ok v =>
-    rw [hr] at h
-    simp only [Except.ok.injEq, Prod.mk.injEq] at h
-    obtain ⟨h1, h2⟩ := h
-    subst h1 h2
-    exact ⟨hs, v, rfl, 0, by rw [targetOutsideInst_datF]; exact hr⟩
-
-/-- `liftFueled` (the level comparison's fuel) is operation-free. -/
-theorem liftFueledS_sim {α : Type} {what : String} {o : Option α} {s₀ : CState}
-    (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC (liftFueled (m := CheckCM) what o) (liftFueled (m := FueledM) what o) := by
-  cases o with
-  | none => exact SimC.throw
-  | some a => exact SimC.pure hs rfl
+    ⦃fun s => s = s₀⦄ targetOutsideInst (m := CheckCM) fe I us ds
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (targetOutsideInst (m := FueledM) fe I us ds) v; ⊤⦄ := by
+  sym only [conleche_grind, targetOutsideInst.eq_1] =>
+    vcgen [targetOutsideInst] <;> finish
 
 /-! ### The class match (`targetClassMatch`) and its three uses -/
 
-theorem targetParamsDefEqS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat}
+theorem targetParamsDefEqS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat}
     {absM : Expr → Expr} (habs : ∀ e, WScoped d e → WScoped d (absM e)) {pfvs : List Expr}
     (hp : ∀ x ∈ pfvs, WScoped d x) :
-    ∀ (as bs : List Expr) {s₀ : CState}, (∀ a ∈ as, WScoped d a) → CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (targetParamsDefEq (sharedOpsC mode (mkFEnv env)) env d absM pfvs as bs)
-        (targetParamsDefEq (fueledOpsM mode) env d absM pfvs as bs)
-  | [], [], _, _, hs => SimC.pure hs rfl
-  | [], _ :: _, _, _, hs => SimC.pure hs rfl
-  | _ :: _, [], _, _, hs => SimC.pure hs rfl
-  | a :: as, b :: bs, _, ha, hs => by
-    unfold targetParamsDefEq
-    split
-    · rename_i hg
-      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hg
-      dsimp only [sharedOpsC]
-      have hwa := habs _ (targetCanonParams_WScoped hp a (fvarB_le hg.1.2))
-      have hwb := habs _ (targetCanonParams_WScoped hp b (fvarB_le hg.2))
-      split
-      · exact targetParamsDefEqS_sim hμ henv habs hp as bs
-          (fun a' ha' => ha a' (List.mem_cons_of_mem _ ha')) hs
-      refine SimC.bind (opE_infer_sim hμ henv hs hwa) (fun s₁ _ _ hs₁ _ => ?_)
-      refine SimC.bind (opE_infer_sim hμ henv hs₁ hwb) (fun s₂ _ _ hs₂ _ => ?_)
-      refine SimC.bind (opB_sim hμ henv hs₂ hwa hwb) (fun s₃ c c' hs₃ hC => ?_)
-      obtain rfl : c = c' := hC
-      cases c
-      · exact SimC.pure hs₃ rfl
-      · exact targetParamsDefEqS_sim hμ henv habs hp as bs
-          (fun a' ha' => ha a' (List.mem_cons_of_mem _ ha')) hs₃
-    · exact SimC.pure hs rfl
+    ∀ (as bs : List Expr) {s₀ : CState}, CSOK mode env s₀ →
+      ⦃fun s => s = s₀⦄
+        targetParamsDefEq (sharedOpsC mode (mkFEnv env)) env d absM pfvs as bs
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (targetParamsDefEq (fueledOpsM mode) env d absM pfvs as bs) v; ⊤⦄
+  | [], [], _, _ => by
+    sym only [conleche_grind, targetParamsDefEq.eq_1] =>
+      vcgen [targetParamsDefEq] <;> finish
+  | [], _ :: _, _, _ | _ :: _, [], _, _ => by
+    -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
+    simp only [targetParamsDefEq]
+    sym only [conleche_grind] => vcgen <;> finish
+  | _ :: as, _ :: bs, _, _ => by
+    sym only [conleche_grind, targetParamsDefEq.eq_2,
+        fun a (h : a.fvarB ≤ pfvs.length) =>
+          habs _ (targetCanonParams_WScoped hp a (fvarB_le h))] =>
+      vcgen [targetParamsDefEq, inferS_spec hμ henv, defeqS_spec hμ henv,
+        targetParamsDefEqS_spec hμ henv habs hp as bs] <;> finish
 
-/-- The class match, simulated: the class's openers and parameters
-scoped by the block's parameters, the formers closed. -/
-theorem targetClassMatchS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
+/-- The class match: the class's openers and parameters scoped by the
+block's parameters, the formers closed. -/
+theorem targetClassMatchS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {p : BlockShape} {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t)
     {pfvs ds eds : List Expr} {us lvls : List Level}
-    (hp : ∀ x ∈ pfvs, WScoped pfvs.length x) (hds : ∀ x ∈ ds, WScoped pfvs.length x)
-    {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (targetClassMatch (sharedOpsC mode (mkFEnv env)) env p formerTys pfvs us ds lvls eds)
-      (targetClassMatch (fueledOpsM mode) env p formerTys pfvs us ds lvls eds) := by
-  unfold targetClassMatch
-  split
-  · exact targetParamsDefEqS_sim hμ henv
+    (hp : ∀ x ∈ pfvs, WScoped pfvs.length x) {s₀ : CState} (hs : CSOK mode env s₀) :
+    ⦃fun s => s = s₀⦄
+      targetClassMatch (sharedOpsC mode (mkFEnv env)) env p formerTys pfvs us ds lvls eds
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs (targetClassMatch (fueledOpsM mode) env p formerTys pfvs us ds lvls eds) v; ⊤⦄ := by
+  sym only [conleche_grind, targetClassMatch.eq_1] =>
+    vcgen [targetClassMatch, targetParamsDefEqS_spec hμ henv
       (targetAbs_WScoped (targetHoles_WScoped hformer pfvs.length))
-      (fun x hx => (hp x hx).mono (by omega)) ds eds (fun x hx => (hds x hx).mono (by omega)) hs
-  · exact SimC.pure hs rfl
+      (fun x hx => (hp x hx).mono (by omega)) ds eds hs] <;> finish
 
-theorem targetMajorNfsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
+theorem targetMajorNfsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {p : BlockShape} {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t)
     {pfvs ds : List Expr} {us : List Level} {ctors : List (ConstantVal × Nat)}
-    (hp : ∀ x ∈ pfvs, WScoped pfvs.length x) (hds : ∀ x ∈ ds, WScoped pfvs.length x) :
+    (hp : ∀ x ∈ pfvs, WScoped pfvs.length x) :
     ∀ (es : List NestCtorNf) {s₀ : CState}, CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (targetMajorNfs (sharedOpsC mode (mkFEnv env)) env p formerTys pfvs us ds ctors es)
-        (targetMajorNfs (fueledOpsM mode) env p formerTys pfvs us ds ctors es)
-  | [], _, hs => SimC.pure hs rfl
-  | e :: es, _, hs => by
-    unfold targetMajorNfs
-    refine SimC.bind (targetMajorNfsS_sim hμ henv hformer hp hds es hs)
-      (fun s₁ r r' hs₁ hR => ?_)
-    obtain rfl : r = r' := hR
-    split
-    · refine SimC.bind (targetClassMatchS_sim hμ henv hformer hp hds hs₁)
-        (fun s₂ c c' hs₂ hC => ?_)
-      obtain rfl : c = c' := hC
-      cases c <;> exact SimC.pure hs₂ rfl
-    · exact SimC.pure hs₁ rfl
+      ⦃fun s => s = s₀⦄
+        targetMajorNfs (sharedOpsC mode (mkFEnv env)) env p formerTys pfvs us ds ctors es
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (targetMajorNfs (fueledOpsM mode) env p formerTys pfvs us ds ctors es) v; ⊤⦄
+  | [], _, _ => by
+    sym only [conleche_grind, targetMajorNfs.eq_1] => vcgen [targetMajorNfs] <;> finish
+  | _ :: es, _, hs => by
+    sym only [conleche_grind, targetMajorNfs.eq_2] =>
+      vcgen [targetMajorNfs, targetMajorNfsS_spec hμ henv hformer hp es hs,
+        targetClassMatchS_spec hμ henv hformer hp] <;> finish
 
-theorem targetMajorOfS_sim {p : BlockShape}
+theorem targetMajorOfS_spec {p : BlockShape}
     {ctorsAs : List (List (ConstantVal × Nat))} {pfvs fvs : List Expr} {mty : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (targetMajorOf (m := CheckCM) (mkFEnv env) p ctorsAs pfvs fvs mty)
-      (targetMajorOf (m := FueledM) (mkFEnv env) p ctorsAs pfvs fvs mty) := by
-  unfold targetMajorOf
-  dsimp only
-  split
-  · split
-    · refine SimC.bind (SimC.unwrapOr' hs) (fun s₁ ms ms' hs₁ hP => ?_)
-      obtain ⟨rfl, -⟩ := hP
-      refine SimC.bind (SimC.unwrapOr' hs₁) (fun s₂ c c' hs₂ hQ => ?_)
-      obtain ⟨rfl, -⟩ := hQ
-      split
-      · exact SimC.pure hs₂ rfl
-      · exact SimC.throw_bind
-    · repeat' (first
-        | exact SimC.throw
-        | exact SimC.throw_bind
-        | exact SimC.pure hs rfl
-        | split)
-      all_goals
-        refine SimC.bind (targetOutsideInstS_sim hs) (fun s₂ r r' hs₂ hR => ?_)
-        cases hR
-        refine SimC.bind (liftFueledS_sim hs₂) (fun s₃ q q' hs₃ hQ => ?_)
-        cases hQ
-        split
-        · exact SimC.pure hs₃ rfl
-        · exact SimC.throw_bind
-  · exact SimC.throw
+    ⦃fun s => s = s₀⦄ targetMajorOf (m := CheckCM) (mkFEnv env) p ctorsAs pfvs fvs mty
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs (targetMajorOf (m := FueledM) (mkFEnv env) p ctorsAs pfvs fvs mty) v; ⊤⦄ := by
+  sym only [conleche_grind, targetMajorOf.eq_1, unwrapOr] =>
+    vcgen [targetMajorOf, unwrapOr, targetOutsideInstS_spec hs,
+      liftFueledS_spec (mode := mode) (env := env)] <;> finish
 
 /-- The pin typing at the cached driver. -/
-theorem targetPinTysS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} :
-    ∀ {xs : List Expr}, (∀ x ∈ xs, WScoped d x) → ∀ {s₀ : CState}, CSOK mode env s₀ →
-      SimC mode env s₀ (fun (_ _ : Unit) => True)
-        (targetPinTys (sharedOpsC mode (mkFEnv env)) env d xs)
-        (targetPinTys (fueledOpsM mode) env d xs)
-  | [], _, _, hs => SimC.pure hs trivial
-  | x :: xs, hx, _, hs => by
-    unfold targetPinTys
-    dsimp only [sharedOpsC]
-    refine SimC.bind (opE_infer_sim hμ henv hs (hx x List.mem_cons_self))
-      (fun s₁ _ _ hs₁ _ => ?_)
-    exact targetPinTysS_sim hμ henv (fun y hy => hx y (List.mem_cons_of_mem _ hy)) hs₁
+theorem targetPinTysS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} :
+    ∀ {xs : List Expr}, AllWS d xs → ∀ {s₀ : CState}, CSOK mode env s₀ →
+      ⦃fun s => s = s₀⦄ targetPinTys (sharedOpsC mode (mkFEnv env)) env d xs
+      ⦃fun v s' => CSOK mode env s' ∧ Runs (targetPinTys (fueledOpsM mode) env d xs) v; ⊤⦄
+  | [], _, _, _ => by
+    sym only [conleche_grind, targetPinTys.eq_1] => vcgen [targetPinTys] <;> finish
+  | _ :: xs, _, _, _ => by
+    sym only [conleche_grind, targetPinTys.eq_2] =>
+      vcgen [targetPinTys, inferS_spec hμ henv, targetPinTysS_spec hμ henv (xs := xs)] <;>
+        finish
 
 /-- `targetMajorPins` at the cached driver: nothing at a member, the
 pins and the instantiation typed at an outside major. -/
-theorem targetMajorPinsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {rP : Nat}
-    {M : TargetMajor} (hds : M.member = none → ∀ x ∈ M.ds, WScoped rP x) {s₀ : CState}
+theorem targetMajorPinsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {rP : Nat}
+    {M : TargetMajor} (hds : M.member = none → AllWS rP M.ds) {s₀ : CState}
     (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun (_ _ : Unit) => True)
-      (targetMajorPins (sharedOpsC mode (mkFEnv env)) env rP M)
-      (targetMajorPins (fueledOpsM mode) env rP M) := by
-  unfold targetMajorPins
-  cases hM : M.member with
-  | some t =>
-    simp only [Option.isNone_some, Bool.false_eq_true, ↓reduceIte]
-    exact SimC.pure hs trivial
-  | none =>
-    simp only [Option.isNone_none, ↓reduceIte]
-    have hw := hds hM
-    refine SimC.bind (targetPinTysS_sim hμ henv hw hs) (fun s₁ _ _ hs₁ _ => ?_)
-    dsimp only [sharedOpsC]
-    refine SimC.bind (opE_infer_sim hμ henv hs₁
-      (Expr.WScoped.mkAppN (by simp [WScoped]) hw)) (fun s₂ _ _ hs₂ _ => ?_)
-    exact SimC.pure hs₂ trivial
+    ⦃fun s => s = s₀⦄ targetMajorPins (sharedOpsC mode (mkFEnv env)) env rP M
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (targetMajorPins (fueledOpsM mode) env rP M) v; ⊤⦄ := by
+  sym only [conleche_grind, targetMajorPins.eq_1, Option.isNone_iff_eq_none] =>
+    vcgen [targetMajorPins, targetPinTysS_spec hμ henv, inferS_spec hμ henv] <;> finish
 
-theorem targetRecPinsS_sim {p : BlockShape} {block : List ConstantInfo} {s₀ : CState}
+theorem targetRecPinsS_spec {p : BlockShape} {block : List ConstantInfo} {s₀ : CState}
     (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC (targetRecPins (m := CheckCM) p block)
-      (targetRecPins (m := FueledM) p block) := by
-  unfold targetRecPins
-  dsimp only
-  by_cases h1 : blockRecLpsOk p = true
-  case neg => simp only [h1]; exact SimC.throw_bind
-  simp only [h1, ite_true]
-  by_cases h2 : blockRecNamesUnreserved p = true
-  case neg => simp only [h2]; exact SimC.throw_bind
-  simp only [h2, ite_true]
-  split
-  case isFalse => exact SimC.throw_bind
-  split
-  case isFalse => exact SimC.throw_bind
-  split
-  case isFalse => exact SimC.throw_bind
-  split
-  · split
-    · exact SimC.pure hs rfl
-    · exact SimC.throw
-  · exact SimC.throw
+    ⦃fun s => s = s₀⦄ targetRecPins (m := CheckCM) p block
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (targetRecPins (m := FueledM) p block) v; ⊤⦄ := by
+  sym only [conleche_grind, targetRecPins.eq_1] => vcgen [targetRecPins] <;> finish
 
 /-- A resolved major's class, scoped by the block's parameters: its
 openers and its parameters (what the class match needs). -/
@@ -289,18 +179,15 @@ theorem TargetMajScoped.getD {l : List TargetMajor}
     refine ⟨fun x hx' => ?_, fun x hx' => ?_⟩ <;> exact nomatch hx'
   | some M => exact h M (List.mem_of_getElem? hx)
 
-theorem targetK53S_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p : BlockShape}
+theorem targetK53S_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p : BlockShape}
     {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t) {Mc : TargetMajor}
     (hMc : TargetMajScoped Mc) {tele : List Expr} {majDom f : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (targetK53 (sharedOpsC mode (mkFEnv env)) env p formerTys Mc tele majDom f)
-      (targetK53 (fueledOpsM mode) env p formerTys Mc tele majDom f) := by
-  unfold targetK53
-  repeat' split
-  all_goals first
-    | exact SimC.pure hs rfl
-    | exact targetClassMatchS_sim hμ henv hformer hMc.1 hMc.2 hs
+    ⦃fun s => s = s₀⦄ targetK53 (sharedOpsC mode (mkFEnv env)) env p formerTys Mc tele majDom f
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs (targetK53 (fueledOpsM mode) env p formerTys Mc tele majDom f) v; ⊤⦄ := by
+  sym only [conleche_grind, targetK53.eq_1] =>
+    vcgen [targetK53, targetClassMatchS_spec hμ henv hformer hMc.1 hs] <;> finish
 
 end Sims
 

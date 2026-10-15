@@ -14,7 +14,6 @@ public import ConLeche.Verify.Cached.DiscC5
 public import ConLeche.Verify.Cached.KnotC
 public import ConLeche.Verify.Cached.SimCS
 public import ConLeche.Verify.Cached.BridgeCS1
-public import ConLeche.Verify.Cached.BridgeCS2
 public import ConLeche.Verify.Cached.BridgeCS3
 public import ConLeche.Verify.Cached.BridgeCS4
 public import ConLeche.Verify.Cached.BridgeCSDecl

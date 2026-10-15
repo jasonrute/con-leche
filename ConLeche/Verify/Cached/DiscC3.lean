@@ -1,7 +1,6 @@
 module
 
 public import ConLeche.Verify.Cached.DiscC2
-public import ConLeche.Verify.Cached.Grind
 
 public section
 
@@ -66,29 +65,12 @@ variable {env : Env}
     Expr.instLevelParams ks us e = e.instantiateLevelParams ks us :=
   instLevelParams_spec
 
-@[conleche_grind =] theorem OptWS.none_eq (d : Nat) : OptWS d none = True := rfl
-
 @[conleche_grind =] theorem FueledM.pure_bind_eq {α β : Type} (a : α) (g : α → FueledM β) :
     (pure a >>= g : FueledM β) = g a := rfl
 
 /-- A `liftFueled` of a present answer is that answer. -/
 @[conleche_grind =] theorem liftFueled_some_bind {α β : Type} (w : String) (a : α)
     (g : α → FueledM β) : (liftFueled w (some a) >>= g : FueledM β) = g a := rfl
-
-theorem allWS_getAppArgs {d : Nat} {e : Expr} (h : Expr.WScoped d e) :
-    AllWS d e.getAppArgs :=
-  h.getAppArgs
-grind_pattern [conleche_grind] allWS_getAppArgs => Expr.WScoped d e, e.getAppArgs
-
-theorem allWS_drop {d : Nat} {xs : List Expr} (n : Nat) (h : AllWS d xs) :
-    AllWS d (xs.drop n) :=
-  fun x hx => h x (List.mem_of_mem_drop hx)
-grind_pattern [conleche_grind] allWS_drop => AllWS d (xs.drop n)
-
-theorem allWS_take {d : Nat} {xs : List Expr} (n : Nat) (h : AllWS d xs) :
-    AllWS d (xs.take n) :=
-  fun x hx => h x (List.mem_of_mem_take hx)
-grind_pattern [conleche_grind] allWS_take => AllWS d (xs.take n)
 
 theorem allWS_append {d : Nat} {xs ys : List Expr} (h : AllWS d xs) (h' : AllWS d ys) :
     AllWS d (xs ++ ys) := by
@@ -145,12 +127,7 @@ theorem piResidualM_spec {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr) (a
   revert h
   cases o <;> cases piResidual e args <;> simp [OptEr]
 
-theorem isEquivListLM_spec {s₀ : CState} (hs : CSOK mode env s₀) (ls rs : List Level) :
-    ⦃fun s => s = s₀⦄ isEquivListLM ls rs
-    ⦃fun o s' => CSOK mode env s' ∧ o = Level.isEquivList ls rs; ⊤⦄ :=
-  CEff.triple (isEquivListLM_eff hs)
-
-theorem constTyAtM_spec {s₀ : CState} (hs : CSOK mode env s₀) (nI n : Name) (us : List Level)
+theorem constTyAtM_specO {s₀ : CState} (hs : CSOK mode env s₀) (nI n : Name) (us : List Level)
     (hfind : (env.find? n).isSome = true) :
     ⦃fun s => s = s₀⦄ constTyAtM (mkFEnv env) nI n us
     ⦃fun t s' => CSOK mode env s' ∧ t = constTyOf env n us; ⊤⦄ := by
@@ -159,64 +136,9 @@ theorem constTyAtM_spec {s₀ : CState} (hs : CSOK mode env s₀) (nI n : Name) 
   obtain ⟨hs', h⟩ := constTyAtM_eff hs hci t s' hr
   exact ⟨hs', by rw [constTyOf, hci]; exact h⟩
 
-variable {f : Nat}
-
-theorem defEqListC_spec (ih : SSimC mode env f) {d : Nat} {s₀ : CState}
-    (hs : CSOK mode env s₀) {xs ys : List Expr} (hxs : AllWS d xs) (hys : AllWS d ys) :
-    ⦃fun s => s = s₀⦄ defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d xs ys
-    ⦃fun b s' => CSOK mode env s' ∧
-      Runs (defEqList (fueledFns mode env) env d xs ys) b; ⊤⦄ := by
-  refine triple_iff_run.mpr fun b s' hr => ?_
-  obtain ⟨hs', _, (rfl : b = _), h⟩ :=
-    defEqListC_sim ih hs (show RelCL xs xs from rfl) (show RelCL ys ys from rfl) hxs hys b s' hr
-  exact ⟨hs', h⟩
-
-theorem iotaCertsFullC_spec (ih : SSimC mode env f) {d : Nat} {s₀ : CState}
-    (hs : CSOK mode env s₀) {ty : Expr} {xs : List Expr} (hty : Expr.WScoped d ty)
-    (hxs : AllWS d xs) :
-    ⦃fun s => s = s₀⦄ iotaCertsFullI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d ty xs
-    ⦃fun b s' => CSOK mode env s' ∧
-      Runs (iotaCertsFull (fueledFns mode env) env d ty xs) b; ⊤⦄ := by
-  refine triple_iff_run.mpr fun b s' hr => ?_
-  obtain ⟨hs', _, (rfl : b = _), h⟩ :=
-    iotaCertsFullC_sim ih hs (RelC.refl ty) hty (show RelCL xs xs from rfl) hxs b s' hr
-  exact ⟨hs', h⟩
-
 @[conleche_grind =] theorem isCtorAppC_eq (env : Env) (e : Expr) :
     isCtorAppC (mkFEnv env) e = isCtorApp env e :=
   isCtorAppC_spec
-
-/-! The knot's slots as triples (the cached value is the fueled slot's
-answer, well scoped where the slot returns a term). -/
-
-theorem SSimC.whnf_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
-    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
-    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).whnf d i
-    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).whnf d i) r ∧
-      Expr.WScoped d r; ⊤⦄ :=
-  (ih.whnf hs rfl hw).triple relEC_inv
-
-theorem SSimC.inferIO_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
-    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
-    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).inferIO d i
-    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).inferIO d i) r ∧
-      Expr.WScoped d r; ⊤⦄ :=
-  (ih.inferIO hs rfl hw).triple relEC_inv
-
-theorem SSimC.defeq_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
-    (hs : CSOK mode env s₀) (ha : Expr.WScoped d a) (hb : Expr.WScoped d b) :
-    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) f).defeq d a b
-    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).defeq d a b) r; ⊤⦄ := by
-  refine triple_iff_run.mpr fun r s' hr => ?_
-  obtain ⟨hs', _, (rfl : r = _), h⟩ := ih.defeq hs rfl rfl ha hb r s' hr
-  exact ⟨hs', h⟩
-
-theorem litMajorToCtorC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
-    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
-    ⦃fun s => s = s₀⦄ litMajorToCtorI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i
-    ⦃fun r s' => CSOK mode env s' ∧ Runs (litMajorToCtor (fueledFns mode env) env d i) r ∧
-      Expr.WScoped d r; ⊤⦄ :=
-  (litMajorToCtorC_sim ih hs rfl hw).triple relEC_inv
 
 end Vocabulary
 
@@ -269,14 +191,6 @@ theorem projNodesI_pair_spec {s₀ : CState} (hs : CSOK mode env s₀) (T : Name
     ⦃fun s => s = s₀⦄ projNodesI T b [0, 1]
     ⦃fun rs s' => CSOK mode env s' ∧ rs = [.proj T 0 b, .proj T 1 b]; ⊤⦄ :=
   CEff.triple (projNodesC_eff T [0, 1] hs (RelC.refl b))
-
-theorem proofIrrelC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
-    (hs : CSOK mode env s₀) (ha : Expr.WScoped d a) (hb : Expr.WScoped d b) :
-    ⦃fun s => s = s₀⦄ proofIrrelI (coreKnotI mode (mkFEnv env) f) d a b
-    ⦃fun r s' => CSOK mode env s' ∧ Runs (proofIrrel (fueledFns mode env) d a b) r; ⊤⦄ := by
-  refine triple_iff_run.mpr fun r s' hr => ?_
-  obtain ⟨hs', _, (rfl : r = _), h⟩ := proofIrrelC_sim ih hs rfl rfl ha hb r s' hr
-  exact ⟨hs', h⟩
 
 /-- The proof-irrelevance certificate behind its mode gate. -/
 @[expose] def proofIrrelGate {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
@@ -789,7 +703,7 @@ grind_pattern [conleche_grind] ruleRhsOf_some =>
   guard env.find? c = some (.recInfo cv mI rP rules)
   guard findRule rules j = some rl
 
-theorem ruleRhsAtM_spec {s₀ : CState} (hs : CSOK mode env s₀) (cI jI c j : Name)
+theorem ruleRhsAtM_specO {s₀ : CState} (hs : CSOK mode env s₀) (cI jI c j : Name)
     (us : List Level) (hfind : (ruleRhsOf env c j us).isSome = true) :
     ⦃fun s => s = s₀⦄ ruleRhsAtM (mkFEnv env) cI jI c j us
     ⦃fun t s' => CSOK mode env s' ∧ some t = ruleRhsOf env c j us; ⊤⦄ := by
@@ -1087,7 +1001,7 @@ theorem iotaCertC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} {s�
       Option.isSome_some, EnvWF.ctorTy_closed henv hfj] =>
     vcgen [iotaCertI, liftFueled, substLevelTreesM, isEquivListLM_spec hs,
       pinArgsC_spec (mode := mode) (env := env),
-      defEqListC_spec ih, constTyAtM_spec (mode := mode) (env := env),
+      defEqListC_spec ih, constTyAtM_specO (mode := mode) (env := env),
       iotaCertsFullC_spec ih, iotaIndexOkC_spec ih] <;> finish
 
 /-- The ι step simulates its fueled original. -/
@@ -1101,7 +1015,7 @@ theorem iotaRecC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
       iotaCertGate_of hμ, → EnvWF.rules_ok henv] =>
     vcgen [iotaRecI_eq, certAtI, mkAppNM, prepareMajorC_spec hμ ih,
       iotaCertC_spec ih henv (mode := mode) (env := env),
-      ruleRhsAtM_spec (mode := mode) (env := env)] <;> finish
+      ruleRhsAtM_specO (mode := mode) (env := env)] <;> finish
 
 end Walks
 
