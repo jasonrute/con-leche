@@ -14,8 +14,7 @@ These are the forms the proofs consume: the model tier's
 `hμ : μ.isVerified = true` names `.verified` itself
 (`CheckMode.eq_verified`); the mode-parametric simulation tower
 (`ConLeche/Verify/Cached/*`) and the bridges run inside the eager
-tower too and take the weaker `hμ : mode.verifiedChecks = true`
-(`CheckMode.verified_cases`).
+tower too and take the weaker `hμ : mode.verifiedChecks = true`.
 
 The module imports `Kernel.Core` and nothing else: it is base-tier.
 -/
@@ -36,15 +35,6 @@ theorem CheckMode.eq_verified (h : mode.isVerified = true) :
 theorem CheckMode.vc (h : mode.isVerified = true) :
     mode.verifiedChecks = true := by
   cases mode <;> simp_all [CheckMode.isVerified, CheckMode.verifiedChecks]
-
-/-- **A mode running the verified checks is `.verified` or its eager
-tower** (task #353): the simulation tower's way through a cached
-body's certificate switches — after `rcases CheckMode.verified_cases hμ
-with rfl | rfl` every `certAtI` read is at a literal mode and reduces
-by `rfl`. -/
-theorem CheckMode.verified_cases (h : mode.verifiedChecks = true) :
-    mode = .verified ∨ mode = .verifiedEager := by
-  cases mode <;> simp_all [CheckMode.verifiedChecks]
 
 /-- The eager tower runs the checks its mode runs. -/
 @[simp] theorem CheckMode.verifiedChecks_toEager :
