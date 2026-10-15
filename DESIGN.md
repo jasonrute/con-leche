@@ -106408,3 +106408,74 @@ fixtures exported from real proofs (`native_decide_axiom`,
 `bv_decide` export is 1.6 M lines, so that tactic is covered by the
 `#guard` alone (checked by hand on a real export: same message with
 `bv_decide`).
+
+## TASK #359 — spike: the cached simulation without hand-stated unfolding lemmas (2026-10-15, agent/359-unfold)
+
+The question: can the `vcgen`/`grind` walks of task #356 do without the
+restated step equations of the cached functions?
+
+**Mostly yes: `vcgen [f.eq_def]`.**  `vcgen [f]` (the plain name) adds
+`f`'s generated equations, skips every one with an overlap hypothesis
+(the wildcard arm of an inner overlapping `match`: `simpSpecTheorems`,
+`hasOverlapHypothesis` in `Lean/Elab/Tactic/Do/Attr.lean`) and falls
+back to the unconditional `f.eq_def` only for a NON-recursive `f`
+(`unfoldSpecEqn?`) — hence "No spec found" on every recursive loop
+whose step matches again.  Passing `f.eq_def` explicitly works: `vcgen`
+rewrites once, reduces the outer matcher on the concrete constructor,
+splits the inner `match`, and the induction hypothesis (an explicit
+spec, priority above the equation) takes the recursive call.  #356's
+"`eq_def` hit simp's step limit" does not reproduce on the walks as
+written; it does reproduce when the IH does not apply to the recursive
+call (e.g. `defEqListC_spec` with the second list left to `vcgen`'s
+split instead of `cases`: `eq_def` then unfolds the opaque recursive
+call again and again, 113 G to the failure), so the case structure the
+walks have stays.  On the pure side the plain name in the `sym` list
+works for fall-through arms (`grind` discharges the overlap premise
+there, while the bare `defEqList.eq_3` does not instantiate).
+
+Applied (this branch): the cached step lemmas `betaPeelI_cons`,
+`inferSpineI_cons`, `inferSpineIOI_cons`, `inferLamsI_succ`,
+`inferPisI_succ`, `iotaCertsFullIAux_cons`, `nestFields_succ`, the
+catch-all `rfl` lemmas `defEqListI_nil_cons`/`_cons_nil`,
+`isEquivListLM_nil_cons`/`_cons_nil`, `checkAbsCtorSorts(All)_nil(_right)`,
+`classRulesOk_nil/_cons`, `classRecsRulesOk_nil/_nil_right/_cons`, and
+the pure `defEqList_nil_cons`/`_cons_nil` are gone (22 lemmas, −201
+lines); `whnfAppI_cons` is replaced by `rw [whnfAppI.eq_def]; simp only
+[iotaArityOk_guard]` before `sym` (`vcgen` splits an `ite` before it
+tries an equation about it, so the guard lemma must rewrite first).
+`instructions:u` of the six touched modules, 97.97 G → 94.42 G
+(DiscC4 18.16 → 16.61, DiscC1 13.78 → 13.21, BinderLoopC 6.62 → 6.03,
+SimCEff 8.38 → 8.36, NestPosC 21.17 → 20.62, GenRecC 29.85 → 29.59).
+
+**What stays, and why.**
+* Named-block restatements (`iotaRecI_eq`, `majorToCtorI_eq`,
+  `defeqBodyI_eq`, `lazyDeltaReductionI_succ`, `nestFrame_eq`): they fold
+  a definition's inline continuation into a named function that has its
+  own triple (#356 rule 2); no unfolding idiom produces the fold.  They
+  would go only if the cached code were written with those functions.
+* `defeqLamsI_zero`/`_succ`: Lean generates no equation for
+  `defeqLamsI` at all (structural recursion inside a `match` on the fuel
+  and a bound value under a bind; reproducer
+  `_tmp/356-repro/eqns-structural-match-under-bind.lean`); `_succ` also
+  names `lamsStepI`.
+* `isEquivLM_eq`, `instListM_eq`: the `modifyGet fun s => match …`
+  shape, a restatement of the code, not of its unfolding.
+* `coreKnotI_*_succ` (KnotC): `simp only [coreKnotI]` before `sym`
+  works for four of five (+0.5 G for the module); `whnfCore`'s field is
+  `(if c then … else …) d i`, which `vcgen` cannot split (reproducer
+  `vcgen-ite-overapplied.lean`; `cases c` first works); `rw
+  [coreKnotI.eq_2]` leaves a projection of a record literal that `vcgen`
+  does not reduce.  Kept: the `rfl` lemmas are cheaper.
+* `ProjEntry.typeAtI_eq`, `instPisAtLiftC_eq`, …: mathematics (a cached
+  walk equals its spec), not unfolding.
+* TargetRecC/BridgeCS1 already use `simp only [f]` before `sym` on their
+  catch-all arms (no lemma); `vcgen [f.eq_def]` with `f.eq_3` in the
+  `sym` list also works but costs +0.2 G per module, so not changed.
+
+Upstream reproducers (`_tmp/356-repro/`):
+`vcgen-recursive-eqdef-fallback.lean` (`vcgen [f]` for a recursive `f`
+should fall back to `f.eq_def` like a non-recursive one),
+`vcgen-ite-overapplied.lean`, `eqns-structural-match-under-bind.lean`.
+CLAUDE.md's "`vcgen` needs one unconditional unfolding equation per
+cached function" would read: pass a recursive cached function to
+`vcgen` as `f.eq_def` (the plain name for a non-recursive one).

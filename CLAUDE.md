@@ -51,7 +51,9 @@ arm or induction case). No custom tactic, macro or elab.
 * The pure side's nested `match` never reaches `grind`: one guarded equation per
   reachable arm. Name the blocks between arms (both sides, `rfl` restatements),
   every `fun` and every mode gate; no `∃`, disjunction or `fun` in a post.
-* `vcgen` needs one unconditional unfolding equation per cached function.
+* Pass a recursive cached function to `vcgen` as `f.eq_def` (plain `f` for a
+  non-recursive one: `vcgen` skips conditional equations and falls back to
+  `eq_def` only for non-recursive definitions); no hand-stated unfolding lemmas.
 * Recursive triples by `induction`, not by recursive pattern matching.
 * Every raised `finish`/`sym` limit carries a comment saying why.
 
