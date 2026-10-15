@@ -36,10 +36,6 @@ variable {mode : CheckMode}
 
 /-! ## Vocabulary candidates (for Grind.lean) -/
 
-@[conleche_grind =] theorem wscoped_forallE_eq (d : Nat) (ty body : Expr) :
-    Expr.WScoped d (.forallE ty body) = (Expr.WScoped d ty ∧ Expr.WScoped d body) := by
-  rw [Expr.WScoped]
-
 /-- Opening a binder at the next free variable scopes the body one deeper. -/
 theorem wscoped_instantiate1_fvar {d : Nat} {ty e : Expr} (k : Nat) (hty : WScoped d ty)
     (he : WScoped d e) : WScoped (d + 1) (e.instantiate1 (.fvar d ty) k) :=

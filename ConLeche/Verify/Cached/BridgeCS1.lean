@@ -42,29 +42,11 @@ variable {pins : List NatOpPinSet}
 
 The shared operations' triples, stated at the `sharedOpsC` projections a
 generic checker function calls (a triple about `opB …` is not found for
-`(sharedOpsC …).isDefEq …`), and the triple form of a `SimC` at plain
-equality (`RelVC`), whose post has no side condition. -/
+`(sharedOpsC …).isDefEq …`; `SimC.tripleVC` is `BinderLoopC.lean`'s). -/
 
 section Vocabulary
 
 variable {env : Env}
-
-/-- A simulation at plain equality is a triple whose post names the
-cached value as the pure answer. -/
-theorem SimC.tripleVC {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
-    (h : SimC mode env s₀ RelVC c p) :
-    ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄ := by
-  refine triple_iff_run.mpr fun v' s' hr => ?_
-  obtain ⟨hs', v, rfl, F, hF⟩ := h v' s' hr
-  exact ⟨hs', ⟨F, hF⟩⟩
-
-/-- The converse of `SimC.tripleVC`. -/
-theorem SimC.of_tripleVC {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
-    (h : ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄) :
-    SimC mode env s₀ RelVC c p := by
-  intro v' s' hr
-  obtain ⟨hs', ⟨F, hF⟩⟩ := triple_iff_run.mp h v' s' hr
-  exact ⟨hs', v', rfl, F, hF⟩
 
 theorem inferS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {e : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
@@ -92,13 +74,6 @@ theorem sortS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Na
     ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).ensureSort env d e
     ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).ensureSort env d e) v; ⊤⦄ :=
   (opS_sim hμ henv hs hw).tripleVC
-
-/-- Past a first step that is a `pure`, a bind answers what its
-continuation answers (`Runs.bind_eq` needs a `Runs` term of the first
-step, which no callee spec supplies when the step is operation-free). -/
-@[conleche_grind =] theorem Runs.pure_bind_eq {α β : Type} (a : α) (f : α → FueledM β) (b : β) :
-    Runs (Pure.pure a >>= f) b = Runs (f a) b :=
-  Runs.bind_eq b (Runs.pure a)
 
 /-- A closed term is scoped at every depth. -/
 theorem wscoped_of_hasFvar_false {d : Nat} {e : Expr} (h : e.hasFvar = false) :
