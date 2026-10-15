@@ -2,9 +2,7 @@ module
 
 public import ConLeche.Verify.Cached.BridgeCSDecl
 import ConLeche.Verify.Inductives.BlockWF
-import ConLeche.Verify.Cached.NestPosC
 import ConLeche.Verify.Inductives.BlockRecRun
-import ConLeche.Verify.BridgeWfImp
 import ConLeche.Verify.Inductives.BlockInv
 import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Verify.Extend.Inversions
