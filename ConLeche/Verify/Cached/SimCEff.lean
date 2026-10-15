@@ -34,6 +34,20 @@ open Expr
 
 variable {mode : CheckMode}
 
+/-! ## Vocabulary candidates (for Grind.lean) -/
+
+/-- A memo whose entries all satisfy `P` keeps them so under the insert of
+an entry satisfying `P`: with a lawful key equality a colliding key IS the
+inserted one.  Every `CSOK` memo clause is such a `P`. -/
+theorem HashMap.insert_backed {K V : Type} [BEq K] [LawfulBEq K] [Hashable K]
+    {P : K → V → Prop} {m : Std.HashMap K V} (hm : ∀ k v, m[k]? = some v → P k v)
+    {i : K} {j : V} (hij : P i j) : ∀ k v, (m.insert i j)[k]? = some v → P k v := by
+  intro k v h
+  rw [Std.HashMap.getElem?_insert] at h
+  split at h
+  · rename_i hk; cases h; exact eq_of_beq hk ▸ hij
+  · exact hm k v h
+
 /-! ## Key collisions
 
 `Std.HashMap.getElem?_insert` splits on `storedKey == queryKey`; the

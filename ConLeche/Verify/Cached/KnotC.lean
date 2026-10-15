@@ -33,131 +33,49 @@ open scoped Lean.Order
 
 variable {mode : CheckMode}
 
-/-! ## Cache-insert preservation for the entry-point memos
+/-! ## Vocabulary candidates (for Grind.lean) -/
 
-Each clause's backing run is depth-universal.  A `beq` collision pins the stored key to the query (`beq_sound`),
-which is exactly what the clauses — erasure
-functions of their keys — need. -/
-
-section Inserts
+section Vocabulary
 
 variable {env : Env}
 
-theorem CSOK.insertWhnfCoreC {s : CState} (hs : CSOK mode env s)
-    {i j : Expr}
-    (hrun : ∃ F, ∀ d, (Expr.wscopedB d i) = true →
-      whnfCore mode env F d i = .ok j) :
-    CSOK mode env { s with whnfCoreC := s.whnfCoreC.insert i j } := by
-  refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, ?_, hs.whnfCoreCheapC, hs.whnfC, hs.inferC, hs.inferIOC,
-    hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
-  intro k v hl
-  simp only at hl
-  rw [Std.HashMap.getElem?_insert] at hl
-  by_cases hk : i == k
-  · rw [ite_eq_left hk] at hl
-    cases hl
-    rw [← beq_sound hk]
-    exact hrun
-  · rw [ite_eq_right hk] at hl
-    exact hs.whnfCoreC k v hl
+/-- The `Bool`-valued analogue of `SimC.of_triple`: a triple whose post
+names the cached verdict as the pure answer is a simulation at
+`RelVC`. -/
+theorem SimC.of_triple_eq {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
+    (h : ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄) :
+    SimC mode env s₀ RelVC c p := by
+  intro v' s' hr
+  obtain ⟨hs', F, hF⟩ := triple_iff_run.mp h v' s' hr
+  exact ⟨hs', v', rfl, F, hF⟩
 
-theorem CSOK.insertWhnfCoreCheapC {s : CState} (hs : CSOK mode env s)
-    {i j : Expr}
-    (hrun : ∃ F, ∀ d, (Expr.wscopedB d i) = true →
-      whnfCore mode env F d i true = .ok j) :
-    CSOK mode env { s with whnfCoreCheapC := s.whnfCoreCheapC.insert i j } := by
-  refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, ?_, hs.whnfC, hs.inferC,
-    hs.inferIOC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
-  intro k v hl
-  simp only at hl
-  rw [Std.HashMap.getElem?_insert] at hl
-  by_cases hk : i == k
-  · rw [ite_eq_left hk] at hl
-    cases hl
-    rw [← beq_sound hk]
-    exact hrun
-  · rw [ite_eq_right hk] at hl
-    exact hs.whnfCoreCheapC k v hl
+/-- A binary `Bool`-valued entry point's body simulates its fueled body
+on well-scoped inputs (`BodySpec` for the defeq slot). -/
+@[expose] def BodySpecB (mode : CheckMode) (env : Env) (body : Nat → Expr → Expr → CheckCM Bool)
+    (spec : Nat → Expr → Expr → FueledM Bool) : Prop :=
+  ∀ {s₀ : CState} {d : Nat} {a b : Expr}, CSOK mode env s₀ → Expr.WScoped d a →
+    Expr.WScoped d b →
+    ⦃fun s => s = s₀⦄ body d a b ⦃fun r s' => CSOK mode env s' ∧ Runs (spec d a b) r; ⊤⦄
 
-theorem CSOK.insertWhnfC {s : CState} (hs : CSOK mode env s)
-    {i j : Expr}
-    (hrun : ∃ F, ∀ d, (Expr.wscopedB d i) = true →
-      whnf mode env F d i = .ok j) :
-    CSOK mode env { s with whnfC := s.whnfC.insert i j } := by
-  refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, ?_, hs.inferC, hs.inferIOC,
-    hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
-  intro k v hl
-  simp only at hl
-  rw [Std.HashMap.getElem?_insert] at hl
-  by_cases hk : i == k
-  · rw [ite_eq_left hk] at hl
-    cases hl
-    rw [← beq_sound hk]
-    exact hrun
-  · rw [ite_eq_right hk] at hl
-    exact hs.whnfC k v hl
+theorem BodySpecB.triple {body : Nat → Expr → Expr → CheckCM Bool}
+    {spec : Nat → Expr → Expr → FueledM Bool} (h : BodySpecB mode env body spec)
+    {s₀ : CState} {d : Nat} {a b : Expr} (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a)
+    (hwb : Expr.WScoped d b) :
+    ⦃fun s => s = s₀⦄ body d a b ⦃fun r s' => CSOK mode env s' ∧ Runs (spec d a b) r; ⊤⦄ :=
+  h hs hwa hwb
 
-theorem CSOK.insertInferC {s : CState} (hs : CSOK mode env s)
-    {i j : Expr}
-    (hrun : ∃ F, ∀ d, (Expr.wscopedB d i) = true →
-      inferTypeCore mode env F d i = .ok j) :
-    CSOK mode env { s with inferC := s.inferC.insert i j } := by
-  refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC, ?_,
-    hs.inferIOC, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
-  intro k v hl
-  simp only at hl
-  rw [Std.HashMap.getElem?_insert] at hl
-  by_cases hk : i == k
-  · rw [ite_eq_left hk] at hl
-    cases hl
-    rw [← beq_sound hk]
-    exact hrun
-  · rw [ite_eq_right hk] at hl
-    exact hs.inferC k v hl
+/-- A body simulation (`SimC` at `RelVC`) is a `BodySpecB`. -/
+theorem BodySpecB.of_sim {body : Nat → Expr → Expr → CheckCM Bool}
+    {spec : Nat → Expr → Expr → FueledM Bool}
+    (h : ∀ {s₀ : CState} {d : Nat} {i j : Expr} {a b : Expr}, CSOK mode env s₀ → RelC i a →
+      RelC j b → Expr.WScoped d a → Expr.WScoped d b →
+      SimC mode env s₀ RelVC (body d i j) (spec d a b)) :
+    BodySpecB mode env body spec :=
+  fun hs hwa hwb => triple_iff_run.mpr fun v' s' hr => by
+    obtain ⟨hs', v, rfl, F, hF⟩ := h hs rfl rfl hwa hwb v' s' hr
+    exact ⟨hs', F, hF⟩
 
-/-- Insert into the io memo (task #172 B4): the entry is backed by an
-io-slot run — the weaker clause. -/
-theorem CSOK.insertInferIOC {s : CState} (hs : CSOK mode env s)
-    {i j : Expr}
-    (hrun : ∃ F, ∀ d, (Expr.wscopedB d i) = true →
-      inferTypeIO mode env F d i = .ok j) :
-    CSOK mode env { s with inferIOC := s.inferIOC.insert i j } := by
-  refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC,
-    hs.inferC, ?_, hs.defeqC, hs.lsimp, hs.lnz, hs.eqv,
-    hs.instC⟩
-  intro k v hl
-  simp only at hl
-  rw [Std.HashMap.getElem?_insert] at hl
-  by_cases hk : i == k
-  · rw [ite_eq_left hk] at hl
-    cases hl
-    rw [← beq_sound hk]
-    exact hrun
-  · rw [ite_eq_right hk] at hl
-    exact hs.inferIOC k v hl
-
-theorem CSOK.insertDefeqC {s : CState} (hs : CSOK mode env s)
-    {i j : Expr} {r : Bool}
-    (hrun : ∃ F, ∀ d, (Expr.wscopedB d i) = true →
-      (Expr.wscopedB d j) = true →
-      isDefEqCore mode env F d i j = .ok r) :
-    CSOK mode env { s with defeqC := s.defeqC.insert (i, j) r } := by
-  refine ⟨hs.constTy, hs.constVal, hs.ruleRhs, hs.whnfCoreC, hs.whnfCoreCheapC, hs.whnfC,
-    hs.inferC, hs.inferIOC, ?_, hs.lsimp, hs.lnz, hs.eqv, hs.instC⟩
-  intro a b r' hl
-  simp only at hl
-  rw [Std.HashMap.getElem?_insert] at hl
-  by_cases hk : ((i, j) : Expr × Expr) == (a, b)
-  · rw [ite_eq_left hk] at hl
-    obtain ⟨hia, hjb⟩ := pairKey_inv hk
-    have hjb' : j = b := beq_sound hjb
-    cases hl
-    rw [← hia, ← hjb']
-    exact hrun
-  · rw [ite_eq_right hk] at hl
-    exact hs.defeqC a b r' hl
-
-end Inserts
+end Vocabulary
 
 /-! ## The memo-wrapper steps -/
 
@@ -165,129 +83,87 @@ section Wrappers
 
 variable {env : Env} {f : Nat}
 
-private theorem memoEI_whnfCoreFull_sim (henv : EnvWF env)
-    (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
-      CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
-      SimC mode env s₀ (RelEC d)
-        (whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) false d i)
-        (whnfCoreBody mode (fueledFns mode env) env false d e))
-    {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}
-    (hs : CSOK mode env s₀) (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelEC d) ((coreKnotI mode (mkFEnv env) (f + 1)).whnfCore false d i)
-      ((fueledFns mode env).whnfCore false d e) := by
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  intro v' s' hr
-  rw [show (coreKnotI mode (mkFEnv env) (f + 1)).whnfCore false d i =
-    memoEI (·.whnfCoreC) (fun st mp => { st with whnfCoreC := mp })
-      (fun d e => whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) false d e)
-      d i from rfl] at hr
-  simp only [memoEI, Bind.bind, StateT.bind, get, getThe,
-    MonadStateOf.get, StateT.get, pure, StateT.pure, Except.pure,
-    Except.bind] at hr
-  cases hl : s₀.whnfCoreC[i]? with
-  | some j =>
-    rw [hl] at hr
-    simp only [pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
-    obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-    obtain ⟨F, hall⟩ := hs.whnfCoreC i _ hl
-    have hrun := hall d hw.to_wscopedB
-    exact ⟨hs, j, ⟨rfl, whnfCore_WScoped henv F hrun hw⟩,
-      F, hrun⟩
-  | none =>
-    rw [hl] at hr
-    try dsimp only at hr
-    try simp only [StateT.bind] at hr
-    cases hb : whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) false d i s₀
-        with
-    | error err =>
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind] at hr
-      exact nomatch hr
-    | ok pr =>
-      obtain ⟨r, s₁⟩ := pr
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind, modify, modifyGet,
-        MonadStateOf.modifyGet, StateT.modifyGet, StateT.pure, pure,
-        Except.pure, Except.ok.injEq] at hr
-      obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-      obtain ⟨hs₁, v, ⟨rfl, hwv⟩, F, hF⟩ := hbody hs hden hw r s₁ hb
-      rw [whnfCoreBody_atF] at hF
-      rw [← whnfCore_succ] at hF
-      have hins := hs₁.insertWhnfCoreC
-        ⟨F + 1, fun d' hd' => by
-          rw [whnfCore_depth_inv henv (F + 1) hd' hw.to_wscopedB]
-          exact hF⟩
-      exact ⟨hins, r, ⟨rfl, hwv⟩, F + 1, hF⟩
+/-! ### The whnfCore memos
 
-private theorem memoEI_whnfCoreCheap_sim (henv : EnvWF env)
-    (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
-      CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
-      SimC mode env s₀ (RelEC d)
-        (whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) true d i)
-        (whnfCoreBody mode (fueledFns mode env) env true d e))
-    {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}
-    (hs : CSOK mode env s₀) (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelEC d) ((coreKnotI mode (mkFEnv env) (f + 1)).whnfCore true d i)
-      ((fueledFns mode env).whnfCore true d e) := by
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  intro v' s' hr
-  rw [show (coreKnotI mode (mkFEnv env) (f + 1)).whnfCore true d i =
-    memoEI (·.whnfCoreCheapC) (fun st mp => { st with whnfCoreCheapC := mp })
-      (fun d e => whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) true d e)
-      d i from rfl] at hr
-  simp only [memoEI, Bind.bind, StateT.bind, get, getThe,
-    MonadStateOf.get, StateT.get, pure, StateT.pure, Except.pure,
-    Except.bind] at hr
-  cases hl : s₀.whnfCoreCheapC[i]? with
-  | some j =>
-    rw [hl] at hr
-    simp only [pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
-    obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-    obtain ⟨F, hall⟩ := hs.whnfCoreCheapC i _ hl
-    have hrun := hall d hw.to_wscopedB
-    exact ⟨hs, j, ⟨rfl, whnfCore_WScoped henv F hrun hw⟩,
-      F, hrun⟩
-  | none =>
-    rw [hl] at hr
-    try dsimp only at hr
-    try simp only [StateT.bind] at hr
-    cases hb : whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) true d i s₀
-        with
-    | error err =>
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind] at hr
-      exact nomatch hr
-    | ok pr =>
-      obtain ⟨r, s₁⟩ := pr
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind, modify, modifyGet,
-        MonadStateOf.modifyGet, StateT.modifyGet, StateT.pure, pure,
-        Except.pure, Except.ok.injEq] at hr
-      obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-      obtain ⟨hs₁, v, ⟨rfl, hwv⟩, F, hF⟩ := hbody hs hden hw r s₁ hb
-      rw [whnfCoreBody_atF] at hF
-      rw [← whnfCore_succ] at hF
-      have hins := hs₁.insertWhnfCoreCheapC
-        ⟨F + 1, fun d' hd' => by
-          rw [whnfCore_depth_inv henv (F + 1) hd' hw.to_wscopedB]
-          exact hF⟩
-      exact ⟨hins, r, ⟨rfl, hwv⟩, F + 1, hF⟩
+The two modes of `whnfCore` (official `cheap_proj`) under two memos; one
+triple covers both (`vcgen` splits the knot's `if c`). -/
 
-theorem memoEI_whnfCore_sim (henv : EnvWF env)
-    (hbody : ∀ {c : Bool} {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
-      CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
-      SimC mode env s₀ (RelEC d)
-        (whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) c d i)
-        (whnfCoreBody mode (fueledFns mode env) env c d e))
-    {c : Bool} {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}
-    (hs : CSOK mode env s₀) (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelEC d) ((coreKnotI mode (mkFEnv env) (f + 1)).whnfCore c d i)
-      ((fueledFns mode env).whnfCore c d e) := by
-  cases c
-  · exact memoEI_whnfCoreFull_sim henv hbody hs hden hw
-  · exact memoEI_whnfCoreCheap_sim henv hbody hs hden hw
+theorem coreKnotI_whnfCore_succ (c : Bool) (d : Nat) (i : Expr) :
+    (coreKnotI mode (mkFEnv env) (f + 1)).whnfCore c d i =
+      if c then
+        memoEI (·.whnfCoreCheapC) (fun st mp => { st with whnfCoreCheapC := mp })
+          (fun d e => whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) true d e)
+          d i
+      else
+        memoEI (·.whnfCoreC) (fun st mp => { st with whnfCoreC := mp })
+          (fun d e => whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) false d e)
+          d i := by
+  cases c <;> rfl
+
+/-- A full whnfCore memo hit answers the fueled whnfCore, well scoped. -/
+theorem CSOK.whnfCore_hit (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hl : s.whnfCoreC[i]? = some r) (hw : Expr.WScoped d i) :
+    Runs ((fueledFns mode env).whnfCore false d i) r ∧ Expr.WScoped d r := by
+  obtain ⟨F, hall⟩ := hs.whnfCoreC i r hl
+  have hrun := hall d hw.to_wscopedB
+  exact ⟨⟨F, hrun⟩, whnfCore_WScoped henv F hrun hw⟩
+grind_pattern [conleche_grind] CSOK.whnfCore_hit =>
+  CSOK mode env s, s.whnfCoreC[i]?, Runs ((fueledFns mode env).whnfCore false d i) r
+
+/-- A cheap whnfCore memo hit answers the fueled cheap whnfCore. -/
+theorem CSOK.whnfCoreCheap_hit (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hl : s.whnfCoreCheapC[i]? = some r) (hw : Expr.WScoped d i) :
+    Runs ((fueledFns mode env).whnfCore true d i) r ∧ Expr.WScoped d r := by
+  obtain ⟨F, hall⟩ := hs.whnfCoreCheapC i r hl
+  have hrun := hall d hw.to_wscopedB
+  exact ⟨⟨F, hrun⟩, whnfCore_WScoped henv F hrun hw⟩
+grind_pattern [conleche_grind] CSOK.whnfCoreCheap_hit =>
+  CSOK mode env s, s.whnfCoreCheapC[i]?, Runs ((fueledFns mode env).whnfCore true d i) r
+
+/-- A body answer is a whnfCore answer one fuel up. -/
+theorem Runs.whnfCore_of_body {c : Bool} {d : Nat} {i r : Expr}
+    (h : Runs (whnfCoreBody mode (fueledFns mode env) env c d i) r) :
+    Runs ((fueledFns mode env).whnfCore c d i) r := by
+  obtain ⟨F, hF⟩ := h
+  rw [whnfCoreBody_atF, ← whnfCore_succ] at hF
+  exact ⟨F + 1, hF⟩
+grind_pattern [conleche_grind] Runs.whnfCore_of_body =>
+  Runs (whnfCoreBody mode (fueledFns mode env) env c d i) r, (fueledFns mode env).whnfCore c d i
+
+theorem CSOK.whnfCore_insert (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hw : Expr.WScoped d i)
+    (h : Runs (whnfCoreBody mode (fueledFns mode env) env false d i) r) :
+    CSOK mode env { s with whnfCoreC := s.whnfCoreC.insert i r } := by
+  obtain ⟨F, hF⟩ := h
+  rw [whnfCoreBody_atF, ← whnfCore_succ] at hF
+  exact { hs with
+    whnfCoreC := HashMap.insert_backed hs.whnfCoreC ⟨F + 1, fun d' hd' => by
+      rw [whnfCore_depth_inv henv (F + 1) hd' hw.to_wscopedB]; exact hF⟩ }
+
+theorem CSOK.whnfCoreCheap_insert (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hw : Expr.WScoped d i)
+    (h : Runs (whnfCoreBody mode (fueledFns mode env) env true d i) r) :
+    CSOK mode env { s with whnfCoreCheapC := s.whnfCoreCheapC.insert i r } := by
+  obtain ⟨F, hF⟩ := h
+  rw [whnfCoreBody_atF, ← whnfCore_succ] at hF
+  exact { hs with
+    whnfCoreCheapC := HashMap.insert_backed hs.whnfCoreCheapC ⟨F + 1, fun d' hd' => by
+      rw [whnfCore_depth_inv henv (F + 1) hd' hw.to_wscopedB]; exact hF⟩ }
+
+/-- The whnfCore memo wrappers simulate the fueled whnfCore at one fuel
+more than their bodies. -/
+theorem memoEI_whnfCore_spec (henv : EnvWF env)
+    (hbody : ∀ c, BodySpec mode env
+      (whnfCoreBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) c)
+      (whnfCoreBody mode (fueledFns mode env) env c))
+    {c : Bool} {s₀ : CState} {d : Nat} {i : Expr} (hs : CSOK mode env s₀)
+    (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) (f + 1)).whnfCore c d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).whnfCore c d i) r ∧
+      Expr.WScoped d r; ⊤⦄ := by
+  sym only [conleche_grind, CSOK.whnfCore_insert henv, CSOK.whnfCoreCheap_insert henv] =>
+    vcgen [coreKnotI_whnfCore_succ, memoEI, BodySpec.triple (hbody true),
+      BodySpec.triple (hbody false)] <;> finish
 
 /-! ### The whnf memo, by `vcgen` and `grind`
 
@@ -328,8 +204,9 @@ theorem CSOK.whnf_insert (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
     CSOK mode env { s with whnfC := s.whnfC.insert i r } := by
   obtain ⟨F, hF⟩ := h
   rw [whnfBody_atF, ← whnf_succ] at hF
-  exact hs.insertWhnfC ⟨F + 1, fun d' hd' => by
-    rw [whnf_depth_inv henv (F + 1) hd' hw.to_wscopedB]; exact hF⟩
+  exact { hs with
+    whnfC := HashMap.insert_backed hs.whnfC ⟨F + 1, fun d' hd' => by
+      rw [whnf_depth_inv henv (F + 1) hd' hw.to_wscopedB]; exact hF⟩ }
 
 /-- The whnf memo wrapper simulates the fueled whnf at one fuel more
 than its body.  `CSOK.whnf_insert` is in the `sym` list instantiated at
@@ -344,187 +221,167 @@ theorem memoEI_whnf_spec (henv : EnvWF env)
   sym only [conleche_grind, CSOK.whnf_insert henv] =>
     vcgen [coreKnotI_whnf_succ, memoEI, hbody.triple] <;> finish
 
-theorem memoEI_infer_sim (henv : EnvWF env)
-    (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
-      CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
-      SimC mode env s₀ (RelEC d)
-        (inferBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
-        (inferBody (fueledFns mode env) env d e))
-    {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}
-    (hs : CSOK mode env s₀) (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelEC d) ((coreKnotI mode (mkFEnv env) (f + 1)).infer d i)
-      ((fueledFns mode env).infer d e) := by
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  intro v' s' hr
-  rw [show (coreKnotI mode (mkFEnv env) (f + 1)).infer d i =
-    memoEI (·.inferC) (fun st mp => { st with inferC := mp })
-      (fun d e => inferBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d e)
-      d i from rfl] at hr
-  simp only [memoEI, Bind.bind, StateT.bind, get, getThe,
-    MonadStateOf.get, StateT.get, pure, StateT.pure, Except.pure,
-    Except.bind] at hr
-  cases hl : s₀.inferC[i]? with
-  | some j =>
-    rw [hl] at hr
-    simp only [pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
-    obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-    obtain ⟨F, hall⟩ := hs.inferC i _ hl
-    have hrun := hall d hw.to_wscopedB
-    exact ⟨hs, j,
-      ⟨rfl, inferTypeCore_WScoped henv F hrun hw⟩, F, hrun⟩
-  | none =>
-    rw [hl] at hr
-    try dsimp only at hr
-    try simp only [StateT.bind] at hr
-    cases hb : inferBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i s₀ with
-    | error err =>
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind] at hr
-      exact nomatch hr
-    | ok pr =>
-      obtain ⟨r, s₁⟩ := pr
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind, modify, modifyGet,
-        MonadStateOf.modifyGet, StateT.modifyGet, StateT.pure, pure,
-        Except.pure, Except.ok.injEq] at hr
-      obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-      obtain ⟨hs₁, v, ⟨rfl, hwv⟩, F, hF⟩ := hbody hs hden hw r s₁ hb
-      rw [inferBody_atF] at hF
-      rw [← inferTypeCore_succ] at hF
-      have hins := hs₁.insertInferC
-        ⟨F + 1, fun d' hd' => by
-          rw [inferTypeCore_depth_inv henv (F + 1) hd' hw.to_wscopedB]
-          exact hF⟩
-      exact ⟨hins, r, ⟨rfl, hwv⟩, F + 1, hF⟩
+/-! ### The infer memo -/
 
-/-- The io memo-wrapper step (task #172 B4): the slot is the io body
-under its own memo (`CState.inferIOC`); a hit
-consumes the io clause, a miss runs the io body walk and re-inserts in
+theorem coreKnotI_infer_succ (d : Nat) (i : Expr) :
+    (coreKnotI mode (mkFEnv env) (f + 1)).infer d i =
+      memoEI (·.inferC) (fun st mp => { st with inferC := mp })
+        (fun d e => inferBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d e) d i := rfl
+
+/-- An infer memo hit answers the fueled infer, well scoped. -/
+theorem CSOK.infer_hit (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hl : s.inferC[i]? = some r) (hw : Expr.WScoped d i) :
+    Runs ((fueledFns mode env).infer d i) r ∧ Expr.WScoped d r := by
+  obtain ⟨F, hall⟩ := hs.inferC i r hl
+  have hrun := hall d hw.to_wscopedB
+  exact ⟨⟨F, hrun⟩, inferTypeCore_WScoped henv F hrun hw⟩
+grind_pattern [conleche_grind] CSOK.infer_hit =>
+  CSOK mode env s, s.inferC[i]?, Runs ((fueledFns mode env).infer d i) r
+
+/-- A body answer is an infer answer one fuel up. -/
+theorem Runs.infer_of_body {d : Nat} {i r : Expr}
+    (h : Runs (inferBody (fueledFns mode env) env d i) r) :
+    Runs ((fueledFns mode env).infer d i) r := by
+  obtain ⟨F, hF⟩ := h
+  rw [inferBody_atF, ← inferTypeCore_succ] at hF
+  exact ⟨F + 1, hF⟩
+grind_pattern [conleche_grind] Runs.infer_of_body =>
+  Runs (inferBody (fueledFns mode env) env d i) r, (fueledFns mode env).infer d i
+
+theorem CSOK.infer_insert (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hw : Expr.WScoped d i)
+    (h : Runs (inferBody (fueledFns mode env) env d i) r) :
+    CSOK mode env { s with inferC := s.inferC.insert i r } := by
+  obtain ⟨F, hF⟩ := h
+  rw [inferBody_atF, ← inferTypeCore_succ] at hF
+  exact { hs with
+    inferC := HashMap.insert_backed hs.inferC ⟨F + 1, fun d' hd' => by
+      rw [inferTypeCore_depth_inv henv (F + 1) hd' hw.to_wscopedB]; exact hF⟩ }
+
+/-- The infer memo wrapper simulates the fueled infer at one fuel more
+than its body. -/
+theorem memoEI_infer_spec (henv : EnvWF env)
+    (hbody : BodySpec mode env (inferBodyI (coreKnotI mode (mkFEnv env) f) (mkFEnv env))
+      (inferBody (fueledFns mode env) env))
+    {s₀ : CState} {d : Nat} {i : Expr} (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) (f + 1)).infer d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).infer d i) r ∧
+      Expr.WScoped d r; ⊤⦄ := by
+  sym only [conleche_grind, CSOK.infer_insert henv] =>
+    vcgen [coreKnotI_infer_succ, memoEI, hbody.triple] <;> finish
+
+/-! ### The io memo (task #172 B4)
+
+The slot is the io body under its own memo (`CState.inferIOC`); a hit
+consumes the io clause — the weaker one — and a miss re-inserts in
 depth-universal form through `inferTypeIO_depth_inv`. -/
-theorem memoEI_inferIO_sim (henv : EnvWF env)
-    (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},
-      CSOK mode env s₀ → RelC i e → Expr.WScoped d e →
-      SimC mode env s₀ (RelEC d)
-        (inferBodyIOI
-          (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env) d i)
-        (inferBodyIO (CoreFns.ioView (fueledFns mode env)) env d e))
-    {s₀ : CState} {d : Nat} {i : Expr} {e : Expr}
-    (hs : CSOK mode env s₀) (hden : RelC i e) (hw : Expr.WScoped d e) :
-    SimC mode env s₀ (RelEC d)
-      ((coreKnotI mode (mkFEnv env) (f + 1)).inferIO d i)
-      ((fueledFns mode env).inferIO d e) := by
-  obtain rfl := hden
-  have hden : RelC i i := rfl
-  intro v' s' hr
-  have hslot : (coreKnotI mode (mkFEnv env) (f + 1)).inferIO =
-      memoEI (·.inferIOC) (fun st mp => { st with inferIOC := mp })
-        (fun d e => inferBodyIOI
-          (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env)
-          d e) := by
-    -- the knot's previous level is a `Unit` closure (task #179),
-    -- which beta-reduces to `coreKnotI … f`.
-    rfl
-  rw [hslot] at hr
-  simp only [memoEI, Bind.bind, StateT.bind, get, getThe,
-    MonadStateOf.get, StateT.get, pure, StateT.pure, Except.pure,
-    Except.bind] at hr
-  cases hl : s₀.inferIOC[i]? with
-  | some j =>
-    rw [hl] at hr
-    simp only [pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
-    obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-    obtain ⟨F, hall⟩ := hs.inferIOC i _ hl
-    have hrun := hall d hw.to_wscopedB
-    exact ⟨hs, j,
-      ⟨rfl, inferTypeIO_WScoped henv F hrun hw⟩, F, hrun⟩
-  | none =>
-    rw [hl] at hr
-    try dsimp only at hr
-    try simp only [StateT.bind] at hr
-    cases hb : inferBodyIOI
-        (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env) d i
-        s₀ with
-    | error err =>
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind] at hr
-      exact nomatch hr
-    | ok pr =>
-      obtain ⟨r, s₁⟩ := pr
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind, modify, modifyGet,
-        MonadStateOf.modifyGet, StateT.modifyGet, StateT.pure, pure,
-        Except.pure, Except.ok.injEq] at hr
-      obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-      obtain ⟨hs₁, v, ⟨rfl, hwv⟩, F, hF⟩ := hbody hs hden hw r s₁ hb
-      rw [inferBodyIO_atF] at hF
-      rw [show inferBodyIO (CoreFns.ioView (pureFns mode env F)) env d i
-          = inferTypeIO mode env (F + 1) d i from by
-        rw [inferTypeIO_succ]] at hF
-      have hins := hs₁.insertInferIOC
-        ⟨F + 1, fun d' hd' => by
-          rw [inferTypeIO_depth_inv henv (F + 1) hd' hw.to_wscopedB]
-          exact hF⟩
-      exact ⟨hins, r, ⟨rfl, hwv⟩, F + 1, hF⟩
 
-theorem memoBI_defeq_sim (henv : EnvWF env)
-    (hbody : ∀ {s₀ : CState} {d : Nat} {i j : Expr} {a b : Expr},
-      CSOK mode env s₀ → RelC i a → RelC j b →
-      Expr.WScoped d a → Expr.WScoped d b →
-      SimC mode env s₀ RelVC
-        (defeqBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j)
-        (defeqBody mode (fueledFns mode env) env d a b))
-    {s₀ : CState} {d : Nat} {i j : Expr} {a b : Expr}
-    (hs : CSOK mode env s₀) (hdena : RelC i a) (hdenb : RelC j b)
-    (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
-    SimC mode env s₀ RelVC ((coreKnotI mode (mkFEnv env) (f + 1)).defeq d i j)
-      ((fueledFns mode env).defeq d a b) := by
-  obtain rfl := hdena
-  obtain rfl := hdenb
-  have hdena : RelC i i := rfl
-  have hdenb : RelC j j := rfl
-  intro v' s' hr
-  rw [show (coreKnotI mode (mkFEnv env) (f + 1)).defeq d i j =
-    memoBI
-      (fun d i j => defeqBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j)
-      d i j from rfl] at hr
-  simp only [memoBI, Bind.bind, StateT.bind, get, getThe,
-    MonadStateOf.get, StateT.get, pure, StateT.pure, Except.pure,
-    Except.bind] at hr
-  cases hl : s₀.defeqC[((i, j) : Expr × Expr)]? with
-  | some r =>
-    rw [hl] at hr
-    simp only [pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
-    obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-    obtain ⟨F, hall⟩ := hs.defeqC i j _ hl
-    exact ⟨hs, r, rfl, F, hall d hwa.to_wscopedB hwb.to_wscopedB⟩
-  | none =>
-    rw [hl] at hr
-    try dsimp only at hr
-    try simp only [StateT.bind] at hr
-    cases hb : defeqBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j s₀
-        with
-    | error err =>
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind] at hr
-      exact nomatch hr
-    | ok pr =>
-      obtain ⟨r, s₁⟩ := pr
-      rw [hb] at hr
-      simp only [Bind.bind, Except.bind, modify, modifyGet,
-        MonadStateOf.modifyGet, StateT.modifyGet, StateT.pure, pure,
-        Except.pure, Except.ok.injEq] at hr
-      obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-      obtain ⟨hs₁, v, hrv, F, hF⟩ := hbody hs hdena hdenb hwa hwb r s₁ hb
-      rw [defeqBody_atF] at hF
-      rw [← isDefEqCore_succ] at hF
-      obtain rfl : r = v := hrv
-      have hins := hs₁.insertDefeqC
-        ⟨F + 1, fun d' hda' hdb' => by
-          rw [isDefEqCore_depth_inv henv (F + 1) hda' hdb'
-            hwa.to_wscopedB hwb.to_wscopedB]
-          exact hF⟩
-      exact ⟨hins, r, rfl, F + 1, hF⟩
+theorem coreKnotI_inferIO_succ (d : Nat) (i : Expr) :
+    (coreKnotI mode (mkFEnv env) (f + 1)).inferIO d i =
+      memoEI (·.inferIOC) (fun st mp => { st with inferIOC := mp })
+        (fun d e => inferBodyIOI (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f))
+          (mkFEnv env) d e) d i :=
+  -- the knot's previous level is a `Unit` closure (task #179), which
+  -- beta-reduces to `coreKnotI … f`
+  rfl
+
+/-- An io memo hit answers the fueled io slot, well scoped. -/
+theorem CSOK.inferIO_hit (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hl : s.inferIOC[i]? = some r) (hw : Expr.WScoped d i) :
+    Runs ((fueledFns mode env).inferIO d i) r ∧ Expr.WScoped d r := by
+  obtain ⟨F, hall⟩ := hs.inferIOC i r hl
+  have hrun := hall d hw.to_wscopedB
+  exact ⟨⟨F, hrun⟩, inferTypeIO_WScoped henv F hrun hw⟩
+grind_pattern [conleche_grind] CSOK.inferIO_hit =>
+  CSOK mode env s, s.inferIOC[i]?, Runs ((fueledFns mode env).inferIO d i) r
+
+/-- An io body answer is an io-slot answer one fuel up. -/
+theorem Runs.inferIO_of_body {d : Nat} {i r : Expr}
+    (h : Runs (inferBodyIO (CoreFns.ioView (fueledFns mode env)) env d i) r) :
+    Runs ((fueledFns mode env).inferIO d i) r := by
+  obtain ⟨F, hF⟩ := h
+  rw [inferBodyIO_atF, ← inferTypeIO_succ] at hF
+  exact ⟨F + 1, hF⟩
+grind_pattern [conleche_grind] Runs.inferIO_of_body =>
+  Runs (inferBodyIO (CoreFns.ioView (fueledFns mode env)) env d i) r,
+  (fueledFns mode env).inferIO d i
+
+theorem CSOK.inferIO_insert (henv : EnvWF env) {s : CState} {d : Nat} {i r : Expr}
+    (hs : CSOK mode env s) (hw : Expr.WScoped d i)
+    (h : Runs (inferBodyIO (CoreFns.ioView (fueledFns mode env)) env d i) r) :
+    CSOK mode env { s with inferIOC := s.inferIOC.insert i r } := by
+  obtain ⟨F, hF⟩ := h
+  rw [inferBodyIO_atF, ← inferTypeIO_succ] at hF
+  exact { hs with
+    inferIOC := HashMap.insert_backed hs.inferIOC ⟨F + 1, fun d' hd' => by
+      rw [inferTypeIO_depth_inv henv (F + 1) hd' hw.to_wscopedB]; exact hF⟩ }
+
+/-- The io memo wrapper simulates the fueled io slot at one fuel more
+than its body. -/
+theorem memoEI_inferIO_spec (henv : EnvWF env)
+    (hbody : BodySpec mode env
+      (inferBodyIOI (CoreFnsI.ioView (coreKnotI mode (mkFEnv env) f)) (mkFEnv env))
+      (inferBodyIO (CoreFns.ioView (fueledFns mode env)) env))
+    {s₀ : CState} {d : Nat} {i : Expr} (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) (f + 1)).inferIO d i
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).inferIO d i) r ∧
+      Expr.WScoped d r; ⊤⦄ := by
+  sym only [conleche_grind, CSOK.inferIO_insert henv] =>
+    vcgen [coreKnotI_inferIO_succ, memoEI, hbody.triple] <;> finish
+
+/-! ### The defeq memo -/
+
+theorem coreKnotI_defeq_succ (d : Nat) (a b : Expr) :
+    (coreKnotI mode (mkFEnv env) (f + 1)).defeq d a b =
+      memoBI (fun d a b => defeqBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b)
+        d a b := rfl
+
+/-- A defeq memo hit answers the fueled defeq. -/
+theorem CSOK.defeq_hit {s : CState} {d : Nat} {a b : Expr} {r : Bool}
+    (hs : CSOK mode env s) (hl : s.defeqC[(a, b)]? = some r) (hwa : Expr.WScoped d a)
+    (hwb : Expr.WScoped d b) :
+    Runs ((fueledFns mode env).defeq d a b) r := by
+  obtain ⟨F, hall⟩ := hs.defeqC a b r hl
+  exact ⟨F, hall d hwa.to_wscopedB hwb.to_wscopedB⟩
+grind_pattern [conleche_grind] CSOK.defeq_hit =>
+  CSOK mode env s, s.defeqC[(a, b)]?, Runs ((fueledFns mode env).defeq d a b) r
+
+/-- A body answer is a defeq answer one fuel up. -/
+theorem Runs.defeq_of_body {d : Nat} {a b : Expr} {r : Bool}
+    (h : Runs (defeqBody mode (fueledFns mode env) env d a b) r) :
+    Runs ((fueledFns mode env).defeq d a b) r := by
+  obtain ⟨F, hF⟩ := h
+  rw [defeqBody_atF, ← isDefEqCore_succ] at hF
+  exact ⟨F + 1, hF⟩
+grind_pattern [conleche_grind] Runs.defeq_of_body =>
+  Runs (defeqBody mode (fueledFns mode env) env d a b) r, (fueledFns mode env).defeq d a b
+
+theorem CSOK.defeq_insert (henv : EnvWF env) {s : CState} {d : Nat} {a b : Expr} {r : Bool}
+    (hs : CSOK mode env s) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b)
+    (h : Runs (defeqBody mode (fueledFns mode env) env d a b) r) :
+    CSOK mode env { s with defeqC := s.defeqC.insert (a, b) r } := by
+  obtain ⟨F, hF⟩ := h
+  rw [defeqBody_atF, ← isDefEqCore_succ] at hF
+  -- the clause is curried in the key pair
+  exact { hs with
+    defeqC := fun a' b' r' => HashMap.insert_backed
+      (P := fun k r => ∃ F, ∀ d, k.1.wscopedB d = true → k.2.wscopedB d = true →
+        isDefEqCore mode env F d k.1 k.2 = .ok r)
+      (fun k v => hs.defeqC k.1 k.2 v) ⟨F + 1, fun d' hda' hdb' => by
+        rw [isDefEqCore_depth_inv henv (F + 1) hda' hdb' hwa.to_wscopedB hwb.to_wscopedB]
+        exact hF⟩ (a', b') r' }
+
+/-- The defeq memo wrapper simulates the fueled defeq at one fuel more
+than its body. -/
+theorem memoBI_defeq_spec (henv : EnvWF env)
+    (hbody : BodySpecB mode env (defeqBodyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env))
+      (defeqBody mode (fueledFns mode env) env))
+    {s₀ : CState} {d : Nat} {a b : Expr} (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a)
+    (hwb : Expr.WScoped d b) :
+    ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) (f + 1)).defeq d a b
+    ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).defeq d a b) r; ⊤⦄ := by
+  sym only [conleche_grind, CSOK.defeq_insert henv] =>
+    vcgen [coreKnotI_defeq_succ, memoBI, hbody.triple] <;> finish
 
 end Wrappers
 
@@ -534,26 +391,25 @@ private theorem ssimC_all (env : Env) (henv : EnvWF env) :
     ∀ (f : Nat) (mode : CheckMode), mode.verifiedChecks = true → SSimC mode env f
   | 0, _, _ => ssimC_zero env
   | f + 1, mode, hμ =>
-    { whnfCore := fun hs hden hw =>
-        memoEI_whnfCore_sim henv
-          (fun hs' hden' hw' =>
-            whnfCoreBodyC_sim hμ (ssimC_all env henv f mode hμ) henv hs' hden' hw')
-          hs hden hw
+    { whnfCore := fun hs hden hw => by
+        obtain rfl := hden
+        exact SimC.of_triple relEC_diag (memoEI_whnfCore_spec henv
+          (fun _ => BodySpec.of_sim (whnfCoreBodyC_sim hμ (ssimC_all env henv f mode hμ) henv))
+          hs hw)
       whnf := fun hs hden hw => by
         obtain rfl := hden
         exact SimC.of_triple relEC_diag (memoEI_whnf_spec henv
           (BodySpec.of_sim (whnfBodyC_sim (ssimC_all env henv f mode hμ) henv)) hs hw)
-      infer := fun hs hden hw =>
-        memoEI_infer_sim henv
-          (fun hs' hden' hw' =>
-            inferBodyC_sim (ssimC_all env henv f mode hμ) henv hs' hden' hw')
-          hs hden hw
-      defeq := fun hs hdena hdenb hwa hwb =>
-        memoBI_defeq_sim henv
-          (fun hs' hdena' hdenb' hwa' hwb' =>
-            defeqBodyC_sim hμ (ssimC_all env henv f mode hμ) henv hs' hdena' hdenb'
-              hwa' hwb')
-          hs hdena hdenb hwa hwb
+      infer := fun hs hden hw => by
+        obtain rfl := hden
+        exact SimC.of_triple relEC_diag (memoEI_infer_spec henv
+          (BodySpec.of_sim (inferBodyC_sim (ssimC_all env henv f mode hμ) henv)) hs hw)
+      defeq := fun hs hdena hdenb hwa hwb => by
+        obtain rfl := hdena
+        obtain rfl := hdenb
+        exact SimC.of_triple_eq (memoBI_defeq_spec henv
+          (BodySpecB.of_sim (defeqBodyC_sim hμ (ssimC_all env henv f mode hμ) henv))
+          hs hwa hwb)
       -- the eager slot (task #353): the eager tower's memoized `defeq`
       -- under fresh memos; its fueled side has the eager tower's runs
       -- (`defeqE_def`)
@@ -564,19 +420,17 @@ private theorem ssimC_all (env : Env) (henv : EnvWF env) :
           (fun F => defeqE_def env F d a b) ?_
         show SimC mode env s₀ RelVC
           (withFreshMemos ((coreKnotI mode.toEager (mkFEnv env) (f + 1)).defeq d i j)) _
-        exact SimC.freshMemos hs (fun hs₁ =>
-          memoBI_defeq_sim henv
-            (fun hs' hdena' hdenb' hwa' hwb' =>
-              defeqBodyC_sim hE (ssimC_all env henv f mode.toEager hE) henv hs'
-                hdena' hdenb' hwa' hwb')
-            hs₁ hdena hdenb hwa hwb)
+        obtain rfl := hdena
+        obtain rfl := hdenb
+        exact SimC.freshMemos hs (fun hs₁ => SimC.of_triple_eq (memoBI_defeq_spec henv
+          (BodySpecB.of_sim (defeqBodyC_sim hE (ssimC_all env henv f mode.toEager hE) henv))
+          hs₁ hwa hwb))
       -- the io slot (task #172 B4): the io body at every mode, in both
       -- knots
-      inferIO := fun hs hden hw =>
-        memoEI_inferIO_sim henv
-          (fun hs' hden' hw' =>
-            inferBodyIOC_sim hμ (ssimC_all env henv f mode hμ) henv hs' hden' hw')
-          hs hden hw }
+      inferIO := fun hs hden hw => by
+        obtain rfl := hden
+        exact SimC.of_triple relEC_diag (memoEI_inferIO_spec henv
+          (BodySpec.of_sim (inferBodyIOC_sim hμ (ssimC_all env henv f mode hμ) henv)) hs hw) }
 
 /-- The cached knot simulates the fueled families at
 every fuel.  The wrapper steps tie each entry point at `f + 1` to the
