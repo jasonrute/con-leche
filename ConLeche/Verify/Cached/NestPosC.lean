@@ -50,7 +50,14 @@ open scoped Lean.Order
 
 variable {mode : CheckMode}
 
-/-! ## Vocabulary candidates (for Grind.lean) -/
+/-! ## Vocabulary candidates (for Grind.lean)
+
+`ListAll` (a list predicate over a NAMED element predicate, with its
+`nil`/`cons`/`append`/`reverse` equations), the pure side's `pure`-bind,
+the `forallE` scope equation and the binder open/close and spine scope
+rules, `AllWS.mono`, and the equality-relation triple forms
+`SimC.triple_eq`/`SimC.of_triple_eq` with the shared operations' triples
+(§ below). -/
 
 /-- Every element of the list satisfies `P` (a named predicate, so that
 no `∀` reaches `grind`; `P` is itself a named predicate, never a
@@ -71,10 +78,9 @@ no `∀` reaches `grind`; `P` is itself a named predicate, never a
   exact propext ⟨fun h => ⟨fun x hx => h x (Or.inl hx), fun x hx => h x (Or.inr hx)⟩,
     fun h x hx => hx.elim (h.1 x) (h.2 x)⟩
 
-/-- A throw answers nothing. -/
-@[conleche_grind =] theorem Runs.throw_eq {α : Type} (e : CheckError) (b : α) :
-    Runs (throw e : FueledM α) b = False :=
-  propext ⟨fun ⟨_, h⟩ => (nomatch h), False.elim⟩
+@[conleche_grind =] theorem ListAll.reverse_eq {α : Type} (P : α → Prop) (xs : List α) :
+    ListAll P xs.reverse = ListAll P xs := by
+  simp [ListAll]
 
 /-- A bind on a `pure` answers what its continuation answers. -/
 @[conleche_grind =] theorem Runs.pure_bind_eq {α β : Type} (a : α) (f : α → FueledM β)
@@ -82,10 +88,6 @@ no `∀` reaches `grind`; `P` is itself a named predicate, never a
 
 @[conleche_grind =] theorem wscoped_forallE_eq (d : Nat) (ty body : Expr) :
     Expr.WScoped d (.forallE ty body) = (Expr.WScoped d ty ∧ Expr.WScoped d body) := by
-  rw [Expr.WScoped]
-
-@[conleche_grind =] theorem wscoped_const_eq (d : Nat) (n : Name) (us : List Level) :
-    Expr.WScoped d (.const n us) = True := by
   rw [Expr.WScoped]
 
 /-- A constant applied to well-scoped arguments is well scoped. -/
@@ -718,6 +720,12 @@ theorem blockNestCtxS_spec (henv : EnvWF env) (p : BlockShape) (cvTas : List Con
       → holesOk_nestHoles, → allWS_hiAt] =>
     vcgen [blockNestCtx, unwrapOr] <;> finish (ematch := 8)
 
+/-- Closed constructor types, as the root frame's precondition. -/
+theorem ctorsClosed {ctorsAs : List (List (ConstantVal × Nat))}
+    (hct : ∀ ctorsA ∈ ctorsAs, ∀ c ∈ ctorsA, WScoped 0 c.1.type) :
+    ListAll (ListAll CtorClosed) ctorsAs :=
+  fun cs hcs c hc => not_hasFvar_of_fvarsBelow_zero (hct cs hcs c hc).fvarsBelow
+
 /-- **The install's positivity stage at the shared operations**: every
 successful cached run is a fueled one. -/
 theorem checkBlockPositivityS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
@@ -729,9 +737,7 @@ theorem checkBlockPositivityS_spec (hμ : mode.verifiedChecks = true) (henv : En
       checkBlockPositivity (sharedOpsC mode (mkFEnv env)) env env.find? p cvTas ctorsAs
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (checkBlockPositivity (fueledOpsM mode) env env.find? p cvTas ctorsAs) v; ⊤⦄ := by
-  have hcl : ListAll (ListAll CtorClosed) ctorsAs :=
-    fun cs hcs c hc => not_hasFvar_of_fvarsBelow_zero (hct cs hcs c hc).fvarsBelow
-  sym only [conleche_grind, checkBlockPositivity.eq_1, nestHoles_length] =>
+  sym only [conleche_grind, checkBlockPositivity.eq_1, nestHoles_length, ctorsClosed hct] =>
     vcgen [checkBlockPositivity, blockNestCtxS_spec (mode := mode) henv p.toBlockShape cvTas hT,
       nestUniformS_spec (mode := mode) (env := env) ctorsAs,
       nestRootS_spec hμ henv, checkAbsCtorSortsAllS_spec hμ henv] <;> finish

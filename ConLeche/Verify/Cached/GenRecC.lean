@@ -308,10 +308,6 @@ theorem classKeyOf_ws {nP : Nat} {params : List Expr} (hpl : params.length = nP)
     (fun i r hr => hp r (List.mem_of_getElem? hr))
     (fun i hi => by simp [hpl, hi]) y (Expr.fvarB_le hx'.2)
 
-@[conleche_grind =] theorem ListAll.reverse_eq {α : Type} (P : α → Prop) (xs : List α) :
-    ListAll P xs.reverse = ListAll P xs := by
-  simp [ListAll]
-
 /-- The class keys made checkable, one after another. -/
 theorem classKeysLoopS_spec {nP : Nat} {params : List Expr} (hpl : params.length = nP)
     (hp : AllWS nP params) :
