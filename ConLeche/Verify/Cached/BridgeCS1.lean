@@ -123,13 +123,6 @@ theorem checkReducePinS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF en
       @wscoped_of_hasFvar_false 0 (reduceDeclPin c)] =>
     vcgen [checkReducePin, defeqS_spec hμ henv] <;> finish
 
-theorem checkReducePinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env}
-    {c : Name} {value : Expr} (hvf : value.hasFvar = false) (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (checkReducePin (sharedOpsC mode (mkFEnv env)) env env2 c value)
-      (checkReducePin (fueledOpsM mode) env env2 c value) :=
-  SimC.of_tripleVC (checkReducePinS_spec hμ henv hvf hs)
-
 /-- `certifyNatEqs` at the cached shared operations. -/
 theorem certifyNatEqsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) :
     ∀ {eqs : List (Expr × Expr)},
@@ -147,15 +140,6 @@ theorem certifyNatEqsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env
       vcgen [certifyNatEqs, defeqS_spec hμ henv hs,
         certifyNatEqsS_spec hμ henv (fun e he => hsc e (List.mem_cons_of_mem _ he))] <;>
         finish
-
-theorem certifyNatEqsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
-    {eqs : List (Expr × Expr)}
-    (hsc : ∀ eq ∈ eqs, (eq.1.wscopedB 2 = true) ∧ (eq.2.wscopedB 2 = true))
-    {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (certifyNatEqs (sharedOpsC mode (mkFEnv env)) env eqs)
-      (certifyNatEqs (fueledOpsM mode) env eqs) :=
-  SimC.of_tripleVC (certifyNatEqsS_spec hμ henv hsc hs)
 
 /-- A certificate's applied proof is scoped at the certificate frame
 once its guard holds. -/
@@ -321,16 +305,6 @@ theorem checkDivModPinS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF en
   sym only [conleche_grind, checkDivModPin.eq_1] =>
     vcgen [checkDivModPin, checkDivModPinLoopS_spec hμ henv hc pins [] []] <;> finish
 
-theorem checkDivModPinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env}
-    {c : Name} (hc : c ∈ natDivModNames)
-    (hv'f : ∀ cv' v' h', env2.find? c = some (.defnInfo cv' v' h') →
-      v'.hasFvar = false)
-    (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (checkDivModPin (sharedOpsC mode (mkFEnv env)) pins env env2 c)
-      (checkDivModPin (fueledOpsM mode) pins env env2 c) :=
-  SimC.of_tripleVC (checkDivModPinS_spec hμ henv hc hv'f hs)
-
 /-- The basis-install fold (operation-free). -/
 theorem installBasisFoldS_spec :
     ∀ (cis : List ConstantInfo) (env' : Env) {s₀ : CState},
@@ -343,13 +317,6 @@ theorem installBasisFoldS_spec :
   | _ :: cis, _, _, _ => by
     sym only [conleche_grind, List.foldlM_cons, installBasisDecl.eq_1] =>
       vcgen [List.foldlM_cons, installBasisDecl, installBasisFoldS_spec cis] <;> finish
-
-theorem installBasisFoldS_sim (cis : List ConstantInfo) (env' : Env) {s₀ : CState}
-    (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (cis.foldlM installBasisDecl env' : CheckCM Env)
-      (cis.foldlM installBasisDecl env' : FueledM Env) :=
-  SimC.of_tripleVC (installBasisFoldS_spec cis env' hs)
 
 end Walks1
 
