@@ -382,16 +382,16 @@ private theorem ssimC_all (env : Env) (henv : EnvWF env) :
     { whnfCore := fun hs hden hw => by
         obtain rfl := hden
         exact SimC.of_triple relEC_diag (memoEI_whnfCore_spec henv
-          (fun _ => BodySpec.of_sim (whnfCoreBodyC_sim hμ (ssimC_all env henv f mode hμ) henv))
+          (whnfCoreBodyC_spec hμ (ssimC_all env henv f mode hμ) henv)
           hs hw)
       whnf := fun hs hden hw => by
         obtain rfl := hden
         exact SimC.of_triple relEC_diag (memoEI_whnf_spec henv
-          (BodySpec.of_sim (whnfBodyC_sim (ssimC_all env henv f mode hμ) henv)) hs hw)
+          (whnfBodyC_spec (ssimC_all env henv f mode hμ) henv) hs hw)
       infer := fun hs hden hw => by
         obtain rfl := hden
         exact SimC.of_triple relEC_diag (memoEI_infer_spec henv
-          (BodySpec.of_sim (inferBodyC_sim (ssimC_all env henv f mode hμ) henv)) hs hw)
+          (inferBodyC_spec (ssimC_all env henv f mode hμ) henv) hs hw)
       defeq := fun hs hdena hdenb hwa hwb => by
         obtain rfl := hdena
         obtain rfl := hdenb
@@ -418,7 +418,7 @@ private theorem ssimC_all (env : Env) (henv : EnvWF env) :
       inferIO := fun hs hden hw => by
         obtain rfl := hden
         exact SimC.of_triple relEC_diag (memoEI_inferIO_spec henv
-          (BodySpec.of_sim (inferBodyIOC_sim hμ (ssimC_all env henv f mode hμ) henv)) hs hw) }
+          (inferBodyIOC_spec (ssimC_all env henv f mode hμ) henv) hs hw) }
 
 /-- The cached knot simulates the fueled families at
 every fuel.  The wrapper steps tie each entry point at `f + 1` to the
