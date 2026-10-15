@@ -20,3 +20,8 @@ path = "../.."
 
 [[lean_lib]]
 name = "ConLecheBridge"
+# The bridge's files stay classic (no `module` header; CLAUDE.md), while
+# Mathlib declares itself designed for the module system, so Lake warns at
+# every classic import of it.  This is Lake's documented opt-out for an
+# importer (task #357; the bridge CI gate is warning-free).
+allowNonModules = true

@@ -106125,3 +106125,21 @@ generator reproduces the new prelude byte-for-byte, three of three
 pinners reproduced), fragment, links, quote, shake, challenge,
 selfcheck (46,980 declarations), arena 90/92, e2e 487/487, the
 trusted and `--jobs` sweeps.
+
+## TASK #357 — master's CI red: the bridge's warnings, a fixture's timeout (2026-10-15, agent/357-ci)
+
+Two CI jobs failed on master; neither is a checker or proof change.
+
+- **Bridge** (failing since #355). Its gate is warning-free, so
+  #355's three Lake advisories ("imports … from package `mathlib`,
+  which is designed for use with the module system") failed the job;
+  #355 was wrong to leave them. The bridge's `ConLecheBridge` library now
+  sets `allowNonModules = true`, Lake's documented opt-out for an
+  importer that is classic on purpose. The bridge files stay classic.
+- **CI, `tests/arena.sh`** (failing since #354). The e2e fixture
+  `stack_fuel_offset.ndjson` expects 134, the native stack overflow
+  after 3000000 knot levels. It reaches the overflow after about 30 s of
+  CPU, and here about 57 s of wall time. That is at the default 60 s
+  timeout, and CI's slower runner timed out first (124). The fixture
+  gets a per-fixture timeout of 300 s, with its reason beside the
+  other per-fixture timeouts. The expected verdict is unchanged.
