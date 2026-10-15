@@ -310,21 +310,6 @@ variable {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
 on the literal accelerations share one matcher, so as lambdas `grind`
 would compare them). -/
 
-/-- The literal acceleration behind its fold gate (an `ite` is not a
-pattern; the gate's two equations are). -/
-@[expose] def natIfP (g : Bool) (e : Expr) : m (Option Expr) :=
-  if g then reduceNat r env depth e else pure none
-
-theorem natIfP_true {g : Bool} (h : g = true) (e : Expr) :
-    natIfP r env depth g e = reduceNat r env depth e := by
-  simp [natIfP, h]
-grind_pattern [conleche_grind] natIfP_true => natIfP r env depth g e
-
-theorem natIfP_false {g : Bool} (h : g = false) (e : Expr) :
-    natIfP r env depth g e = pure none := by
-  simp [natIfP, h]
-grind_pattern [conleche_grind] natIfP_false => natIfP r env depth g e
-
 /-- Past the step. -/
 @[expose] def ldrStepP (mode : CheckMode) (n : Nat) (a b : Expr) : DeltaStep → m LazyRes
   | .cont a' b' => lazyDeltaReduction mode r env depth n a' b'
@@ -341,15 +326,15 @@ grind_pattern [conleche_grind] natIfP_false => natIfP r env depth g e
 @[expose] def ldrNatAP (mode : CheckMode) (n : Nat) (a b : Expr) : Option Expr → m LazyRes
   | some a₂ => r.defeq depth a₂ b >>= fun v => pure (.verdict v)
   | none =>
-    natIfP r env depth (mode.eager || (!a.hasFvar && !b.hasFvar)) b >>=
-      ldrNatBP r env depth mode n a b
+    (if mode.eager || (!a.hasFvar && !b.hasFvar) then reduceNat r env depth b
+      else pure none) >>= ldrNatBP r env depth mode n a b
 
 /-- Past the offset check. -/
 @[expose] def ldrOffP (mode : CheckMode) (n : Nat) (a b : Expr) : Option Bool → m LazyRes
   | some v => pure (.verdict v)
   | none =>
-    natIfP r env depth (mode.eager || (!a.hasFvar && !b.hasFvar)) a >>=
-      ldrNatAP r env depth mode n a b
+    (if mode.eager || (!a.hasFvar && !b.hasFvar) then reduceNat r env depth a
+      else pure none) >>= ldrNatAP r env depth mode n a b
 
 /-- The pure loop's step with its continuations named. -/
 theorem lazyDeltaReduction_succ (mode : CheckMode) (n : Nat) (a b : Expr) :
