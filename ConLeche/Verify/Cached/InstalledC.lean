@@ -2,17 +2,13 @@ module
 
 import ConLeche.Verify.Cached.BridgeC
 public import ConLeche.Cached.Installed
-public import ConLeche.Verify.Cached.SimC
 public import ConLeche.Verify.Cached.Grind
 public import ConLeche.Verify.BridgeDecl
 public import ConLeche.Verify.EnvBound
 import ConLeche.Verify.Cached.ParInstall
 import ConLeche.Verify.Cached.KnotCongr
-import ConLeche.Verify.CheckerSplit
 
 public section
-
-set_option experimental.vcgen true
 
 /-!
 # Phase A's steps simulate the pure install and check halves
@@ -24,10 +20,10 @@ its datum, and every record was checked against the prefix view
 `fe.restrictTo vis` from a fresh memo state (`GroupChecked`).  This
 module holds the model-free half of the walk over that run:
 
-* `installHeaderC_run` / `installValueGuardsC_run` / `installGuardsC_run` — phase
-  A's install is the pure install halves
+* `installHeaderC_spec` / `installValueGuardsC_spec` / `installGuardsC_spec` —
+  phase A's install is the pure install halves
   (`installHeader`, `installValueGuards`, `ConLeche/Kernel/CheckerSplit.lean`).
-* `checkPending_run` — the check at the prefix view simulates the pure
+* `checkPending_spec` — the check at the prefix view simulates the pure
   check half `checkValueGroup` at the truncated environment.  The view
   and `mkFEnv` of the truncated environment have the same `find?`
   (`mkFEnv_find?_visibleBelow`, under the name uniqueness every driver
@@ -35,11 +31,17 @@ module holds the model-free half of the walk over that run:
   SAME core, and the simulation stated at `mkFEnv env` covers the check
   at the view.
 
+The walks are `Std.WP` triples proved by `vcgen` and `grind`
+(`ConLeche/Verify/Cached/Grind.lean`); the `…_run` forms the model's walk
+consumes read a triple on one run, at a fuel (`…_datF`).
+
 The walk itself — the model carried along the run, and the letters on
 the fully checked environment — is `ConLeche/Model/InstallRun.lean`:
 it needs the model's well-formedness at every step, so it stands above
 the model lane (`tests/layering.sh`).
 -/
+
+set_option experimental.vcgen true
 
 namespace ConLeche.Cached
 
@@ -67,20 +69,20 @@ theorem flushC_spec {env : Env} {s₀ : CState} (hres : CSOKF s₀) :
 
 theorem installHeader_datF (env : Env) (cv : ConstantVal) (F : Nat) :
     (installHeader (m := FueledM) env cv).val F = installHeader (m := CheckM) env cv := by
-  unfold installHeader
-  datF_tac
+  simp only [installHeader, FueledM.atF_bind, FueledM.atF_ite, FueledM.atF_pure,
+    FueledM.atF_throw]
 
 theorem installValueGuards_datF (env : Env) (cv : ConstantVal) (value : Expr) (F : Nat) :
     (installValueGuards (m := FueledM) env cv value).val F
       = installValueGuards (m := CheckM) env cv value := by
-  unfold installValueGuards
-  datF_tac
+  simp only [installValueGuards, FueledM.atF_bind, FueledM.atF_ite, FueledM.atF_pure,
+    FueledM.atF_throw]
 
 theorem checkValueGroup_datF (env : Env) (g : ValueGroup) (F : Nat) :
     (checkValueGroup (fueledOpsM μ) env g).val F = checkValueGroup (fueledOps μ F) env g := by
-  unfold checkValueGroup
-  datF_tac
-  all_goals exact installValueGuards_datF env g.cv g.jv F
+  simp only [checkValueGroup, FueledM.atF_bind, FueledM.atF_ite, FueledM.atF_pure,
+    FueledM.atF_throw, installValueGuards_datF, liftFueled_atF, fueledOpsM_inferType_atF,
+    fueledOpsM_ensureSort_atF, fueledOpsM_isDefEq_atF]
 
 /-! ## The two-phase driver: phase A's install halves -/
 
