@@ -207,14 +207,6 @@ theorem iotaRecC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
       OptWS d o; ⊤⦄ :=
   (iotaRecC_sim hμ ih henv hs (RelC.refl i) hw).triple relOC_inv
 
-/-- `instListM_eff` as a triple. -/
-theorem instListM_spec {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr) (vs : List Expr)
-    (d : Nat) :
-    ⦃fun s => s = s₀⦄ instListM e vs d
-    ⦃fun r s' => CSOK mode env s' ∧ r = e.instantiateList vs d; ⊤⦄ :=
-  (instListM_eff hs (RelC.refl e) (show RelCL vs vs from rfl) :
-    CEff mode env s₀ (fun i => i = e.instantiateList vs d) _).triple
-
 /-- The peel loop simulates its pure mirror. -/
 theorem betaPeelC_spec (r : CoreFnsI) {d : Nat} :
     ∀ {args : List Expr} {t : Expr} {acc : List Expr} {s₀ : CState}, CSOK mode env s₀ →
