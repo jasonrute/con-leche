@@ -138,14 +138,6 @@ theorem checkSumTeleS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     vcgen [checkSumTele, whnfTelescopeS_spec hμ henv, checkConstantValS_spec hμ henv] <;>
       finish
 
-theorem checkSumTeleS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
-    {cv : ConstantVal} {n : Nat} {cvTa₀ : ConstantVal}
-    (hs : CSOK mode env s₀) (hTw : WScoped 0 cvTa₀.type) :
-    SimC mode env s₀ (fun v w => v = w ∧ WScoped 0 (Prod.fst v).type)
-      (checkSumTele (sharedOpsC mode (mkFEnv env)) env cv n cvTa₀)
-      (checkSumTele (fueledOpsM mode) env cv n cvTa₀) :=
-  SimC.of_triple (fun _ h => ⟨rfl, h⟩) (checkSumTeleS_spec hμ henv hs hTw)
-
 /-- Stage 2 (one constructor, the constructor and its field count
 explicit) at the shared operations. -/
 theorem checkSumCtorS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env₀ : Env}
