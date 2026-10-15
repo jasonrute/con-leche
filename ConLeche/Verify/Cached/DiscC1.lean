@@ -231,19 +231,31 @@ theorem defEqListC_spec (ih : SSimC mode env f) {d : Nat} :
       AllWS d args → AllWS d brgs →
       ⦃fun s => s = s₀⦄ defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d args brgs
       ⦃fun v s' => CSOK mode env s' ∧
-          Runs (defEqList (fueledFns mode env) env d args brgs) v; ⊤⦄
-  | [], [], _, _, _, _ => by
-    sym only [conleche_grind, defEqList.eq_1] =>
-      vcgen [defEqListI] <;> finish
-  | _ :: as, _ :: _, _, _, _, _ => by
-    sym only [conleche_grind, defEqList.eq_2] =>
-      vcgen [defEqListI, ih.defeq_spec, defEqListC_spec ih (args := as)] <;> finish
-  | [], _ :: _, _, _, _, _ => by
-    sym only [conleche_grind, defEqList_nil_cons] =>
-      vcgen [defEqListI_nil_cons] <;> finish
-  | _ :: _, [], _, _, _, _ => by
-    sym only [conleche_grind, defEqList_cons_nil] =>
-      vcgen [defEqListI_cons_nil] <;> finish
+          Runs (defEqList (fueledFns mode env) env d args brgs) v; ⊤⦄ := by
+  intro args
+  induction args with
+  | nil =>
+    intro brgs
+    cases brgs with
+    | nil =>
+      intro _ _ _ _
+      sym only [conleche_grind, defEqList.eq_1] =>
+        vcgen [defEqListI] <;> finish
+    | cons _ _ =>
+      intro _ _ _ _
+      sym only [conleche_grind, defEqList_nil_cons] =>
+        vcgen [defEqListI_nil_cons] <;> finish
+  | cons a as ihA =>
+    intro brgs
+    cases brgs with
+    | nil =>
+      intro _ _ _ _
+      sym only [conleche_grind, defEqList_cons_nil] =>
+        vcgen [defEqListI_cons_nil] <;> finish
+    | cons b bs =>
+      intro _ _ _ _
+      sym only [conleche_grind, defEqList.eq_2] =>
+        vcgen [defEqListI, ih.defeq_spec, ihA] <;> finish
 
 /-- `iotaCertsFullIAux`'s step as one unconditional equation (the
 equation compiler's fall-through arm is conditional). -/
