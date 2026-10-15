@@ -396,7 +396,7 @@ private theorem ssimC_all (env : Env) (henv : EnvWF env) :
         obtain rfl := hdena
         obtain rfl := hdenb
         exact SimC.of_triple_eq (memoBI_defeq_spec henv
-          (BodySpecB.of_sim (defeqBodyC_sim hμ (ssimC_all env henv f mode hμ) henv))
+          (fun hs hwa hwb => defeqBodyC_spec (ssimC_all env henv f mode hμ) henv hs hwa hwb)
           hs hwa hwb)
       -- the eager slot (task #353): the eager tower's memoized `defeq`
       -- under fresh memos; its fueled side has the eager tower's runs
@@ -411,7 +411,8 @@ private theorem ssimC_all (env : Env) (henv : EnvWF env) :
         obtain rfl := hdena
         obtain rfl := hdenb
         exact SimC.freshMemos hs (fun hs₁ => SimC.of_triple_eq (memoBI_defeq_spec henv
-          (BodySpecB.of_sim (defeqBodyC_sim hE (ssimC_all env henv f mode.toEager hE) henv))
+          (fun hs hwa hwb =>
+            defeqBodyC_spec (ssimC_all env henv f mode.toEager hE) henv hs hwa hwb)
           hs₁ hwa hwb))
       -- the io slot (task #172 B4): the io body at every mode, in both
       -- knots
