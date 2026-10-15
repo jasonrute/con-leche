@@ -143,15 +143,6 @@ theorem reduceProjCoreC_spec (ih : SSimC mode env f) {d : Nat} {sn : Name} {ip :
   sym only [conleche_grind, reduceProjCore, mkFEnv_findProj?, projCertAtF_mkFEnv] =>
     vcgen [reduceProjCoreI, projLitToCtorC_spec ih] <;> finish
 
-/-- `reduceProjCoreC_spec` as a simulation, for the unconverted callers. -/
-theorem reduceProjCoreC_sim (ih : SSimC mode env f)
-    {d : Nat} {sn : Name} {ip : Nat} {i : Expr} {ex : Expr} {s₀ : CState}
-    (hs : CSOK mode env s₀) (hden : RelC i ex) (hw : Expr.WScoped d ex) :
-    SimC mode env s₀ (RelOC d)
-      (reduceProjCoreI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d sn ip i)
-      (reduceProjCore mode (fueledFns mode env) env d sn ip ex) := by
-  subst hden; exact SimC.of_triple relOC_diag (reduceProjCoreC_spec ih hs hw)
-
 /-! ### The argument loop, by `vcgen` and `grind`
 
 Each walk below is `sym only [conleche_grind, …] => vcgen […] <;> finish`
