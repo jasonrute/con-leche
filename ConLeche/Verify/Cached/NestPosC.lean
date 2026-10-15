@@ -8,7 +8,6 @@ import ConLeche.Verify.Denote.IndFrame
 import ConLeche.Verify.Cached.SimCS
 import ConLeche.Verify.Cached.Erase
 import ConLeche.Verify.InstLevels
-import ConLeche.Verify.InferLemmas
 public import ConLeche.Verify.Inductives.NestScope
 public section
 
