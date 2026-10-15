@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.Verify.Cached.BridgeCS2
+public import ConLeche.Verify.Cached.BridgeCS1
 import ConLeche.Verify.Cached.NestPosC
 
 public section
