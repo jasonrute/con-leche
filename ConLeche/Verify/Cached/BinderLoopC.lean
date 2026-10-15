@@ -1,7 +1,6 @@
 module
 
 public import ConLeche.Verify.Cached.DiscC3
-public import ConLeche.Verify.Cached.Grind
 public import ConLeche.Verify.BinderLoop
 
 public section

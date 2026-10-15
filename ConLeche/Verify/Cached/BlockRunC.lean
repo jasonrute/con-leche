@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Verify.Cached.BridgeCSDecl
+import ConLeche.Verify.Cached.NestPosC
 import ConLeche.Verify.Inductives.BlockWF
 import ConLeche.Verify.Inductives.BlockRecRun
 import ConLeche.Verify.Inductives.BlockInv
@@ -223,13 +224,6 @@ theorem checkBlockIndsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF en
     vcgen [checkBlockInds, checkBlockTeleS_spec hμ henv hs, checkBlockTelesS_spec hμ henv,
       checkBlockAgreeS_spec hμ henv] <;> finish
 
-theorem checkBlockIndsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p : BlockParts}
-    {isRec : Bool} {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun v w => v = w ∧ ∀ cv ∈ v.2.1, WScoped 0 cv.type)
-      (checkBlockInds (sharedOpsC mode (mkFEnv env)) env p isRec)
-      (checkBlockInds (fueledOpsM mode) env p isRec) :=
-  SimC.of_triple (fun _ h => ⟨rfl, h⟩) (checkBlockIndsS_spec hμ henv hs)
-
 theorem checkBlockCtorsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {env₀ : Env} {p : BlockShape} :
     ∀ {l : List (MemberShape × ConstantVal)} {s₀ : CState},
@@ -245,14 +239,6 @@ theorem checkBlockCtorsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF e
           (show cvTa.type.hasFvar = false from hl (ms, cvTa) List.mem_cons_self),
         checkBlockCtorsS_spec hμ henv (l := rest)
           (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
-
-theorem checkBlockCtorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env₀ : Env}
-    {p : BlockShape} {l : List (MemberShape × ConstantVal)} {s₀ : CState}
-    (hl : ∀ x ∈ l, x.2.type.hasFvar = false) (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (checkBlockCtors (sharedOpsC mode (mkFEnv env)) env₀ env p l)
-      (checkBlockCtors (fueledOpsM mode) env₀ env p l) :=
-  SimC.of_tripleVC (checkBlockCtorsS_spec hμ henv hl hs)
 
 /-- An opened telescope's variables past a prefix carry types scoped at
 their own frame. -/
@@ -276,19 +262,11 @@ theorem checkBlockIdxSortsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvW
   | [], _, _, _ => by
     sym only [conleche_grind, checkBlockIdxSorts.eq_1] => vcgen [checkBlockIdxSorts] <;> finish
   | (ms, cvTa) :: rest, _, hl, _ => by
-    sym only [conleche_grind, checkBlockIdxSorts.eq_2, unwrapOr,
+    sym only [conleche_grind, checkBlockIdxSorts.eq_2, unwrapOr, FvsWS,
         show WScoped 0 cvTa.type from hl (ms, cvTa) List.mem_cons_self] =>
       vcgen [checkBlockIdxSorts, unwrapOr, checkStructFieldSortsIS_spec hμ henv,
         checkBlockIdxSortsS_spec hμ henv (l := rest)
           (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
-
-theorem checkBlockIdxSortsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
-    {p : BlockShape} {l : List (MemberShape × ConstantVal)} {s₀ : CState}
-    (hl : ∀ x ∈ l, WScoped 0 x.2.type) (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (checkBlockIdxSorts (sharedOpsC mode (mkFEnv env)) env p l)
-      (checkBlockIdxSorts (fueledOpsM mode) env p l) :=
-  SimC.of_tripleVC (checkBlockIdxSortsS_spec hμ henv hl hs)
 
 end Sims
 

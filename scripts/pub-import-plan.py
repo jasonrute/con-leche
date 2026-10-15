@@ -766,6 +766,13 @@ FALLBACK = {
     ('ConLeche.Verify.Inductives.TargetAuxFire', 'ConLeche.Verify.Inductives.NestedRead'),
     ('ConLeche.Verify.Cached.TargetRecC', 'ConLeche.Verify.Inductives.NestedRead'),
     ('ConLeche.Verify.Cached.GenRecC', 'ConLeche.Verify.Inductives.TargetAuxFire'),
+    # task #356 (L5): `NestPosC`'s own public statements name `AllWS`/`Runs`/
+    # `CSOK` (`Grind`'s re-export); the model misses it because the exported
+    # `._f` auxiliaries of its recursive triples name lemmas of `SimCS`,
+    # `DiscC1` and `BinderLoopC` (privately imported), so its publicness
+    # token is violated at baseline and masks this edge.  MEASURED by
+    # demoting it alone (unknown identifier `AllWS`, `NestPosC.lean:84`).
+    ('ConLeche.Verify.Cached.NestPosC', 'ConLeche.Verify.Cached.Grind'),
 }
 
 # `whitepaper/` (task #324) is its own lake library — the paper's Lean

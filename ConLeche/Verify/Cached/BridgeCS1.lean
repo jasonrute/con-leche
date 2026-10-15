@@ -47,33 +47,6 @@ section Vocabulary
 
 variable {env : Env}
 
-theorem inferS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {e : Expr}
-    {s₀ : CState} (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
-    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).inferType env d e
-    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).inferType env d e) v ∧
-      Expr.WScoped d v; ⊤⦄ :=
-  (opE_infer_sim hμ henv hs hw).triple (fun _ _ h => h)
-
-theorem whnfS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {e : Expr}
-    {s₀ : CState} (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
-    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).whnf env d e
-    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).whnf env d e) v ∧
-      Expr.WScoped d v; ⊤⦄ :=
-  (opE_whnf_sim hμ henv hs hw).triple (fun _ _ h => h)
-
-theorem defeqS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat}
-    {a b : Expr} {s₀ : CState} (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a)
-    (hwb : Expr.WScoped d b) :
-    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).isDefEq env d a b
-    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).isDefEq env d a b) v; ⊤⦄ :=
-  (opB_sim hμ henv hs hwa hwb).tripleVC
-
-theorem sortS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {e : Expr}
-    {s₀ : CState} (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
-    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).ensureSort env d e
-    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).ensureSort env d e) v; ⊤⦄ :=
-  (opS_sim hμ henv hs hw).tripleVC
-
 /-- A closed term is scoped at every depth (a fact the walks state at
 the depths they need: as a pattern on every `WScoped` term it costs
 every walk its instances). -/
@@ -96,13 +69,6 @@ theorem checkConstantValS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF 
       Expr.WScoped 0 cv.type; ⊤⦄ := by
   sym only [conleche_grind, checkConstantVal.eq_1, @wscoped_of_hasFvar_false 0 cv.type] =>
     vcgen [checkConstantVal, inferS_spec hμ henv hs, sortS_spec hμ henv] <;> finish
-
-theorem checkConstantValS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
-    (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun _ _ => Expr.WScoped 0 cv.type)
-      (checkConstantVal (sharedOpsC mode (mkFEnv env)) env cv)
-      (checkConstantVal (fueledOpsM mode) env cv) :=
-  SimC.of_triple (fun _ h => h) (checkConstantValS_spec hμ henv hs)
 
 /-- The identity certificate's variable is scoped at its frame. -/
 theorem wscoped_reduceCertVar (c : Name) : Expr.WScoped 1 (reduceCertVar c) := by
