@@ -734,3 +734,4 @@ ConLeche/Model/Inductives/TargetNodeCalls.lean	import ConLeche.Model.IndPointKit
 ConLeche/Verify/Cached/GrindAttr.lean	public meta import Lean.Meta.Tactic.Grind.Attr	# REVERTED BY THE BUILD: register_grind_attr expands to a public meta initialize of a Lean.Meta.Grind.Extension (unknown constant without it)
 ConLeche/Verify/Cached/Grind.lean	public import ConLeche.Verify.Cached.GrindAttr	# REVERTED BY THE BUILD: the @[conleche_grind] attribute syntax is declared there (no constant records the use)
 ConLeche/Verify/Cached/Grind.lean	public import Std.WP	# REVERTED BY THE BUILD: open Std.WP and its scoped triple notation (unknown namespace without it)
+ConLeche/Verify/Cached/SimCEff.lean	public import Std.WP	# REVERTED BY THE BUILD: the public _spec statements are Std.WP triples (unknown constant Std.WP.Triple / no WP instance for CheckCM without it)
