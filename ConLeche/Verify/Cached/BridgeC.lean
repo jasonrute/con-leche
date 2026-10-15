@@ -45,7 +45,7 @@ section WalksP
 
 variable {env : Env} {s₀ : CState}
 
-/-! ## Vocabulary candidates (for Grind.lean)
+/-! ## The knot's entry points at the checker's fuel
 
 The knot's entry points at the checker's fuel, with the posts at the
 fueled operations (`fueledOpsM`) the generic checker functions call:

@@ -37,18 +37,6 @@ open scoped Lean.Order
 variable {mode : CheckMode}
 variable {pins : List NatOpPinSet}
 
-/-! ## Vocabulary candidates (for Grind.lean)
-
-The shared operations' triples, stated at the `sharedOpsC` projections a
-generic checker function calls (a triple about `opB …` is not found for
-`(sharedOpsC …).isDefEq …`; `SimC.tripleVC` is `BinderLoopC.lean`'s). -/
-
-section Vocabulary
-
-variable {env : Env}
-
-end Vocabulary
-
 section Walks1
 
 variable {env : Env} {s₀ : CState}

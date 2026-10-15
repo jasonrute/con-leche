@@ -37,52 +37,40 @@ variable {mode : CheckMode}
 
 variable {env : Env}
 
-/-! ## The pure syntactic wrappers -/
+/-! ## The pure syntactic wrappers
+
+Each a `pure` of the cached operation, so each triple is `CEff.pure` at
+the operation's commutation spec (`OpsC.lean`), stated over the
+program's own arguments. -/
 
 section Effects
 
 variable {s₀ : CState}
 
-theorem inst1M_eff (hs : CSOK mode env s₀) {e v : Expr} {d : Nat}
-    {a w : Expr} (he : RelC e a) (hv : RelC v w) :
-    CEff mode env s₀ (fun i => RelC i (a.instantiate1 w d)) (inst1M e v d) := by
-  refine CEff.pure hs ?_
-  show _ = _
-  rw [instantiate1C_spec (d := d), he.erase, hv.erase]
+theorem inst1M_spec (hs : CSOK mode env s₀) (e v : Expr) (d : Nat) :
+    ⦃fun s => s = s₀⦄ inst1M e v d
+    ⦃fun r s' => CSOK mode env s' ∧ r = e.instantiate1 v d; ⊤⦄ :=
+  CEff.triple (CEff.pure hs (by show _ = _; rw [instantiate1C_spec (d := d)]))
 
-theorem instListRevM_eff (hs : CSOK mode env s₀) {e : Expr}
-    {vs : Array Expr} {d : Nat} {a : Expr} {ws : List Expr}
-    (he : RelC e a) (hvs : RelCL vs.toList.reverse ws) :
-    CEff mode env s₀ (fun i => RelC i (a.instantiateList ws d))
-      (instListRevM e vs d) := by
-  refine CEff.pure hs ?_
-  show _ = _
-  rw [instantiateRev_spec (d := d), he.erase, hvs.map]
+theorem instListRevM_spec (hs : CSOK mode env s₀) (e : Expr) (vs : Array Expr) (d : Nat) :
+    ⦃fun s => s = s₀⦄ instListRevM e vs d
+    ⦃fun r s' => CSOK mode env s' ∧ r = e.instantiateList vs.toList.reverse d; ⊤⦄ :=
+  CEff.triple (CEff.pure hs (by show _ = _; rw [instantiateRev_spec (d := d)]))
 
-theorem abstractRangeM_eff (hs : CSOK mode env s₀) {e : Expr} {d k : Nat}
-    {a : Expr} (he : RelC e a) :
-    CEff mode env s₀ (fun i => RelC i (a.abstractRange d k))
-      (abstractRangeM e d k) := by
-  refine CEff.pure hs ?_
-  show _ = _
-  rw [abstractRangeC_spec (d := d) (k := k) (c := 0), he.erase]
+theorem abstractRangeM_spec (hs : CSOK mode env s₀) (e : Expr) (d k : Nat) :
+    ⦃fun s => s = s₀⦄ abstractRangeM e d k
+    ⦃fun r s' => CSOK mode env s' ∧ r = e.abstractRange d k; ⊤⦄ :=
+  CEff.triple (CEff.pure hs (by show _ = _; rw [abstractRangeC_spec (d := d) (k := k) (c := 0)]))
 
-theorem piResidualM_eff (hs : CSOK mode env s₀) {e : Expr}
-    {args : List Expr} {x : Expr} {xs : List Expr}
-    (he : RelC e x) (hargs : RelCL args xs) :
-    CEff mode env s₀ (fun o => OptEr o (ConLeche.piResidual x xs))
-      (piResidualM e args) := by
-  refine CEff.pure hs ?_
-  have h := piResidual_spec (e := e) (args := args)
-  rw [← he.erase, ← hargs.map]
-  exact h
-
-/-! ## Pure reads
-
-The names and levels the core fabricates are ordinary values: the
-cached checker's name/level "interning" and "readback" wrappers were
-identities and went at task #198, so what the walks peel is a `pure`
-and what they consume is its value equation. -/
+theorem piResidualM_spec (hs : CSOK mode env s₀) (e : Expr) (args : List Expr) :
+    ⦃fun s => s = s₀⦄ piResidualM e args
+    ⦃fun o s' => CSOK mode env s' ∧ o = piResidual e args; ⊤⦄ := by
+  refine triple_iff_run.mpr fun o s' hr => ?_
+  obtain ⟨hs', h⟩ := (CEff.pure hs (piResidual_spec (e := e) (args := args)) :
+    CEff mode env s₀ (fun o => OptEr o (piResidual e args)) (piResidualM e args)) o s' hr
+  refine ⟨hs', ?_⟩
+  revert h
+  cases o <;> cases piResidual e args <;> simp [OptEr]
 
 end Effects
 
@@ -372,24 +360,23 @@ theorem CSOK.constTy_insert {s : CState} {n : Name} {us : List Level} {ci : Cons
         RelC i (ci.toConstantVal.type.instantiateLevelParams ci.toConstantVal.levelParams k.2))
       (i := (n, us)) (fun k v => hs.constTy k.1 k.2 v) ⟨ci, hfind, RelC.refl _⟩ (n', us') }
 
-/-- `constTyAtM` under the index of `env`: the level-instantiated stored
-type. -/
-theorem constTyAtM_spec (hs : CSOK mode env s₀) {nI n : Name}
-    {us : List Level} {ci : ConstantInfo} (hfind : env.find? n = some ci) :
-    ⦃fun s => s = s₀⦄ constTyAtM (mkFEnv env) nI n us
-    ⦃fun i s' => CSOK mode env s' ∧
-      i = ci.toConstantVal.type.instantiateLevelParams ci.toConstantVal.levelParams us; ⊤⦄ := by
-  sym only [conleche_grind,
-      CSOK.constTy_hit (mode := mode) hfind, CSOK.constTy_insert hfind] =>
-    vcgen [constTyAtM, instLevelParamsM] <;> finish
+/-- The stored type of a constant at levels `us` (a dummy where there is
+no constant). -/
+@[expose] def constTyOf (env : Env) (n : Name) (us : List Level) : Expr :=
+  match env.find? n with
+  | some ci => ci.toConstantVal.type.instantiateLevelParams ci.toConstantVal.levelParams us
+  | none => .bvar 0
 
-theorem constTyAtM_eff (hs : CSOK mode env s₀) {nI n : Name}
-    {us : List Level} {ci : ConstantInfo} (hfind : env.find? n = some ci) :
-    CEff mode env s₀ (fun i => RelC i
-        (ci.toConstantVal.type.instantiateLevelParams
-          ci.toConstantVal.levelParams us))
-      (constTyAtM (mkFEnv env) nI n us) :=
-  triple_iff_run.mp (constTyAtM_spec hs hfind)
+/-- `constTyAtM` under the index of `env`, at a stored constant: the
+level-instantiated stored type. -/
+theorem constTyAtM_spec (hs : CSOK mode env s₀) (nI n : Name) (us : List Level)
+    (hfind : (env.find? n).isSome = true) :
+    ⦃fun s => s = s₀⦄ constTyAtM (mkFEnv env) nI n us
+    ⦃fun t s' => CSOK mode env s' ∧ t = constTyOf env n us; ⊤⦄ := by
+  obtain ⟨ci, hci⟩ := Option.isSome_iff_exists.mp hfind
+  sym only [conleche_grind, constTyOf, CSOK.constTy_hit (mode := mode) hci,
+      CSOK.constTy_insert hci] =>
+    vcgen [constTyAtM, instLevelParamsM] <;> finish
 
 theorem CSOK.constVal_hit {s : CState} {n : Name} {us : List Level}
     {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
@@ -414,7 +401,7 @@ theorem CSOK.constVal_insert {s : CState} {n : Name} {us : List Level}
 
 /-- `constValAtM` under the index of `env` (the head is a stored
 definition). -/
-theorem constValAtM_spec (hs : CSOK mode env s₀) {nI n : Name}
+theorem constValAtM_spec_of_find (hs : CSOK mode env s₀) {nI n : Name}
     {us : List Level} {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
     (hfind : env.find? n = some (.defnInfo cv v hint)) :
     ⦃fun s => s = s₀⦄ constValAtM (mkFEnv env) nI n us
@@ -423,13 +410,39 @@ theorem constValAtM_spec (hs : CSOK mode env s₀) {nI n : Name}
       CSOK.constVal_hit (mode := mode) hfind, CSOK.constVal_insert hfind] =>
     vcgen [constValAtM, instLevelParamsM] <;> finish
 
-theorem constValAtM_eff (hs : CSOK mode env s₀) {nI n : Name}
-    {us : List Level} {cv : ConstantVal} {v : Expr} {hint : ReducibilityHint}
-    (hfind : env.find? n = some (.defnInfo cv v hint)) :
-    CEff mode env s₀
-      (fun i => RelC i (v.instantiateLevelParams cv.levelParams us))
-      (constValAtM (mkFEnv env) nI n us) :=
-  triple_iff_run.mp (constValAtM_spec hs hfind)
+/-- The level-instantiated value of the stored definition `n`, where
+there is one: what `constValAtM` answers. -/
+@[expose] def constValAt? (env : Env) (n : Name) (us : List Level) : Option Expr :=
+  match env.find? n with
+  | some (.defnInfo cv v _) => some (v.instantiateLevelParams cv.levelParams us)
+  | _ => none
+
+/-- `constValAtM` answers the stored definition's instantiated value
+(a run succeeds only at a stored definition: a hit is backed by the
+invariant, a miss elsewhere throws). -/
+theorem constValAtM_spec (hs : CSOK mode env s₀) (nI n : Name) (us : List Level) :
+    ⦃fun s => s = s₀⦄ constValAtM (mkFEnv env) nI n us
+    ⦃fun r s' => CSOK mode env s' ∧ constValAt? env n us = some r; ⊤⦄ := by
+  refine triple_iff_run.mpr fun r s' hr => ?_
+  have hdef : ∃ cv v h, env.find? n = some (.defnInfo cv v h) := by
+    cases hl : s₀.constValAt[(n, us)]? with
+    | some i =>
+      obtain ⟨cv, v, h, hf, -⟩ := hs.constVal n us i hl
+      exact ⟨cv, v, h, hf⟩
+    | none =>
+      -- a miss: off a stored definition the run throws
+      cases hf : env.find? n with
+      | some ci =>
+        cases ci <;> first | exact ⟨_, _, _, rfl⟩ | (exfalso; revert hr; simp [constValAtM,
+          bind, StateT.bind, modifyGet, MonadStateOf.modifyGet, StateT.modifyGet, Except.bind,
+          pure, Except.pure, hl, mkFEnv_find?, hf] <;> exact fun h => nomatch h)
+      | none =>
+        exfalso; revert hr; simp [constValAtM, bind, StateT.bind, modifyGet,
+          MonadStateOf.modifyGet, StateT.modifyGet, Except.bind, pure, Except.pure, hl,
+          mkFEnv_find?, hf] <;> exact fun h => nomatch h
+  obtain ⟨cv, v, h, hf⟩ := hdef
+  obtain ⟨hs', hrel⟩ := triple_iff_run.mp (constValAtM_spec_of_find hs hf) r s' hr
+  exact ⟨hs', by rw [constValAt?, hf, hrel]⟩
 
 theorem CSOK.ruleRhs_hit {s : CState} {c j : Name} {us : List Level}
     {cv : ConstantVal} {mI rP : Nat} {rules : List RecRule} {rl : RecRule}
@@ -456,7 +469,7 @@ theorem CSOK.ruleRhs_insert {s : CState} {c j : Name} {us : List Level}
       ⟨cv, mI, rP, rules, rl, hfind, hrl, RelC.refl _⟩ (c', j', us') }
 
 /-- `ruleRhsAtM` under the index of `env`. -/
-theorem ruleRhsAtM_spec (hs : CSOK mode env s₀) {cI jI c j : Name}
+theorem ruleRhsAtM_spec_of_find (hs : CSOK mode env s₀) {cI jI c j : Name}
     {us : List Level} {cv : ConstantVal} {mI rP : Nat}
     {rules : List RecRule} {rl : RecRule}
     (hfind : env.find? c = some (.recInfo cv mI rP rules))
@@ -467,15 +480,36 @@ theorem ruleRhsAtM_spec (hs : CSOK mode env s₀) {cI jI c j : Name}
       CSOK.ruleRhs_hit (mode := mode) hfind hrl, CSOK.ruleRhs_insert hfind hrl] =>
     vcgen [ruleRhsAtM, instLevelParamsM] <;> finish
 
-theorem ruleRhsAtM_eff (hs : CSOK mode env s₀) {cI jI c j : Name}
-    {us : List Level} {cv : ConstantVal} {mI rP : Nat}
-    {rules : List RecRule} {rl : RecRule}
-    (hfind : env.find? c = some (.recInfo cv mI rP rules))
-    (hrl : rules.find? (fun r' => r'.ctor == j) = some rl) :
-    CEff mode env s₀
-      (fun i => RelC i (rl.rhs.instantiateLevelParams cv.levelParams us))
-      (ruleRhsAtM (mkFEnv env) cI jI c j us) :=
-  triple_iff_run.mp (ruleRhsAtM_spec hs hfind hrl)
+/-- The rule a recursor stores for constructor `cj` (the lookup's `fun`
+named, so that two lookups at equal names are congruent). -/
+@[expose] def findRule (rules : List RecRule) (cj : Name) : Option RecRule :=
+  rules.find? (fun r' => r'.ctor == cj)
+
+/-- A recursor's rule right-hand side for constructor `j` at levels `us`. -/
+@[expose] def ruleRhsOf (env : Env) (c j : Name) (us : List Level) : Option Expr :=
+  match env.find? c with
+  | some (.recInfo cv _ _ rules) =>
+    match findRule rules j with
+    | some rl => some (rl.rhs.instantiateLevelParams cv.levelParams us)
+    | none => none
+  | _ => none
+
+/-- `ruleRhsAtM` under the index of `env`, where the recursor stores a
+rule for the constructor. -/
+theorem ruleRhsAtM_spec (hs : CSOK mode env s₀) (cI jI c j : Name)
+    (us : List Level) (hfind : (ruleRhsOf env c j us).isSome = true) :
+    ⦃fun s => s = s₀⦄ ruleRhsAtM (mkFEnv env) cI jI c j us
+    ⦃fun t s' => CSOK mode env s' ∧ some t = ruleRhsOf env c j us; ⊤⦄ := by
+  refine triple_iff_run.mpr fun t s' hr => ?_
+  unfold ruleRhsOf at hfind ⊢
+  split at hfind
+  · rename_i cv mI rP rules hc
+    split at hfind
+    · rename_i rl hrl
+      obtain ⟨hs', h⟩ := triple_iff_run.mp (ruleRhsAtM_spec_of_find hs hc hrl) t s' hr
+      exact ⟨hs', congrArg some h⟩
+    · exact nomatch hfind
+  · exact nomatch hfind
 
 end CacheFill
 

@@ -50,12 +50,6 @@ open scoped Lean.Order
 
 variable {mode : CheckMode}
 
-/-! ## Vocabulary candidates (for Grind.lean)
-
-`ListAll` (a list predicate over a NAMED element predicate, with its
-`nil`/`cons`/`append`/`reverse` equations), the constant-spine and
-binder-close scope rules, and `AllWS.mono`. -/
-
 /-! ## Container lookups read closed constructor types -/
 
 /-- A stored constructor's type is closed. -/

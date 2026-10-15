@@ -52,9 +52,7 @@ open scoped Lean.Order
 variable {μ : CheckMode}
 variable {pins : List NatOpPinSet}
 
-/-! ## The two-phase driver: phase A's install halves -/
-
-/-! ## Vocabulary candidates (for Grind.lean) -/
+/-! ## The flush -/
 
 /-- The per-declaration flush re-establishes the invariant at any
 environment, from the residue. -/

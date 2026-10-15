@@ -35,7 +35,7 @@ open scoped Lean.Order
 
 variable {mode : CheckMode}
 
-/-! ## Vocabulary candidates (for Grind.lean) -/
+/-! ## The residual and constructor-head readers -/
 
 section Vocabulary
 
@@ -47,35 +47,6 @@ theorem wscoped_piResidual {d : Nat} {t : Expr} {ys : List Expr} (ht : Expr.WSco
   | none => trivial
   | some r => exact piResidual_WScoped h ht hys
 grind_pattern [conleche_grind] wscoped_piResidual => Expr.WScoped d t, piResidual t ys
-
-/-- The stored type of a constant at levels `us` (a dummy where there is
-no constant). -/
-@[expose] def constTyOf (env : Env) (n : Name) (us : List Level) : Expr :=
-  match env.find? n with
-  | some ci => ci.toConstantVal.type.instantiateLevelParams ci.toConstantVal.levelParams us
-  | none => .bvar 0
-
-/-! Effect and simulation triples of the callees, stated over the
-program's own arguments (a spec argument the program does not determine
-would stay a metavariable in `vcgen`'s instantiation). -/
-
-theorem piResidualM_spec {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr) (args : List Expr) :
-    ⦃fun s => s = s₀⦄ piResidualM e args
-    ⦃fun o s' => CSOK mode env s' ∧ o = piResidual e args; ⊤⦄ := by
-  refine triple_iff_run.mpr fun o s' hr => ?_
-  obtain ⟨hs', h⟩ := piResidualM_eff hs (RelC.refl e) (show RelCL args args from rfl) o s' hr
-  refine ⟨hs', ?_⟩
-  revert h
-  cases o <;> cases piResidual e args <;> simp [OptEr]
-
-theorem constTyAtM_specO {s₀ : CState} (hs : CSOK mode env s₀) (nI n : Name) (us : List Level)
-    (hfind : (env.find? n).isSome = true) :
-    ⦃fun s => s = s₀⦄ constTyAtM (mkFEnv env) nI n us
-    ⦃fun t s' => CSOK mode env s' ∧ t = constTyOf env n us; ⊤⦄ := by
-  obtain ⟨ci, hci⟩ := Option.isSome_iff_exists.mp hfind
-  refine triple_iff_run.mpr fun t s' hr => ?_
-  obtain ⟨hs', h⟩ := constTyAtM_eff hs hci t s' hr
-  exact ⟨hs', by rw [constTyOf, hci]; exact h⟩
 
 @[conleche_grind =] theorem isCtorAppC_eq (env : Env) (e : Expr) :
     isCtorAppC (mkFEnv env) e = isCtorApp env e :=
@@ -121,17 +92,6 @@ grind_pattern [conleche_grind] wscoped_of_wscopedB => e.wscopedB d
     (ust : List Level) :
     (mkFEnv env).andRescueSlotsF ctor nP ust = andRescueSlots env ctor nP ust :=
   andRescueSlotsF_spec
-
-theorem projNodesI_range_spec {s₀ : CState} (hs : CSOK mode env s₀) (T : Name) (b : Expr)
-    (n : Nat) :
-    ⦃fun s => s = s₀⦄ projNodesI T b (List.range n)
-    ⦃fun rs s' => CSOK mode env s' ∧ rs = etaProjs T b n; ⊤⦄ :=
-  CEff.triple (etaProjsC_eff T n hs (RelC.refl b))
-
-theorem projNodesI_pair_spec {s₀ : CState} (hs : CSOK mode env s₀) (T : Name) (b : Expr) :
-    ⦃fun s => s = s₀⦄ projNodesI T b [0, 1]
-    ⦃fun rs s' => CSOK mode env s' ∧ rs = [.proj T 0 b, .proj T 1 b]; ⊤⦄ :=
-  CEff.triple (projNodesC_eff T [0, 1] hs (RelC.refl b))
 
 /-- The proof-irrelevance certificate behind its mode gate. -/
 @[expose] def proofIrrelGate {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
@@ -461,7 +421,7 @@ theorem mtcEtaC_spec (ih : SSimC mode env f) {d : Nat} {major : Expr} {T : Name}
       Expr.WScoped d v; ⊤⦄ := by
   sym only [conleche_grind, mtcEtaCont, etaFabArgsE] =>
     vcgen [mtcEtaI, mkAppNM, ih.inferIO_spec, ih.whnf_spec,
-      projNodesI_range_spec (mode := mode) (env := env)] <;> finish
+      projNodesC_spec (mode := mode) (env := env)] <;> finish
 
 theorem mtcAndC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) {d : Nat}
     {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat} {T : Name} {s₀ : CState}
@@ -473,7 +433,7 @@ theorem mtcAndC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
       Expr.WScoped d v; ⊤⦄ := by
   sym only [conleche_grind, mtcAndCont, proofIrrelGate_of hμ] =>
     vcgen [mtcAndI, certAtI, mkAppNM, ih.inferIO_spec, ih.whnf_spec,
-      ih.defeq_spec, proofIrrelC_spec ih, projNodesI_pair_spec (mode := mode) (env := env)] <;>
+      ih.defeq_spec, proofIrrelC_spec ih, projNodesC_spec (mode := mode) (env := env)] <;>
       finish
 
 theorem mtcBodyC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) {d : Nat}
@@ -579,11 +539,6 @@ grind_pattern [conleche_grind] allWS_pinInst => AllWS d (pins.map (pinInst lps u
 /-- Every rule's stored data is closed. -/
 @[expose] def AllRulesOK (rules : List RecRule) : Prop := ∀ rl ∈ rules, OptRuleOK (some rl)
 
-/-- The rule a recursor stores for constructor `cj` (the lookup's `fun`
-named, so that two lookups at equal names are congruent). -/
-@[expose] def findRule (rules : List RecRule) (cj : Name) : Option RecRule :=
-  rules.find? (fun r' => r'.ctor == cj)
-
 theorem allRulesOK_find {rules : List RecRule} (h : AllRulesOK rules) (cj : Name) :
     OptRuleOK (findRule rules cj) := by
   cases hf : findRule rules cj with
@@ -625,15 +580,6 @@ theorem ctorVal?_of {n : Name} {cv : ConstantVal} {nP nF : Nat}
 grind_pattern [conleche_grind] ctorVal?_of => ctorVal? env n, ConstantInfo.ctorInfo cv nP nF where
   guard env.find? n = some (.ctorInfo cv nP nF)
 
-/-- A recursor's rule right-hand side for constructor `j` at levels `us`. -/
-@[expose] def ruleRhsOf (env : Env) (c j : Name) (us : List Level) : Option Expr :=
-  match env.find? c with
-  | some (.recInfo cv _ _ rules) =>
-    match findRule rules j with
-    | some rl => some (rl.rhs.instantiateLevelParams cv.levelParams us)
-    | none => none
-  | _ => none
-
 theorem ruleRhsOf_some {c j : Name} {cv : ConstantVal} {mI rP : Nat} {rules : List RecRule}
     {rl : RecRule} (h2 : env.find? c = some (.recInfo cv mI rP rules))
     (h3 : findRule rules j = some rl) (us : List Level) :
@@ -643,21 +589,6 @@ grind_pattern [conleche_grind] ruleRhsOf_some =>
     ruleRhsOf env c j us, ConstantInfo.recInfo cv mI rP rules, some rl where
   guard env.find? c = some (.recInfo cv mI rP rules)
   guard findRule rules j = some rl
-
-theorem ruleRhsAtM_specO {s₀ : CState} (hs : CSOK mode env s₀) (cI jI c j : Name)
-    (us : List Level) (hfind : (ruleRhsOf env c j us).isSome = true) :
-    ⦃fun s => s = s₀⦄ ruleRhsAtM (mkFEnv env) cI jI c j us
-    ⦃fun t s' => CSOK mode env s' ∧ some t = ruleRhsOf env c j us; ⊤⦄ := by
-  refine triple_iff_run.mpr fun t s' hr => ?_
-  unfold ruleRhsOf at hfind ⊢
-  split at hfind
-  · rename_i cv mI rP rules hc
-    split at hfind
-    · rename_i rl hrl
-      obtain ⟨hs', h⟩ := ruleRhsAtM_eff hs hc hrl t s' hr
-      exact ⟨hs', congrArg some h⟩
-    · exact nomatch hfind
-  · exact nomatch hfind
 
 /-- The cached ι certificate block (the argument of `certAtI` in
 `iotaRecI`). -/
@@ -942,7 +873,7 @@ theorem iotaCertC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} {s�
       Option.isSome_some, EnvWF.ctorTy_closed henv hfj] =>
     vcgen [iotaCertI, liftFueled, substLevelTreesM, isEquivListLM_spec hs,
       pinArgsC_spec (mode := mode) (env := env),
-      defEqListC_spec ih, constTyAtM_specO (mode := mode) (env := env),
+      defEqListC_spec ih, constTyAtM_spec (mode := mode) (env := env),
       iotaCertsFullC_spec ih, iotaIndexOkC_spec ih] <;> finish
 
 /-- The ι step simulates its fueled original. -/
@@ -956,7 +887,7 @@ theorem iotaRecC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
       iotaCertGate_of hμ, → EnvWF.rules_ok henv] =>
     vcgen [iotaRecI_eq, certAtI, mkAppNM, prepareMajorC_spec hμ ih,
       iotaCertC_spec ih henv (mode := mode) (env := env),
-      ruleRhsAtM_specO (mode := mode) (env := env)] <;> finish
+      ruleRhsAtM_spec (mode := mode) (env := env)] <;> finish
 
 end Walks
 

@@ -86,11 +86,11 @@ theorem ssimC_zero (env : Env) : SSimC mode env 0 :=
     defeqE := fun _ _ _ _ _ => SimC.throw
     inferIO := fun _ _ _ => SimC.throw }
 
-/-! ## Vocabulary candidates (for Grind.lean)
+/-! ## The knot hypothesis's fields as triples
 
-The triple forms of a data-valued simulation (`RelVC`: the cached value
-IS the pure answer, no side condition) and of the knot's entry points
-(`SSimC`'s fields), for `vcgen`'s list. -/
+For `vcgen`'s list (`ih.infer_spec hs`, …).  They stay beside `SSimC`
+rather than in `Grind.lean` because they name the cached knot
+`coreKnotI`, which `Grind.lean` does not import. -/
 
 section SSimCSpecs
 
@@ -137,48 +137,6 @@ theorem SSimC.defeqE_spec (ih : SSimC mode env f) {s₀ : CState} {d : Nat} {i j
   (ih.defeqE hs rfl rfl hwi hwj).tripleVC
 
 end SSimCSpecs
-
-/-- The level-instantiated value of the stored definition `n`, where
-there is one: what `constValAtM` answers. -/
-@[expose] def constValAt? (env : Env) (n : Name) (us : List Level) : Option Expr :=
-  match env.find? n with
-  | some (.defnInfo cv v _) => some (v.instantiateLevelParams cv.levelParams us)
-  | _ => none
-
-/-- `constValAtM` answers the stored definition's instantiated value
-(a run succeeds only at a stored definition: a hit is backed by the
-invariant, a miss elsewhere throws). -/
-theorem constValAtM_specO {env : Env} {s₀ : CState} (hs : CSOK mode env s₀) (nI n : Name)
-    (us : List Level) :
-    ⦃fun s => s = s₀⦄ constValAtM (mkFEnv env) nI n us
-    ⦃fun r s' => CSOK mode env s' ∧ constValAt? env n us = some r; ⊤⦄ := by
-  refine triple_iff_run.mpr fun r s' hr => ?_
-  have hdef : ∃ cv v h, env.find? n = some (.defnInfo cv v h) := by
-    cases hl : s₀.constValAt[(n, us)]? with
-    | some i =>
-      obtain ⟨cv, v, h, hf, -⟩ := hs.constVal n us i hl
-      exact ⟨cv, v, h, hf⟩
-    | none =>
-      -- a miss: off a stored definition the run throws
-      cases hf : env.find? n with
-      | some ci =>
-        cases ci <;> first | exact ⟨_, _, _, rfl⟩ | (exfalso; revert hr; simp [constValAtM,
-          bind, StateT.bind, modifyGet, MonadStateOf.modifyGet, StateT.modifyGet, Except.bind,
-          pure, Except.pure, hl, mkFEnv_find?, hf] <;> exact fun h => nomatch h)
-      | none =>
-        exfalso; revert hr; simp [constValAtM, bind, StateT.bind, modifyGet,
-          MonadStateOf.modifyGet, StateT.modifyGet, Except.bind, pure, Except.pure, hl,
-          mkFEnv_find?, hf] <;> exact fun h => nomatch h
-  obtain ⟨cv, v, h, hf⟩ := hdef
-  obtain ⟨hs', hrel⟩ := constValAtM_eff hs hf r s' hr
-  exact ⟨hs', by rw [constValAt?, hf, show r = _ from hrel]⟩
-
-/-- `inst1M_eff` as a triple. -/
-theorem inst1M_spec {env : Env} {s₀ : CState} (hs : CSOK mode env s₀) (e v : Expr) (d : Nat) :
-    ⦃fun s => s = s₀⦄ inst1M e v d
-    ⦃fun r s' => CSOK mode env s' ∧ r = e.instantiate1 v d; ⊤⦄ :=
-  (inst1M_eff hs (RelC.refl e) (RelC.refl v) :
-    CEff mode env s₀ (fun i => i = e.instantiate1 v d) _).triple
 
 /-- The `.proj T i b` nodes over the indices `l` (a named function, so
 that its scope fact has a pattern: a `List.map` pattern loses its
@@ -394,7 +352,7 @@ theorem unfoldDefinitionC_spec {s₀ : CState} (hs : CSOK mode env s₀) (i : Ex
     ⦃fun s => s = s₀⦄ unfoldDefinitionI (mkFEnv env) i
     ⦃fun o s' => CSOK mode env s' ∧ o = unfoldDefinition env i; ⊤⦄ := by
   sym only [conleche_grind, unfoldDefinition, constValAt?] =>
-    vcgen [unfoldDefinitionI, mkAppNM, constValAtM_specO hs] <;> finish
+    vcgen [unfoldDefinitionI, mkAppNM, constValAtM_spec hs] <;> finish
 
 end Walks2
 

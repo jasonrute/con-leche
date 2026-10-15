@@ -62,7 +62,7 @@ section Sims
 
 variable {env : Env}
 
-/-! ### Vocabulary candidates (for Grind.lean) -/
+/-! ### The operation-free outside instantiation -/
 
 /-- `targetOutsideInst` is operation-free: at the cached driver it
 leaves the state alone and computes the pure value. -/

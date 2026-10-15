@@ -33,14 +33,6 @@ open scoped Lean.Order
 
 variable {mode : CheckMode}
 
-/-! ## Vocabulary candidates (for Grind.lean) -/
-
-section Vocabulary
-
-variable {env : Env}
-
-end Vocabulary
-
 /-! ## The memo-wrapper steps -/
 
 section Wrappers

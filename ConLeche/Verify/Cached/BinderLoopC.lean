@@ -35,27 +35,6 @@ variable {mode : CheckMode}
 
 variable {env : Env} {f : Nat}
 
-/-! ## Vocabulary candidates (for Grind.lean)
-
-The triple form of a `SimC` at plain equality, the core knot's
-entry points and the pure cached operations as triples, and the
-scoping of one opened binder. -/
-
-/-- `instListRevM_eff` as a triple. -/
-theorem instListRevM_spec {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr) (vs : Array Expr)
-    (d : Nat) :
-    ⦃fun s => s = s₀⦄ instListRevM e vs d
-    ⦃fun r s' => CSOK mode env s' ∧ r = e.instantiateList vs.toList.reverse d; ⊤⦄ :=
-  (instListRevM_eff hs (RelC.refl e) (show RelCL vs.toList.reverse _ from rfl) :
-    CEff mode env s₀ (fun i => i = e.instantiateList vs.toList.reverse d) _).triple
-
-/-- `abstractRangeM_eff` as a triple. -/
-theorem abstractRangeM_spec {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr) (d k : Nat) :
-    ⦃fun s => s = s₀⦄ abstractRangeM e d k
-    ⦃fun r s' => CSOK mode env s' ∧ r = e.abstractRange d k; ⊤⦄ :=
-  (abstractRangeM_eff hs (RelC.refl e) :
-    CEff mode env s₀ (fun i => i = e.abstractRange d k) _).triple
-
 /-! ## The infer-λ loop walks
 
 The cached loops match their term on `.lam`/`.forallE`; the equation

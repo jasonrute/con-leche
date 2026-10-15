@@ -34,7 +34,10 @@ open scoped Lean.Order
 
 variable {mode : CheckMode}
 
-/-! ## Vocabulary candidates (for Grind.lean) -/
+/-! ## Opened telescopes are scoped
+
+Keyed by the opening's own equation, so that `grind` reads the scope of
+a variable or of the body off the telescope it came from. -/
 
 /-- An opened telescope's variables carry types scoped at their own
 frame. -/

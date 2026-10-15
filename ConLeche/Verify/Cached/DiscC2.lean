@@ -113,25 +113,11 @@ theorem projNodesC_spec (T : Name) (b : Expr) :
     sym only [conleche_grind] =>
       vcgen [projNodesI, projNodesC_spec T b rest] <;> finish
 
-/-- `projNodesC_spec` as an effect, for the unconverted callers. -/
-theorem projNodesC_eff (T : Name) (l : List Nat) {s₀ : CState} (hs : CSOK mode env s₀)
-    {b : Expr} {xb : Expr} (hb : RelC b xb) :
-    CEff mode env s₀ (fun rs => RelCL rs (l.map fun i => Expr.proj T i xb))
-      (projNodesI T b l) := by
-  subst hb; exact triple_iff_run.mp (projNodesC_spec T b l hs)
-
 /-- The index's slot tests are the spec's (`mkFEnv`). -/
 theorem towerSlotsAllF_mkFEnv (env : Env) (T : Name) (n : Nat) :
     (mkFEnv env).towerSlotsAllF T n = towerSlotsAll env T n := by
   simp only [FEnv.towerSlotsAllF, towerSlotsAll, mkFEnv_findProj?]
   all_goals rfl
-
-/-- The cached fabricated-projection spine denotes `etaProjs`. -/
-theorem etaProjsC_eff (T : Name) (nF : Nat)
-    {s₀ : CState} (hs : CSOK mode env s₀) {b : Expr} {xb : Expr} (hb : RelC b xb) :
-    CEff mode env s₀ (fun rs => RelCL rs (etaProjs T xb nF))
-      (projNodesI T b (List.range nF)) :=
-  projNodesC_eff T (List.range nF) hs hb
 
 /-- `structEtaCertWithI` simulates its fueled original. -/
 theorem structEtaCertWithC_spec (ih : SSimC mode env f) {d : Nat} {a b wtb : Expr}

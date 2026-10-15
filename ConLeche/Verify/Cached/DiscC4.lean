@@ -40,12 +40,6 @@ open scoped Lean.Order
 
 variable {mode : CheckMode}
 
-/-! ## Vocabulary candidates (for Grind.lean) -/
-
-section Vocabulary
-
-end Vocabulary
-
 section Walks
 
 variable {env : Env} {f : Nat}
@@ -470,7 +464,7 @@ theorem inferBodyC_spec (ih : SSimC mode env f) (henv : EnvWF env) :
       mkFEnv_findProj?, constTyOf, ProjEntry.typeAtI_eq,
       toListRev_empty, Option.isSome_some, EnvWF.constTy_closed henv, wscoped_typeAt henv] =>
     vcgen [inferBodyI, peelFuelM, inst1M_spec (mode := mode) (env := env), ih.infer_spec, ih.whnf_spec, ih.defeq_spec,
-      ensureSortC_spec ih, constTyAtM_specO (mode := mode) (env := env),
+      ensureSortC_spec ih, constTyAtM_spec (mode := mode) (env := env),
       inferSpineC_spec ih, inferPisC_tail_spec ih, inferLamsC_tail_spec ih henv] <;> finish
 
 /-- Abstracting away the top variable lowers the scope bound. -/
@@ -508,7 +502,7 @@ theorem inferBodyIOC_spec (ih : SSimC mode env f) (henv : EnvWF env) :
       abstract1C_spec, EnvWF.constTy_closed henv, wscoped_typeAt henv] =>
     vcgen [inferBodyIOI, inferBodyI, abstract1M, ensureSortIOC_spec ih,
       inst1M_spec (mode := mode) (env := env), ih.ioInfer_spec, ih.ioWhnf_spec,
-      constTyAtM_specO (mode := mode) (env := env), inferSpineIOC_spec ih] <;> finish
+      constTyAtM_spec (mode := mode) (env := env), inferSpineIOC_spec ih] <;> finish
 
 end Walks3
 
