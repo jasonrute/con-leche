@@ -79,17 +79,6 @@ grind_pattern [conleche_grind] openers_body_WScoped =>
   openPisAtFvars n e off, some (fvs, body) where
   guard openPisAtFvars n e off = some (fvs, body)
 
-/-- `checkStructFieldSortsIS_sim` as a triple. -/
-theorem checkStructFieldSortsIS_spec {env : Env} (hμ : mode.verifiedChecks = true)
-    (henv : EnvWF env) {isProp large : Bool} {s : Level} {nP : Nat} {fvs idxArgs : List Expr}
-    {j : Nat} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hfvs : ∀ (i : Nat) (x : Expr), fvs[i]? = some x → WScoped (nP + i) (Expr.fvarTypeD x)) :
-    ⦃fun s => s = s₀⦄ checkStructFieldSortsI (sharedOpsC mode (mkFEnv env)) env isProp large
-        s nP fvs idxArgs j
-    ⦃fun v s' => CSOK mode env s' ∧
-      Runs (checkStructFieldSortsI (fueledOpsM mode) env isProp large s nP fvs idxArgs j) v; ⊤⦄ :=
-  SimC.tripleVC (checkStructFieldSortsIS_sim hμ henv hfvs hs)
-
 section Walks3
 
 variable {env : Env} {s₀ : CState}
@@ -150,7 +139,8 @@ theorem checkSumCtorS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
         nIdx resSort isProp large cvC nF cvTa) v; ⊤⦄ := by
   -- `gen := 13` (the default 8 fails): the fueled side is a chain of ten binds, each one
   -- E-matching generation deeper than the last
-  sym only [conleche_grind, checkSumCtor.eq_1, unwrapOr, wscoped_of_hasFvar_false (d := 0) hTf] =>
+  sym only [conleche_grind, checkSumCtor.eq_1, unwrapOr, FvsWS,
+      wscoped_of_hasFvar_false (d := 0) hTf] =>
     vcgen [checkSumCtor, unwrapOr, checkConstantValS_spec hμ henv hs,
       checkStructDomsAtS_spec hμ henv, checkStructFieldSortsIS_spec hμ henv] <;>
       finish (gen := 13)

@@ -119,6 +119,36 @@ theorem opS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} 
       ((fueledOpsM mode).ensureSort env d e) :=
   SimC.of_triple_eq (opS_spec hμ henv hs hw)
 
+/-! The shared operations as triples at the `sharedOpsC` projections, the
+form a walk calls them in (`vcgen` finds a spec by the program's head). -/
+
+theorem inferS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {e : Expr}
+    {s₀ : CState} (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
+    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).inferType env d e
+    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).inferType env d e) v ∧
+      Expr.WScoped d v; ⊤⦄ :=
+  (opE_infer_sim hμ henv hs hw).triple (fun _ _ h => h)
+
+theorem whnfS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {e : Expr}
+    {s₀ : CState} (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
+    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).whnf env d e
+    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).whnf env d e) v ∧
+      Expr.WScoped d v; ⊤⦄ :=
+  (opE_whnf_sim hμ henv hs hw).triple (fun _ _ h => h)
+
+theorem defeqS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat}
+    {a b : Expr} {s₀ : CState} (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a)
+    (hwb : Expr.WScoped d b) :
+    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).isDefEq env d a b
+    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).isDefEq env d a b) v; ⊤⦄ :=
+  (opB_sim hμ henv hs hwa hwb).tripleVC
+
+theorem sortS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} {e : Expr}
+    {s₀ : CState} (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
+    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).ensureSort env d e
+    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).ensureSort env d e) v; ⊤⦄ :=
+  (opS_sim hμ henv hs hw).tripleVC
+
 end Runners
 
 end ConLeche.Cached

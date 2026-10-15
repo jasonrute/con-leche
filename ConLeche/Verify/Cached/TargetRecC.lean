@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.Verify.Cached.BlockRunC
+import ConLeche.Verify.Cached.NestPosC
 import ConLeche.Verify.Inductives.BlockWF
 import ConLeche.Verify.Inductives.RecCheckScope
 public import ConLeche.Verify.Inductives.NestedRead
@@ -57,26 +58,11 @@ theorem targetHoles_WScoped {formerTys : List Expr} (hF : ∀ t ∈ formerTys, W
 
 /-! ## 2. The stages, simulated -/
 
-/-- A simulation keeps what the cached run is known to yield. -/
-theorem SimC.withYields {env : Env} {s₀ : CState} {β α : Type} {P : β → α → Prop}
-    {Q : β → Prop} {c : CheckCM β} {p : FueledM α} (h : SimC mode env s₀ P c p)
-    (hy : ∀ s a s', c s = .ok (a, s') → Q a) :
-    SimC mode env s₀ (fun v w => P v w ∧ Q v) c p := by
-  intro v' s' hr
-  obtain ⟨hs', v, hP, F, hF⟩ := h v' s' hr
-  exact ⟨hs', v, ⟨hP, hy s₀ v' s' hr⟩, F, hF⟩
-
 section Sims
 
 variable {env : Env}
 
 /-! ### Vocabulary candidates (for Grind.lean) -/
-
-/-- A constant applied to well-scoped arguments is well scoped. -/
-theorem wscoped_mkAppN_const {d : Nat} {n : Name} {us : List Level} {xs : List Expr}
-    (hxs : AllWS d xs) : WScoped d (Expr.mkAppN (.const n us) xs) :=
-  Expr.WScoped.mkAppN (by rw [WScoped]; trivial) hxs
-grind_pattern [conleche_grind] wscoped_mkAppN_const => AllWS d xs, Expr.mkAppN (.const n us) xs
 
 /-- `targetOutsideInst` is operation-free: at the cached driver it
 leaves the state alone and computes the pure value. -/
@@ -142,16 +128,6 @@ theorem targetMajorNfsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF en
       vcgen [targetMajorNfs, targetMajorNfsS_spec hμ henv hformer hp es hs,
         targetClassMatchS_spec hμ henv hformer hp] <;> finish
 
-theorem targetMajorNfsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
-    {p : BlockShape} {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t)
-    {pfvs ds : List Expr} {us : List Level} {ctors : List (ConstantVal × Nat)}
-    (hp : ∀ x ∈ pfvs, WScoped pfvs.length x) (_hds : ∀ x ∈ ds, WScoped pfvs.length x)
-    (es : List NestCtorNf) {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (targetMajorNfs (sharedOpsC mode (mkFEnv env)) env p formerTys pfvs us ds ctors es)
-      (targetMajorNfs (fueledOpsM mode) env p formerTys pfvs us ds ctors es) :=
-  SimC.of_tripleVC (targetMajorNfsS_spec hμ henv hformer hp es hs)
-
 theorem targetMajorOfS_spec {p : BlockShape}
     {ctorsAs : List (List (ConstantVal × Nat))} {pfvs fvs : List Expr} {mty : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀) :
@@ -161,14 +137,6 @@ theorem targetMajorOfS_spec {p : BlockShape}
   sym only [conleche_grind, targetMajorOf.eq_1, unwrapOr] =>
     vcgen [targetMajorOf, unwrapOr, targetOutsideInstS_spec hs,
       liftFueledS_spec (mode := mode) (env := env)] <;> finish
-
-theorem targetMajorOfS_sim {p : BlockShape}
-    {ctorsAs : List (List (ConstantVal × Nat))} {pfvs fvs : List Expr} {mty : Expr}
-    {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (targetMajorOf (m := CheckCM) (mkFEnv env) p ctorsAs pfvs fvs mty)
-      (targetMajorOf (m := FueledM) (mkFEnv env) p ctorsAs pfvs fvs mty) :=
-  SimC.of_tripleVC (targetMajorOfS_spec hs)
 
 /-- The pin typing at the cached driver. -/
 theorem targetPinTysS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} :
@@ -192,25 +160,11 @@ theorem targetMajorPinsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF e
   sym only [conleche_grind, targetMajorPins.eq_1, Option.isNone_iff_eq_none] =>
     vcgen [targetMajorPins, targetPinTysS_spec hμ henv, inferS_spec hμ henv] <;> finish
 
-theorem targetMajorPinsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {rP : Nat}
-    {M : TargetMajor} (hds : M.member = none → ∀ x ∈ M.ds, WScoped rP x) {s₀ : CState}
-    (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun (_ _ : Unit) => True)
-      (targetMajorPins (sharedOpsC mode (mkFEnv env)) env rP M)
-      (targetMajorPins (fueledOpsM mode) env rP M) :=
-  SimC.mono (fun _ _ _ => trivial) (SimC.of_tripleVC (targetMajorPinsS_spec hμ henv hds hs))
-
 theorem targetRecPinsS_spec {p : BlockShape} {block : List ConstantInfo} {s₀ : CState}
     (hs : CSOK mode env s₀) :
     ⦃fun s => s = s₀⦄ targetRecPins (m := CheckCM) p block
     ⦃fun v s' => CSOK mode env s' ∧ Runs (targetRecPins (m := FueledM) p block) v; ⊤⦄ := by
   sym only [conleche_grind, targetRecPins.eq_1] => vcgen [targetRecPins] <;> finish
-
-theorem targetRecPinsS_sim {p : BlockShape} {block : List ConstantInfo} {s₀ : CState}
-    (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC (targetRecPins (m := CheckCM) p block)
-      (targetRecPins (m := FueledM) p block) :=
-  SimC.of_tripleVC (targetRecPinsS_spec hs)
 
 /-- A resolved major's class, scoped by the block's parameters: its
 openers and its parameters (what the class match needs). -/
@@ -234,15 +188,6 @@ theorem targetK53S_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p
       Runs (targetK53 (fueledOpsM mode) env p formerTys Mc tele majDom f) v; ⊤⦄ := by
   sym only [conleche_grind, targetK53.eq_1] =>
     vcgen [targetK53, targetClassMatchS_spec hμ henv hformer hMc.1 hs] <;> finish
-
-theorem targetK53S_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p : BlockShape}
-    {formerTys : List Expr} (hformer : ∀ t ∈ formerTys, WScoped 0 t) {Mc : TargetMajor}
-    (hMc : TargetMajScoped Mc) {tele : List Expr} {majDom f : Expr}
-    {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (targetK53 (sharedOpsC mode (mkFEnv env)) env p formerTys Mc tele majDom f)
-      (targetK53 (fueledOpsM mode) env p formerTys Mc tele majDom f) :=
-  SimC.of_tripleVC (targetK53S_spec hμ henv hformer hMc hs)
 
 end Sims
 
