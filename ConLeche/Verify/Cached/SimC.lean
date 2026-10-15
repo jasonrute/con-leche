@@ -201,17 +201,6 @@ theorem RelC.erase {v' : Expr} {v : Expr} (h : RelC v' v) : v' = v := h
 /-- Every expression is related to itself (there is one type). -/
 theorem RelC.refl (x : Expr) : RelC x x := by rfl
 
-/-- The list-level relation of the `DiscC*.lean` walks. -/
-@[expose] def RelCL (l : List Expr) (xs : List Expr) : Prop := l = xs
-
-namespace RelCL
-
-/-- The list projection. -/
-theorem map {l : List Expr} {xs : List Expr} (h : RelCL l xs) :
-    l = xs := h
-
-end RelCL
-
 /-! ## The state invariant -/
 
 /-- The cached-state invariant (see the module docstring); its value
