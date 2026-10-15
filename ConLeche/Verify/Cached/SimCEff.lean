@@ -5,28 +5,24 @@ import ConLeche.Verify.Level
 public import ConLeche.Verify.Cached.SimC
 import ConLeche.Verify.Cached.Grind
 public import Std.WP
-/- `withPtrEq` (`Init.Util`) is `public` but not `@[expose]`, and the
-pointer-guarded `Expr.exprPtrBEq`/`beq` identities below are exactly the
-`k ()` unfolding of it — the same escape `ConLeche/Kernel/Name.lean` and
-`ConLeche/Kernel/Expr.lean` take at the definition sites. -/
-import all Init.Util
 
 public section
 
 /-!
 # Effect specs for the cached checker's state wrappers (task #163, batch 5)
 
-One `CEff` lemma per `ConLeche/Cached/StateC.lean` wrapper.
+One lemma per `ConLeche/Cached/StateC.lean` wrapper.
 
 Almost every wrapper is a `pure`, so almost every lemma here is a
 two-liner consuming the commutation spec (`OpsC.lean`) of the
-underlying `Expr` operation.  The three that are *not* pure are the
+underlying `Expr` operation.  The ones that are *not* pure are the
 persistent memos — the bulk-instantiation cache (`instListM`), the
-level memo (`isEquivLM`) and the lazy
-stored-constant caches (`constTyAtM`/`constValAtM`/`ruleRhsAtM`) — and
-they carry their own insert lemmas against the matching `CSOK` clause,
-in the function-of-key discipline: a memo hit's key is only
-`BEq`-equal to the query.
+level memo (`isEquivLM`) and the lazy stored-constant caches
+(`constTyAtM`/`constValAtM`/`ruleRhsAtM`) — and they are `Std.WP`
+triples (`…_spec`, proved by `vcgen` and `grind`; the `CEff` forms
+`…_eff` are their run-based reading) with hit and insert lemmas against
+the matching `CSOK` clause.  The memo keys are lawful (`LawfulBEq`), so
+a colliding key is the inserted one (`HashMap.insert_backed`).
 -/
 
 set_option experimental.vcgen true

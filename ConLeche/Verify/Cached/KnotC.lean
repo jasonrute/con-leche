@@ -49,6 +49,14 @@ theorem SimC.of_triple_eq {β : Type} {s₀ : CState} {c : CheckCM β} {p : Fuel
   obtain ⟨hs', F, hF⟩ := triple_iff_run.mp h v' s' hr
   exact ⟨hs', v', rfl, F, hF⟩
 
+/-- The converse of `SimC.of_triple_eq`. -/
+theorem SimC.triple_eq {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
+    (h : SimC mode env s₀ RelVC c p) :
+    ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄ :=
+  triple_iff_run.mpr fun v' s' hr => by
+    obtain ⟨hs', v, rfl, F, hF⟩ := h v' s' hr
+    exact ⟨hs', F, hF⟩
+
 /-- A binary `Bool`-valued entry point's body simulates its fueled body
 on well-scoped inputs (`BodySpec` for the defeq slot). -/
 @[expose] def BodySpecB (mode : CheckMode) (env : Env) (body : Nat → Expr → Expr → CheckCM Bool)
@@ -71,9 +79,7 @@ theorem BodySpecB.of_sim {body : Nat → Expr → Expr → CheckCM Bool}
       RelC j b → Expr.WScoped d a → Expr.WScoped d b →
       SimC mode env s₀ RelVC (body d i j) (spec d a b)) :
     BodySpecB mode env body spec :=
-  fun hs hwa hwb => triple_iff_run.mpr fun v' s' hr => by
-    obtain ⟨hs', v, rfl, F, hF⟩ := h hs rfl rfl hwa hwb v' s' hr
-    exact ⟨hs', F, hF⟩
+  fun hs hwa hwb => (h hs rfl rfl hwa hwb).triple_eq
 
 end Vocabulary
 
