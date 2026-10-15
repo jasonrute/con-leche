@@ -10,7 +10,6 @@ import ConLeche.Model.Inductives.BlockRecPreHpre
 import ConLeche.Model.Inductives.BlockRecTyShapeRun
 import ConLeche.Model.Inductives.BlockRecPreRun
 import ConLeche.Model.Inductives.BlockRecIdxConv
-import ConLeche.Model.Inductives.BlockRecTyShapeRun
 import ConLeche.Model.Inductives.BlockRecTyping
 import ConLeche.Model.Inductives.BlockRecMem
 

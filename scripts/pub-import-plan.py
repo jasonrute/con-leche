@@ -764,6 +764,12 @@ FALLBACK = {
     # attribute to the importing module; each MEASURED by demoting it alone
     # (unknown identifier).
     ('ConLeche.Verify.Inductives.TargetAuxFire', 'ConLeche.Verify.Inductives.NestedRead'),
+    # task #356 (consolidation): `TargetAuxFire`'s own public statements name
+    # `tgtFireOf`/`tgtMajorsOf` (`RecStage`, `TargetAuxFire.lean:733`); the model
+    # reads the edge as demotable since `Verify/Cached`'s recursive triples are
+    # proved by induction (no exported `._f` auxiliaries).  MEASURED by
+    # demoting it alone (unknown identifier `tgtFireOf`).
+    ('ConLeche.Verify.Inductives.TargetAuxFire', 'ConLeche.Verify.Inductives.RecStage'),
     ('ConLeche.Verify.Cached.TargetRecC', 'ConLeche.Verify.Inductives.NestedRead'),
     ('ConLeche.Verify.Cached.GenRecC', 'ConLeche.Verify.Inductives.TargetAuxFire'),
 }

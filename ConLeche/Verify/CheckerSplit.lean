@@ -76,20 +76,6 @@ theorem installHeader_inv {cv : ConstantVal}
   exact ⟨hfind0, by simpa using hres, hpshapeF, hnd, hlb,
     by simpa using hif, htp, htr⟩
 
-theorem installHeader_of_facts {cv : ConstantVal}
-    (hfind : env.find? cv.name = none)
-    (hres : reservedBasisNames.contains cv.name = false)
-    (hshape : cv.name.isProjFnShape = false)
-    (hnd : Name.nodup cv.levelParams = true)
-    (hlb : cv.type.looseBVarsBounded 0 = true)
-    (hif : cv.type.hasFvar = false)
-    (htp : cv.type.allLevelParamsDefined cv.levelParams = true)
-    (htr : cv.type.constsResolve env = true) :
-    installHeader (m := CheckM) env cv = .ok () := by
-  simp only [installHeader,
-    Pure.pure, Except.pure, hfind, hres, hshape, hnd, hlb, hif, htp, htr,
-    Option.isSome_none, Bool.false_eq_true, ↓reduceIte]
-
 theorem installValueGuards_inv {cv : ConstantVal} {value : Expr}
     (h : installValueGuards (m := CheckM) env cv value = .ok ()) :
     value.looseBVarsBounded 0 = true ∧
@@ -112,15 +98,6 @@ theorem installValueGuards_inv {cv : ConstantVal} {value : Expr}
   simp only [hvr] at h
   simp only [Bool.false_eq_true, ↓reduceIte] at h
   exact ⟨hlb, by simpa using hif, hvp, hvr⟩
-
-theorem installValueGuards_of_facts {cv : ConstantVal} {value : Expr}
-    (hlb : value.looseBVarsBounded 0 = true)
-    (hif : value.hasFvar = false)
-    (hvp : value.allLevelParamsDefined cv.levelParams = true)
-    (hvr : value.constsResolve env = true) :
-    installValueGuards (m := CheckM) env cv value = .ok () := by
-  simp only [installValueGuards,
-    Pure.pure, Except.pure, hlb, hif, hvp, hvr, Bool.false_eq_true, ↓reduceIte]
 
 /-! ## The check half -/
 
@@ -195,21 +172,6 @@ theorem checkValueGroup_inv {vg : ValueGroup}
           installValueGuards (m := CheckM) env vg.cv vg.jv = .ok () :=
         fun hk' => absurd hk' hk
       exact ⟨stype, u, rfl, hsort, hC, hD, vtype, rfl, hde⟩
-
-theorem checkValueGroup_of_facts {vg : ValueGroup} {stype vtype : Expr} {u : Level}
-    (hst : inferTypeCore μ env F 0 vg.cv.type = .ok stype)
-    (hsort : ensureSortCore μ env F 0 stype = .ok u)
-    (hthm : vg.kind = .thm → Level.isEquiv u .zero = some true)
-    (hjv : vg.kind = .thm → installValueGuards (m := CheckM) env vg.cv vg.jv = .ok ())
-    (hvt : inferTypeCore μ env F 0 vg.jv = .ok vtype)
-    (hde : isDefEqCore μ env F 0 vtype vg.cv.type = .ok true) :
-    checkValueGroup (fueledOps μ F) env vg = .ok () := by
-  simp only [checkValueGroup, fueledOps_inferType, fueledOps_ensureSort,
-    fueledOps_isDefEq, Bind.bind, Except.bind, Pure.pure, Except.pure, hst, hsort]
-  by_cases hk : vg.kind = .thm
-  · simp only [ite_eq_left hk, liftFueled, hthm hk, Pure.pure, Except.pure, ↓reduceIte, hjv hk,
-      hvt, hde]
-  · simp only [ite_eq_right hk, hvt, hde, ↓reduceIte]
 
 /-! ## Fuel -/
 
