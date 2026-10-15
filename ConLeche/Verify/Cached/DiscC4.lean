@@ -198,15 +198,6 @@ theorem wscoped_peel {d : Nat} {ty body a : Expr} {acc : List Expr}
 grind_pattern [conleche_grind] wscoped_peel =>
   Expr.WScoped d ((Expr.lam ty body).instantiateList acc), body.instantiateList (a :: acc)
 
-/-- `iotaRecC_sim` as a triple. -/
-theorem iotaRecC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f)
-    (henv : EnvWF env) {d : Nat} {i : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
-    (hw : Expr.WScoped d i) :
-    ⦃fun s => s = s₀⦄ iotaRecI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i
-    ⦃fun o s' => CSOK mode env s' ∧ Runs (iotaRec mode (fueledFns mode env) env d i) o ∧
-      OptWS d o; ⊤⦄ :=
-  (iotaRecC_sim hμ ih henv hs (RelC.refl i) hw).triple relOC_inv
-
 /-- `instListM_eff` as a triple. -/
 theorem instListM_spec {s₀ : CState} (hs : CSOK mode env s₀) (e : Expr) (vs : List Expr)
     (d : Nat) :
