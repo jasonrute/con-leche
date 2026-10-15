@@ -105,13 +105,17 @@ variable {env : Env} {f : Nat}
 theorem projNodesC_spec (T : Name) (b : Expr) :
     ∀ (l : List Nat) {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ projNodesI T b l
-      ⦃fun rs s' => CSOK mode env s' ∧ rs = projsOf T b l; ⊤⦄
-  | [], _, _ => by
+      ⦃fun rs s' => CSOK mode env s' ∧ rs = projsOf T b l; ⊤⦄ := by
+  intro l
+  induction l with
+  | nil =>
+    intro _ _
     sym only [conleche_grind] =>
       vcgen [projNodesI] <;> finish
-  | _ :: rest, _, _ => by
+  | cons _ rest ih =>
+    intro _ _
     sym only [conleche_grind] =>
-      vcgen [projNodesI, projNodesC_spec T b rest] <;> finish
+      vcgen [projNodesI, ih] <;> finish
 
 /-- The index's slot tests are the spec's (`mkFEnv`). -/
 theorem towerSlotsAllF_mkFEnv (env : Env) (T : Name) (n : Nat) :
