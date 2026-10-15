@@ -39,24 +39,6 @@ section Vocabulary
 
 variable {env : Env}
 
-/-- The `Bool`-valued analogue of `SimC.of_triple`: a triple whose post
-names the cached verdict as the pure answer is a simulation at
-`RelVC`. -/
-theorem SimC.of_triple_eq {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
-    (h : ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄) :
-    SimC mode env s₀ RelVC c p := by
-  intro v' s' hr
-  obtain ⟨hs', F, hF⟩ := triple_iff_run.mp h v' s' hr
-  exact ⟨hs', v', rfl, F, hF⟩
-
-/-- The converse of `SimC.of_triple_eq`. -/
-theorem SimC.triple_eq {β : Type} {s₀ : CState} {c : CheckCM β} {p : FueledM β}
-    (h : SimC mode env s₀ RelVC c p) :
-    ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄ :=
-  triple_iff_run.mpr fun v' s' hr => by
-    obtain ⟨hs', v, rfl, F, hF⟩ := h v' s' hr
-    exact ⟨hs', F, hF⟩
-
 /-- A binary `Bool`-valued entry point's body simulates its fueled body
 on well-scoped inputs (`BodySpec` for the defeq slot). -/
 @[expose] def BodySpecB (mode : CheckMode) (env : Env) (body : Nat → Expr → Expr → CheckCM Bool)
