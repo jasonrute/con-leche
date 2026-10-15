@@ -21,7 +21,6 @@ scoping facts they need, and the cons at the majors
 uniform install are simulated in `GenRecC.lean`.
 -/
 
-set_option linter.unusedSimpArgs false
 set_option experimental.vcgen true
 
 namespace ConLeche.Cached
@@ -62,7 +61,7 @@ section Sims
 
 variable {env : Env}
 
-/-! ### Vocabulary candidates (for Grind.lean) -/
+/-! ### The operation-free outside instantiation -/
 
 /-- `targetOutsideInst` is operation-free: at the cached driver it
 leaves the state alone and computes the pure value. -/
@@ -82,20 +81,35 @@ theorem targetParamsDefEqS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF
       ⦃fun s => s = s₀⦄
         targetParamsDefEq (sharedOpsC mode (mkFEnv env)) env d absM pfvs as bs
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (targetParamsDefEq (fueledOpsM mode) env d absM pfvs as bs) v; ⊤⦄
-  | [], [], _, _ => by
-    sym only [conleche_grind, targetParamsDefEq.eq_1] =>
-      vcgen [targetParamsDefEq] <;> finish
-  | [], _ :: _, _, _ | _ :: _, [], _, _ => by
-    -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
-    simp only [targetParamsDefEq]
-    sym only [conleche_grind] => vcgen <;> finish
-  | _ :: as, _ :: bs, _, _ => by
-    sym only [conleche_grind, targetParamsDefEq.eq_2,
-        fun a (h : a.fvarB ≤ pfvs.length) =>
-          habs _ (targetCanonParams_WScoped hp a (fvarB_le h))] =>
-      vcgen [targetParamsDefEq, inferS_spec hμ henv, defeqS_spec hμ henv,
-        targetParamsDefEqS_spec hμ henv habs hp as bs] <;> finish
+        Runs (targetParamsDefEq (fueledOpsM mode) env d absM pfvs as bs) v; ⊤⦄ := by
+  intro as
+  induction as with
+  | nil =>
+    intro bs
+    cases bs with
+    | nil =>
+      intro _ _
+      sym only [conleche_grind, targetParamsDefEq.eq_1] =>
+        vcgen [targetParamsDefEq] <;> finish
+    | cons _ _ =>
+      intro _ _
+      -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
+      simp only [targetParamsDefEq]
+      sym only [conleche_grind] => vcgen <;> finish
+  | cons a as ih =>
+    intro bs
+    cases bs with
+    | nil =>
+      intro _ _
+      -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
+      simp only [targetParamsDefEq]
+      sym only [conleche_grind] => vcgen <;> finish
+    | cons b bs =>
+      intro _ _
+      sym only [conleche_grind, targetParamsDefEq.eq_2,
+          fun a (h : a.fvarB ≤ pfvs.length) =>
+            habs _ (targetCanonParams_WScoped hp a (fvarB_le h))] =>
+        vcgen [targetParamsDefEq, inferS_spec hμ henv, defeqS_spec hμ henv, ih bs] <;> finish
 
 /-- The class match: the class's openers and parameters scoped by the
 block's parameters, the formers closed. -/
@@ -120,13 +134,16 @@ theorem targetMajorNfsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF en
       ⦃fun s => s = s₀⦄
         targetMajorNfs (sharedOpsC mode (mkFEnv env)) env p formerTys pfvs us ds ctors es
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (targetMajorNfs (fueledOpsM mode) env p formerTys pfvs us ds ctors es) v; ⊤⦄
-  | [], _, _ => by
+        Runs (targetMajorNfs (fueledOpsM mode) env p formerTys pfvs us ds ctors es) v; ⊤⦄ := by
+  intro es
+  induction es with
+  | nil =>
+    intro _ _
     sym only [conleche_grind, targetMajorNfs.eq_1] => vcgen [targetMajorNfs] <;> finish
-  | _ :: es, _, hs => by
+  | cons _ es ih =>
+    intro _ hs
     sym only [conleche_grind, targetMajorNfs.eq_2] =>
-      vcgen [targetMajorNfs, targetMajorNfsS_spec hμ henv hformer hp es hs,
-        targetClassMatchS_spec hμ henv hformer hp] <;> finish
+      vcgen [targetMajorNfs, ih hs, targetClassMatchS_spec hμ henv hformer hp] <;> finish
 
 theorem targetMajorOfS_spec {p : BlockShape}
     {ctorsAs : List (List (ConstantVal × Nat))} {pfvs fvs : List Expr} {mty : Expr}
@@ -142,12 +159,16 @@ theorem targetMajorOfS_spec {p : BlockShape}
 theorem targetPinTysS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} :
     ∀ {xs : List Expr}, AllWS d xs → ∀ {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ targetPinTys (sharedOpsC mode (mkFEnv env)) env d xs
-      ⦃fun v s' => CSOK mode env s' ∧ Runs (targetPinTys (fueledOpsM mode) env d xs) v; ⊤⦄
-  | [], _, _, _ => by
+      ⦃fun v s' => CSOK mode env s' ∧ Runs (targetPinTys (fueledOpsM mode) env d xs) v; ⊤⦄ := by
+  intro xs
+  induction xs with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, targetPinTys.eq_1] => vcgen [targetPinTys] <;> finish
-  | _ :: xs, _, _, _ => by
+  | cons _ xs ih =>
+    intro _ _ _
     sym only [conleche_grind, targetPinTys.eq_2] =>
-      vcgen [targetPinTys, inferS_spec hμ henv, targetPinTysS_spec hμ henv (xs := xs)] <;>
+      vcgen [targetPinTys, inferS_spec hμ henv, ih] <;>
         finish
 
 /-- `targetMajorPins` at the cached driver: nothing at a member, the
@@ -194,37 +215,6 @@ end Sims
 /-! ### The rule stage: two environments, one state (`SimG`, `BlockRunC.lean`) -/
 
 /-! ## 3. The assembly -/
-
-/-- `SimG.bind` that remembers the first component's fueled run. -/
-theorem SimG.bindR {A B C : CState → Prop} {β β' α α' : Type} {P : β → α → Prop}
-    {Q : β' → α' → Prop} {c : CheckCM β} {k : β → CheckCM β'} {p : FueledM α}
-    {q : α → FueledM α'} (hx : SimG A B P c p)
-    (hf : ∀ b a, P b a → (∃ F, p.val F = .ok a) → SimG B C Q (k b) (q a)) :
-    SimG A C Q (c >>= k) (p >>= q) := by
-  intro s₀ hs v' s' hr
-  simp only [Bind.bind, StateT.bind] at hr
-  cases hc : c s₀ with
-  | error e => rw [hc] at hr; exact nomatch hr
-  | ok pr =>
-    obtain ⟨b, s₁⟩ := pr
-    rw [hc] at hr
-    dsimp only [Except.bind] at hr
-    obtain ⟨hs₁, a, hP, F₁, hp₁⟩ := hx s₀ hs b s₁ hc
-    obtain ⟨hs', a', hQ, F₂, hp₂⟩ := hf b a hP ⟨F₁, hp₁⟩ s₁ hs₁ v' s' hr
-    refine ⟨hs', a', hQ, max F₁ F₂, ?_⟩
-    rw [FueledM.atF_bind]
-    simp only [Bind.bind]
-    rw [p.property (Nat.le_max_left F₁ F₂) hp₁]
-    dsimp only [Except.bind]
-    exact (q a).property (Nat.le_max_right F₁ F₂) hp₂
-
-/-- The stage's closing flush: the pure side's is no operation. -/
-theorem flushC_simG : SimG CSOKF CSOKF RelVC flushC (Pure.pure () : FueledM Unit) := by
-  intro s₀ hs v' s' hr
-  rw [flushC_run] at hr
-  injection hr with hr
-  obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-  exact ⟨hs.flushed, (), rfl, 0, rfl⟩
 
 /-- The shared operations read the index only through `find?`
 (`coreKnotI_congr`). -/

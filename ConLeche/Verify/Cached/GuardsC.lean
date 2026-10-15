@@ -766,13 +766,6 @@ theorem rawNatLitC?_spec (e : Expr) :
   | _ => rfl
 
 open Expr in
-/-- `rawNatLitC?_spec` transported along the value equation the
-simulation carries. -/
-theorem rawNatLitC?_spec' {w : Expr} {wx : Expr}
-    (h : w = wx) : rawNatLitC? w = rawNatLit? wx := by
-  rw [rawNatLitC?_spec, h]
-
-open Expr in
 /-- The constructor-application guard agrees with the spec's
 `isCtorApp` on the erasure.  Unlike the two above it reads the
 *spine head*. -/
@@ -793,13 +786,6 @@ theorem isCtorAppC_spec {env : Env} {e : Expr} :
     rw [mkFEnv_find?]
     rfl
   | _ => rfl
-
-open Expr in
-/-- `isCtorAppC_spec` transported along the value equation. -/
-theorem isCtorAppC_spec' {env : Env} {e : Expr} {ex : Expr}
-    (h : e = ex) :
-    isCtorAppC (mkFEnv env) e = isCtorApp env ex := by
-  rw [isCtorAppC_spec, h]
 
 /-- The eta constructor-shape gate agrees with the spec's `etaCtorShape`
 (`Expr = Expr`; only the environment lookup differs). -/
@@ -838,13 +824,6 @@ theorem headHintC_spec {env : Env} {e : Expr} :
   | _ => rfl
 
 open Expr in
-/-- `headHintC_spec` transported along the value equation. -/
-theorem headHintC_spec' {env : Env} {e : Expr} {ex : Expr}
-    (h : e = ex) :
-    headHintC (mkFEnv env) e = headHint env ex := by
-  rw [headHintC_spec, h]
-
-open Expr in
 /-- The lazy-delta unfoldability decision agrees with the spec's
 `unfoldableHead` on the erasure (again a spine-head read). -/
 theorem unfoldableHeadC_spec {env : Env} {e : Expr} :
@@ -864,13 +843,6 @@ theorem unfoldableHeadC_spec {env : Env} {e : Expr} :
     | none => rfl
     | some ci => cases ci <;> rfl
   | _ => rfl
-
-open Expr in
-/-- `unfoldableHeadC_spec` transported along the value equation. -/
-theorem unfoldableHeadC_spec' {env : Env} {e : Expr} {ex : Expr}
-    (h : e = ex) :
-    unfoldableHeadC (mkFEnv env) e = unfoldableHead env ex := by
-  rw [unfoldableHeadC_spec, h]
 
 /-- **The `And`-rescue gate through the index is the spec's gate**:
 both sides are `andRescueSlotsOf` at a lookup, and the index's lookup
@@ -905,32 +877,11 @@ theorem sameConstHeadsC_spec {a b : Expr} :
   | _ => cases b <;> rfl
 
 open Expr in
-/-- `sameConstHeadsC_spec` transported along the value equations. -/
-theorem sameConstHeadsC_spec' {a b : Expr} {xa xb : Expr}
-    (h₁ : a = xa) (h₂ : b = xb) :
-    sameConstHeadsC a b = sameConstHeads xa xb := by
-  rw [sameConstHeadsC_spec, h₁, h₂]
-
-open Expr in
-/-- The `O(1)` eager fvar-range field is exact (`fvarB_eq _`), so its
-non-zeroness is the spec's `Expr.hasFvar`. -/
-theorem hasFvar_spec' {e : Expr} {ex : Expr}
-    (h : e = ex) : Expr.hasFvar e = ex.hasFvar := by
-  rw [h]
-
-open Expr in
 /-- `Expr.wscopedBC_spec` transported along the value equation. -/
 theorem wscopedB_spec' {d : Nat} {e : Expr} {ex : Expr}
     (h : e = ex) :
     Expr.wscopedBC d e = ex.wscopedB d := by
   rw [Expr.wscopedBC_spec, h]
-
-open Expr in
-/-- `Expr.looseBVarsBounded` transported along the value equation. -/
-theorem looseBVarsBounded_spec' {k : Nat} {e : Expr}
-    {ex : Expr} (h : e = ex) :
-    Expr.looseBVarsBounded k e = ex.looseBVarsBounded k := by
-  rw [h]
 
 open Expr in
 /-- `Expr.leafGuard_spec` transported along the value equations. -/

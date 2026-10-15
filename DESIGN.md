@@ -106202,3 +106202,144 @@ which `memoEI_whnf_spec` 0.29 G → 0.35 G and its three support lemmas
 (`scripts/twin-census.py`) of the converted code: DiscC4's block 127
 proof / 41 statement lines → 39 / 31 (+2 vocabulary), the memo wrapper
 43 / 9 → 19 / 15 (+4).
+
+## TASK #356 — the cached simulation by `vcgen` and `grind`: the conversion and its retrospective (2026-10-15, agent/356-vcgen-grind)
+
+**What changed.**  Every simulation walk of the cached checker against the
+pure one (`ConLeche/Verify/Cached/*`, the twin's "Theorem 1") is a
+`Std.WP` triple `⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v ∧ W v; ⊤⦄`
+proved by `sym only [conleche_grind, …] => vcgen [f, callee specs, IHs…] <;> finish`
+(one per arm or induction case): about 240 such theorems.  The hand-built
+`SimC.bind`/`bind_left`/`pure` chains (~1 200 combinator applications,
+~830 `cases`/`obtain` mirroring the program) are gone.  `SimC`/`CEff`
+keep their run-based definitions for the run-level consumers (the knot's
+`ssimC_all`, `inferLams/PisC_tail_sim`, the `_run` theorems Model's
+`InstallRun` reads, `SimG`, `SimC.orElse` — error recovery, which a `⊤`
+exception post cannot describe); `triple_iff_run` is the bridge.  No
+custom tactic, macro or elab: the one meta line is
+`register_grind_attr conleche_grind`.  CLAUDE.md has the rules
+("The cached simulation proofs").
+
+**How.**  The spike (record above), then lanes in parallel worktrees:
+L1 DiscC3 (the calibration on the constructor-dispatch class, GO),
+L2 KnotC/SimCEff/SimCS, L3 BinderLoopC/TargetRecC/BlockRunC/BridgeCS1/
+BridgeCS3, L4 DiscC1/DiscC2, L5 NestPosC/GenRecC, L6 BridgeC/InstalledC
+(BridgeCS2 deleted: nothing called it), then L7 the rest of DiscC4 and L8
+DiscC5, then a consolidation pass (vocabulary hoisted into `Grind.lean`,
+~100 dead declarations deleted, 44 recursive triples moved from recursive
+pattern matching to `induction`).  The one recurring cost was
+coordination: lanes that started before others landed stated the same
+adapters under the same names; the fix that worked was to have the lane
+merge the integration branch into itself and reconcile.
+
+**The rules that made the hard class close** (L1, confirmed by L7/L8).
+DiscC3's first naive attempt (unfold the pure `iotaRec`, one `vcgen`)
+cost ~836 G and left 59 conditions; with these it costs 13.6 G:
+1. the pure side's nested `match` never reaches `grind`: one equation per
+   arm the cached walk reaches, hypotheses = that arm's, registered as a
+   guarded multi-pattern; fall-through arms as conditional equations,
+   which `grind` discharges; a one-level `match` with a known
+   discriminant may be unfolded as is (DiscC4's nine-way `inferBody`
+   closed that way, with no arm equations);
+2. the blocks between arms named, on BOTH sides, with `rfl`
+   restatements, each its own triple (L8: naming only the pure side of
+   `defeqBody` still failed at `gen := 13`);
+3. every `fun` named (`grind` does no congruence under binders), every
+   mode gate named (an `ite` is not a pattern);
+4. callee posts over the program's own arguments, callee specs in the
+   `vcgen` list without the initial `hs`, `(mode := mode) (env := env)`
+   pins;
+5. loop IHs and memo bodies as named predicates (`BodySpec`, `LamsSpec`):
+   a `∀`-triple in the context is instantiated everywhere and `grind`
+   splits on the equality of the posts' lambdas (one variant: a 167 G
+   heartbeat timeout).
+
+**Retrospective: the numbers.**  `scripts/twin-measure.sh`
+(`instructions:u` of `lake env lean` per module, imports loaded; one run
+each) and `scripts/twin-census.py` (non-comment lines by class), base =
+master b5d7c9f38, after = the landed tree.
+
+| | before | after |
+|---|---:|---:|
+| all 34 `Verify/Cached` modules, elaboration | 552.0 G | 388.7 G (0.70×) |
+| the 20 converted modules (+ `Grind`, `GrindAttr`; `BridgeCS2` deleted) | 368.0 G | 204.8 G (0.56×) |
+| the 15 untouched modules | 184.0 G | 184.0 G |
+| converted modules: proof lines | 8 880 | 3 283 (−63 %) |
+| converted modules: statement/definition lines | 2 121 | 2 729 (+29 %) |
+| converted modules: `grind` vocabulary lines | 0 | 337 |
+| converted modules: meta lines | 0 | 1 |
+| all of `Verify/Cached`, non-comment lines | 16 298 | 11 602 (−29 %) |
+
+Per module (G, before → after): DiscC5 217.38 → 19.32 (0.09×: its
+`defeqStuckC_sim` alone was 209 G, a 12×12 constructor split; the triple
+is ~4.7 G), DiscC3 20.01 → 13.60 (0.68×), DiscC4 20.56 → 18.15 (0.88×),
+SimC 2.97 → 2.49, SimCEff 8.54 → 8.38, NestPosC 20.81 → 21.16, TargetRecC
+12.85 → 13.53, KnotC 3.93 → 4.45, SimCS 1.60 → 1.73, DiscC2 6.27 → 8.69
+(1.38×), BlockRunC 6.16 → 9.76 (1.58×), BridgeC 6.26 → 10.18 (1.63×),
+BinderLoopC 4.04 → 6.62 (1.64×), GenRecC 18.14 → 29.85 (1.65×),
+InstalledC 2.94 → 4.99 (1.70×), BridgeCS1 3.74 → 7.33 (1.96×), DiscC1
+6.98 → 13.78 (1.97×), BridgeCS3 3.26 → 6.97 (2.14×, the one module over
+the ~2× gate: ~2 G of it is `checkSumCtorS_spec`, a ten-bind pure chain
+that needs `gen := 13`), Grind 2.78 and GrindAttr 1.00 (new).  The
+pattern: on long or dispatch-heavy walks `grind` in one E-graph is far
+cheaper than the hand chains (and than the hand proofs' case splits); on
+short walks the old chains were cheap and `vcgen` pays ~0.1 G per
+`if`/`match` it splits, so they rose 1.4–2.1×.
+
+Statements grew because of the restatements rule 2 asks for, the named
+predicates and the unfolding equations; proofs shrank to 1–3 lines per
+walk (e.g. `majorToCtorC`: ~450 lines → 2 + named blocks; `inferSpineC`:
+~480 → an `induction` with two 2-line arms; `iotaRecC`: ~230 → 2).
+
+**Retrospective: was everything mechanical automated?**  Every walk that
+was a simulation of one program by another is now closed by `finish`;
+none was left with a hand-written case analysis.  What remains by hand,
+classified by the lanes:
+* *real mathematics* (now separate lemmas, was inline): scope facts
+  (`wscoped_peel`, `wscoped_instantiateList`, `divModCertApplied_wscoped`,
+  the opened-telescope lemmas), the memo tables' backing invariants,
+  `classMajScoped_of_shape`, `envWF_ruleEnv`, `blockNestCtx_ok`;
+* *structural*: the arm equations and named blocks of rule 1–2, the
+  named IH/body predicates, the run-form corollaries the Model tier
+  reads (two lines each from the triple plus a fuel lemma);
+* *automation gaps* in `vcgen` (each worked around, six with a minimal
+  reproducer under `_tmp/356-repro/`, re-checked on v4.35.0):
+  conditional fall-through equations give "No spec found" (one
+  unconditional unfolding equation per cached function); an equation
+  whose left side is an `ite` is ignored (the `ite` is split first); a
+  call through a structure projection (`(sharedOpsC …).isDefEq`) or with
+  a projected argument (`(mkFEnv env).env`) does not find a spec stated
+  at the reduct (specs restated at the projection form); a callee
+  argument fixed only by the spec's precondition stays a metavariable
+  (posts restated over the program's own arguments); a pattern-lambda
+  elaborated in another module has another matcher and the spec does not
+  apply (the lambda named).  Plus `modifyGet fun s => match …` is one
+  opaque step (restated with `get`/`set`; the toy does not fail, only
+  `isEquivLM` does, so no reproducer).
+* `grind` limits: 11 raises remain (`gen := 12/13`, `ematch := 8`), all
+  for the same reason — the pure side is evaluated one bind per
+  E-matching round (`Runs.bind_eq`) and long bind chains exceed the
+  default generation — each commented, each re-tried and failing at the
+  default.
+
+**Negative results.**  `vcgen` frames were not tried (con-ron #122's
+analysis applies unchanged: the invariant is precondition-dependent).  A
+`LawfulMonad` instance for `FueledM` (so `grind` could reassociate
+pure-side binds) changed nothing measurable (±0.001 G on two theorems)
+and dropped no limit; not kept.
+
+**Side fixes.**  Four modules imported one module twice
+(`Model/IndTele`, `Model/Inductives/TargetClasses`, `…/TargetResidue`,
+`Semantics/IndBlockFacts`) — the cause of `tests/shake.sh` printing more
+proposals than allowlist matches; the duplicates are gone and the script
+counts distinct proposals and builds the `ConLeche.PinGen*` modules it
+needs.  `scripts/pub-import-plan.py` gained one fallback entry
+(TargetAuxFire's `RecStage` import, which the model reads as demotable
+and the build needs).  Dead by this task outside `Verify/Cached`, deleted:
+`CheckerSplit`'s `installHeader/installValueGuards/checkValueGroup_of_facts`,
+`certAtI_of`, `CheckMode.verified_cases`.
+
+**Gates.**  `lake build`, `lake test` warning-free; `tests/arena.sh`
+green (layering, shake, trust surface, links, quote, whitepaper,
+challenge, selfcheck, e2e 487/487).  No `sorry`, no new axioms (the
+capstones' axiom pins in `tests/ConLecheTests/Axioms.lean` unchanged).

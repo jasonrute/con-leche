@@ -38,7 +38,11 @@ open scoped Lean.Order
 
 variable {mode : CheckMode}
 
-/-! ## Vocabulary candidates (for Grind.lean) -/
+/-! ## The defeq family's vocabulary
+
+The pairs its loops hand on as named scope predicates (`OptLamPairWS`,
+`StepPairWS`, `LazyPairWS`), and the head readers' cached twins as
+equations. -/
 
 section Vocabulary
 

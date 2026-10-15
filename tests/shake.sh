@@ -85,6 +85,15 @@ cd "$(dirname "$0")/.."
 ROOTS="ConLeche.MainTheorem ConLeche.Verify.Cached ConLeche.Model ConLeche.Semantics ConLeche.Complete
        ConLeche.SetModel ConLeche.Term ConLeche ConLeche.PinGen.Certs Main"
 
+# `lake build` leaves out the pin generator's modules, which both halves
+# read (`ConLeche.PinGen.Certs` is a shake root; the census imports every
+# module of the tree); building them is a no-op once they are built.
+if ! lake build ConLeche.PinGen ConLeche.PinGen.Prelude ConLeche.PinGen.Dump \
+     ConLeche.PinGen.Certs > /dev/null 2>&1; then
+  echo 'SHAKE GATE ERROR — could not build the ConLeche.PinGen modules'
+  exit 3
+fi
+
 ALLOW=tests/shake-allowlist.txt
 WORK=${PUBPLAN_DIR:-_tmp/shake-gate}
 mkdir -p "$WORK" || exit 3
@@ -116,6 +125,11 @@ for line in open(shake_out).read().split('\n'):
         for item in body.split(', '):
             if item.strip():
                 props.append((cur, item.strip()))
+# A module that imports the same module twice gets one proposal per copy;
+# the allowlist is a set, so it counts the pair once.  Count distinct
+# proposals and name the duplicated import lines (delete the second copy).
+dups = sorted({p for p in props if props.count(p) > 1})
+props = sorted(set(props))
 new = [p for p in props if p not in allowed]
 stale = sorted(allowed - set(props))
 if new:
@@ -130,6 +144,11 @@ if stale:
     for f, i in stale:
         print(f'    {f}: {i}')
     print(f'    Delete them from {allow_path}.')
+if dups:
+    print(f'shake: {len(dups)} import line(s) appear twice in their module '
+          '(shake proposes removing each copy):')
+    for f, i in dups:
+        print(f'    {f}: {i}')
 if not new and not stale:
     print(f'shake: {len(props)} removals proposed, all {len(allowed)} allowlisted')
 sys.exit(1 if (new or stale) else 0)

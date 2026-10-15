@@ -15,7 +15,6 @@ import ConLeche.Verify.Abstract
 import ConLeche.Verify.Subst
 import ConLeche.Verify.EnvWF
 import ConLeche.Verify.Extend.Inversions
-import ConLeche.Verify.Subst
 
 public section
 

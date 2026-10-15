@@ -22,9 +22,6 @@ set_option linter.unusedSimpArgs false
 
 namespace ConLeche.Cached
 
-theorem throwC_bind_eq {α β : Type} (e : CheckError)
-    (f : α → CheckCM β) : ((throw e : CheckCM α) >>= f) = throw e := rfl
-
 
 open ConLeche
 
@@ -47,8 +44,7 @@ theorem installBasisDeclF_pushC (env : Env) (ci : ConstantInfo) :
     (installBasisDeclF (mkFEnv env) ci : CheckCM FEnv)
       = installBasisDecl env ci >>= fun e => pure (mkFEnv e) := by
   unfold installBasisDeclF installBasisDecl
-  simp only [mkFEnv_find?, push_mkFEnv, pure_bind, ite_bindC,
-    throwC_bind_eq] <;> rfl
+  simp only [mkFEnv_find?, push_mkFEnv, pure_bind, ite_bindC] <;> rfl
 
 theorem installBasisFoldF_pushC :
     ∀ (l : List ConstantInfo) (env : Env),
@@ -87,7 +83,7 @@ theorem checkStructProjTableF_pushC (T C : Name) (lps : List Name)
           >>= fun e => pure (mkFEnv e) := by
   unfold checkStructProjTableF checkStructProjTable
   simp only [StructWalkers.plain, constsResolveF_eq, mkFEnv_find?, push_mkFEnv, bind_assoc,
-    pure_bind, ite_bindC, throwC_bind_eq] <;> rfl
+    pure_bind, ite_bindC] <;> rfl
 
 /-! ## The direct simple-structure install (task #82; the direct install
 is the only projection route) -/

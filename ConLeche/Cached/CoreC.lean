@@ -279,11 +279,6 @@ constant `true`, by `rfl`. -/
 @[simp] theorem certAtI_verified (c : CheckCM Bool) :
     certAtI .verified c = c := rfl
 
-/-- At any mode that runs the verified checks — `.verified` or its
-eager tower (task #353) — the wrapper is the certificate. -/
-theorem certAtI_of {mode : CheckMode} (h : mode.verifiedChecks = true)
-    (c : CheckCM Bool) : certAtI mode c = c := by
-  simp only [certAtI, h, ↓reduceIte]
 /-- Twin of `propIrrel` (task #168): the hoisted `Prop`-branch test
 with both head-symbol arms.  Ungated since 2026-09-06 — the readers
 run in both modes, so this body takes no `CheckMode` at all. -/

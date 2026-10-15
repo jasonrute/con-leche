@@ -16,7 +16,7 @@ public section
 `checkBlockKS` (`ConLeche/Cached/CheckerC.lean`), the cached mirror of
 the uniform installer at any number of members, is reproduced by the
 pure fueled `checkBlock`.  This file holds the stages' simulations and
-the `SimG` kit; the pass (`checkBlockPassS_run`, which checks the
+the rule stage's `SimG`; the pass (`checkBlockPassS_run`, which checks the
 classes), the recursor stage, its install and the `.indDecl` dispatch
 (`checkBlockTailS_run`, `checkBlockKS_run`, `checkModeledOrNativeSF_run`)
 are in `ConLeche/Verify/Cached/GenRecC.lean`.
@@ -24,17 +24,17 @@ are in `ConLeche/Verify/Cached/GenRecC.lean`.
 The file follows `BridgeCSDecl.lean`'s layout:
 
 1. the index mirrors at `mkFEnv` ARE the pure stages (`*_eqC`);
-2. the scoping facts every cached operation's simulation needs
-   (`SimC`, `ConLeche/Verify/Cached/SimC.lean`, is stated at well-scoped
-   inputs);
-3. the single-environment stages as `SimC`s;
+2. the scoping facts every cached operation's triple needs (they are
+   stated at well-scoped inputs);
+3. the single-environment stages as `Std.WP` triples, proved by `vcgen`
+   and `grind`;
 4. the rule stage, whose one rule alternates between the rule-less
-   recursors' environment and the constructors' (`sharedOpsRuleR`'s
-   flushes are what make that a chain of `SimC`s);
+   recursors' environment and the constructors' (`SimG`, a run-level
+   simulation whose invariant may change at `sharedOpsRuleR`'s
+   flushes);
 5. the assembly, and the dispatch.
 -/
 
-set_option linter.unusedSimpArgs false
 set_option experimental.vcgen true
 
 namespace ConLeche.Cached
@@ -177,14 +177,17 @@ theorem checkBlockTelesS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF e
     ∀ {mss : List MemberShape} {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockTeles (sharedOpsC mode (mkFEnv env)) env nP mss
       ⦃fun v s' => CSOK mode env s' ∧ Runs (checkBlockTeles (fueledOpsM mode) env nP mss) v ∧
-        CvsWS (v.map Prod.fst); ⊤⦄
-  | [], _, _ => by
+        CvsWS (v.map Prod.fst); ⊤⦄ := by
+  intro mss
+  induction mss with
+  | nil =>
+    intro _ _
     sym only [conleche_grind, checkBlockTeles.eq_1, List.map_nil] =>
       vcgen [checkBlockTeles] <;> finish
-  | _ :: rest, _, _ => by
+  | cons _ rest ih =>
+    intro _ _
     sym only [conleche_grind, checkBlockTeles.eq_2, List.map_cons] =>
-      vcgen [checkBlockTeles, checkBlockTeleS_spec hμ henv,
-        checkBlockTelesS_spec hμ henv (mss := rest)] <;> finish
+      vcgen [checkBlockTeles, checkBlockTeleS_spec hμ henv, ih] <;> finish
 
 theorem checkBlockDomsAtS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {off : Nat}
     {fvs doms : List Expr}
@@ -193,13 +196,16 @@ theorem checkBlockDomsAtS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF 
     ∀ {j : Nat} {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockDomsAt (sharedOpsC mode (mkFEnv env)) env off fvs doms j
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkBlockDomsAt (fueledOpsM mode) env off fvs doms j) v; ⊤⦄
-  | 0, _, _ => by
+        Runs (checkBlockDomsAt (fueledOpsM mode) env off fvs doms j) v; ⊤⦄ := by
+  intro j
+  induction j with
+  | zero =>
+    intro _ _
     sym only [conleche_grind, checkBlockDomsAt.eq_1] => vcgen [checkBlockDomsAt] <;> finish
-  | j + 1, _, _ => by
+  | succ j ih =>
+    intro _ _
     sym only [conleche_grind, checkBlockDomsAt.eq_2, unwrapOr] =>
-      vcgen [checkBlockDomsAt, unwrapOr, defeqS_spec hμ henv,
-        checkBlockDomsAtS_spec hμ henv hc ht (j := j)] <;> finish
+      vcgen [checkBlockDomsAt, unwrapOr, defeqS_spec hμ henv, ih] <;> finish
 
 theorem checkBlockAgreeS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
     {cvTa0 : ConstantVal} {s0 : Level} (h0 : WScoped 0 cvTa0.type) :
@@ -207,13 +213,18 @@ theorem checkBlockAgreeS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF e
       CvsWS (cvs.map Prod.fst) → CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockAgree (sharedOpsC mode (mkFEnv env)) env nP cvTa0 s0 cvs
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkBlockAgree (fueledOpsM mode) env nP cvTa0 s0 cvs) v; ⊤⦄
-  | [], _, _, _ => by
+        Runs (checkBlockAgree (fueledOpsM mode) env nP cvTa0 s0 cvs) v; ⊤⦄ := by
+  intro cvs
+  induction cvs with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, checkBlockAgree.eq_1] => vcgen [checkBlockAgree] <;> finish
-  | (_, _) :: rest, _, _, _ => by
+  | cons x rest ih =>
+    obtain ⟨cvTa, s⟩ := x
+    intro _ _ _
     sym only [conleche_grind, checkBlockAgree.eq_2, unwrapOr, List.map_cons] =>
-      vcgen [checkBlockAgree, unwrapOr, checkBlockDomsAtS_spec hμ henv, liftFueledS_spec (mode := mode) (env := env),
-        checkBlockAgreeS_spec hμ henv h0 (cvs := rest)] <;> finish
+      vcgen [checkBlockAgree, unwrapOr, checkBlockDomsAtS_spec hμ henv,
+        liftFueledS_spec (mode := mode) (env := env), ih] <;> finish
 
 theorem checkBlockIndsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {p : BlockParts} {isRec : Bool} {s₀ : CState} (hs : CSOK mode env s₀) :
@@ -230,15 +241,19 @@ theorem checkBlockCtorsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF e
       (∀ x ∈ l, x.2.type.hasFvar = false) → CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockCtors (sharedOpsC mode (mkFEnv env)) env₀ env p l
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkBlockCtors (fueledOpsM mode) env₀ env p l) v; ⊤⦄
-  | [], _, _, _ => by
+        Runs (checkBlockCtors (fueledOpsM mode) env₀ env p l) v; ⊤⦄ := by
+  intro l
+  induction l with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, checkBlockCtors.eq_1] => vcgen [checkBlockCtors] <;> finish
-  | (ms, cvTa) :: rest, _, hl, _ => by
+  | cons x rest ih =>
+    obtain ⟨ms, cvTa⟩ := x
+    intro _ hl _
     sym only [conleche_grind, checkBlockCtors.eq_2] =>
       vcgen [checkBlockCtors, checkSumCtorsS_spec hμ henv
           (show cvTa.type.hasFvar = false from hl (ms, cvTa) List.mem_cons_self),
-        checkBlockCtorsS_spec hμ henv (l := rest)
-          (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
+        ih (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
 
 /-- An opened telescope's variables past a prefix carry types scoped at
 their own frame. -/
@@ -258,15 +273,19 @@ theorem checkBlockIdxSortsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvW
       (∀ x ∈ l, WScoped 0 x.2.type) → CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockIdxSorts (sharedOpsC mode (mkFEnv env)) env p l
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkBlockIdxSorts (fueledOpsM mode) env p l) v; ⊤⦄
-  | [], _, _, _ => by
+        Runs (checkBlockIdxSorts (fueledOpsM mode) env p l) v; ⊤⦄ := by
+  intro l
+  induction l with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, checkBlockIdxSorts.eq_1] => vcgen [checkBlockIdxSorts] <;> finish
-  | (ms, cvTa) :: rest, _, hl, _ => by
+  | cons x rest ih =>
+    obtain ⟨ms, cvTa⟩ := x
+    intro _ hl _
     sym only [conleche_grind, checkBlockIdxSorts.eq_2, unwrapOr, FvsWS,
         show WScoped 0 cvTa.type from hl (ms, cvTa) List.mem_cons_self] =>
       vcgen [checkBlockIdxSorts, unwrapOr, checkStructFieldSortsIS_spec hμ henv,
-        checkBlockIdxSortsS_spec hμ henv (l := rest)
-          (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
+        ih (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
 
 end Sims
 
@@ -285,76 +304,12 @@ chain of operations can change environment where a flush lets it. -/
     (p : FueledM α) : Prop :=
   ∀ s₀, Pre s₀ → ∀ v' s', c s₀ = .ok (v', s') → Post s' ∧ ∃ v, P v' v ∧ ∃ F, p.val F = .ok v
 
-namespace SimG
-
-variable {A B C : CState → Prop}
-
-theorem ofC {env : Env} {β α : Type} {P : β → α → Prop} {c : CheckCM β} {p : FueledM α}
-    (h : ∀ s₀, CSOK mode env s₀ → SimC mode env s₀ P c p) :
-    SimG (CSOK mode env) (CSOK mode env) P c p :=
-  fun s₀ hs v' s' hr => h s₀ hs v' s' hr
-
-theorem pure {β α : Type} {P : β → α → Prop} {b : β} {a : α} (hAB : ∀ s, A s → B s)
-    (h : P b a) : SimG A B P (Pure.pure b) (Pure.pure a) := by
-  intro s₀ hs v' s' hr
-  simp only [Pure.pure, StateT.pure, Except.pure, Except.ok.injEq] at hr
-  obtain ⟨rfl, rfl⟩ := Prod.mk.injEq .. ▸ hr
-  exact ⟨hAB _ hs, a, h, 0, rfl⟩
-
-theorem throw_bind {β β' α : Type} {P : β' → α → Prop} {er : CheckError}
-    {k : β → CheckCM β'} {p : FueledM α} :
-    SimG A B P ((throw er : CheckCM β) >>= k) p := by
-  intro s₀ _ v' s' hr
-  exact nomatch hr
-
-theorem throw {β α : Type} {P : β → α → Prop} {er : CheckError} {p : FueledM α} :
-    SimG A B P (throw er : CheckCM β) p := by
-  intro s₀ _ v' s' hr
-  exact nomatch hr
-
-theorem bind {β β' α α' : Type} {P : β → α → Prop} {Q : β' → α' → Prop}
-    {c : CheckCM β} {k : β → CheckCM β'} {p : FueledM α} {q : α → FueledM α'}
-    (hx : SimG A B P c p) (hf : ∀ b a, P b a → SimG B C Q (k b) (q a)) :
-    SimG A C Q (c >>= k) (p >>= q) := by
-  intro s₀ hs v' s' hr
-  simp only [Bind.bind, StateT.bind] at hr
-  cases hc : c s₀ with
-  | error e => rw [hc] at hr; exact nomatch hr
-  | ok pr =>
-    obtain ⟨b, s₁⟩ := pr
-    rw [hc] at hr
-    dsimp only [Except.bind] at hr
-    obtain ⟨hs₁, a, hP, F₁, hp₁⟩ := hx s₀ hs b s₁ hc
-    obtain ⟨hs', a', hQ, F₂, hp₂⟩ := hf b a hP s₁ hs₁ v' s' hr
-    refine ⟨hs', a', hQ, max F₁ F₂, ?_⟩
-    rw [FueledM.atF_bind]
-    simp only [Bind.bind]
-    rw [p.property (Nat.le_max_left F₁ F₂) hp₁]
-    dsimp only [Except.bind]
-    exact (q a).property (Nat.le_max_right F₁ F₂) hp₂
-
-theorem unwrapOr {α : Type} {o : Option α} {err : CheckError} (hAB : ∀ s, A s → B s) :
-    SimG A B (fun v w => v = w ∧ o = some v)
-      (ConLeche.unwrapOr o err : CheckCM α) (ConLeche.unwrapOr o err : FueledM α) := by
-  cases o with
-  | none => exact SimG.throw
-  | some a => exact SimG.pure hAB ⟨rfl, rfl⟩
-
-theorem mono {β α : Type} {P : β → α → Prop} {c : CheckCM β} {p : FueledM α}
-    {A' B' : CState → Prop} (h : SimG A B P c p) (hA : ∀ s, A' s → A s)
-    (hB : ∀ s, B s → B' s) : SimG A' B' P c p :=
-  fun s₀ hs v' s' hr =>
-    let ⟨h1, h2⟩ := h s₀ (hA s₀ hs) v' s' hr
-    ⟨hB s' h1, h2⟩
-
-end SimG
-
 /-- The rule stage's `inferType` at the rule-less recursors'
 environment: it flushes first and last, so it hands on a state that is
 an invariant state of ANY environment. -/
 theorem ruleR_infer_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR : EnvWF envR)
     (envT : Env) {d : Nat} {e : Expr} (hw : WScoped d e) :
-    SimG (CSOK mode envR) (CSOK mode envT) (RelW d)
+    SimG (CSOK mode envR) (CSOK mode envT) (RelEC d)
       ((sharedOpsRuleR mode (mkFEnv envR)).inferType envR d e)
       ((fueledOpsM mode).inferType envR d e) := by
   intro s₀ hs v' s' hr
@@ -365,13 +320,13 @@ theorem ruleR_infer_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR 
   obtain rfl : s₀.flushed = s₀' := congrArg Prod.snd hfl₀
   have hs₀' : CSOK mode envR s₀.flushed := flushC_csok hs.residue
   obtain ⟨t, s₁, hinf, hr⟩ := bindC_ok hr
-  obtain ⟨hs₁, w, hrel, F, hF⟩ := opE_infer_sim hμ henvR hs₀' hw t s₁ hinf
+  obtain ⟨hs₁, ⟨F, hF⟩, hwt⟩ := triple_iff_run.mp (opE_infer_spec hμ henvR hs₀' hw) t s₁ hinf
   obtain ⟨u, s₂, hfl, hr⟩ := bindC_ok hr
   rw [flushC_run] at hfl
   injection hfl with hfl
   obtain rfl : s₁.flushed = s₂ := congrArg Prod.snd hfl
   obtain ⟨rfl, rfl⟩ := pureC_ok hr
-  exact ⟨flushC_csok hs₁.residue, w, hrel, F, hF⟩
+  exact ⟨flushC_csok hs₁.residue, t, relEC_diag t hwt, F, hF⟩
 
 /-! ## 5. The assembly -/
 
