@@ -77,15 +77,19 @@ theorem certifyNatEqsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env
       ∀ {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ certifyNatEqs (sharedOpsC mode (mkFEnv env)) env eqs
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (certifyNatEqs (fueledOpsM mode) env eqs) v; ⊤⦄
-  | [], _, _, _ => by
+        Runs (certifyNatEqs (fueledOpsM mode) env eqs) v; ⊤⦄ := by
+  intro eqs
+  induction eqs with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, certifyNatEqs.eq_1] => vcgen [certifyNatEqs] <;> finish
-  | eq :: _, hsc, _, hs => by
+  | cons eq rest ih =>
+    intro hsc _ hs
     sym only [conleche_grind, certifyNatEqs.eq_2,
         Expr.WScoped.of_wscopedB (hsc eq List.mem_cons_self).1,
         Expr.WScoped.of_wscopedB (hsc eq List.mem_cons_self).2] =>
       vcgen [certifyNatEqs, defeqS_spec hμ henv hs,
-        certifyNatEqsS_spec hμ henv (fun e he => hsc e (List.mem_cons_of_mem _ he))] <;>
+        ih (fun e he => hsc e (List.mem_cons_of_mem _ he))] <;>
         finish
 
 /-- A certificate's applied proof is scoped at the certificate frame
@@ -113,21 +117,37 @@ theorem checkDivModCertsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF 
       ⦃fun s => s = s₀⦄
         checkDivModCerts (sharedOpsC mode (mkFEnv env)) env c annVal stmts proofs
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkDivModCerts (fueledOpsM mode) env c annVal stmts proofs) v; ⊤⦄
-  | [], [], _, _, _ => by
-    sym only [conleche_grind, checkDivModCerts.eq_1] => vcgen [checkDivModCerts] <;> finish
-  | [], _ :: _, _, _, _ | _ :: _, [], _, _, _ => by
-    -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
-    simp only [checkDivModCerts]
-    sym only [conleche_grind] => vcgen <;> finish
-  | (hyps, eqE) :: _, _ :: _, hsc, _, hs => by
-    sym only [conleche_grind, checkDivModCerts.eq_2,
-        divModCertApplied_wscoped hvf (hsc (hyps, eqE) List.mem_cons_self).1,
-        Expr.WScoped.of_wscopedB
-          (wscopedB_substConst0 hvf _ (hsc (hyps, eqE) List.mem_cons_self).2)] =>
-      vcgen [checkDivModCerts, inferS_spec hμ henv hs, defeqS_spec hμ henv,
-        checkDivModCertsS_spec hμ henv hvf
-          (fun st hst => hsc st (List.mem_cons_of_mem _ hst))] <;> finish
+        Runs (checkDivModCerts (fueledOpsM mode) env c annVal stmts proofs) v; ⊤⦄ := by
+  intro stmts
+  induction stmts with
+  | nil =>
+    intro proofs
+    cases proofs with
+    | nil =>
+      intro _ _ _
+      sym only [conleche_grind, checkDivModCerts.eq_1] => vcgen [checkDivModCerts] <;> finish
+    | cons _ _ =>
+      intro _ _ _
+      -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
+      simp only [checkDivModCerts]
+      sym only [conleche_grind] => vcgen <;> finish
+  | cons st stmts ih =>
+    intro proofs
+    cases proofs with
+    | nil =>
+      intro _ _ _
+      -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
+      simp only [checkDivModCerts]
+      sym only [conleche_grind] => vcgen <;> finish
+    | cons proof proofs =>
+      obtain ⟨hyps, eqE⟩ := st
+      intro hsc _ hs
+      sym only [conleche_grind, checkDivModCerts.eq_2,
+          divModCertApplied_wscoped hvf (hsc (hyps, eqE) List.mem_cons_self).1,
+          Expr.WScoped.of_wscopedB
+            (wscopedB_substConst0 hvf _ (hsc (hyps, eqE) List.mem_cons_self).2)] =>
+        vcgen [checkDivModCerts, inferS_spec hμ henv hs, defeqS_spec hμ henv,
+          ih (fun st hst => hsc st (List.mem_cons_of_mem _ hst))] <;> finish
 
 /-- **The variant-fallback combinator simulates** (task #273).  The
 cached attempt's success is reproduced by the fueled attempt (`hx`);
@@ -223,20 +243,24 @@ theorem checkDivModPinLoopS_spec (hμ : mode.verifiedChecks = true)
       ⦃fun s => s = s₀⦄
         checkDivModPinLoop (sharedOpsC mode (mkFEnv env)) env c value' pss tried
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkDivModPinLoop (fueledOpsM mode) env c value' pss tried') v; ⊤⦄
-  | [], _, _, _, _, _ => by
+        Runs (checkDivModPinLoop (fueledOpsM mode) env c value' pss tried') v; ⊤⦄ := by
+  intro pss
+  induction pss with
+  | nil =>
+    intro _ _ _ _ _
     sym only [conleche_grind, checkDivModPinLoop.eq_1] =>
       vcgen [checkDivModPinLoop] <;> finish
-  | ps :: rest, _, tried', _, hs, hvf => by
+  | cons ps rest ih =>
+    intro _ tried' _ hs hvf
     by_cases hping : (divModPinGuard ps env c && divModCertsGuard ps env c value') = true
     · sym only [conleche_grind, checkDivModPinLoop.eq_2] =>
         vcgen [checkDivModPinLoop, orElseS_spec hs
           (k' := fun r => checkDivModPinLoop (fueledOpsM mode) env c value' rest
             (tried' ++ [divModAttemptReason ps r]))
           (checkDivModPinAtS_spec hμ henv hc hvf hping hs)
-          (fun _ _ hs₁ => checkDivModPinLoopS_spec hμ henv hc rest _ _ hs₁ hvf)] <;> finish
+          (fun _ _ hs₁ => ih _ _ hs₁ hvf)] <;> finish
     · sym only [conleche_grind, checkDivModPinLoop.eq_2] =>
-        vcgen [checkDivModPinLoop, checkDivModPinLoopS_spec hμ henv hc rest _
+        vcgen [checkDivModPinLoop, ih _
           (tried' ++ [s!"{ps.toolchain}: pin or certificate ground constants absent"]) hs hvf] <;>
           finish
 
@@ -258,12 +282,16 @@ theorem installBasisFoldS_spec :
       CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ (cis.foldlM installBasisDecl env' : CheckCM Env)
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (cis.foldlM installBasisDecl env' : FueledM Env) v; ⊤⦄
-  | [], _, _, _ => by
+        Runs (cis.foldlM installBasisDecl env' : FueledM Env) v; ⊤⦄ := by
+  intro cis
+  induction cis with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, List.foldlM_nil] => vcgen [List.foldlM_nil] <;> finish
-  | _ :: cis, _, _, _ => by
+  | cons _ cis ih =>
+    intro _ _ _
     sym only [conleche_grind, List.foldlM_cons, installBasisDecl.eq_1] =>
-      vcgen [List.foldlM_cons, installBasisDecl, installBasisFoldS_spec cis] <;> finish
+      vcgen [List.foldlM_cons, installBasisDecl, ih] <;> finish
 
 end Walks1
 
