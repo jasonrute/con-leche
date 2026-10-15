@@ -81,20 +81,35 @@ theorem targetParamsDefEqS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF
       ⦃fun s => s = s₀⦄
         targetParamsDefEq (sharedOpsC mode (mkFEnv env)) env d absM pfvs as bs
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (targetParamsDefEq (fueledOpsM mode) env d absM pfvs as bs) v; ⊤⦄
-  | [], [], _, _ => by
-    sym only [conleche_grind, targetParamsDefEq.eq_1] =>
-      vcgen [targetParamsDefEq] <;> finish
-  | [], _ :: _, _, _ | _ :: _, [], _, _ => by
-    -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
-    simp only [targetParamsDefEq]
-    sym only [conleche_grind] => vcgen <;> finish
-  | _ :: as, _ :: bs, _, _ => by
-    sym only [conleche_grind, targetParamsDefEq.eq_2,
-        fun a (h : a.fvarB ≤ pfvs.length) =>
-          habs _ (targetCanonParams_WScoped hp a (fvarB_le h))] =>
-      vcgen [targetParamsDefEq, inferS_spec hμ henv, defeqS_spec hμ henv,
-        targetParamsDefEqS_spec hμ henv habs hp as bs] <;> finish
+        Runs (targetParamsDefEq (fueledOpsM mode) env d absM pfvs as bs) v; ⊤⦄ := by
+  intro as
+  induction as with
+  | nil =>
+    intro bs
+    cases bs with
+    | nil =>
+      intro _ _
+      sym only [conleche_grind, targetParamsDefEq.eq_1] =>
+        vcgen [targetParamsDefEq] <;> finish
+    | cons _ _ =>
+      intro _ _
+      -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
+      simp only [targetParamsDefEq]
+      sym only [conleche_grind] => vcgen <;> finish
+  | cons a as ih =>
+    intro bs
+    cases bs with
+    | nil =>
+      intro _ _
+      -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
+      simp only [targetParamsDefEq]
+      sym only [conleche_grind] => vcgen <;> finish
+    | cons b bs =>
+      intro _ _
+      sym only [conleche_grind, targetParamsDefEq.eq_2,
+          fun a (h : a.fvarB ≤ pfvs.length) =>
+            habs _ (targetCanonParams_WScoped hp a (fvarB_le h))] =>
+        vcgen [targetParamsDefEq, inferS_spec hμ henv, defeqS_spec hμ henv, ih bs] <;> finish
 
 /-- The class match: the class's openers and parameters scoped by the
 block's parameters, the formers closed. -/
@@ -119,13 +134,16 @@ theorem targetMajorNfsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF en
       ⦃fun s => s = s₀⦄
         targetMajorNfs (sharedOpsC mode (mkFEnv env)) env p formerTys pfvs us ds ctors es
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (targetMajorNfs (fueledOpsM mode) env p formerTys pfvs us ds ctors es) v; ⊤⦄
-  | [], _, _ => by
+        Runs (targetMajorNfs (fueledOpsM mode) env p formerTys pfvs us ds ctors es) v; ⊤⦄ := by
+  intro es
+  induction es with
+  | nil =>
+    intro _ _
     sym only [conleche_grind, targetMajorNfs.eq_1] => vcgen [targetMajorNfs] <;> finish
-  | _ :: es, _, hs => by
+  | cons _ es ih =>
+    intro _ hs
     sym only [conleche_grind, targetMajorNfs.eq_2] =>
-      vcgen [targetMajorNfs, targetMajorNfsS_spec hμ henv hformer hp es hs,
-        targetClassMatchS_spec hμ henv hformer hp] <;> finish
+      vcgen [targetMajorNfs, ih hs, targetClassMatchS_spec hμ henv hformer hp] <;> finish
 
 theorem targetMajorOfS_spec {p : BlockShape}
     {ctorsAs : List (List (ConstantVal × Nat))} {pfvs fvs : List Expr} {mty : Expr}
@@ -141,12 +159,16 @@ theorem targetMajorOfS_spec {p : BlockShape}
 theorem targetPinTysS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat} :
     ∀ {xs : List Expr}, AllWS d xs → ∀ {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ targetPinTys (sharedOpsC mode (mkFEnv env)) env d xs
-      ⦃fun v s' => CSOK mode env s' ∧ Runs (targetPinTys (fueledOpsM mode) env d xs) v; ⊤⦄
-  | [], _, _, _ => by
+      ⦃fun v s' => CSOK mode env s' ∧ Runs (targetPinTys (fueledOpsM mode) env d xs) v; ⊤⦄ := by
+  intro xs
+  induction xs with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, targetPinTys.eq_1] => vcgen [targetPinTys] <;> finish
-  | _ :: xs, _, _, _ => by
+  | cons _ xs ih =>
+    intro _ _ _
     sym only [conleche_grind, targetPinTys.eq_2] =>
-      vcgen [targetPinTys, inferS_spec hμ henv, targetPinTysS_spec hμ henv (xs := xs)] <;>
+      vcgen [targetPinTys, inferS_spec hμ henv, ih] <;>
         finish
 
 /-- `targetMajorPins` at the cached driver: nothing at a member, the

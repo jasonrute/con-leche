@@ -62,13 +62,16 @@ theorem inferLamsI_succ (r : CoreFnsI) (d fuel : Nat) (t : Expr) (k : Nat)
 theorem inferLamsOutC_spec {d : Nat} :
     ∀ {stk : List Expr} {j : Nat} {cur : Expr} {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ inferLamsOutI d stk j cur
-      ⦃fun v s' => CSOK mode env s' ∧ Runs (inferLamsOut (m := FueledM) d stk j cur) v; ⊤⦄
-  | [], _, _, _, _ => by
+      ⦃fun v s' => CSOK mode env s' ∧ Runs (inferLamsOut (m := FueledM) d stk j cur) v; ⊤⦄ := by
+  intro stk
+  induction stk with
+  | nil =>
+    intro _ _ _ _
     sym only [conleche_grind, inferLamsOut.eq_1] => vcgen [inferLamsOutI] <;> finish
-  | _ :: rest, _, _, _, _ => by
+  | cons _ rest ih =>
+    intro _ _ _ _
     sym only [conleche_grind, inferLamsOut.eq_2] =>
-      vcgen [inferLamsOutI, abstractRangeM_spec (mode := mode) (env := env),
-        inferLamsOutC_spec (stk := rest)] <;> finish
+      vcgen [inferLamsOutI, abstractRangeM_spec (mode := mode) (env := env), ih] <;> finish
 
 theorem inferLamsLeafC_spec (ih : SSimC mode env f) {d : Nat} {t : Expr} {k : Nat}
     {fvs : Array Expr} {stk : List Expr} {s₀ : CState} (hs : CSOK mode env s₀)
@@ -86,14 +89,18 @@ theorem inferLamsC_spec (ih : SSimC mode env f) {d : Nat} :
       CSOK mode env s₀ → Expr.WScoped (d + k) (t.instantiateList fvs.toList.reverse) →
       ⦃fun s => s = s₀⦄ inferLamsI (coreKnotI mode (mkFEnv env) f) d fuel t k fvs stk
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (inferLams (fueledFns mode env) d fuel t k fvs.toList.reverse stk) v; ⊤⦄
-  | 0, _, _, _, _, _, hs, hw => by
+        Runs (inferLams (fueledFns mode env) d fuel t k fvs.toList.reverse stk) v; ⊤⦄ := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro _ _ _ _ _ hs hw
     sym only [conleche_grind, inferLams.eq_3] =>
       vcgen [inferLamsI, inferLamsLeafC_spec ih] <;> finish
-  | fuel + 1, _, _, _, _, _, hs, hw => by
+  | succ fuel ihFuel =>
+    intro _ _ _ _ _ hs hw
     sym only [conleche_grind, inferLams.eq_1, inferLams.eq_2] =>
       vcgen [inferLamsI_succ, instListRevM_spec hs, ih.infer_spec, ih.whnf_spec,
-        inferLamsC_spec ih fuel, inferLamsLeafC_spec ih] <;> finish
+        ihFuel, inferLamsLeafC_spec ih] <;> finish
 
 /-! ## The infer-∀ loop walks (task #100 stage 6: the ∀-rule infers
 its codomain sort, so the cached side runs a telescope loop) -/
@@ -117,12 +124,16 @@ theorem inferPisI_succ (r : CoreFnsI) (d fuel : Nat) (t : Expr) (k : Nat)
 theorem inferPisOutC_spec :
     ∀ {stk : List Level} {v : Level} {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ inferPisOutI stk v
-      ⦃fun r s' => CSOK mode env s' ∧ Runs (inferPisOut (m := FueledM) stk v) r; ⊤⦄
-  | [], _, _, _ => by
+      ⦃fun r s' => CSOK mode env s' ∧ Runs (inferPisOut (m := FueledM) stk v) r; ⊤⦄ := by
+  intro stk
+  induction stk with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, inferPisOut.eq_1] => vcgen [inferPisOutI] <;> finish
-  | _ :: rest, _, _, _ => by
+  | cons _ rest ih =>
+    intro _ _ _
     sym only [conleche_grind, inferPisOut.eq_2] =>
-      vcgen [inferPisOutI, inferPisOutC_spec (stk := rest)] <;> finish
+      vcgen [inferPisOutI, ih] <;> finish
 
 theorem inferPisLeafC_spec (ih : SSimC mode env f) {d : Nat} {t : Expr} {k : Nat}
     {fvs : Array Expr} {stk : List Level} {s₀ : CState} (hs : CSOK mode env s₀)
@@ -139,14 +150,18 @@ theorem inferPisC_spec (ih : SSimC mode env f) {d : Nat} :
       CSOK mode env s₀ → Expr.WScoped (d + k) (t.instantiateList fvs.toList.reverse) →
       ⦃fun s => s = s₀⦄ inferPisI (coreKnotI mode (mkFEnv env) f) d fuel t k fvs stk
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (inferPis (fueledFns mode env) d fuel t k fvs.toList.reverse stk) v; ⊤⦄
-  | 0, _, _, _, _, _, hs, hw => by
+        Runs (inferPis (fueledFns mode env) d fuel t k fvs.toList.reverse stk) v; ⊤⦄ := by
+  intro fuel
+  induction fuel with
+  | zero =>
+    intro _ _ _ _ _ hs hw
     sym only [conleche_grind, inferPis.eq_3] =>
       vcgen [inferPisI, inferPisLeafC_spec ih] <;> finish
-  | fuel + 1, _, _, _, _, _, hs, hw => by
+  | succ fuel ihFuel =>
+    intro _ _ _ _ _ hs hw
     sym only [conleche_grind, inferPis.eq_1, inferPis.eq_2] =>
       vcgen [inferPisI_succ, instListRevM_spec hs, ih.infer_spec, ih.whnf_spec,
-        inferPisC_spec ih fuel, inferPisLeafC_spec ih] <;> finish
+        ihFuel, inferPisLeafC_spec ih] <;> finish
 
 /-! ## Tail compositions: the infer loops against the chained bodies'
 own tails, with the result scoping recovered from the chained run -/

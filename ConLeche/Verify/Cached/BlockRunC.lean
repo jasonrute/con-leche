@@ -177,14 +177,17 @@ theorem checkBlockTelesS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF e
     ∀ {mss : List MemberShape} {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockTeles (sharedOpsC mode (mkFEnv env)) env nP mss
       ⦃fun v s' => CSOK mode env s' ∧ Runs (checkBlockTeles (fueledOpsM mode) env nP mss) v ∧
-        CvsWS (v.map Prod.fst); ⊤⦄
-  | [], _, _ => by
+        CvsWS (v.map Prod.fst); ⊤⦄ := by
+  intro mss
+  induction mss with
+  | nil =>
+    intro _ _
     sym only [conleche_grind, checkBlockTeles.eq_1, List.map_nil] =>
       vcgen [checkBlockTeles] <;> finish
-  | _ :: rest, _, _ => by
+  | cons _ rest ih =>
+    intro _ _
     sym only [conleche_grind, checkBlockTeles.eq_2, List.map_cons] =>
-      vcgen [checkBlockTeles, checkBlockTeleS_spec hμ henv,
-        checkBlockTelesS_spec hμ henv (mss := rest)] <;> finish
+      vcgen [checkBlockTeles, checkBlockTeleS_spec hμ henv, ih] <;> finish
 
 theorem checkBlockDomsAtS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {off : Nat}
     {fvs doms : List Expr}
@@ -193,13 +196,16 @@ theorem checkBlockDomsAtS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF 
     ∀ {j : Nat} {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockDomsAt (sharedOpsC mode (mkFEnv env)) env off fvs doms j
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkBlockDomsAt (fueledOpsM mode) env off fvs doms j) v; ⊤⦄
-  | 0, _, _ => by
+        Runs (checkBlockDomsAt (fueledOpsM mode) env off fvs doms j) v; ⊤⦄ := by
+  intro j
+  induction j with
+  | zero =>
+    intro _ _
     sym only [conleche_grind, checkBlockDomsAt.eq_1] => vcgen [checkBlockDomsAt] <;> finish
-  | j + 1, _, _ => by
+  | succ j ih =>
+    intro _ _
     sym only [conleche_grind, checkBlockDomsAt.eq_2, unwrapOr] =>
-      vcgen [checkBlockDomsAt, unwrapOr, defeqS_spec hμ henv,
-        checkBlockDomsAtS_spec hμ henv hc ht (j := j)] <;> finish
+      vcgen [checkBlockDomsAt, unwrapOr, defeqS_spec hμ henv, ih] <;> finish
 
 theorem checkBlockAgreeS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
     {cvTa0 : ConstantVal} {s0 : Level} (h0 : WScoped 0 cvTa0.type) :
@@ -207,13 +213,18 @@ theorem checkBlockAgreeS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF e
       CvsWS (cvs.map Prod.fst) → CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockAgree (sharedOpsC mode (mkFEnv env)) env nP cvTa0 s0 cvs
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkBlockAgree (fueledOpsM mode) env nP cvTa0 s0 cvs) v; ⊤⦄
-  | [], _, _, _ => by
+        Runs (checkBlockAgree (fueledOpsM mode) env nP cvTa0 s0 cvs) v; ⊤⦄ := by
+  intro cvs
+  induction cvs with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, checkBlockAgree.eq_1] => vcgen [checkBlockAgree] <;> finish
-  | (_, _) :: rest, _, _, _ => by
+  | cons x rest ih =>
+    obtain ⟨cvTa, s⟩ := x
+    intro _ _ _
     sym only [conleche_grind, checkBlockAgree.eq_2, unwrapOr, List.map_cons] =>
-      vcgen [checkBlockAgree, unwrapOr, checkBlockDomsAtS_spec hμ henv, liftFueledS_spec (mode := mode) (env := env),
-        checkBlockAgreeS_spec hμ henv h0 (cvs := rest)] <;> finish
+      vcgen [checkBlockAgree, unwrapOr, checkBlockDomsAtS_spec hμ henv,
+        liftFueledS_spec (mode := mode) (env := env), ih] <;> finish
 
 theorem checkBlockIndsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {p : BlockParts} {isRec : Bool} {s₀ : CState} (hs : CSOK mode env s₀) :
@@ -230,15 +241,19 @@ theorem checkBlockCtorsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF e
       (∀ x ∈ l, x.2.type.hasFvar = false) → CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockCtors (sharedOpsC mode (mkFEnv env)) env₀ env p l
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkBlockCtors (fueledOpsM mode) env₀ env p l) v; ⊤⦄
-  | [], _, _, _ => by
+        Runs (checkBlockCtors (fueledOpsM mode) env₀ env p l) v; ⊤⦄ := by
+  intro l
+  induction l with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, checkBlockCtors.eq_1] => vcgen [checkBlockCtors] <;> finish
-  | (ms, cvTa) :: rest, _, hl, _ => by
+  | cons x rest ih =>
+    obtain ⟨ms, cvTa⟩ := x
+    intro _ hl _
     sym only [conleche_grind, checkBlockCtors.eq_2] =>
       vcgen [checkBlockCtors, checkSumCtorsS_spec hμ henv
           (show cvTa.type.hasFvar = false from hl (ms, cvTa) List.mem_cons_self),
-        checkBlockCtorsS_spec hμ henv (l := rest)
-          (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
+        ih (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
 
 /-- An opened telescope's variables past a prefix carry types scoped at
 their own frame. -/
@@ -258,15 +273,19 @@ theorem checkBlockIdxSortsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvW
       (∀ x ∈ l, WScoped 0 x.2.type) → CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkBlockIdxSorts (sharedOpsC mode (mkFEnv env)) env p l
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkBlockIdxSorts (fueledOpsM mode) env p l) v; ⊤⦄
-  | [], _, _, _ => by
+        Runs (checkBlockIdxSorts (fueledOpsM mode) env p l) v; ⊤⦄ := by
+  intro l
+  induction l with
+  | nil =>
+    intro _ _ _
     sym only [conleche_grind, checkBlockIdxSorts.eq_1] => vcgen [checkBlockIdxSorts] <;> finish
-  | (ms, cvTa) :: rest, _, hl, _ => by
+  | cons x rest ih =>
+    obtain ⟨ms, cvTa⟩ := x
+    intro _ hl _
     sym only [conleche_grind, checkBlockIdxSorts.eq_2, unwrapOr, FvsWS,
         show WScoped 0 cvTa.type from hl (ms, cvTa) List.mem_cons_self] =>
       vcgen [checkBlockIdxSorts, unwrapOr, checkStructFieldSortsIS_spec hμ henv,
-        checkBlockIdxSortsS_spec hμ henv (l := rest)
-          (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
+        ih (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
 
 end Sims
 

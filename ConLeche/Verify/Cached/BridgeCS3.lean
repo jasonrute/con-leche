@@ -88,13 +88,16 @@ theorem checkStructDomsAtS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF
     ∀ {j : Nat} {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ checkStructDomsAt (sharedOpsC mode (mkFEnv env)) env off fvs doms j
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (checkStructDomsAt (fueledOpsM mode) env off fvs doms j) v; ⊤⦄
-  | 0, _, _ => by
+        Runs (checkStructDomsAt (fueledOpsM mode) env off fvs doms j) v; ⊤⦄ := by
+  intro j
+  induction j with
+  | zero =>
+    intro _ _
     sym only [conleche_grind, checkStructDomsAt.eq_1] => vcgen [checkStructDomsAt] <;> finish
-  | j + 1, _, _ => by
+  | succ j ih =>
+    intro _ _
     sym only [conleche_grind, checkStructDomsAt.eq_2, unwrapOr] =>
-      vcgen [checkStructDomsAt, unwrapOr, defeqS_spec hμ henv,
-        checkStructDomsAtS_spec hμ henv hc ht (j := j)] <;> finish
+      vcgen [checkStructDomsAt, unwrapOr, defeqS_spec hμ henv, ih] <;> finish
 
 /-- Official's telescope loop (task #195) at the shared operations:
 every `whnf` is the shared one, on a well-scoped input at its depth
@@ -103,13 +106,17 @@ theorem whnfTelescopeS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env
     ∀ {i n : Nat} {e : Expr} {s₀ : CState}, CSOK mode env s₀ → WScoped i e →
       ⦃fun s => s = s₀⦄ whnfTelescope (sharedOpsC mode (mkFEnv env)) env i n e
       ⦃fun v s' => CSOK mode env s' ∧
-        Runs (whnfTelescope (fueledOpsM mode) env i n e) v; ⊤⦄
-  | _, 0, _, _, _, _ => by
+        Runs (whnfTelescope (fueledOpsM mode) env i n e) v; ⊤⦄ := by
+  intro i n
+  induction n generalizing i with
+  | zero =>
+    intro _ _ _ _
     sym only [conleche_grind, whnfTelescope.eq_1] =>
       vcgen [whnfTelescope, whnfS_spec hμ henv] <;> finish
-  | _, n + 1, _, _, _, _ => by
+  | succ n ih =>
+    intro _ _ _ _
     sym only [conleche_grind, whnfTelescope.eq_2] =>
-      vcgen [whnfTelescope, whnfS_spec hμ henv, whnfTelescopeS_spec hμ henv (n := n)] <;>
+      vcgen [whnfTelescope, whnfS_spec hμ henv, ih] <;>
         finish
 
 /-- The former's telescope stage (task #195) at the shared operations:
@@ -152,13 +159,16 @@ theorem checkSumCtorsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env
       ⦃fun s => s = s₀⦄ checkSumCtors (sharedOpsC mode (mkFEnv env)) env₀ env T lps
           nP nIdx resSort isProp large cvTa cs
       ⦃fun v s' => CSOK mode env s' ∧ Runs (checkSumCtors (fueledOpsM mode) env₀ env T lps
-          nP nIdx resSort isProp large cvTa cs) v; ⊤⦄
-  | [], _, _ => by
+          nP nIdx resSort isProp large cvTa cs) v; ⊤⦄ := by
+  intro cs
+  induction cs with
+  | nil =>
+    intro _ _
     sym only [conleche_grind, checkSumCtors.eq_1] => vcgen [checkSumCtors] <;> finish
-  | _ :: cs, _, _ => by
+  | cons _ cs ih =>
+    intro _ _
     sym only [conleche_grind, checkSumCtors.eq_2] =>
-      vcgen [checkSumCtors, checkSumCtorS_spec hμ henv hTf,
-        checkSumCtorsS_spec hμ henv hTf (cs := cs)] <;> finish
+      vcgen [checkSumCtors, checkSumCtorS_spec hμ henv hTf, ih] <;> finish
 
 /-! ### The recursor conformance check's generator (#188) -/
 

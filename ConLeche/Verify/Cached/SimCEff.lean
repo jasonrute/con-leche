@@ -254,17 +254,29 @@ theorem isEquivListLM_cons_nil (l : Level) (ls : List Level) :
 theorem isEquivListLM_spec :
     ∀ {ls rs : List Level} {s₀ : CState}, CSOK mode env s₀ →
       ⦃fun s => s = s₀⦄ isEquivListLM ls rs
-      ⦃fun ob s' => CSOK mode env s' ∧ ob = Level.isEquivList ls rs; ⊤⦄
-  | [], [], _, _ => by
-    sym only [conleche_grind, Level.isEquivList] => vcgen [isEquivListLM] <;> finish
-  | [], _ :: _, _, _ => by
-    sym only [conleche_grind, Level.isEquivList] => vcgen [isEquivListLM_nil_cons] <;> finish
-  | _ :: _, [], _, _ => by
-    sym only [conleche_grind, Level.isEquivList] => vcgen [isEquivListLM_cons_nil] <;> finish
-  | _ :: ls, _ :: rs, _, hs => by
-    sym only [conleche_grind, isEquivList_cons] =>
-      vcgen [isEquivListLM, isEquivLM_spec hs, isEquivListLM_spec (ls := ls) (rs := rs)] <;>
-        finish
+      ⦃fun ob s' => CSOK mode env s' ∧ ob = Level.isEquivList ls rs; ⊤⦄ := by
+  intro ls
+  induction ls with
+  | nil =>
+    intro rs
+    cases rs with
+    | nil =>
+      intro _ _
+      sym only [conleche_grind, Level.isEquivList] => vcgen [isEquivListLM] <;> finish
+    | cons _ _ =>
+      intro _ _
+      sym only [conleche_grind, Level.isEquivList] => vcgen [isEquivListLM_nil_cons] <;> finish
+  | cons l ls ihL =>
+    intro rs
+    cases rs with
+    | nil =>
+      intro _ _
+      sym only [conleche_grind, Level.isEquivList] => vcgen [isEquivListLM_cons_nil] <;> finish
+    | cons r rs =>
+      intro _ hs
+      sym only [conleche_grind, isEquivList_cons] =>
+        vcgen [isEquivListLM, isEquivLM_spec hs, ihL] <;>
+          finish
 
 end LevelEffects
 

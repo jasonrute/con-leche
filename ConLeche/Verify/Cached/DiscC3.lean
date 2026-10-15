@@ -839,12 +839,16 @@ list. -/
 theorem pinArgsC_spec (lps : List Name) (us : List Level) :
     ∀ (ps : List Expr) {s₀ : CState}, CSOK mode env s₀ → ∀ (args : List Expr) (t : Nat),
       ⦃fun s => s = s₀⦄ pinArgsI lps us args t ps
-      ⦃fun rs s' => CSOK mode env s' ∧ rs = ps.map (pinInst lps us args t); ⊤⦄
-  | [], _, _, _, _ => by
+      ⦃fun rs s' => CSOK mode env s' ∧ rs = ps.map (pinInst lps us args t); ⊤⦄ := by
+  intro ps
+  induction ps with
+  | nil =>
+    intro _ _ _ _
     sym only [conleche_grind, List.map_nil] => vcgen [pinArgsI] <;> finish
-  | _ :: ps, _, _, _, _ => by
+  | cons _ ps ih =>
+    intro _ _ _ _
     sym only [conleche_grind, List.map_cons, pinInst] =>
-      vcgen [pinArgsI, instLevelParamsM, instSpineM, pinArgsC_spec lps us ps] <;> finish
+      vcgen [pinArgsI, instLevelParamsM, instSpineM, ih] <;> finish
 
 /-- The canonical-index comparison (the ι batch) simulates its fueled
 original. -/
