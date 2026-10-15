@@ -12,18 +12,19 @@ Simulation walks for the cached `majorToCtorI`/`pinArgsI`/`iotaRecI`
 (`ConLeche/Cached/CoreC.lean`) against `majorToCtor`/`iotaRec`
 (`ConLeche/Kernel/Core.lean`).
 
-The ι step (`iotaRecC_spec`) and its certificate block (`iotaCertC_spec`)
-are `Std.WP` triples proved by `vcgen` and `grind`
-(`ConLeche/Verify/Cached/Grind.lean`).  The pure side is never unfolded
-into its `match` tree: grind splits such a tree on every discriminant and
-compares the alternatives' lambdas.  Each arm the cached walk can reach is
-instead one equation whose hypotheses are the cached match's own arm
-hypotheses (`iotaRec_rec`, `iotaRecK_ctor`, …, registered with guarded
-patterns), and the pieces between the arms are named functions
-(`iotaRecK`, `iotaCertGate`, `iotaCertP`, `iotaRecFire`; the cached
-certificate block `iotaCertI`), so no `fun` reaches grind.  The environment
-reads are named (`findRule`, `ctorVal?`, `constTyOf`, `ruleRhsOf`), with
-one guarded equation each at the arm that reads them.
+Every walk here is a `Std.WP` triple proved by `vcgen` and `grind`
+(`ConLeche/Verify/Cached/Grind.lean`).  The pure side of a nested
+dispatch is never unfolded into its `match` tree: grind splits such a
+tree on every discriminant and compares the alternatives' lambdas (the
+cached and the pure restatements share their matchers).  Each arm the
+cached walk can reach is instead one equation whose hypotheses are the
+cached match's own arm hypotheses (`iotaRec_rec`, `iotaRecK_ctor`,
+`mtc_body`, …, registered with guarded patterns), and the pieces between
+the arms are named functions (`iotaRecK`, `iotaCertGate`, `iotaCertP`,
+`iotaRecFire`, `mtcBodyP`; the cached blocks `iotaCertI`, `mtcBodyI`), so
+that no `fun` holding a `match` reaches grind.  The environment reads
+are named (`findRule`, `ctorVal?`, `constTyOf`, `ruleRhsOf`), with one
+guarded equation each at the arm that reads them.
 -/
 
 set_option experimental.vcgen true
@@ -226,9 +227,11 @@ variable {env : Env} {f : Nat}
 /-! ### The stuck-major rescue's named pieces
 
 The cached rescue's three blocks (`mtcKI`, `mtcEtaI`, `mtcAndI`) and the
-pure ones (`mtcKP`/`mtcKCont`, …) are the bodies' own code, named so
-that each block is one triple and no `fun` or `match` tree of the pure
-side reaches grind. -/
+pure ones' continuations past the major's type (`mtcKCont`, `mtcEtaCont`,
+`mtcAndCont`) are the bodies' own code, named so that each block is one
+triple.  A continuation's single one-level `match` reaches grind as is
+(its discriminant is known in every arm); the four-deep dispatch of
+`majorToCtor` reaches it only as one equation per arm (`mtc_body`, …). -/
 
 /-- The leaf guard of a fabrication (the pure side's `fun` named). -/
 @[expose] def leafGuardP (fab major : Expr) : Bool :=
@@ -577,110 +580,6 @@ grind_pattern [conleche_grind] mtc_notInd =>
   guard env.find? rl.ctor = some (.ctorInfo cvj cnP cnF)
   guard (cvj.type.piResult).getAppFn = .const T lus
 
-theorem mtcKCont_const {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat} {T : Name}
-    {tmaj : Expr} {T' : Name} {ust : List Level} (h : tmaj.getAppFn = .const T' ust) :
-    mtcKCont mode r d major rl cvj cnP T tmaj =
-      if T' = T ∧ cvj.levelParams.length = ust.length then
-        if cnP ≤ tmaj.getAppArgs.length then
-          if (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)).wscopedB d &&
-              (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)).looseBVarsBounded 0 &&
-              leafGuardP (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)) major then
-            r.inferIO d (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)) >>=
-              fun tfab => r.defeq d tmaj tfab >>= fun rd =>
-              if rd then
-                proofIrrelGate mode r d
-                    (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP)) major >>=
-                  fun ok =>
-                  if ok then pure (Expr.mkAppN (.const rl.ctor ust) (tmaj.getAppArgs.take cnP))
-                  else pure major
-              else pure major
-          else pure major
-        else pure major
-      else pure major := by
-  rw [mtcKCont]; simp only [h]
-grind_pattern [conleche_grind] mtcKCont_const =>
-    mtcKCont mode r d major rl cvj cnP T tmaj, Expr.const T' ust where
-  guard tmaj.getAppFn = .const T' ust
-
-theorem mtcKCont_other {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat} {T : Name}
-    {tmaj : Expr} (h : ∀ T' ust, tmaj.getAppFn = .const T' ust → False) :
-    mtcKCont mode r d major rl cvj cnP T tmaj = pure major := by
-  rw [mtcKCont]; split
-  · next h' => exact (h _ _ h').elim
-  · rfl
-
-omit [MonadExceptOf CheckError m] in
-theorem mtcEtaCont_const {major : Expr} {T : Name} {cvT : ConstantVal} {caps : IndCaps}
-    {tmaj : Expr} {T' : Name} {ust : List Level} (h : tmaj.getAppFn = .const T' ust) :
-    (mtcEtaCont env d major T cvT caps tmaj : m Expr) =
-      if T' = T ∧ tmaj.getAppArgs.length = caps.etaParams ∧
-          ust.length = cvT.levelParams.length ∧
-          capsNeverZero cvT.levelParams ust caps = true ∧
-          reservedBasisNames.contains T = false ∧
-          reservedBasisNames.contains caps.etaCtor = false ∧
-          towerSlotsAll env T caps.etaFields = true then
-        if (Expr.mkAppN (.const caps.etaCtor ust)
-              (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)).wscopedB d &&
-            (Expr.mkAppN (.const caps.etaCtor ust)
-              (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)).looseBVarsBounded 0 &&
-            leafGuardP (Expr.mkAppN (.const caps.etaCtor ust)
-              (etaFabArgsE T tmaj.getAppArgs major caps.etaFields)) major then
-          pure (Expr.mkAppN (.const caps.etaCtor ust)
-            (etaFabArgsE T tmaj.getAppArgs major caps.etaFields))
-        else pure major
-      else pure major := by
-  rw [mtcEtaCont]; simp only [h]
-grind_pattern [conleche_grind] mtcEtaCont_const =>
-    (mtcEtaCont env d major T cvT caps tmaj : m Expr), Expr.const T' ust where
-  guard tmaj.getAppFn = .const T' ust
-
-omit [MonadExceptOf CheckError m] in
-theorem mtcEtaCont_other {major : Expr} {T : Name} {cvT : ConstantVal} {caps : IndCaps}
-    {tmaj : Expr} (h : ∀ T' ust, tmaj.getAppFn = .const T' ust → False) :
-    (mtcEtaCont env d major T cvT caps tmaj : m Expr) = pure major := by
-  rw [mtcEtaCont]; split
-  · next h' => exact (h _ _ h').elim
-  · rfl
-
-theorem mtcAndCont_const {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat}
-    {T : Name} {tmaj : Expr} {T' : Name} {ust : List Level}
-    (h : tmaj.getAppFn = .const T' ust) :
-    mtcAndCont mode r env d major rl cvj cnP T tmaj =
-      if T' = T ∧ tmaj.getAppArgs.length = cnP ∧
-          cvj.levelParams.length = ust.length ∧
-          andRescueSlots env rl.ctor cnP ust = true then
-        if (Expr.mkAppN (.const rl.ctor ust)
-              (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])).wscopedB d &&
-            (Expr.mkAppN (.const rl.ctor ust)
-              (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])).looseBVarsBounded 0 &&
-            leafGuardP (Expr.mkAppN (.const rl.ctor ust)
-              (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])) major then
-          r.inferIO d (Expr.mkAppN (.const rl.ctor ust)
-              (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])) >>=
-            fun tfab => r.defeq d tmaj tfab >>= fun rd =>
-            if rd then
-              proofIrrelGate mode r d (Expr.mkAppN (.const rl.ctor ust)
-                  (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major])) major >>=
-                fun ok =>
-                if ok then
-                  pure (Expr.mkAppN (.const rl.ctor ust)
-                    (tmaj.getAppArgs ++ [.proj T 0 major, .proj T 1 major]))
-                else pure major
-            else pure major
-        else pure major
-      else pure major := by
-  rw [mtcAndCont]; simp only [h]
-grind_pattern [conleche_grind] mtcAndCont_const =>
-    mtcAndCont mode r env d major rl cvj cnP T tmaj, Expr.const T' ust where
-  guard tmaj.getAppFn = .const T' ust
-
-theorem mtcAndCont_other {major : Expr} {rl : RecRule} {cvj : ConstantVal} {cnP : Nat}
-    {T : Name} {tmaj : Expr} (h : ∀ T' ust, tmaj.getAppFn = .const T' ust → False) :
-    mtcAndCont mode r env d major rl cvj cnP T tmaj = pure major := by
-  rw [mtcAndCont]; split
-  · next h' => exact (h _ _ h').elim
-  · rfl
-
 end PureMtc
 
 /-! ### The rescue's walks -/
@@ -693,7 +592,7 @@ theorem mtcKC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) {d
       Runs ((fueledFns mode env).inferIO d major >>= fun tm => (fueledFns mode env).whnf d tm >>=
         mtcKCont mode (fueledFns mode env) d major rl cvj cnP T) v ∧
       Expr.WScoped d v; ⊤⦄ := by
-  sym only [conleche_grind, mtcKCont_other, proofIrrelGate_of hμ] =>
+  sym only [conleche_grind, mtcKCont, proofIrrelGate_of hμ] =>
     vcgen [mtcKI, certAtI, mkAppNM, ih.inferIO_spec, ih.whnf_spec,
       ih.defeq_spec, proofIrrelC_spec ih] <;> finish
 
@@ -705,7 +604,7 @@ theorem mtcEtaC_spec (ih : SSimC mode env f) {d : Nat} {major : Expr} {T : Name}
       Runs ((fueledFns mode env).inferIO d major >>= fun tm => (fueledFns mode env).whnf d tm >>=
         mtcEtaCont env d major T cvT caps) v ∧
       Expr.WScoped d v; ⊤⦄ := by
-  sym only [conleche_grind, mtcEtaCont_other, etaFabArgsE] =>
+  sym only [conleche_grind, mtcEtaCont, etaFabArgsE] =>
     vcgen [mtcEtaI, mkAppNM, ih.inferIO_spec, ih.whnf_spec,
       projNodesI_range_spec (mode := mode) (env := env)] <;> finish
 
@@ -717,7 +616,7 @@ theorem mtcAndC_spec (hμ : mode.verifiedChecks = true) (ih : SSimC mode env f) 
       Runs ((fueledFns mode env).inferIO d major >>= fun tm => (fueledFns mode env).whnf d tm >>=
         mtcAndCont mode (fueledFns mode env) env d major rl cvj cnP T) v ∧
       Expr.WScoped d v; ⊤⦄ := by
-  sym only [conleche_grind, mtcAndCont_other, proofIrrelGate_of hμ] =>
+  sym only [conleche_grind, mtcAndCont, proofIrrelGate_of hμ] =>
     vcgen [mtcAndI, certAtI, mkAppNM, ih.inferIO_spec, ih.whnf_spec,
       ih.defeq_spec, proofIrrelC_spec ih, projNodesI_pair_spec (mode := mode) (env := env)] <;>
       finish
