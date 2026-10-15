@@ -106343,3 +106343,43 @@ and the build needs).  Dead by this task outside `Verify/Cached`, deleted:
 green (layering, shake, trust surface, links, quote, whitepaper,
 challenge, selfcheck, e2e 487/487).  No `sorry`, no new axioms (the
 capstones' axiom pins in `tests/ConLecheTests/Axioms.lean` unchanged).
+
+## TASK #358 — why the cached simulation proofs raise `grind`'s limits (2026-10-15)
+
+The maintainer's question: are #356's raised `finish` limits a sign that
+something splits the goal that should not?
+
+**No: it is depth, not search, and it works as intended.**  Traced on
+`checkSumCtorS_spec` (BridgeCS3, `gen := 13`) with `trace.grind.split`
+and `trace.grind.ematch.instance`: the passing run does 38 instances and
+10 splits, and the instances form one chain through the pure side —
+`checkSumCtor.eq_1`, then per step `Runs.bind_eq` (a callee's answer),
+`unwrapOr.eq_1` followed by `FueledM.pure_bind_eq` (a `let x ← unwrapOr
+…`), `FueledM.pure_bind_eq` after a decided `unless` guard — each
+instance's trigger being the previous instance's output.  E-matching
+evaluates the pure side one rule application per generation, so the
+limit a walk needs is the length of that chain, which is what the
+comments at the raises say.  The splits are model-based theory
+combination pairing two applications of a `do`-continuation lambda (the
+"may be irrelevant" kind); `finish (mbtc := false)` needs the same `gen`
+and costs the same.  A passing run costs the same at any sufficient `gen`
+(6.46 G for the file at 10, 12 and 13); the 17–22 G of a FAILING run is
+`grind` searching after the chain stalls — which is where the impression
+of search came from when lanes tried lower limits.
+
+**Tried, not kept.**  A rule peeling a bind and its `unwrapOr` in one
+step (`unwrapOr (some a) err >>= g = g a`), with the redundant
+`Runs.pure_bind_eq` removed, shortens the chains: four of the ten raises
+went away and checkSumCtor's dropped 13 → 10, at no cost (388.73 G →
+388.49 G).  The maintainer ruled it a rule shaped for the evaluator's
+generation count rather than for the mathematics; the limits stay, each
+with its comment, as the honest measure of a walk's pure-side length.
+
+**Ways to remove the limits properly**, not taken: cut a walk into named
+blocks, each its own triple (task #356's DiscC5 lane closed `defeqBody`
+at default limits that way, at the cost of statement text), or have
+something other than E-matching evaluate the pure side — `grind` counts
+a deterministic rewriting chain like speculative instantiation, so a
+rule class that does not raise the generation, or `vcgen` driving the
+pure side in lockstep, would make the limit independent of the walk's
+length.  That is a question for upstream.
