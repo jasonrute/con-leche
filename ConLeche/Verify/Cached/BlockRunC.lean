@@ -36,11 +36,14 @@ The file follows `BridgeCSDecl.lean`'s layout:
 -/
 
 set_option linter.unusedSimpArgs false
+set_option experimental.vcgen true
 
 namespace ConLeche.Cached
 
 open ConLeche
 open Expr
+open Std.WP
+open scoped Lean.Order
 
 variable {mode : CheckMode}
 
@@ -127,9 +130,10 @@ theorem consBlockCtorsF_mkFEnv (nP : Nat) :
 
 Every cached operation's simulation is stated at a well-scoped input
 (`WScoped`).  Most of the stages' inputs are OPENED telescopes of
-checked (fvar-free) constants, and the Verify tier's opening lemmas
-cover them; the lemmas here fill the gaps.  "fvar-free" is stated as
-`WScoped 0` (`ws0_hasFvar`), which composes with the opening lemmas. -/
+checked (fvar-free) constants, and the opening lemmas
+(`BridgeCS3.lean`'s vocabulary) cover them.  "fvar-free" is stated as
+`WScoped 0` (`ws_of_ws0`), which composes with the opening lemmas; a
+list of checked constants as the named predicate `CvsWS`. -/
 
 theorem ws0_hasFvar {e : Expr} (h : WScoped 0 e) : e.hasFvar = false :=
   not_hasFvar_of_fvarsBelow_zero (WScoped.fvarsBelow h)
@@ -137,16 +141,23 @@ theorem ws0_hasFvar {e : Expr} (h : WScoped 0 e) : e.hasFvar = false :=
 theorem ws_of_ws0 {d : Nat} {e : Expr} (h : WScoped 0 e) : WScoped d e :=
   WScoped.of_not_hasFvar (ws0_hasFvar h)
 
-/-- An opened telescope's variables carry types scoped at their own
-frame. -/
-theorem openers_typeD_WScoped {n off : Nat} {e : Expr} {fvs : List Expr} {body : Expr}
-    (h : openPisAtFvars n e off = some (fvs, body)) (he : WScoped off e) :
-    ∀ (i : Nat) (x : Expr), fvs[i]? = some x → WScoped (off + i) x.fvarTypeD := by
-  intro i x hx
-  obtain ⟨ty, rfl⟩ := openPisAtFvars_index n e off h i x hx
-  have hw := (openPisAtFvars_WScoped n e off h he).1 _ (List.mem_of_getElem? hx)
-  simp only [WScoped] at hw
-  exact hw.2
+/-- Every constant of the list has an fvar-free type. -/
+@[expose] def CvsWS (l : List ConstantVal) : Prop := ∀ cv ∈ l, WScoped 0 cv.type
+
+@[conleche_grind =] theorem CvsWS.nil_eq : CvsWS [] = True := by
+  simp [CvsWS]
+
+@[conleche_grind =] theorem CvsWS.cons_eq (cv : ConstantVal) (l : List ConstantVal) :
+    CvsWS (cv :: l) = (WScoped 0 cv.type ∧ CvsWS l) := by
+  simp [CvsWS]
+
+/-- The level comparison's fuel at the cached driver (operation-free). -/
+theorem liftFueledS_spec {env : Env} {α : Type} {what : String} {o : Option α} {s₀ : CState}
+    (hs : CSOK mode env s₀) :
+    ⦃fun s => s = s₀⦄ (liftFueled what o : CheckCM α)
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (liftFueled what o : FueledM α) v; ⊤⦄ := by
+  sym only [conleche_grind, liftFueled.eq_1, liftFueled.eq_2] =>
+    vcgen [liftFueled] <;> finish
 
 /-! ## 3. The single-environment stages, simulated -/
 
@@ -154,169 +165,132 @@ section Sims
 
 variable {env : Env}
 
-theorem checkBlockTeleS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
+theorem checkBlockTeleS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
     {ms : MemberShape} {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun v w => v = w ∧ WScoped 0 (Prod.fst v).type)
-      (checkBlockTele (sharedOpsC mode (mkFEnv env)) env nP ms)
-      (checkBlockTele (fueledOpsM mode) env nP ms) := by
-  unfold checkBlockTele
-  refine SimC.bind (checkConstantValS_sim hμ henv hs) (fun s₁ _ _ hs₁ hw => ?_)
-  refine SimC.bind (checkSumTeleS_sim hμ henv hs₁ hw) (fun s₂ r r' hs₂ hR => ?_)
-  obtain ⟨rfl, hw'⟩ := hR
-  obtain ⟨cvTa, sx⟩ := r
-  dsimp only
-  refine SimC.bind (SimC.unwrapOr' hs₂) (fun s₃ q q' hs₃ hQ => ?_)
-  obtain ⟨rfl, -⟩ := hQ
-  obtain ⟨tbs, tbody⟩ := q
-  dsimp only
-  by_cases h1 : (tbody == Expr.sort sx) = true
-  case neg => simp only [h1]; exact SimC.throw_bind
-  simp only [h1, ite_true]
-  exact SimC.pure hs₃ ⟨rfl, hw'⟩
+    ⦃fun s => s = s₀⦄ checkBlockTele (sharedOpsC mode (mkFEnv env)) env nP ms
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (checkBlockTele (fueledOpsM mode) env nP ms) v ∧
+      WScoped 0 v.1.type; ⊤⦄ := by
+  sym only [conleche_grind, checkBlockTele.eq_1, unwrapOr] =>
+    vcgen [checkBlockTele, unwrapOr, checkConstantValS_spec hμ henv hs,
+      checkSumTeleS_spec hμ henv] <;> finish
 
-theorem checkBlockTelesS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat} :
+theorem checkBlockTelesS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat} :
     ∀ {mss : List MemberShape} {s₀ : CState}, CSOK mode env s₀ →
-      SimC mode env s₀ (fun v w => v = w ∧ ∀ r ∈ v, WScoped 0 (Prod.fst r).type)
-        (checkBlockTeles (sharedOpsC mode (mkFEnv env)) env nP mss)
-        (checkBlockTeles (fueledOpsM mode) env nP mss)
-  | [], s₀, hs => SimC.pure hs ⟨rfl, fun _ h => nomatch h⟩
-  | ms :: rest, s₀, hs => by
-    unfold checkBlockTeles
-    refine SimC.bind (checkBlockTeleS_sim hμ henv hs) (fun s₁ r r' hs₁ hP => ?_)
-    obtain ⟨rfl, hw⟩ := hP
-    refine SimC.bind (checkBlockTelesS_sim hμ henv hs₁) (fun s₂ rs rs' hs₂ hR => ?_)
-    obtain ⟨rfl, hws⟩ := hR
-    refine SimC.pure hs₂ ⟨rfl, ?_⟩
-    intro x hx
-    rcases List.mem_cons.mp hx with rfl | hx
-    · exact hw
-    · exact hws x hx
+      ⦃fun s => s = s₀⦄ checkBlockTeles (sharedOpsC mode (mkFEnv env)) env nP mss
+      ⦃fun v s' => CSOK mode env s' ∧ Runs (checkBlockTeles (fueledOpsM mode) env nP mss) v ∧
+        CvsWS (v.map Prod.fst); ⊤⦄
+  | [], _, _ => by
+    sym only [conleche_grind, checkBlockTeles.eq_1, List.map_nil] =>
+      vcgen [checkBlockTeles] <;> finish
+  | _ :: rest, _, _ => by
+    sym only [conleche_grind, checkBlockTeles.eq_2, List.map_cons] =>
+      vcgen [checkBlockTeles, checkBlockTeleS_spec hμ henv,
+        checkBlockTelesS_spec hμ henv (mss := rest)] <;> finish
 
-theorem checkBlockDomsAtS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {off : Nat}
+theorem checkBlockDomsAtS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {off : Nat}
     {fvs doms : List Expr}
     (hc : ∀ (i : Nat) (x : Expr), fvs[i]? = some x → WScoped (off + i) (Expr.fvarTypeD x))
     (ht : ∀ (i : Nat) (x : Expr), doms[i]? = some x → WScoped (off + i) x) :
     ∀ {j : Nat} {s₀ : CState}, CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (checkBlockDomsAt (sharedOpsC mode (mkFEnv env)) env off fvs doms j)
-        (checkBlockDomsAt (fueledOpsM mode) env off fvs doms j)
-  | 0, s₀, hs => SimC.pure hs rfl
-  | j + 1, s₀, hs => by
-    unfold checkBlockDomsAt
-    dsimp only [sharedOpsC]
-    refine SimC.bind (SimC.unwrapOr' hs) (fun s₁ a a' hs₁ hP => ?_)
-    obtain ⟨rfl, hae⟩ := hP
-    refine SimC.bind (SimC.unwrapOr' hs₁) (fun s₂ b b' hs₂ hQ => ?_)
-    obtain ⟨rfl, hbe⟩ := hQ
-    refine SimC.bind (opB_sim hμ henv hs₂ (hc j a hae) (ht j b hbe))
-      (fun s₃ c c' hs₃ hC => ?_)
-    obtain rfl : c = c' := hC
-    cases c with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      exact SimC.throw_bind
-    | true =>
-      simp only [↓reduceIte]
-      exact checkBlockDomsAtS_sim hμ henv hc ht hs₃
+      ⦃fun s => s = s₀⦄ checkBlockDomsAt (sharedOpsC mode (mkFEnv env)) env off fvs doms j
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (checkBlockDomsAt (fueledOpsM mode) env off fvs doms j) v; ⊤⦄
+  | 0, _, _ => by
+    sym only [conleche_grind, checkBlockDomsAt.eq_1] => vcgen [checkBlockDomsAt] <;> finish
+  | j + 1, _, _ => by
+    sym only [conleche_grind, checkBlockDomsAt.eq_2, unwrapOr] =>
+      vcgen [checkBlockDomsAt, unwrapOr, defeqS_spec hμ henv,
+        checkBlockDomsAtS_spec hμ henv hc ht (j := j)] <;> finish
 
-theorem checkBlockAgreeS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
+theorem checkBlockAgreeS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {nP : Nat}
     {cvTa0 : ConstantVal} {s0 : Level} (h0 : WScoped 0 cvTa0.type) :
     ∀ {cvs : List (ConstantVal × Level)} {s₀ : CState},
-      (∀ r ∈ cvs, WScoped 0 r.1.type) → CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (checkBlockAgree (sharedOpsC mode (mkFEnv env)) env nP cvTa0 s0 cvs)
-        (checkBlockAgree (fueledOpsM mode) env nP cvTa0 s0 cvs)
-  | [], s₀, _, hs => SimC.pure hs rfl
-  | (cvTa, s) :: rest, s₀, hcvs, hs => by
-    unfold checkBlockAgree
-    refine SimC.bind (SimC.unwrapOr' hs) (fun s₁ tq0 tq0' hs₁ hP => ?_)
-    obtain ⟨rfl, htq0⟩ := hP
-    refine SimC.bind (SimC.unwrapOr' hs₁) (fun s₂ tq tq' hs₂ hQ => ?_)
-    obtain ⟨rfl, htq⟩ := hQ
-    have hw : WScoped 0 cvTa.type := hcvs _ List.mem_cons_self
-    by_cases hl : (tq.1.length == tq0.1.length) = true
-    case neg => simp only [hl]; exact SimC.throw_bind
-    simp only [hl, ite_true]
-    refine SimC.bind (checkBlockDomsAtS_sim hμ henv ?_ ?_ hs₂) (fun s₄ _ _ hs₄ _ => ?_)
-    · intro i x hx
-      exact openers_typeD_WScoped htq hw i x hx
-    · intro i x hx
-      rw [List.getElem?_map] at hx
-      obtain ⟨y, hy, rfl⟩ := Option.map_eq_some_iff.mp hx
-      exact openers_typeD_WScoped htq0 h0 i y hy
-    refine SimC.bind (SimC.liftFueled _ _ hs₄) (fun s₅ b b' hs₅ hb => ?_)
-    obtain rfl : b = b' := hb
-    cases b
-    · exact SimC.throw_bind
-    · exact checkBlockAgreeS_sim hμ henv h0 (fun r hr => hcvs r (List.mem_cons_of_mem _ hr)) hs₅
+      CvsWS (cvs.map Prod.fst) → CSOK mode env s₀ →
+      ⦃fun s => s = s₀⦄ checkBlockAgree (sharedOpsC mode (mkFEnv env)) env nP cvTa0 s0 cvs
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (checkBlockAgree (fueledOpsM mode) env nP cvTa0 s0 cvs) v; ⊤⦄
+  | [], _, _, _ => by
+    sym only [conleche_grind, checkBlockAgree.eq_1] => vcgen [checkBlockAgree] <;> finish
+  | (_, _) :: rest, _, _, _ => by
+    sym only [conleche_grind, checkBlockAgree.eq_2, unwrapOr, List.map_cons] =>
+      vcgen [checkBlockAgree, unwrapOr, checkBlockDomsAtS_spec hμ henv, liftFueledS_spec (mode := mode) (env := env),
+        checkBlockAgreeS_spec hμ henv h0 (cvs := rest)] <;> finish
+
+theorem checkBlockIndsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
+    {p : BlockParts} {isRec : Bool} {s₀ : CState} (hs : CSOK mode env s₀) :
+    ⦃fun s => s = s₀⦄ checkBlockInds (sharedOpsC mode (mkFEnv env)) env p isRec
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (checkBlockInds (fueledOpsM mode) env p isRec) v ∧
+      CvsWS v.2.1; ⊤⦄ := by
+  sym only [conleche_grind, checkBlockInds.eq_1] =>
+    vcgen [checkBlockInds, checkBlockTeleS_spec hμ henv hs, checkBlockTelesS_spec hμ henv,
+      checkBlockAgreeS_spec hμ henv] <;> finish
 
 theorem checkBlockIndsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {p : BlockParts}
     {isRec : Bool} {s₀ : CState} (hs : CSOK mode env s₀) :
     SimC mode env s₀ (fun v w => v = w ∧ ∀ cv ∈ v.2.1, WScoped 0 cv.type)
       (checkBlockInds (sharedOpsC mode (mkFEnv env)) env p isRec)
-      (checkBlockInds (fueledOpsM mode) env p isRec) := by
-  unfold checkBlockInds
-  split
-  · exact SimC.throw
-  · refine SimC.bind (checkBlockTeleS_sim hμ henv hs) (fun s₁ r r' hs₁ hP => ?_)
-    obtain ⟨rfl, hw0⟩ := hP
-    obtain ⟨cvTa0, s0⟩ := r
-    dsimp only
-    refine SimC.bind (checkBlockTelesS_sim hμ henv hs₁) (fun s₂ cvs cvs' hs₂ hQ => ?_)
-    obtain ⟨rfl, hws⟩ := hQ
-    refine SimC.bind (checkBlockAgreeS_sim hμ henv hw0 hws hs₂) (fun s₃ _ _ hs₃ _ => ?_)
-    refine SimC.pure hs₃ ⟨rfl, ?_⟩
-    intro cv hcv
-    rcases List.mem_cons.mp hcv with rfl | hcv
-    · exact hw0
-    · obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hcv
-      exact hws r hr
+      (checkBlockInds (fueledOpsM mode) env p isRec) :=
+  SimC.of_triple (fun _ h => ⟨rfl, h⟩) (checkBlockIndsS_spec hμ henv hs)
 
-theorem checkBlockCtorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env₀ : Env}
-    {p : BlockShape} :
+theorem checkBlockCtorsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
+    {env₀ : Env} {p : BlockShape} :
     ∀ {l : List (MemberShape × ConstantVal)} {s₀ : CState},
       (∀ x ∈ l, x.2.type.hasFvar = false) → CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (checkBlockCtors (sharedOpsC mode (mkFEnv env)) env₀ env p l)
-        (checkBlockCtors (fueledOpsM mode) env₀ env p l)
-  | [], s₀, _, hs => SimC.pure hs rfl
-  | (ms, cvTa) :: rest, s₀, hl, hs => by
-    unfold checkBlockCtors
-    refine SimC.bind (checkSumCtorsS_sim hμ henv (hl _ List.mem_cons_self) hs)
-      (fun s₁ q q' hs₁ hP => ?_)
-    obtain rfl : q = q' := hP
-    obtain ⟨ctorsA, sortss⟩ := q
-    dsimp only
-    refine SimC.bind (checkBlockCtorsS_sim hμ henv
-      (fun x hx => hl x (List.mem_cons_of_mem _ hx)) hs₁) (fun s₂ r r' hs₂ hR => ?_)
-    obtain rfl : r = r' := hR
-    exact SimC.pure hs₂ rfl
+      ⦃fun s => s = s₀⦄ checkBlockCtors (sharedOpsC mode (mkFEnv env)) env₀ env p l
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (checkBlockCtors (fueledOpsM mode) env₀ env p l) v; ⊤⦄
+  | [], _, _, _ => by
+    sym only [conleche_grind, checkBlockCtors.eq_1] => vcgen [checkBlockCtors] <;> finish
+  | (ms, cvTa) :: rest, _, hl, _ => by
+    sym only [conleche_grind, checkBlockCtors.eq_2] =>
+      vcgen [checkBlockCtors, checkSumCtorsS_spec hμ henv
+          (show cvTa.type.hasFvar = false from hl (ms, cvTa) List.mem_cons_self),
+        checkBlockCtorsS_spec hμ henv (l := rest)
+          (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
 
-theorem checkBlockIdxSortsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
+theorem checkBlockCtorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env₀ : Env}
+    {p : BlockShape} {l : List (MemberShape × ConstantVal)} {s₀ : CState}
+    (hl : ∀ x ∈ l, x.2.type.hasFvar = false) (hs : CSOK mode env s₀) :
+    SimC mode env s₀ RelVC
+      (checkBlockCtors (sharedOpsC mode (mkFEnv env)) env₀ env p l)
+      (checkBlockCtors (fueledOpsM mode) env₀ env p l) :=
+  SimC.of_tripleVC (checkBlockCtorsS_spec hμ henv hl hs)
+
+/-- An opened telescope's variables past a prefix carry types scoped at
+their own frame. -/
+theorem openers_drop_fvarTypeD_WScoped {n k : Nat} {e : Expr} {fvs : List Expr} {body : Expr}
+    (h : openPisAtFvars n e 0 = some (fvs, body)) (he : WScoped 0 e) {i : Nat} {x : Expr}
+    (hx : (fvs.drop k)[i]? = some x) : WScoped (k + i) x.fvarTypeD := by
+  rw [List.getElem?_drop] at hx
+  simpa using openers_fvarTypeD_WScoped h he hx
+grind_pattern [conleche_grind] openers_drop_fvarTypeD_WScoped =>
+  openPisAtFvars n e 0, some (fvs, body), (fvs.drop k)[i]?, x.fvarTypeD where
+  guard openPisAtFvars n e 0 = some (fvs, body)
+  guard (fvs.drop k)[i]? = some x
+
+theorem checkBlockIdxSortsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {p : BlockShape} :
     ∀ {l : List (MemberShape × ConstantVal)} {s₀ : CState},
       (∀ x ∈ l, WScoped 0 x.2.type) → CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (checkBlockIdxSorts (sharedOpsC mode (mkFEnv env)) env p l)
-        (checkBlockIdxSorts (fueledOpsM mode) env p l)
-  | [], s₀, _, hs => SimC.pure hs rfl
-  | (ms, cvTa) :: rest, s₀, hl, hs => by
-    unfold checkBlockIdxSorts
-    refine SimC.bind (SimC.unwrapOr' hs) (fun s₁ tq tq' hs₁ hP => ?_)
-    obtain ⟨rfl, htq⟩ := hP
-    have hw : WScoped 0 cvTa.type := hl _ List.mem_cons_self
-    have hxPos : ∀ (i : Nat) (x : Expr), (tq.1.drop p.nP)[i]? = some x →
-        WScoped (p.nP + i) (Expr.fvarTypeD x) := by
-      intro i x hx
-      rw [List.getElem?_drop] at hx
-      have := openers_typeD_WScoped htq hw (p.nP + i) x hx
-      simpa using this
-    refine SimC.bind (checkStructFieldSortsIS_sim hμ henv hxPos hs₁) (fun s₂ is is' hs₂ hI => ?_)
-    obtain rfl : is = is' := hI
-    refine SimC.bind (checkBlockIdxSortsS_sim hμ henv (fun x hx => hl x (List.mem_cons_of_mem _ hx))
-      hs₂) (fun s₃ r r' hs₃ hR => ?_)
-    obtain rfl : r = r' := hR
-    exact SimC.pure hs₃ rfl
+      ⦃fun s => s = s₀⦄ checkBlockIdxSorts (sharedOpsC mode (mkFEnv env)) env p l
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (checkBlockIdxSorts (fueledOpsM mode) env p l) v; ⊤⦄
+  | [], _, _, _ => by
+    sym only [conleche_grind, checkBlockIdxSorts.eq_1] => vcgen [checkBlockIdxSorts] <;> finish
+  | (ms, cvTa) :: rest, _, hl, _ => by
+    sym only [conleche_grind, checkBlockIdxSorts.eq_2, unwrapOr,
+        show WScoped 0 cvTa.type from hl (ms, cvTa) List.mem_cons_self] =>
+      vcgen [checkBlockIdxSorts, unwrapOr, checkStructFieldSortsIS_spec hμ henv,
+        checkBlockIdxSortsS_spec hμ henv (l := rest)
+          (fun x hx => hl x (List.mem_cons_of_mem _ hx))] <;> finish
+
+theorem checkBlockIdxSortsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
+    {p : BlockShape} {l : List (MemberShape × ConstantVal)} {s₀ : CState}
+    (hl : ∀ x ∈ l, WScoped 0 x.2.type) (hs : CSOK mode env s₀) :
+    SimC mode env s₀ RelVC
+      (checkBlockIdxSorts (sharedOpsC mode (mkFEnv env)) env p l)
+      (checkBlockIdxSorts (fueledOpsM mode) env p l) :=
+  SimC.of_tripleVC (checkBlockIdxSortsS_spec hμ henv hl hs)
 
 end Sims
 

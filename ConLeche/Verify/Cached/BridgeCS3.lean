@@ -16,204 +16,174 @@ between the `sharedOpsC` and `(fueledOpsM mode)` instantiations.  The per-site s
 `FEnv`-to-`Env` step is `ConLeche/Verify/CheckerF.lean`'s `_eq`/`_push`
 family and happens in `ConLeche/Verify/Cached/BridgeCS4.lean`, so
 everything here is stated over the generic functions.
+
+The walks are `Std.WP` triples proved by `vcgen` and `grind`
+(`ConLeche/Verify/Cached/Grind.lean`, `BridgeCS1.lean`'s shared
+operations' triples).
 -/
+
+set_option experimental.vcgen true
 
 namespace ConLeche.Cached
 
 open ConLeche
 open ConLeche.Expr
 open Expr
+open Std.WP
+open scoped Lean.Order
 
 variable {mode : CheckMode}
+
+/-! ## Vocabulary candidates (for Grind.lean) -/
+
+@[conleche_grind =] theorem wscoped_forallE_eq (d : Nat) (ty body : Expr) :
+    Expr.WScoped d (.forallE ty body) = (Expr.WScoped d ty ∧ Expr.WScoped d body) := by
+  rw [Expr.WScoped]
+
+/-- Opening a binder at the next free variable scopes the body one deeper. -/
+theorem wscoped_instantiate1_fvar {d : Nat} {ty e : Expr} (k : Nat) (hty : WScoped d ty)
+    (he : WScoped d e) : WScoped (d + 1) (e.instantiate1 (.fvar d ty) k) :=
+  WScoped.instantiate1 hty k he
+grind_pattern [conleche_grind] wscoped_instantiate1_fvar => e.instantiate1 (.fvar d ty) k
+
+/-- An opened telescope's variables carry types scoped at their own
+frame. -/
+theorem openers_fvarTypeD_WScoped {n off : Nat} {e : Expr} {fvs : List Expr} {body : Expr}
+    (h : openPisAtFvars n e off = some (fvs, body)) (he : WScoped off e) {i : Nat} {x : Expr}
+    (hx : fvs[i]? = some x) : WScoped (off + i) x.fvarTypeD := by
+  obtain ⟨ty, rfl⟩ := openPisAtFvars_index n e off h i x hx
+  have hw := (openPisAtFvars_WScoped n e off h he).1 _ (List.mem_of_getElem? hx)
+  simp only [WScoped] at hw
+  exact hw.2
+grind_pattern [conleche_grind] openers_fvarTypeD_WScoped =>
+  openPisAtFvars n e off, some (fvs, body), fvs[i]?, x.fvarTypeD where
+  guard openPisAtFvars n e off = some (fvs, body)
+  guard fvs[i]? = some x
+
+/-- The same, read through the domains' list. -/
+theorem openers_doms_WScoped {n off : Nat} {e : Expr} {fvs : List Expr} {body : Expr}
+    (h : openPisAtFvars n e off = some (fvs, body)) (he : WScoped off e) {i : Nat} {x : Expr}
+    (hx : (fvs.map Expr.fvarTypeD)[i]? = some x) {d : Nat} (hd : d = off + i) :
+    WScoped d x := by
+  subst hd
+  rw [List.getElem?_map] at hx
+  obtain ⟨y, hy, rfl⟩ := Option.map_eq_some_iff.mp hx
+  exact openers_fvarTypeD_WScoped h he hy
+grind_pattern [conleche_grind] openers_doms_WScoped =>
+  openPisAtFvars n e off, some (fvs, body), (fvs.map Expr.fvarTypeD)[i]?, WScoped d x where
+  guard openPisAtFvars n e off = some (fvs, body)
+  guard (fvs.map Expr.fvarTypeD)[i]? = some x
+
+/-- An opened telescope's body is scoped past the telescope. -/
+theorem openers_body_WScoped {n off : Nat} {e : Expr} {fvs : List Expr} {body : Expr}
+    (h : openPisAtFvars n e off = some (fvs, body)) (he : WScoped off e) :
+    WScoped (off + n) body :=
+  (openPisAtFvars_WScoped n e off h he).2
+grind_pattern [conleche_grind] openers_body_WScoped =>
+  openPisAtFvars n e off, some (fvs, body) where
+  guard openPisAtFvars n e off = some (fvs, body)
+
+/-- `checkStructFieldSortsIS_sim` as a triple. -/
+theorem checkStructFieldSortsIS_spec {env : Env} (hμ : mode.verifiedChecks = true)
+    (henv : EnvWF env) {isProp large : Bool} {s : Level} {nP : Nat} {fvs idxArgs : List Expr}
+    {j : Nat} {s₀ : CState} (hs : CSOK mode env s₀)
+    (hfvs : ∀ (i : Nat) (x : Expr), fvs[i]? = some x → WScoped (nP + i) (Expr.fvarTypeD x)) :
+    ⦃fun s => s = s₀⦄ checkStructFieldSortsI (sharedOpsC mode (mkFEnv env)) env isProp large
+        s nP fvs idxArgs j
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs (checkStructFieldSortsI (fueledOpsM mode) env isProp large s nP fvs idxArgs j) v; ⊤⦄ :=
+  SimC.tripleVC (checkStructFieldSortsIS_sim hμ henv hfvs hs)
 
 section Walks3
 
 variable {env : Env} {s₀ : CState}
 
 /-- The per-frame binder-domain pins at the shared operations. -/
-theorem checkStructDomsAtS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {off : Nat}
+theorem checkStructDomsAtS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {off : Nat}
     {fvs doms : List Expr}
-    (hc : ∀ (i : Nat) (x : Expr), fvs[i]? = some x →
-      WScoped (off + i) (Expr.fvarTypeD x))
+    (hc : ∀ (i : Nat) (x : Expr), fvs[i]? = some x → WScoped (off + i) (Expr.fvarTypeD x))
     (ht : ∀ (i : Nat) (x : Expr), doms[i]? = some x → WScoped (off + i) x) :
     ∀ {j : Nat} {s₀ : CState}, CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (checkStructDomsAt (sharedOpsC mode (mkFEnv env)) env off fvs doms j)
-        (checkStructDomsAt (fueledOpsM mode) env off fvs doms j)
-  | 0, s₀, hs => SimC.pure hs rfl
-  | j + 1, s₀, hs => by
-    unfold checkStructDomsAt
-    dsimp only [sharedOpsC]
-    refine SimC.bind (SimC.unwrapOr' hs) (fun s₁ a a' hs₁ hP => ?_)
-    obtain ⟨rfl, hae⟩ := hP
-    refine SimC.bind (SimC.unwrapOr' hs₁) (fun s₂ b b' hs₂ hQ => ?_)
-    obtain ⟨rfl, hbe⟩ := hQ
-    refine SimC.bind (opB_sim hμ henv hs₂ (hc j a hae) (ht j b hbe))
-      (fun s₃ c c' hs₃ hC => ?_)
-    obtain rfl : c = c' := hC
-    cases c with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      exact SimC.throw_bind
-    | true =>
-      simp only [↓reduceIte]
-      exact checkStructDomsAtS_sim hμ henv hc ht hs₃
-
-/-! ## The constructor-list stages (#175)
-
-The former's telescope and one constructor stage per constructor, all
-at the environment holding the type formers alone.  The stages carry
-`nIdx`; the field-sort walk is `checkStructFieldSortsI`
-(`checkStructFieldSortsIS_sim`, `NestPosC.lean`). -/
+      ⦃fun s => s = s₀⦄ checkStructDomsAt (sharedOpsC mode (mkFEnv env)) env off fvs doms j
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (checkStructDomsAt (fueledOpsM mode) env off fvs doms j) v; ⊤⦄
+  | 0, _, _ => by
+    sym only [conleche_grind, checkStructDomsAt.eq_1] => vcgen [checkStructDomsAt] <;> finish
+  | j + 1, _, _ => by
+    sym only [conleche_grind, checkStructDomsAt.eq_2, unwrapOr] =>
+      vcgen [checkStructDomsAt, unwrapOr, defeqS_spec hμ henv,
+        checkStructDomsAtS_spec hμ henv hc ht (j := j)] <;> finish
 
 /-- Official's telescope loop (task #195) at the shared operations:
 every `whnf` is the shared one, on a well-scoped input at its depth
 (the opened body is well-scoped one deeper). -/
-theorem whnfTelescopeS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) :
+theorem whnfTelescopeS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) :
     ∀ {i n : Nat} {e : Expr} {s₀ : CState}, CSOK mode env s₀ → WScoped i e →
-      SimC mode env s₀ RelVC
-        (whnfTelescope (sharedOpsC mode (mkFEnv env)) env i n e)
-        (whnfTelescope (fueledOpsM mode) env i n e)
-  | i, 0, e, s₀, hs, hw => by
-    unfold whnfTelescope
-    dsimp only [sharedOpsC]
-    refine SimC.bind (opE_whnf_sim hμ henv hs hw) (fun s₁ e' e'' hs₁ hR => ?_)
-    obtain ⟨rfl, -⟩ := hR
-    split
-    · exact SimC.pure hs₁ rfl
-    · exact SimC.throw
-  | i, n + 1, e, s₀, hs, hw => by
-    unfold whnfTelescope
-    dsimp only [sharedOpsC]
-    refine SimC.bind (opE_whnf_sim hμ henv hs hw) (fun s₁ e' e'' hs₁ hR => ?_)
-    obtain ⟨rfl, hw'⟩ := hR
-    split
-    · next dom body =>
-      simp only [WScoped] at hw'
-      refine SimC.bind (whnfTelescopeS_sim hμ henv hs₁ (WScoped.instantiate1 hw'.1 0 hw'.2))
-        (fun s₂ q q' hs₂ hQ => ?_)
-      obtain rfl : q = q' := hQ
-      exact SimC.pure hs₂ rfl
-    · exact SimC.throw
+      ⦃fun s => s = s₀⦄ whnfTelescope (sharedOpsC mode (mkFEnv env)) env i n e
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (whnfTelescope (fueledOpsM mode) env i n e) v; ⊤⦄
+  | _, 0, _, _, _, _ => by
+    sym only [conleche_grind, whnfTelescope.eq_1] =>
+      vcgen [whnfTelescope, whnfS_spec hμ henv] <;> finish
+  | _, n + 1, _, _, _, _ => by
+    sym only [conleche_grind, whnfTelescope.eq_2] =>
+      vcgen [whnfTelescope, whnfS_spec hμ henv, whnfTelescopeS_spec hμ henv (n := n)] <;>
+        finish
 
 /-- The former's telescope stage (task #195) at the shared operations:
 the checked constant's type is well-scoped either way. -/
+theorem checkSumTeleS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
+    {cv : ConstantVal} {n : Nat} {cvTa₀ : ConstantVal}
+    (hs : CSOK mode env s₀) (hTw : WScoped 0 cvTa₀.type) :
+    ⦃fun s => s = s₀⦄ checkSumTele (sharedOpsC mode (mkFEnv env)) env cv n cvTa₀
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (checkSumTele (fueledOpsM mode) env cv n cvTa₀) v ∧
+      WScoped 0 v.1.type; ⊤⦄ := by
+  sym only [conleche_grind, checkSumTele.eq_1] =>
+    vcgen [checkSumTele, whnfTelescopeS_spec hμ henv, checkConstantValS_spec hμ henv] <;>
+      finish
+
 theorem checkSumTeleS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {cv : ConstantVal} {n : Nat} {cvTa₀ : ConstantVal}
     (hs : CSOK mode env s₀) (hTw : WScoped 0 cvTa₀.type) :
     SimC mode env s₀ (fun v w => v = w ∧ WScoped 0 (Prod.fst v).type)
       (checkSumTele (sharedOpsC mode (mkFEnv env)) env cv n cvTa₀)
-      (checkSumTele (fueledOpsM mode) env cv n cvTa₀) := by
-  unfold checkSumTele
-  split
-  · exact SimC.pure hs ⟨rfl, hTw⟩
-  · refine SimC.bind (whnfTelescopeS_sim hμ henv hs hTw) (fun s₁ q q' hs₁ hQ => ?_)
-    obtain rfl : q = q' := hQ
-    refine SimC.bind (checkConstantValS_sim hμ henv hs₁) (fun s₂ _ _ hs₂ hTw' => ?_)
-    exact SimC.pure hs₂ ⟨rfl, hTw'⟩
+      (checkSumTele (fueledOpsM mode) env cv n cvTa₀) :=
+  SimC.of_triple (fun _ h => ⟨rfl, h⟩) (checkSumTeleS_spec hμ henv hs hTw)
 
 /-- Stage 2 (one constructor, the constructor and its field count
 explicit) at the shared operations. -/
-theorem checkSumCtorS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env₀ : Env} {T : Name}
-    {lps : List Name} {nP nIdx : Nat} {resSort : Level} {isProp large : Bool}
+theorem checkSumCtorS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env₀ : Env}
+    {T : Name} {lps : List Name} {nP nIdx : Nat} {resSort : Level} {isProp large : Bool}
     {cvC : ConstantVal} {nF : Nat} {cvTa : ConstantVal}
     (hTf : cvTa.type.hasFvar = false) (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (checkSumCtor (sharedOpsC mode (mkFEnv env)) env₀ env T lps nP
-        nIdx resSort isProp large cvC nF cvTa)
-      (checkSumCtor (fueledOpsM mode) env₀ env T lps nP nIdx resSort isProp large
-        cvC nF cvTa) := by
-  unfold checkSumCtor
-  dsimp only [sharedOpsC]
-  refine SimC.bind (checkConstantValS_sim hμ henv hs)
-    (fun s₁ _ _ hs₁ hCw => ?_)
-  refine SimC.bind (SimC.unwrapOr' hs₁) (fun s₂ q q' hs₂ hQ => ?_)
-  obtain ⟨rfl, -⟩ := hQ
-  obtain ⟨cbs, cbody⟩ := q
-  dsimp only
-  by_cases h1 : structCtorResidOk T lps nP nF nIdx cbody = true
-  case neg => simp only [ite_eq_right h1]; exact SimC.throw_bind
-  simp only [ite_eq_left h1]
-  refine SimC.bind (SimC.unwrapOr' hs₂) (fun s₃ cq cq' hs₃ hR => ?_)
-  obtain ⟨rfl, hop⟩ := hR
-  obtain ⟨fvsP, crest⟩ := cq
-  dsimp only
-  obtain ⟨hfvsW0, hcrW0⟩ := openPisAtFvars_WScoped nP cvC.type 0 hop hCw
-  have hcrW : WScoped nP crest := by rwa [Nat.zero_add] at hcrW0
-  refine SimC.bind (SimC.unwrapOr' hs₃) (fun s₄ tq tq' hs₄ hS => ?_)
-  obtain ⟨rfl, hci⟩ := hS
-  obtain ⟨tfvs, trest⟩ := tq
-  dsimp only
-  obtain ⟨htfvsW0, -⟩ := openPisAtFvars_WScoped nP cvTa.type 0 hci
-    (WScoped.of_not_hasFvar hTf)
-  refine SimC.bind (checkStructDomsAtS_sim hμ (off := 0) henv
-      (fun i x hx => by
-        obtain ⟨ty, rfl⟩ := openPisAtFvars_index nP cvC.type 0 hop i x hx
-        have hw := hfvsW0 _ (List.mem_of_getElem? hx)
-        simp only [WScoped] at hw
-        exact hw.2)
-      (fun i x hx => by
-        rw [List.getElem?_map] at hx
-        obtain ⟨y, hy, rfl⟩ := Option.map_eq_some_iff.mp hx
-        obtain ⟨ty, rfl⟩ := openPisAtFvars_index nP cvTa.type 0 hci i y hy
-        have hw := htfvsW0 _ (List.mem_of_getElem? hy)
-        simp only [WScoped] at hw
-        exact hw.2)
-      hs₄)
-    (fun s₅ u1 u1' hs₅ hU1 => ?_)
-  refine SimC.bind (SimC.unwrapOr' hs₅) (fun s₆ xq xq' hs₆ hT => ?_)
-  obtain ⟨rfl, hox⟩ := hT
-  obtain ⟨xFvs, cresid⟩ := xq
-  dsimp only
-  obtain ⟨hxW, -⟩ := openPisAtFvars_WScoped nF crest nP hox hcrW
-  have hxPos : ∀ (i : Nat) (x : Expr), xFvs[i]? = some x →
-      WScoped (nP + i) (Expr.fvarTypeD x) := by
-    intro i x hx
-    obtain ⟨ty, rfl⟩ := openPisAtFvars_index nF crest nP hox i x hx
-    have hw := hxW _ (List.mem_of_getElem? hx)
-    simp only [WScoped] at hw
-    exact hw.2
-  by_cases h2 : (cresid.getAppFn == Expr.const T (lps.map .param) &&
-      cresid.getAppArgs.take nP == fvsP && cresid.getAppArgs.length == nP + nIdx) = true
-  case neg => simp only [ite_eq_right h2]; exact SimC.throw_bind
-  simp only [ite_eq_left h2]
-  by_cases h3 : (xFvs.all fun x => Expr.constsResolve env₀ x.fvarTypeD) = true
-  case neg => simp only [ite_eq_right h3]; exact SimC.throw_bind
-  simp only [ite_eq_left h3]
-  by_cases h4 : ((cresid.getAppArgs.drop nP).all fun e => Expr.constsResolve env₀ e) = true
-  case neg => simp only [ite_eq_right h4]; exact SimC.throw_bind
-  simp only [ite_eq_left h4]
-  refine SimC.bind (checkStructFieldSortsIS_sim hμ henv hxPos hs₆)
-    (fun s₇ sorts sorts' hs₇ hS => ?_)
-  obtain rfl : sorts = sorts' := hS
-  exact SimC.pure hs₇ rfl
+    ⦃fun s => s = s₀⦄ checkSumCtor (sharedOpsC mode (mkFEnv env)) env₀ env T lps nP
+        nIdx resSort isProp large cvC nF cvTa
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (checkSumCtor (fueledOpsM mode) env₀ env T lps nP
+        nIdx resSort isProp large cvC nF cvTa) v; ⊤⦄ := by
+  -- `gen := 13` (the default 8 fails): the fueled side is a chain of ten binds, each one
+  -- E-matching generation deeper than the last
+  sym only [conleche_grind, checkSumCtor.eq_1, unwrapOr] =>
+    vcgen [checkSumCtor, unwrapOr, checkConstantValS_spec hμ henv hs,
+      checkStructDomsAtS_spec hμ henv, checkStructFieldSortsIS_spec hμ henv] <;>
+      finish (gen := 13)
 
 /-- Stage 2, the whole constructor list: every constructor is checked
 at the *same* environment (the one holding the type former alone), so
 the walk is a plain induction on the list. -/
-theorem checkSumCtorsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env₀ : Env} {T : Name}
-    {lps : List Name} {nP nIdx : Nat} {resSort : Level} {isProp large : Bool}
+theorem checkSumCtorsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env₀ : Env}
+    {T : Name} {lps : List Name} {nP nIdx : Nat} {resSort : Level} {isProp large : Bool}
     {cvTa : ConstantVal} (hTf : cvTa.type.hasFvar = false) :
     ∀ {cs : List (ConstantVal × Nat)} {s₀ : CState}, CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (checkSumCtors (sharedOpsC mode (mkFEnv env)) env₀ env T lps
-          nP nIdx resSort isProp large cvTa cs)
-        (checkSumCtors (fueledOpsM mode) env₀ env T lps nP nIdx resSort isProp
-          large cvTa cs)
-  | [], s₀, hs => SimC.pure hs rfl
-  | c :: cs, s₀, hs => by
-    unfold checkSumCtors
-    dsimp only [sharedOpsC]
-    refine SimC.bind (checkSumCtorS_sim hμ henv hTf hs)
-      (fun s₁ q q' hs₁ hP => ?_)
-    obtain rfl : q = q' := hP
-    obtain ⟨cvCa, sorts⟩ := q
-    dsimp only
-    refine SimC.bind (checkSumCtorsS_sim hμ henv hTf hs₁)
-      (fun s₂ rest rest' hs₂ hR => ?_)
-    obtain rfl : rest = rest' := hR
-    obtain ⟨rest, srest⟩ := rest
-    exact SimC.pure hs₂ rfl
+      ⦃fun s => s = s₀⦄ checkSumCtors (sharedOpsC mode (mkFEnv env)) env₀ env T lps
+          nP nIdx resSort isProp large cvTa cs
+      ⦃fun v s' => CSOK mode env s' ∧ Runs (checkSumCtors (fueledOpsM mode) env₀ env T lps
+          nP nIdx resSort isProp large cvTa cs) v; ⊤⦄
+  | [], _, _ => by
+    sym only [conleche_grind, checkSumCtors.eq_1] => vcgen [checkSumCtors] <;> finish
+  | _ :: cs, _, _ => by
+    sym only [conleche_grind, checkSumCtors.eq_2] =>
+      vcgen [checkSumCtors, checkSumCtorS_spec hμ henv hTf,
+        checkSumCtorsS_spec hμ henv hTf (cs := cs)] <;> finish
 
 /-! ### The recursor conformance check's generator (#188) -/
 
