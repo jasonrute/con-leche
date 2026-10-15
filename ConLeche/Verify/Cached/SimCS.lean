@@ -48,15 +48,6 @@ variable {mode : CheckMode}
 
 /-! ## Shared entry points simulate the fueled families -/
 
-/-- The result relation for the shared expression-valued entry points:
-equal values, well-scoped at the call depth (the scopedness of
-intermediate results feeds the later call sites of a walk).  State-free
-— there is no arena for the relation to be relative to. -/
-@[expose] def RelW (d : Nat) (v w : Expr) : Prop :=
-  v = w ∧ Expr.WScoped d v
-
-theorem relW_diag {d : Nat} (v : Expr) (h : Expr.WScoped d v) : RelW d v v := ⟨rfl, h⟩
-
 section Runners
 
 variable {env : Env} {s₀ : CState}

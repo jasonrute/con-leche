@@ -290,7 +290,7 @@ environment: it flushes first and last, so it hands on a state that is
 an invariant state of ANY environment. -/
 theorem ruleR_infer_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR : EnvWF envR)
     (envT : Env) {d : Nat} {e : Expr} (hw : WScoped d e) :
-    SimG (CSOK mode envR) (CSOK mode envT) (RelW d)
+    SimG (CSOK mode envR) (CSOK mode envT) (RelEC d)
       ((sharedOpsRuleR mode (mkFEnv envR)).inferType envR d e)
       ((fueledOpsM mode).inferType envR d e) := by
   intro s₀ hs v' s' hr
@@ -307,7 +307,7 @@ theorem ruleR_infer_simG (hμ : mode.verifiedChecks = true) {envR : Env} (henvR 
   injection hfl with hfl
   obtain rfl : s₁.flushed = s₂ := congrArg Prod.snd hfl
   obtain ⟨rfl, rfl⟩ := pureC_ok hr
-  exact ⟨flushC_csok hs₁.residue, t, relW_diag t hwt, F, hF⟩
+  exact ⟨flushC_csok hs₁.residue, t, relEC_diag t hwt, F, hF⟩
 
 /-! ## 5. The assembly -/
 
