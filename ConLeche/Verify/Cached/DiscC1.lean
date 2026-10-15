@@ -12,9 +12,18 @@ public section
 # Cached body walks, part 1: list helpers and small twins (task #163)
 
 Per-helper simulation walks: each cached twin
-(`ConLeche/Cached/CoreC.lean`) is `SimC`-related to its `Expr` original
-at the fueled record, on well-scoped inputs (value relations
-`RelC`/`RelCL`, node inversion by `cases`).
+(`ConLeche/Cached/CoreC.lean`) simulates its `Expr` original at the
+fueled record on well-scoped inputs, stated as a `Std.WP` triple whose
+post names the cached value as the fueled answer (`Runs`) and proved by
+`vcgen` and `grind` (`ConLeche/Verify/Cached/Grind.lean`).  The list
+loops (`defEqListC_spec`, `iotaCertsFullCAux_spec`) recurse one
+`sym … => vcgen … <;> finish` per list arm, the induction hypothesis a
+term in `vcgen`'s list.  A `…_sim`/`…_eff` corollary restates a walk for
+the callers that are still stated as `SimC`/`CEff`.
+
+The module also declares the knot's hypothesis `SSimC` and, after it,
+the triple forms of its fields and of the small effects, with the
+`grind` vocabulary the walks of this module and `DiscC2.lean` add.
 -/
 
 set_option experimental.vcgen true
@@ -196,6 +205,90 @@ theorem isEquivListLM_spec {env : Env} {s₀ : CState} (hs : CSOK mode env s₀)
     ⦃fun s => s = s₀⦄ isEquivListLM ls rs
     ⦃fun ob s' => CSOK mode env s' ∧ ob = Level.isEquivList ls rs; ⊤⦄ :=
   (isEquivListLM_eff hs).triple
+
+/-- `isEquivLM_eff` as a triple. -/
+theorem isEquivLM_spec {env : Env} {s₀ : CState} (hs : CSOK mode env s₀) (l r : Level) :
+    ⦃fun s => s = s₀⦄ isEquivLM l r
+    ⦃fun ob s' => CSOK mode env s' ∧ ob = Level.isEquiv l r; ⊤⦄ :=
+  (isEquivLM_eff hs l r).triple
+
+/-- The fuel-exhaustion lift is the same on both sides. -/
+theorem liftFueled_spec {env : Env} {α : Type} {s₀ : CState} (hs : CSOK mode env s₀)
+    (what : String) (o : Option α) :
+    ⦃fun s => s = s₀⦄ (liftFueled what o : CheckCM α)
+    ⦃fun a s' => CSOK mode env s' ∧ Runs (liftFueled what o) a; ⊤⦄ :=
+  (SimC.liftFueled what o hs).triple_eq
+
+/-- The cached index's lookup function is the environment's (unapplied,
+for the head-symbol readers that take it as an argument). -/
+theorem mkFEnv_find?_eq (env : Env) : FEnv.find? (mkFEnv env) = env.find? :=
+  funext (mkFEnv_find? env)
+
+/-- `inst1M_eff` as a triple. -/
+theorem inst1M_spec {env : Env} {s₀ : CState} (hs : CSOK mode env s₀) (e v : Expr) (d : Nat) :
+    ⦃fun s => s = s₀⦄ inst1M e v d
+    ⦃fun r s' => CSOK mode env s' ∧ r = e.instantiate1 v d; ⊤⦄ :=
+  (inst1M_eff hs (RelC.refl e) (RelC.refl v) :
+    CEff mode env s₀ (fun i => i = e.instantiate1 v d) _).triple
+
+@[conleche_grind =] theorem wscoped_fvar_eq (k i : Nat) (ty : Expr) :
+    Expr.WScoped k (.fvar i ty) = (i < k ∧ Expr.WScoped i ty) := by
+  rw [Expr.WScoped]
+
+@[conleche_grind =] theorem wscoped_forallE_eq (d : Nat) (ty body : Expr) :
+    Expr.WScoped d (.forallE ty body) = (Expr.WScoped d ty ∧ Expr.WScoped d body) := by
+  rw [Expr.WScoped]
+
+/-- One more binder in scope keeps a term well scoped. -/
+theorem wscoped_succ {d : Nat} {e : Expr} (h : Expr.WScoped d e) : Expr.WScoped (d + 1) e :=
+  h.mono (Nat.le_succ d)
+grind_pattern [conleche_grind] wscoped_succ => Expr.WScoped d e, Expr.WScoped (d + 1) e
+
+/-- Opening a binder at the next free variable. -/
+theorem wscoped_open {d : Nat} {ty e : Expr} (k : Nat) (hty : Expr.WScoped d ty)
+    (he : Expr.WScoped d e) : Expr.WScoped (d + 1) (e.instantiate1 (.fvar d ty) k) :=
+  Expr.WScoped.instantiate1 hty k he
+grind_pattern [conleche_grind] wscoped_open =>
+  Expr.WScoped d e, e.instantiate1 (.fvar d ty) k
+
+/-- A prefix of well-scoped terms is well scoped. -/
+theorem AllWS.take {d : Nat} {xs : List Expr} (h : AllWS d xs) (k : Nat) :
+    AllWS d (xs.take k) :=
+  fun x hx => h x (List.mem_of_mem_take hx)
+grind_pattern [conleche_grind] AllWS.take => AllWS d xs, xs.take k
+
+/-- A suffix of well-scoped terms is well scoped. -/
+theorem AllWS.drop {d : Nat} {xs : List Expr} (h : AllWS d xs) (k : Nat) :
+    AllWS d (xs.drop k) :=
+  fun x hx => h x (List.mem_of_mem_drop hx)
+grind_pattern [conleche_grind] AllWS.drop => AllWS d xs, xs.drop k
+
+/-- The `.proj T i b` nodes over the indices `l` (a named function, so
+that its scope fact has a pattern: a `List.map` pattern loses its
+lambda). -/
+@[expose] def projsOf (T : Name) (b : Expr) (l : List Nat) : List Expr :=
+  l.map fun i => Expr.proj T i b
+
+@[conleche_grind =] theorem projsOf_nil (T : Name) (b : Expr) : projsOf T b [] = [] := rfl
+
+@[conleche_grind =] theorem projsOf_cons (T : Name) (b : Expr) (i : Nat) (l : List Nat) :
+    projsOf T b (i :: l) = Expr.proj T i b :: projsOf T b l := rfl
+
+@[conleche_grind =] theorem etaProjs_eq (T : Name) (b : Expr) (n : Nat) :
+    etaProjs T b n = projsOf T b (List.range n) := rfl
+
+/-- The projections of a well-scoped term are well scoped. -/
+theorem allWS_projsOf {d : Nat} {b : Expr} (T : Name) (l : List Nat) (h : Expr.WScoped d b) :
+    AllWS d (projsOf T b l) := by
+  intro x hx
+  obtain ⟨i, -, rfl⟩ := List.mem_map.mp hx
+  rw [Expr.WScoped]; exact h
+grind_pattern [conleche_grind] allWS_projsOf => Expr.WScoped d b, projsOf T b l
+
+/-- The constructor-shape gate reads the same store on both sides. -/
+@[conleche_grind =] theorem etaCtorShapeC_eq (env : Env) (e : Expr) :
+    etaCtorShapeC (mkFEnv env) e = etaCtorShape env e :=
+  etaCtorShapeC_spec' rfl
 
 /-- A well-scoped spine's arguments are well scoped. -/
 theorem allWS_getAppArgs {d : Nat} {e : Expr} (h : Expr.WScoped d e) :
