@@ -12,208 +12,157 @@ functions
 Each lemma relates a generic declaration-checker function instantiated at the
 cached shared operations (`sharedOpsC mode (mkFEnv env)`, state shared
 across all operation calls) to the same function at the fueled families
-(`(fueledOpsM mode)`), as a `SimC` — the invariant `CSOK mode env` is
-threaded through every call, so cache entries created by one call are
-consumed by later ones soundly.  The per-site well-scopedness facts
-mirror the `_wfimp` walks (`ConLeche/Verify/BridgeWfImp.lean`).
+(`(fueledOpsM mode)`) — the invariant `CSOK mode env` is threaded through
+every call, so cache entries created by one call are consumed by later
+ones soundly.  The per-site well-scopedness facts mirror the `_wfimp`
+walks (`ConLeche/Verify/BridgeWfImp.lean`).
+
+The walks are `Std.WP` triples (`…S_spec`) proved by `vcgen` and `grind`
+(`ConLeche/Verify/Cached/Grind.lean`): the cached and the fueled side are
+the same generic function, so its own equation lemmas unfold the fueled
+side and the shared operations' triples (§ vocabulary) are the callee
+specs.  The `…S_sim` forms the unconverted callers use are one-line
+`SimC.of_triple`s.
 -/
+
+set_option experimental.vcgen true
 
 namespace ConLeche.Cached
 
 open ConLeche
 open ConLeche.Expr
+open Std.WP
+open scoped Lean.Order
 
 variable {mode : CheckMode}
 variable {pins : List NatOpPinSet}
+
+/-! ## Vocabulary candidates (for Grind.lean)
+
+The shared operations' triples, stated at the `sharedOpsC` projections a
+generic checker function calls (a triple about `opB …` is not found for
+`(sharedOpsC …).isDefEq …`; `SimC.tripleVC` is `BinderLoopC.lean`'s). -/
+
+section Vocabulary
+
+variable {env : Env}
+
+/-- A closed term is scoped at every depth (a fact the walks state at
+the depths they need: as a pattern on every `WScoped` term it costs
+every walk its instances). -/
+theorem wscoped_of_hasFvar_false {d : Nat} {e : Expr} (h : e.hasFvar = false) :
+    Expr.WScoped d e :=
+  Expr.WScoped.of_not_hasFvar h
+
+end Vocabulary
 
 section Walks1
 
 variable {env : Env} {s₀ : CState}
 
 /-- `checkConstantVal` at the cached shared operations simulates the
-fueled instantiation; the returned constant's type is well-scoped. -/
-theorem checkConstantValS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
-    (hs : CSOK mode env s₀) :
-    SimC mode env s₀ (fun _ _ => Expr.WScoped 0 cv.type)
-      (checkConstantVal (sharedOpsC mode (mkFEnv env)) env cv)
-      (checkConstantVal (fueledOpsM mode) env cv) := by
-  unfold checkConstantVal
-  dsimp only [sharedOpsC]
-  by_cases h1 : (env.find? cv.name).isSome = true
-  · simp only [ite_eq_left h1]
-    exact SimC.throw_bind
-  simp only [ite_eq_right h1]
-  by_cases h2 : reservedBasisNames.contains cv.name = true
-  · simp only [ite_eq_left h2]
-    exact SimC.throw_bind
-  simp only [ite_eq_right h2]
-  by_cases h3 : cv.name.isProjFnShape = true
-  · simp only [ite_eq_left h3]
-    exact SimC.throw_bind
-  simp only [ite_eq_right h3]
-  by_cases h4 : Name.nodup cv.levelParams = true
-  case neg =>
-    simp only [ite_eq_right h4]
-    exact SimC.throw_bind
-  simp only [ite_eq_left h4]
-  by_cases h5 : Expr.looseBVarsBounded 0 cv.type = true
-  case neg =>
-    simp only [ite_eq_right h5]
-    exact SimC.throw_bind
-  simp only [ite_eq_left h5]
-  by_cases h6 : cv.type.hasFvar = true
-  · simp only [ite_eq_left h6]
-    exact SimC.throw_bind
-  simp only [ite_eq_right h6]
-  have hwty : Expr.WScoped 0 cv.type :=
-    Expr.WScoped.of_not_hasFvar (Bool.not_eq_true _ ▸ h6)
-  by_cases h7 : Expr.allLevelParamsDefined cv.levelParams cv.type = true
-  case neg =>
-    simp only [ite_eq_right h7]
-    exact SimC.throw_bind
-  simp only [ite_eq_left h7]
-  by_cases h8 : Expr.constsResolve env cv.type = true
-  case neg =>
-    simp only [ite_eq_right h8]
-    exact SimC.throw_bind
-  simp only [ite_eq_left h8]
-  refine SimC.bind (opE_infer_sim hμ henv hs hwty)
-    (fun s₂ sty sty' hs₂ hP₂ => ?_)
-  obtain ⟨rfl, hwsty⟩ := hP₂
-  refine SimC.bind (opS_sim hμ henv hs₂ hwsty)
-    (fun s₃ u u' hs₃ hP₃ => ?_)
-  exact SimC.pure hs₃ hwty
+fueled instantiation; the checked constant's type is well-scoped. -/
+theorem checkConstantValS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
+    {cv : ConstantVal} (hs : CSOK mode env s₀) :
+    ⦃fun s => s = s₀⦄ checkConstantVal (sharedOpsC mode (mkFEnv env)) env cv
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (checkConstantVal (fueledOpsM mode) env cv) v ∧
+      Expr.WScoped 0 cv.type; ⊤⦄ := by
+  sym only [conleche_grind, checkConstantVal.eq_1, @wscoped_of_hasFvar_false 0 cv.type] =>
+    vcgen [checkConstantVal, inferS_spec hμ henv hs, sortS_spec hμ henv] <;> finish
+
+/-- The identity certificate's variable is scoped at its frame. -/
+theorem wscoped_reduceCertVar (c : Name) : Expr.WScoped 1 (reduceCertVar c) := by
+  unfold reduceCertVar
+  simp only [Expr.WScoped]
+  refine ⟨Nat.zero_lt_one, ?_⟩
+  unfold reduceElemTy
+  split <;> simp only [Expr.WScoped]
 
 /-- `checkReducePin` at the cached shared operations. -/
-theorem checkReducePinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env} {c : Name}
-    {value : Expr} (hvf : value.hasFvar = false)
-    (hs : CSOK mode env s₀) :
+theorem checkReducePinS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env}
+    {c : Name} {value : Expr} (hvf : value.hasFvar = false) (hs : CSOK mode env s₀) :
+    ⦃fun s => s = s₀⦄ checkReducePin (sharedOpsC mode (mkFEnv env)) env env2 c value
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs (checkReducePin (fueledOpsM mode) env env2 c value) v; ⊤⦄ := by
+  sym only [conleche_grind, checkReducePin.eq_1, reducePinGuard, wscoped_reduceCertVar c,
+      wscoped_of_hasFvar_false (d := 0) hvf, wscoped_of_hasFvar_false (d := 1) hvf,
+      @wscoped_of_hasFvar_false 0 (reduceDeclPin c)] =>
+    vcgen [checkReducePin, defeqS_spec hμ henv] <;> finish
+
+theorem checkReducePinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env}
+    {c : Name} {value : Expr} (hvf : value.hasFvar = false) (hs : CSOK mode env s₀) :
     SimC mode env s₀ RelVC
       (checkReducePin (sharedOpsC mode (mkFEnv env)) env env2 c value)
-      (checkReducePin (fueledOpsM mode) env env2 c value) := by
-  unfold checkReducePin
-  dsimp only [sharedOpsC]
-  by_cases h1 : (reduceStoredOk env2 c && reduceElemOk env c) = true
-  case neg => simp only [ite_eq_right h1]; exact SimC.throw
-  simp only [ite_eq_left h1]
-  by_cases h2 : reducePinGuard env c = true
-  case neg => simp only [ite_eq_right h2]; exact SimC.throw
-  simp only [ite_eq_left h2]
-  have hwval : Expr.WScoped 0 value := Expr.WScoped.of_not_hasFvar hvf
-  have h2' := h2
-  unfold reducePinGuard at h2'
-  simp only [Bool.and_eq_true] at h2'
-  have hpinF : (reduceDeclPin c).hasFvar = false := by
-    simpa using h2'.1.1.2
-  have hwpin : Expr.WScoped 0 (reduceDeclPin c) :=
-    Expr.WScoped.of_not_hasFvar hpinF
-  refine SimC.bind (opB_sim hμ henv hs hwval hwpin)
-    (fun s₃ b b' hs₃ hP₃ => ?_)
-  obtain rfl : b = b' := hP₃
-  cases b with
-  | false =>
-    simp only [Bool.false_eq_true, ↓reduceIte]
-    exact SimC.throw
-  | true =>
-    simp only [↓reduceIte]
-    have hxW : Expr.WScoped 1 (reduceCertVar c) := by
-      unfold reduceCertVar
-      simp only [Expr.WScoped]
-      refine ⟨Nat.zero_lt_one, ?_⟩
-      unfold reduceElemTy
-      split <;> simp only [Expr.WScoped]
-    have happW : Expr.WScoped 1 (Expr.app value (reduceCertVar c)) := by
-      simp only [Expr.WScoped]
-      exact ⟨Expr.WScoped.mono (Nat.zero_le 1) hwval, hxW⟩
-    refine SimC.bind (opB_sim hμ henv hs₃ happW hxW)
-      (fun s₄ b2 b2' hs₄ hP₄ => ?_)
-    obtain rfl : b2 = b2' := hP₄
-    cases b2 with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      exact SimC.throw
-    | true =>
-      simp only [↓reduceIte]
-      exact SimC.pure hs₄ rfl
+      (checkReducePin (fueledOpsM mode) env env2 c value) :=
+  SimC.of_tripleVC (checkReducePinS_spec hμ henv hvf hs)
 
 /-- `certifyNatEqs` at the cached shared operations. -/
-theorem certifyNatEqsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) :
+theorem certifyNatEqsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) :
     ∀ {eqs : List (Expr × Expr)},
       (∀ eq ∈ eqs, (eq.1.wscopedB 2 = true) ∧ (eq.2.wscopedB 2 = true)) →
       ∀ {s₀ : CState}, CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (certifyNatEqs (sharedOpsC mode (mkFEnv env)) env eqs)
-        (certifyNatEqs (fueledOpsM mode) env eqs)
-  | [], _, s₀, hs => SimC.pure hs rfl
-  | eq :: rest, hsc, s₀, hs => by
-    unfold certifyNatEqs
-    dsimp only [sharedOpsC]
-    have hh := hsc eq (List.mem_cons_self ..)
-    refine SimC.bind (opB_sim hμ henv hs (Expr.WScoped.of_wscopedB hh.1)
-        (Expr.WScoped.of_wscopedB hh.2))
-      (fun s₁ b b' hs₁ hP => ?_)
-    obtain rfl : b = b' := hP
-    cases b with
-    | true =>
-      simp only [↓reduceIte]
-      exact certifyNatEqsS_sim hμ henv
-        (fun e he => hsc e (List.mem_cons_of_mem _ he)) hs₁
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      exact SimC.pure hs₁ rfl
+      ⦃fun s => s = s₀⦄ certifyNatEqs (sharedOpsC mode (mkFEnv env)) env eqs
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (certifyNatEqs (fueledOpsM mode) env eqs) v; ⊤⦄
+  | [], _, _, _ => by
+    sym only [conleche_grind, certifyNatEqs.eq_1] => vcgen [certifyNatEqs] <;> finish
+  | eq :: _, hsc, _, hs => by
+    sym only [conleche_grind, certifyNatEqs.eq_2,
+        Expr.WScoped.of_wscopedB (hsc eq List.mem_cons_self).1,
+        Expr.WScoped.of_wscopedB (hsc eq List.mem_cons_self).2] =>
+      vcgen [certifyNatEqs, defeqS_spec hμ henv hs,
+        certifyNatEqsS_spec hμ henv (fun e he => hsc e (List.mem_cons_of_mem _ he))] <;>
+        finish
+
+theorem certifyNatEqsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
+    {eqs : List (Expr × Expr)}
+    (hsc : ∀ eq ∈ eqs, (eq.1.wscopedB 2 = true) ∧ (eq.2.wscopedB 2 = true))
+    {s₀ : CState} (hs : CSOK mode env s₀) :
+    SimC mode env s₀ RelVC
+      (certifyNatEqs (sharedOpsC mode (mkFEnv env)) env eqs)
+      (certifyNatEqs (fueledOpsM mode) env eqs) :=
+  SimC.of_tripleVC (certifyNatEqsS_spec hμ henv hsc hs)
+
+/-- A certificate's applied proof is scoped at the certificate frame
+once its guard holds. -/
+theorem divModCertApplied_wscoped {env : Env} {c : Name} {annVal : Expr}
+    (hvf : annVal.hasFvar = false) {hyps : List Expr} {eqE proof : Expr}
+    (hhyps : ∀ hyp ∈ hyps, hyp.wscopedB 2 = true)
+    (hg : divModCertGuard env c annVal hyps eqE proof = true) :
+    Expr.WScoped 4 (divModCertApplied (Expr.substConstAll c annVal proof)
+      (hyps.map (Expr.substConst0 c annVal))) := by
+  unfold divModCertGuard at hg
+  simp only [Bool.and_eq_true] at hg
+  refine Expr.WScoped.of_wscopedB (divModCertApplied_wscopedB (by simpa using hg.1.1.1.1.2) ?_)
+  intro hyp hh
+  obtain ⟨h₀, hh₀, rfl⟩ := List.mem_map.mp hh
+  exact wscopedB_substConst0 hvf _ (hhyps h₀ hh₀)
 
 /-- `checkDivModCerts` at the cached shared operations. -/
-theorem checkDivModCertsS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {c : Name}
+theorem checkDivModCertsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {c : Name}
     {annVal : Expr} (hvf : annVal.hasFvar = false) :
     ∀ {stmts : List (List Expr × Expr)} {proofs : List Expr},
       (∀ st ∈ stmts, (∀ hyp ∈ st.1, hyp.wscopedB 2 = true) ∧
         st.2.wscopedB 4 = true) →
       ∀ {s₀ : CState}, CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (checkDivModCerts (sharedOpsC mode (mkFEnv env)) env c annVal
-          stmts proofs)
-        (checkDivModCerts (fueledOpsM mode) env c annVal stmts proofs)
-  | [], [], _, s₀, hs => SimC.pure hs rfl
-  | [], _ :: _, _, s₀, hs => SimC.pure hs rfl
-  | _ :: _, [], _, s₀, hs => SimC.pure hs rfl
-  | (hyps, eqE) :: srest, proof :: prest, hsc, s₀, hs => by
-    unfold checkDivModCerts
-    dsimp only [sharedOpsC]
-    obtain ⟨hhyps, heqw⟩ := hsc (hyps, eqE) (List.mem_cons_self ..)
-    have hhypsS : ∀ hyp ∈ hyps.map (Expr.substConst0 c annVal),
-        hyp.wscopedB 2 = true := by
-      intro hyp hh
-      obtain ⟨h₀, hh₀, rfl⟩ := List.mem_map.mp hh
-      exact wscopedB_substConst0 hvf _ (hhyps h₀ hh₀)
-    have heqS : (Expr.substConst0 c annVal eqE).wscopedB 4 = true :=
-      wscopedB_substConst0 hvf _ heqw
-    by_cases hguards : divModCertGuard env c annVal hyps eqE proof = true
-    case neg =>
-      simp only [ite_eq_right hguards]
-      exact SimC.pure hs rfl
-    simp only [ite_eq_left hguards]
-    have hguards' := hguards
-    unfold divModCertGuard at hguards'
-    simp only [Bool.and_eq_true] at hguards'
-    have hpf : (Expr.substConstAll c annVal proof).hasFvar = false := by
-      simpa using hguards'.1.1.1.1.2
-    have happW : (divModCertApplied (Expr.substConstAll c annVal proof)
-        (hyps.map (Expr.substConst0 c annVal))).wscopedB 4 = true :=
-      divModCertApplied_wscopedB hpf hhypsS
-    refine SimC.bind (opE_infer_sim hμ henv hs (Expr.WScoped.of_wscopedB happW))
-      (fun s₂ tp tp' hs₂ hP₂ => ?_)
-    obtain ⟨rfl, hwtp⟩ := hP₂
-    refine SimC.bind (opB_sim hμ henv hs₂ hwtp (Expr.WScoped.of_wscopedB heqS))
-      (fun s₃ b b' hs₃ hP₃ => ?_)
-    obtain rfl : b = b' := hP₃
-    cases b with
-    | true =>
-      simp only [↓reduceIte]
-      exact checkDivModCertsS_sim hμ henv hvf
-        (fun st hst => hsc st (List.mem_cons_of_mem _ hst)) hs₃
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      exact SimC.pure hs₃ rfl
+      ⦃fun s => s = s₀⦄
+        checkDivModCerts (sharedOpsC mode (mkFEnv env)) env c annVal stmts proofs
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (checkDivModCerts (fueledOpsM mode) env c annVal stmts proofs) v; ⊤⦄
+  | [], [], _, _, _ => by
+    sym only [conleche_grind, checkDivModCerts.eq_1] => vcgen [checkDivModCerts] <;> finish
+  | [], _ :: _, _, _, _ | _ :: _, [], _, _, _ => by
+    -- the catch-all arm's equation is conditional (`vcgen` finds no spec)
+    simp only [checkDivModCerts]
+    sym only [conleche_grind] => vcgen <;> finish
+  | (hyps, eqE) :: _, _ :: _, hsc, _, hs => by
+    sym only [conleche_grind, checkDivModCerts.eq_2,
+        divModCertApplied_wscoped hvf (hsc (hyps, eqE) List.mem_cons_self).1,
+        Expr.WScoped.of_wscopedB
+          (wscopedB_substConst0 hvf _ (hsc (hyps, eqE) List.mem_cons_self).2)] =>
+      vcgen [checkDivModCerts, inferS_spec hμ henv hs, defeqS_spec hμ henv,
+        checkDivModCertsS_spec hμ henv hvf
+          (fun st hst => hsc st (List.mem_cons_of_mem _ hst))] <;> finish
 
 /-- **The variant-fallback combinator simulates** (task #273).  The
 cached attempt's success is reproduced by the fueled attempt (`hx`);
@@ -222,7 +171,9 @@ left, well-formed by `hx`, or after an error on the pre-attempt state
 — and the fueled loop reproduces that with its own `none`
 continuation (`hk`, for whatever outcome the cached lane delivered).
 The common fuel is the larger of the attempt's and the
-continuation's. -/
+continuation's.  A statement about the runs: the cached combinator
+recovers from an error, which a partial-correctness triple's `⊤`
+exception post does not describe. -/
 theorem SimC.orElse {s₀ : CState} (hs : CSOK mode env s₀)
     {x : CheckCM Bool} {x' : FueledM Bool}
     {k : Option CheckError → CheckCM Unit}
@@ -264,115 +215,107 @@ theorem SimC.orElse {s₀ : CState} (hs : CSOK mode env s₀)
       | false => exact hF₂
     | error e' => exact hF₂
 
-/-- One pin variant's attempt as a `SimC`. -/
-theorem checkDivModPinAtS_sim (hμ : mode.verifiedChecks = true)
+/-- `SimC.orElse` as a triple. -/
+theorem orElseS_spec {s₀ : CState} (hs : CSOK mode env s₀)
+    {x : CheckCM Bool} {x' : FueledM Bool}
+    {k : Option CheckError → CheckCM Unit} {k' : Option CheckError → FueledM Unit}
+    (hx : ⦃fun s => s = s₀⦄ x ⦃fun v s' => CSOK mode env s' ∧ Runs x' v; ⊤⦄)
+    (hk : ∀ r (s₁ : CState), CSOK mode env s₁ →
+      ⦃fun s => s = s₁⦄ k r ⦃fun v s' => CSOK mode env s' ∧ Runs (k' none) v; ⊤⦄) :
+    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).orElse x k
+    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).orElse x' k') v; ⊤⦄ :=
+  (SimC.orElse hs (SimC.of_tripleVC hx)
+    (fun r s₁ hs₁ => SimC.of_tripleVC (hk r s₁ hs₁))).tripleVC
+
+/-- A variant's pin is closed once its guard holds. -/
+theorem divModDeclPin_hasFvar {ps : NatOpPinSet} {env : Env} {c : Name} {value' : Expr}
+    (h : (divModPinGuard ps env c && divModCertsGuard ps env c value') = true) :
+    (divModDeclPin ps c).hasFvar = false := by
+  simp only [divModPinGuard, Bool.and_eq_true] at h
+  simpa using h.1.1.1.2
+
+/-- One pin variant's attempt. -/
+theorem checkDivModPinAtS_spec (hμ : mode.verifiedChecks = true)
     (henv : EnvWF env) {c : Name} (hc : c ∈ natDivModNames)
     {value' : Expr} (hvf : value'.hasFvar = false) {ps : NatOpPinSet}
-    (hping : (divModPinGuard ps env c &&
-      divModCertsGuard ps env c value') = true)
+    (hping : (divModPinGuard ps env c && divModCertsGuard ps env c value') = true)
     {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (checkDivModPinAt (sharedOpsC mode (mkFEnv env)) env c value' ps)
-      (checkDivModPinAt (fueledOpsM mode) env c value' ps) := by
-  unfold checkDivModPinAt
-  dsimp only [sharedOpsC]
-  have hping' := hping
-  simp only [Bool.and_eq_true] at hping'
-  have hping'' := hping'.1
-  unfold divModPinGuard at hping''
-  simp only [Bool.and_eq_true] at hping''
-  have hpinF : (divModDeclPin ps c).hasFvar = false := by
-    simpa using hping''.1.1.2
-  refine SimC.bind (opB_sim hμ henv hs
-      (Expr.WScoped.of_not_hasFvar hvf) (Expr.WScoped.of_not_hasFvar hpinF))
-    (fun s₂ b b' hs₂ hP₂ => ?_)
-  obtain rfl : b = b' := hP₂
-  cases b with
-  | false =>
-    simp only [Bool.false_eq_true, ↓reduceIte]
-    exact SimC.pure hs₂ rfl
-  | true =>
-    simp only [↓reduceIte]
-    exact checkDivModCertsS_sim hμ henv hvf (divModCertStmts_wscopedB hc) hs₂
+    ⦃fun s => s = s₀⦄ checkDivModPinAt (sharedOpsC mode (mkFEnv env)) env c value' ps
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs (checkDivModPinAt (fueledOpsM mode) env c value' ps) v; ⊤⦄ := by
+  sym only [conleche_grind, checkDivModPinAt.eq_1, wscoped_of_hasFvar_false (d := 0) hvf,
+      wscoped_of_hasFvar_false (d := 0) (divModDeclPin_hasFvar hping)] =>
+    vcgen [checkDivModPinAt, defeqS_spec hμ henv hs,
+      checkDivModCertsS_spec hμ henv hvf (divModCertStmts_wscopedB hc)] <;> finish
 
-/-- The variant loop as a `SimC`, for any two reason accumulators (the
-cached lane's carry the outcomes, the fueled lane's the `none` text;
-neither affects success). -/
-theorem checkDivModPinLoopS_sim (hμ : mode.verifiedChecks = true)
-    (henv : EnvWF env) {c : Name} (hc : c ∈ natDivModNames)
-    {value' : Expr} (hvf : value'.hasFvar = false) :
+/-- The variant loop, for any two reason accumulators (the cached
+lane's carry the outcomes, the fueled lane's the `none` text; neither
+affects success). -/
+theorem checkDivModPinLoopS_spec (hμ : mode.verifiedChecks = true)
+    (henv : EnvWF env) {c : Name} (hc : c ∈ natDivModNames) {value' : Expr} :
     ∀ (pss : List NatOpPinSet) (tried tried' : List String) {s₀ : CState},
-      CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (checkDivModPinLoop (sharedOpsC mode (mkFEnv env)) env c value'
-          pss tried)
-        (checkDivModPinLoop (fueledOpsM mode) env c value' pss tried')
-  | [], _, _, s₀, hs => by
-    unfold checkDivModPinLoop
-    exact SimC.throw
-  | ps :: rest, tried, tried', s₀, hs => by
-    unfold checkDivModPinLoop
-    by_cases hping : (divModPinGuard ps env c &&
-        divModCertsGuard ps env c value') = true
-    case neg =>
-      simp only [ite_eq_right hping]
-      exact checkDivModPinLoopS_sim hμ henv hc hvf rest _ _ hs
-    simp only [ite_eq_left hping]
-    exact SimC.orElse hs (checkDivModPinAtS_sim hμ henv hc hvf hping hs)
-      (fun r s₁ hs₁ => checkDivModPinLoopS_sim hμ henv hc hvf rest _ _ hs₁)
+      CSOK mode env s₀ → value'.hasFvar = false →
+      ⦃fun s => s = s₀⦄
+        checkDivModPinLoop (sharedOpsC mode (mkFEnv env)) env c value' pss tried
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (checkDivModPinLoop (fueledOpsM mode) env c value' pss tried') v; ⊤⦄
+  | [], _, _, _, _, _ => by
+    sym only [conleche_grind, checkDivModPinLoop.eq_1] =>
+      vcgen [checkDivModPinLoop] <;> finish
+  | ps :: rest, _, tried', _, hs, hvf => by
+    by_cases hping : (divModPinGuard ps env c && divModCertsGuard ps env c value') = true
+    · sym only [conleche_grind, checkDivModPinLoop.eq_2] =>
+        vcgen [checkDivModPinLoop, orElseS_spec hs
+          (k' := fun r => checkDivModPinLoop (fueledOpsM mode) env c value' rest
+            (tried' ++ [divModAttemptReason ps r]))
+          (checkDivModPinAtS_spec hμ henv hc hvf hping hs)
+          (fun _ _ hs₁ => checkDivModPinLoopS_spec hμ henv hc rest _ _ hs₁ hvf)] <;> finish
+    · sym only [conleche_grind, checkDivModPinLoop.eq_2] =>
+        vcgen [checkDivModPinLoop, checkDivModPinLoopS_spec hμ henv hc rest _
+          (tried' ++ [s!"{ps.toolchain}: pin or certificate ground constants absent"]) hs hvf] <;>
+          finish
 
 /-- `checkDivModPin` at the cached shared operations. -/
-theorem checkDivModPinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env} {c : Name}
-    (hc : c ∈ natDivModNames)
+theorem checkDivModPinS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env}
+    {c : Name} (hc : c ∈ natDivModNames)
+    (hv'f : ∀ cv' v' h', env2.find? c = some (.defnInfo cv' v' h') →
+      v'.hasFvar = false)
+    (hs : CSOK mode env s₀) :
+    ⦃fun s => s = s₀⦄ checkDivModPin (sharedOpsC mode (mkFEnv env)) pins env env2 c
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs (checkDivModPin (fueledOpsM mode) pins env env2 c) v; ⊤⦄ := by
+  sym only [conleche_grind, checkDivModPin.eq_1] =>
+    vcgen [checkDivModPin, checkDivModPinLoopS_spec hμ henv hc pins [] []] <;> finish
+
+theorem checkDivModPinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env}
+    {c : Name} (hc : c ∈ natDivModNames)
     (hv'f : ∀ cv' v' h', env2.find? c = some (.defnInfo cv' v' h') →
       v'.hasFvar = false)
     (hs : CSOK mode env s₀) :
     SimC mode env s₀ RelVC
       (checkDivModPin (sharedOpsC mode (mkFEnv env)) pins env env2 c)
-      (checkDivModPin (fueledOpsM mode) pins env env2 c) := by
-  unfold checkDivModPin
-  by_cases h1 : divModEnvGuard env2 c = true
-  case neg => simp only [ite_eq_right h1]; exact SimC.throw
-  simp only [ite_eq_left h1]
-  cases hfind : env2.find? c with
-  | none => exact SimC.throw
-  | some ci =>
-    cases ci with
-    | axiomInfo cv' => exact SimC.throw
-    | thmInfo cv' => exact SimC.throw
-    | indInfo cv' caps => exact SimC.throw
-    | ctorInfo cv' nP nF => exact SimC.throw
-    | recInfo cv' mI rP rules => exact SimC.throw
-    | projInfo _ => exact SimC.throw
-    | defnInfo cv' value' hint' =>
-      exact checkDivModPinLoopS_sim hμ henv hc (hv'f _ _ _ hfind) _ _ _ hs
+      (checkDivModPin (fueledOpsM mode) pins env env2 c) :=
+  SimC.of_tripleVC (checkDivModPinS_spec hμ henv hc hv'f hs)
 
-/-- `installBasisDecl` (operation-free) as a `SimC`. -/
-theorem installBasisDeclS_sim {env' : Env} {ci : ConstantInfo}
-    (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC (installBasisDecl env' ci : CheckCM Env)
-      (installBasisDecl env' ci : FueledM Env) := by
-  unfold installBasisDecl
-  by_cases h1 : (env'.find? ci.name).isNone = true
-  · simp only [ite_eq_left h1]
-    exact SimC.pure hs rfl
-  · simp only [ite_eq_right h1]
-    exact SimC.throw_bind
-
-/-- The basis-install fold as a `SimC`. -/
-theorem installBasisFoldS_sim :
+/-- The basis-install fold (operation-free). -/
+theorem installBasisFoldS_spec :
     ∀ (cis : List ConstantInfo) (env' : Env) {s₀ : CState},
       CSOK mode env s₀ →
-      SimC mode env s₀ RelVC
-        (cis.foldlM installBasisDecl env' : CheckCM Env)
-        (cis.foldlM installBasisDecl env' : FueledM Env)
-  | [], env', s₀, hs => SimC.pure hs rfl
-  | ci :: cis, env', s₀, hs => by
-    simp only [List.foldlM]
-    refine SimC.bind (installBasisDeclS_sim hs)
-      (fun s₁ e e' hs₁ hP => ?_)
-    obtain rfl : e = e' := hP
-    exact installBasisFoldS_sim cis e hs₁
+      ⦃fun s => s = s₀⦄ (cis.foldlM installBasisDecl env' : CheckCM Env)
+      ⦃fun v s' => CSOK mode env s' ∧
+        Runs (cis.foldlM installBasisDecl env' : FueledM Env) v; ⊤⦄
+  | [], _, _, _ => by
+    sym only [conleche_grind, List.foldlM_nil] => vcgen [List.foldlM_nil] <;> finish
+  | _ :: cis, _, _, _ => by
+    sym only [conleche_grind, List.foldlM_cons, installBasisDecl.eq_1] =>
+      vcgen [List.foldlM_cons, installBasisDecl, installBasisFoldS_spec cis] <;> finish
+
+theorem installBasisFoldS_sim (cis : List ConstantInfo) (env' : Env) {s₀ : CState}
+    (hs : CSOK mode env s₀) :
+    SimC mode env s₀ RelVC
+      (cis.foldlM installBasisDecl env' : CheckCM Env)
+      (cis.foldlM installBasisDecl env' : FueledM Env) :=
+  SimC.of_tripleVC (installBasisFoldS_spec cis env' hs)
 
 end Walks1
 

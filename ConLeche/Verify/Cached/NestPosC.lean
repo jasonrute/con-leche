@@ -53,11 +53,8 @@ variable {mode : CheckMode}
 /-! ## Vocabulary candidates (for Grind.lean)
 
 `ListAll` (a list predicate over a NAMED element predicate, with its
-`nil`/`cons`/`append`/`reverse` equations), the pure side's `pure`-bind,
-the `forallE` scope equation and the binder open/close and spine scope
-rules, `AllWS.mono`, and the equality-relation triple forms
-`SimC.triple_eq`/`SimC.of_triple_eq` with the shared operations' triples
-(§ below). -/
+`nil`/`cons`/`append`/`reverse` equations), the constant-spine and
+binder-close scope rules, and `AllWS.mono`. -/
 
 /-- Every element of the list satisfies `P` (a named predicate, so that
 no `∀` reaches `grind`; `P` is itself a named predicate, never a
@@ -82,25 +79,11 @@ no `∀` reaches `grind`; `P` is itself a named predicate, never a
     ListAll P xs.reverse = ListAll P xs := by
   simp [ListAll]
 
-/-- A bind on a `pure` answers what its continuation answers. -/
-@[conleche_grind =] theorem Runs.pure_bind_eq {α β : Type} (a : α) (f : α → FueledM β)
-    (b : β) : Runs (Pure.pure a >>= f) b = Runs (f a) b := rfl
-
-@[conleche_grind =] theorem wscoped_forallE_eq (d : Nat) (ty body : Expr) :
-    Expr.WScoped d (.forallE ty body) = (Expr.WScoped d ty ∧ Expr.WScoped d body) := by
-  rw [Expr.WScoped]
-
 /-- A constant applied to well-scoped arguments is well scoped. -/
 theorem wscoped_mkAppN_const {d : Nat} {n : Name} {us : List Level} {xs : List Expr}
     (h : AllWS d xs) : WScoped d (Expr.mkAppN (.const n us) xs) :=
   Expr.WScoped.mkAppN (by rw [Expr.WScoped]; trivial) h
-grind_pattern [conleche_grind] wscoped_mkAppN_const => WScoped d (Expr.mkAppN (.const n us) xs)
-
-/-- Opening a binder at a fresh variable. -/
-theorem wscoped_open {d : Nat} {a b : Expr} (ha : WScoped d a) (hb : WScoped d b) :
-    WScoped (d + 1) (b.instantiate1 (.fvar d a)) :=
-  WScoped.instantiate1 ha 0 hb
-grind_pattern [conleche_grind] wscoped_open => WScoped d a, b.instantiate1 (.fvar d a)
+grind_pattern [conleche_grind] wscoped_mkAppN_const => AllWS d xs, Expr.mkAppN (.const n us) xs
 
 /-- Closing a binder over a variable. -/
 theorem wscoped_close {d : Nat} {b : Expr} (hb : WScoped (d + 1) b) :
@@ -108,57 +91,8 @@ theorem wscoped_close {d : Nat} {b : Expr} (hb : WScoped (d + 1) b) :
   WScoped.abstract1 0 hb
 grind_pattern [conleche_grind] wscoped_close => WScoped (d + 1) b, b.abstract1 d
 
-theorem allWS_getAppArgs {d : Nat} {e : Expr} (h : WScoped d e) : AllWS d e.getAppArgs :=
-  Expr.WScoped.getAppArgs h
-grind_pattern [conleche_grind] allWS_getAppArgs => WScoped d e, e.getAppArgs
-
 theorem AllWS.mono {d d' : Nat} {xs : List Expr} (hle : d ≤ d') (h : AllWS d xs) :
     AllWS d' xs := fun x hx => WScoped.mono hle (h x hx)
-
-/-- A simulation at equality is a triple whose post names the cached
-value as the pure answer. -/
-theorem SimC.triple_eq {β : Type} {s₀ : CState} {env : Env} {c : CheckCM β} {p : FueledM β}
-    (h : SimC mode env s₀ RelVC c p) :
-    ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄ :=
-  triple_iff_run.mpr fun v' s' hr => by
-    obtain ⟨hs', v, rfl, F, hF⟩ := h v' s' hr
-    exact ⟨hs', F, hF⟩
-
-/-- The converse of `SimC.triple_eq`. -/
-theorem SimC.of_triple_eq {β : Type} {s₀ : CState} {env : Env} {c : CheckCM β}
-    {p : FueledM β}
-    (h : ⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v; ⊤⦄) :
-    SimC mode env s₀ RelVC c p := fun v' s' hr => by
-  obtain ⟨hs', F, hF⟩ := triple_iff_run.mp h v' s' hr
-  exact ⟨hs', v', rfl, F, hF⟩
-
-/-! ## The shared operations as triples -/
-
-section Ops
-
-variable {env : Env} {s₀ : CState}
-
-theorem opE_infer_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat}
-    {e : Expr} (hs : CSOK mode env s₀) (hw : WScoped d e) :
-    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).inferType env d e
-    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).inferType env d e) v ∧
-      WScoped d v; ⊤⦄ :=
-  (opE_infer_sim hμ henv hs hw).triple (fun _ _ h => h)
-
-theorem opE_whnf_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat}
-    {e : Expr} (hs : CSOK mode env s₀) (hw : WScoped d e) :
-    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).whnf env d e
-    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).whnf env d e) v ∧
-      WScoped d v; ⊤⦄ :=
-  (opE_whnf_sim hμ henv hs hw).triple (fun _ _ h => h)
-
-theorem opS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Nat}
-    {e : Expr} (hs : CSOK mode env s₀) (hw : WScoped d e) :
-    ⦃fun s => s = s₀⦄ (sharedOpsC mode (mkFEnv env)).ensureSort env d e
-    ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).ensureSort env d e) v; ⊤⦄ :=
-  SimC.triple_eq (opS_sim hμ henv hs hw)
-
-end Ops
 
 /-! ## Container lookups read closed constructor types -/
 
@@ -385,7 +319,7 @@ theorem nestCtorsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
   | (cv, nF) :: cs, st, _, hs₀, hcs => by
     sym only [conleche_grind, nestCtors.eq_2, unwrapOr.eq_1,
         → wscoped_nestCrest (hlen := hlen) (hds := hds) (hholes := hholes)] =>
-      vcgen [nestCtors, unwrapOr, opE_infer_spec hμ henv, opS_spec hμ henv,
+      vcgen [nestCtors, unwrapOr, inferS_spec hμ henv, sortS_spec hμ henv,
         nestFieldsS_spec (hrec _), nestCtorsS_spec hμ henv hrec ctx prog hi us ds names holes
           hds hholes hlen cs] <;> finish
 
@@ -426,7 +360,7 @@ theorem nestFrameS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {c
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (nestFrame ctx (fueledOpsM mode) env rec' prog hi us ds nPc grp st) v; ⊤⦄ := by
   sym only [conleche_grind, nestFrame_eq] =>
-    vcgen [nestFrame_eq, opE_infer_spec hμ henv,
+    vcgen [nestFrame_eq, inferS_spec hμ henv,
       nestGroupCtorsS_spec (mode := mode) (env := env) hc nPc,
       nestCtorsS_spec hμ henv (fun _ => hrec) ctx _ (hi + grp.length) us ds (grp.map Prod.fst)
         (frameHoles hi grp) (AllWS.mono (Nat.le_add_right _ _) hds)
@@ -512,7 +446,7 @@ theorem nestPosS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {ctx
       vcgen [nestPos] <;> finish
   | fuel + 1 => fun prog dep kb e st s₀ hs hw => by
     sym only [conleche_grind, nestPos.eq_2] =>
-      vcgen [nestPos, opE_whnf_spec hμ henv, (nestPosS_spec hμ henv hc fuel).triple,
+      vcgen [nestPos, whnfS_spec hμ henv, (nestPosS_spec hμ henv hc fuel).triple,
         nestContS_spec hμ henv hc (nestPosS_spec hμ henv hc fuel) (dep := dep)] <;> finish
 
 /-- The member holes: scoped at the walk's depth, each a variable. -/
@@ -578,17 +512,9 @@ theorem checkStructFieldSortsIS_spec (hμ : mode.verifiedChecks = true) (henv : 
     -- `gen`: the pure side, evaluated bind by bind, through four binds and two guards
     sym only [conleche_grind, checkStructFieldSortsI.eq_2, unwrapOr.eq_1, liftFueled.eq_1,
         → hfvs.get] =>
-      vcgen [checkStructFieldSortsI, unwrapOr, liftFueled, opE_infer_spec hμ henv,
-        opS_spec hμ henv, checkStructFieldSortsIS_spec hμ henv hfvs (j := j)] <;>
+      vcgen [checkStructFieldSortsI, unwrapOr, liftFueled, inferS_spec hμ henv,
+        sortS_spec hμ henv, checkStructFieldSortsIS_spec hμ henv hfvs (j := j)] <;>
         finish (gen := 12)
-
-theorem checkStructFieldSortsIS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
-    {isProp large : Bool} {s : Level} {nP : Nat} {fvs idxArgs : List Expr}
-    (hfvs : FvsWS nP fvs) {j : Nat} {s₀ : CState} (hs : CSOK mode env s₀) :
-    SimC mode env s₀ RelVC
-      (checkStructFieldSortsI (sharedOpsC mode (mkFEnv env)) env isProp large s nP fvs idxArgs j)
-      (checkStructFieldSortsI (fueledOpsM mode) env isProp large s nP fvs idxArgs j) :=
-  SimC.of_triple_eq (checkStructFieldSortsIS_spec hμ henv hfvs hs)
 
 /-- An abstracted constructor's fields, opened at the holes' depth. -/
 theorem fvsWS_openPis {n d : Nat} {e : Expr} {fvs : List Expr} {body : Expr}
