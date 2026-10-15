@@ -158,7 +158,7 @@ theorem checkSumCtorS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
         nIdx resSort isProp large cvC nF cvTa) v; ⊤⦄ := by
   -- `gen := 13` (the default 8 fails): the fueled side is a chain of ten binds, each one
   -- E-matching generation deeper than the last
-  sym only [conleche_grind, checkSumCtor.eq_1, unwrapOr] =>
+  sym only [conleche_grind, checkSumCtor.eq_1, unwrapOr, wscoped_of_hasFvar_false (d := 0) hTf] =>
     vcgen [checkSumCtor, unwrapOr, checkConstantValS_spec hμ henv hs,
       checkStructDomsAtS_spec hμ henv, checkStructFieldSortsIS_spec hμ henv] <;>
       finish (gen := 13)

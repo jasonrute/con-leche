@@ -74,11 +74,12 @@ theorem sortS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {d : Na
     ⦃fun v s' => CSOK mode env s' ∧ Runs ((fueledOpsM mode).ensureSort env d e) v; ⊤⦄ :=
   (opS_sim hμ henv hs hw).tripleVC
 
-/-- A closed term is scoped at every depth. -/
+/-- A closed term is scoped at every depth (a fact the walks state at
+the depths they need: as a pattern on every `WScoped` term it costs
+every walk its instances). -/
 theorem wscoped_of_hasFvar_false {d : Nat} {e : Expr} (h : e.hasFvar = false) :
     Expr.WScoped d e :=
   Expr.WScoped.of_not_hasFvar h
-grind_pattern [conleche_grind] wscoped_of_hasFvar_false => Expr.WScoped d e
 
 end Vocabulary
 
@@ -93,7 +94,7 @@ theorem checkConstantValS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF 
     ⦃fun s => s = s₀⦄ checkConstantVal (sharedOpsC mode (mkFEnv env)) env cv
     ⦃fun v s' => CSOK mode env s' ∧ Runs (checkConstantVal (fueledOpsM mode) env cv) v ∧
       Expr.WScoped 0 cv.type; ⊤⦄ := by
-  sym only [conleche_grind, checkConstantVal.eq_1] =>
+  sym only [conleche_grind, checkConstantVal.eq_1, @wscoped_of_hasFvar_false 0 cv.type] =>
     vcgen [checkConstantVal, inferS_spec hμ henv hs, sortS_spec hμ henv] <;> finish
 
 theorem checkConstantValS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {cv : ConstantVal}
@@ -117,8 +118,9 @@ theorem checkReducePinS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF en
     ⦃fun s => s = s₀⦄ checkReducePin (sharedOpsC mode (mkFEnv env)) env env2 c value
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (checkReducePin (fueledOpsM mode) env env2 c value) v; ⊤⦄ := by
-  sym only [conleche_grind, checkReducePin.eq_1, reducePinGuard,
-      wscoped_reduceCertVar c] =>
+  sym only [conleche_grind, checkReducePin.eq_1, reducePinGuard, wscoped_reduceCertVar c,
+      wscoped_of_hasFvar_false (d := 0) hvf, wscoped_of_hasFvar_false (d := 1) hvf,
+      @wscoped_of_hasFvar_false 0 (reduceDeclPin c)] =>
     vcgen [checkReducePin, defeqS_spec hμ henv] <;> finish
 
 theorem checkReducePinS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env) {env2 : Env}
@@ -275,7 +277,8 @@ theorem checkDivModPinAtS_spec (hμ : mode.verifiedChecks = true)
     ⦃fun s => s = s₀⦄ checkDivModPinAt (sharedOpsC mode (mkFEnv env)) env c value' ps
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (checkDivModPinAt (fueledOpsM mode) env c value' ps) v; ⊤⦄ := by
-  sym only [conleche_grind, checkDivModPinAt.eq_1, divModDeclPin_hasFvar hping] =>
+  sym only [conleche_grind, checkDivModPinAt.eq_1, wscoped_of_hasFvar_false (d := 0) hvf,
+      wscoped_of_hasFvar_false (d := 0) (divModDeclPin_hasFvar hping)] =>
     vcgen [checkDivModPinAt, defeqS_spec hμ henv hs,
       checkDivModCertsS_spec hμ henv hvf (divModCertStmts_wscopedB hc)] <;> finish
 
