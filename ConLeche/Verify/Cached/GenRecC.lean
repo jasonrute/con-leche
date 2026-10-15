@@ -969,22 +969,20 @@ theorem checkBlockPassS_run (hμ : mode.verifiedChecks = true) {env : Env} (henv
   try simp only at h
   -- the positivity function on the stored constructors (the root frame)
   obtain ⟨⟨kinds, nfs, pos⟩, sK, hK, h⟩ := bindC_ok h
-  obtain ⟨hsK, kinds', hPK, FK, hFK⟩ :=
-    checkBlockPositivityS_sim hμ henv₁ (p₀.complete p₁) cvTas ctorsAs hwT
-      (checkBlockCtors_types hF₂p) hsL (kinds, nfs, pos) sK hK
-  obtain rfl := hPK
+  obtain ⟨hsK, FK, hFK⟩ := triple_iff_run.mp
+    (checkBlockPositivityS_spec hμ henv₁ (p₀.complete p₁) cvTas ctorsAs hwT
+      (checkBlockCtors_types hF₂p) hsL) (kinds, nfs, pos) sK hK
   try simp only at h
   -- every outside class, walked from its state
   obtain ⟨st, sT, hT', h⟩ := bindC_ok h
   have hpar' : ∀ x ∈ ctx.params, WScoped (ctx.hiAt 0) x := fun x hx =>
     WScoped.mono (by rw [← hnP]; simp [NestCtx.hiAt]) (hpar x hx)
-  obtain ⟨hsT, st', hPT, FT, hFT⟩ :=
-    nestSeedsS_sim hμ henv₁ hctx _ pos hsK (fun k hk x hx => by
+  obtain ⟨hsT, FT, hFT⟩ := triple_iff_run.mp
+    (nestSeedsS_spec hμ henv₁ hctx _ pos hsK (fun k hk x hx => by
       obtain ⟨M, hM, hMn, rfl⟩ := mem_classSeeds hk
       exact (nestSeedOf_ds hh hlen (fun y hy => Expr.fvarB_le (by
         rw [hnP]; exact (((hMsc M hM).2.1 hMn).2 y hy).2)) x hx).2 (fun y hy => (hholes y hy).1)
-        hpar') st sT hT'
-  obtain rfl := hPT
+        hpar')) st sT hT'
   obtain ⟨rfl, rfl⟩ := pureC_ok h
   obtain ⟨G, hle₁, hle₂, hleX, hleL, hleK, hleT⟩ :
       ∃ G, F₁ ≤ G ∧ F₂ ≤ G ∧ FX ≤ G ∧ FL ≤ G ∧ FK ≤ G ∧ FT ≤ G :=
