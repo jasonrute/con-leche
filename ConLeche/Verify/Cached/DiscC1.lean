@@ -190,6 +190,41 @@ theorem constValAtM_spec {env : Env} {s₀ : CState} (hs : CSOK mode env s₀) (
   obtain ⟨hs', hrel⟩ := constValAtM_eff hs hf r s' hr
   exact ⟨hs', by rw [constValAt?, hf, show r = _ from hrel]⟩
 
+/-- `isEquivListLM_eff` as a triple. -/
+theorem isEquivListLM_spec {env : Env} {s₀ : CState} (hs : CSOK mode env s₀)
+    (ls rs : List Level) :
+    ⦃fun s => s = s₀⦄ isEquivListLM ls rs
+    ⦃fun ob s' => CSOK mode env s' ∧ ob = Level.isEquivList ls rs; ⊤⦄ :=
+  (isEquivListLM_eff hs).triple
+
+/-- A well-scoped spine's arguments are well scoped. -/
+theorem allWS_getAppArgs {d : Nat} {e : Expr} (h : Expr.WScoped d e) :
+    AllWS d e.getAppArgs :=
+  h.getAppArgs
+grind_pattern [conleche_grind] allWS_getAppArgs => Expr.WScoped d e, e.getAppArgs
+
+@[conleche_grind =] theorem AllWS.reverse_eq (d : Nat) (xs : List Expr) :
+    AllWS d xs.reverse = AllWS d xs := by
+  simp [AllWS]
+
+theorem relOC_diag {d : Nat} : ∀ o : Option Expr, OptWS d o → RelOC d o o
+  | none, _ => trivial
+  | some _, h => ⟨rfl, h⟩
+
+@[conleche_grind =] theorem OptWS.none_eq (d : Nat) : OptWS d none = True := rfl
+
+@[conleche_grind =] theorem wscoped_lit_eq (d : Nat) (l : Literal) :
+    Expr.WScoped d (.lit l) = True := by
+  rw [Expr.WScoped]
+
+/-- A native `Nat` operation's answer is closed. -/
+@[conleche_grind .] theorem optWS_natOpResult (d : Nat) (c : Name) (a b : Nat) :
+    OptWS d (natOpResult c a b) := by
+  cases h : natOpResult c a b with
+  | none => trivial
+  | some e =>
+    rcases natOpResult_shape h with ⟨n, rfl⟩ | ⟨bn, rfl⟩ <;> simp [OptWS, Expr.WScoped]
+
 /-- The domain of a well-scoped instantiated `∀` is well scoped. -/
 theorem wscoped_piDom {d : Nat} {dom body : Expr} {acc : List Expr}
     (hw : Expr.WScoped d ((Expr.forallE dom body).instantiateList acc)) :
@@ -462,6 +497,14 @@ theorem projLitToCtorC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
   subst hden; exact SimC.of_triple relEC_diag (projLitToCtorC_spec ih hs hw)
 
 /-- `defeqSpineI` simulates its fueled original. -/
+theorem defeqSpineC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
+    ⦃fun s => s = s₀⦄ defeqSpineI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b
+    ⦃fun v s' => CSOK mode env s' ∧ Runs (defeqSpine (fueledFns mode env) env d a b) v; ⊤⦄ := by
+  sym only [conleche_grind, defeqSpine, Expr.getAppArgsC_spec] =>
+    vcgen [defeqSpineI, isEquivListLM_spec hs, defEqListC_spec ih] <;> finish
+
+/-- `defeqSpineC_spec` as a simulation, for the unconverted callers. -/
 theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
     {a b : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hdena : RelC i a) (hdenb : RelC j b)
@@ -469,132 +512,7 @@ theorem defeqSpineC_sim (ih : SSimC mode env f) {d : Nat} {i j : Expr}
     SimC mode env s₀ RelVC
       (defeqSpineI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i j)
       (defeqSpine (fueledFns mode env) env d a b) := by
-  show SimC mode env s₀ RelVC
-    (
-      match (Expr.getAppFn i) with
-      | .const nm us =>
-        
-        match (Expr.getAppFn j) with
-        | .const nm' us' => do
-          let aargs ← pure (Expr.getAppArgsC i)
-          let bargs ← pure (Expr.getAppArgsC j)
-          if nm = nm' ∧ aargs.length = bargs.length then do
-            match ← isEquivListLM us us' with
-            | some true =>
-              defEqListI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d
-                aargs.reverse bargs.reverse
-            | _ => pure false
-          else pure false
-        | _ => pure false
-      | _ => pure false)
-    (defeqSpine (fueledFns mode env) env d a b)
-  refine SimC.pureB ?_
-  obtain rfl := hdena
-  obtain rfl := hdenb
-  have hspec : defeqSpine (fueledFns mode env) env d i j =
-      (match (Expr.getAppFn i) with
-      | .const nm us =>
-        match (Expr.getAppFn j) with
-        | .const nm' us' =>
-          if nm = nm' ∧
-              (Expr.getAppArgs i).length = (Expr.getAppArgs j).length then
-            match Level.isEquivList us us' with
-            | some true =>
-              defEqList (fueledFns mode env) env d
-                (Expr.getAppArgs i).reverse (Expr.getAppArgs j).reverse
-            | _ => pure false
-          else pure false
-        | _ => pure false
-      | _ => pure false) := rfl
-  have haargs := Expr.getAppArgsC_spec i
-  have hbargs := Expr.getAppArgsC_spec j
-  have hlena : (Expr.getAppArgsC i).length = (Expr.getAppArgs i).length :=
-    RelCL.length haargs
-  have hlenb : (Expr.getAppArgsC j).length = (Expr.getAppArgs j).length :=
-    RelCL.length hbargs
-  generalize hga : Expr.getAppFn i = ga
-  cases ga with
-  | const nm us =>
-    have hfa' : (Expr.getAppFn i) = Expr.const nm us := hga
-    rw [hspec, hfa']
-    dsimp only
-    refine SimC.pureB ?_
-    generalize hgb : Expr.getAppFn j = gb
-    cases gb with
-    | const nm' us' =>
-      dsimp only
-      refine SimC.pureB ?_
-      refine SimC.pureB ?_
-      simp only [hlena, hlenb]
-      by_cases hcnd : nm = nm' ∧
-          (Expr.getAppArgs i).length = (Expr.getAppArgs j).length
-      · rw [ite_eq_left hcnd, ite_eq_left hcnd]
-        refine SimC.bind_left (isEquivListLM_eff hs) ?_
-        intro s₁ ob hs₁ hob
-        subst hob
-        cases hlv : Level.isEquivList us us' with
-        | some tv =>
-          cases tv with
-          | true =>
-            exact defEqListC_sim ih hs₁ (congrArg List.reverse haargs)
-              (congrArg List.reverse hbargs)
-              (fun x hx => hwa.getAppArgs x (List.mem_reverse.mp hx))
-              (fun x hx => hwb.getAppArgs x (List.mem_reverse.mp hx))
-          | false => exact SimC.pure hs₁ rfl
-        | none => exact SimC.pure hs₁ rfl
-      · rw [ite_eq_right hcnd, ite_eq_right hcnd]
-        exact SimC.pure hs rfl
-    | bvar k =>
-      exact SimC.pure hs rfl
-    | sort u' =>
-      exact SimC.pure hs rfl
-    | lit l' =>
-      exact SimC.pure hs rfl
-    | fvar idx' t' =>
-      exact SimC.pure hs rfl
-    | app f₂ a₂ =>
-      exact SimC.pure hs rfl
-    | lam t' b' =>
-      exact SimC.pure hs rfl
-    | forallE t' b' =>
-      exact SimC.pure hs rfl
-    | letE t' v' b' =>
-      exact SimC.pure hs rfl
-    | proj sn' j' e' =>
-      exact SimC.pure hs rfl
-  | bvar k =>
-    rw [hspec, show (Expr.getAppFn i) = Expr.bvar k from hga]
-    exact SimC.pure hs rfl
-  | sort u =>
-    rw [hspec, show (Expr.getAppFn i) = Expr.sort u from hga]
-    exact SimC.pure hs rfl
-  | lit l =>
-    rw [hspec, show (Expr.getAppFn i) = Expr.lit l from hga]
-    exact SimC.pure hs rfl
-  | fvar idx t =>
-    rw [hspec, show (Expr.getAppFn i) = Expr.fvar idx t
-      from hga]
-    exact SimC.pure hs rfl
-  | app f' a' =>
-    rw [hspec, show (Expr.getAppFn i) = Expr.app f' a'
-      from hga]
-    exact SimC.pure hs rfl
-  | lam t b' =>
-    rw [hspec, show (Expr.getAppFn i)
-      = Expr.lam t b' from hga]
-    exact SimC.pure hs rfl
-  | forallE t b' =>
-    rw [hspec, show (Expr.getAppFn i)
-      = Expr.forallE t b' from hga]
-    exact SimC.pure hs rfl
-  | letE t v b' =>
-    rw [hspec, show (Expr.getAppFn i)
-      = Expr.letE t v b' from hga]
-    exact SimC.pure hs rfl
-  | proj sn j' e' =>
-    rw [hspec, show (Expr.getAppFn i) = Expr.proj sn j' e'
-      from hga]
-    exact SimC.pure hs rfl
+  subst hdena hdenb; exact SimC.of_triple_eq (defeqSpineC_spec ih hs hwa hwb)
 
 end Walks3
 
@@ -602,188 +520,71 @@ section Walks4
 
 variable {env : Env} {f : Nat}
 
-private theorem relOC_some_lit {r : Expr} {n : Nat} {d : Nat}
-    (h : RelC r (.lit (.natVal n))) :
-    RelOC d (some r) (some (.lit (.natVal n))) :=
-  ⟨h, by simp [Expr.WScoped]⟩
+/-- `reduceNat`'s dispatch in the cached twin's nested shape, one
+constructor per level (the definition's overlapping wildcard gives a
+conditional equation whose premise `grind` cannot discharge from the
+nested arms' hypotheses). -/
+theorem reduceNat_nested {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
+    (r : CoreFns m) (env : Env) (d : Nat) (e : Expr) :
+    reduceNat r env d e =
+      match e with
+      | .app f₁ b =>
+        match f₁ with
+        | .const c us =>
+          match us with
+          | [] => reduceNat r env d (.app (.const c []) b)
+          | _ :: _ => pure none
+        | .app f₂ a =>
+          match f₂ with
+          | .const c us =>
+            match us with
+            | [] => reduceNat r env d (.app (.app (.const c []) a) b)
+            | _ :: _ => pure none
+          | _ => pure none
+        | _ => pure none
+      | _ => pure none := by
+  cases e with
+  | app f₁ b =>
+    cases f₁ with
+    | const c us => cases us <;> rfl
+    | app f₂ a => cases f₂ with
+      | const c us => cases us <;> rfl
+      | _ => rfl
+    | _ => rfl
+  | _ => rfl
 
 /-- `reduceNatI` simulates its fueled original. -/
+theorem reduceNatC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) :
+    ⦃fun s => s = s₀⦄ reduceNatI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i
+    ⦃fun o s' => CSOK mode env s' ∧ Runs (reduceNat (fueledFns mode env) env d i) o ∧
+      OptWS d o; ⊤⦄ := by
+  sym only [conleche_grind, reduceNat_nested, reduceNat.eq_1, reduceNat.eq_2,
+      natLitSupportedF_eq, natOpStoredF_eq, rawNatLitC?_spec] =>
+    vcgen [reduceNatI, ih.whnf_spec] <;> finish
+
+/-- `reduceNatC_spec` as a simulation, for the unconverted callers. -/
 theorem reduceNatC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
     {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i e) (hw : Expr.WScoped d e) :
     SimC mode env s₀ (RelOC d)
       (reduceNatI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i)
       (reduceNat (fueledFns mode env) env d e) := by
-  unfold reduceNatI
-  obtain rfl := hden
-  cases i with
-  | app f₁ b =>
-    rw [show (Expr.app f₁ b)
-        = Expr.app (f₁) b from rfl] at hw ⊢
-    have hwfb : Expr.WScoped d (f₁) ∧ Expr.WScoped d b := by
-      simpa only [Expr.WScoped] using hw
-    cases f₁ with
-    | const c us =>
-      rw [show (Expr.const c us)
-          = Expr.const c us from rfl]
-      cases us with
-      | cons u us' => exact SimC.pure hs trivial
-      | nil =>
-        refine SimC.bind_left (pureEq_eff hs c)
-          (fun s₀' cv hs hcv => ?_)
-        subst hcv
-        rw [show reduceNat (fueledFns mode env) env d
-          (.app (.const cv []) b) =
-          (if cv = natSuccName ∧ natLitSupported env then
-            (fueledFns mode env).whnf d b >>= fun w =>
-            match rawNatLit? w with
-            | some n => pure (some (.lit (.natVal (n + 1))))
-            | none => pure none
-          else pure none) from rfl]
-        rw [natLitSupportedF_eq]
-        by_cases hg1 : cv = natSuccName ∧ natLitSupported env
-        · rw [ite_eq_left hg1, ite_eq_left hg1]
-          refine SimC.bind (ih.whnf hs rfl hwfb.2)
-            (fun s₁ w wx hs₁ hP => ?_)
-          obtain ⟨hwden, hww⟩ := hP
-          refine SimC.pureB ?_
-          rw [rawNatLitC?_spec' hwden]
-          cases rawNatLit? wx with
-          | some k =>
-            refine SimC.bind_left (pureC_eff hs₁ _)
-              (fun s₂ r hs₂ hQ => ?_)
-            exact SimC.pure hs₂ (relOC_some_lit hQ)
-          | none => exact SimC.pure hs₁ trivial
-        · rw [ite_eq_right hg1, ite_eq_right hg1]
-          exact SimC.pure hs trivial
-    | app f₂ a =>
-      rw [show (Expr.app f₂ a)
-          = Expr.app (f₂) a from rfl] at hwfb ⊢
-      have hwf₂a : Expr.WScoped d (f₂) ∧ Expr.WScoped d a := by
-        simpa only [Expr.WScoped] using hwfb.1
-      cases f₂ with
-      | const c us =>
-        rw [show (Expr.const c us)
-            = Expr.const c us from rfl]
-        cases us with
-        | cons u us' => exact SimC.pure hs trivial
-        | nil =>
-          refine SimC.bind_left (pureEq_eff hs c)
-            (fun s₀' cv hs hcv => ?_)
-          subst hcv
-          rw [show reduceNat (fueledFns mode env) env d
-            (.app (.app (.const cv []) a) b) =
-            (if (cv = natAddName ∨ cv = natSubName ∨ cv = natMulName ∨
-                cv = natPowName ∨ cv = natBeqName ∨ cv = natBleName ∨
-                cv = natDivName ∨ cv = natModName ∨ cv = natGcdName ∨
-                cv = natLandName ∨ cv = natLorName ∨ cv = natXorName ∨
-                cv = natShiftLeftName ∨ cv = natShiftRightName) ∧
-                natOpStored env cv = true then
-              (fueledFns mode env).whnf d a >>= fun w₁ =>
-              match rawNatLit? w₁ with
-              | some n₁ =>
-                (fueledFns mode env).whnf d b >>= fun w₂ =>
-                match rawNatLit? w₂ with
-                | some n₂ => pure (natOpResult cv n₁ n₂)
-                | none => pure none
-              | none => pure none
-            else if natOpWfNames.contains cv ∧ natLitSupported env then
-              (fueledFns mode env).whnf d a >>= fun w₁ =>
-              match rawNatLit? w₁ with
-              | some _ =>
-                (fueledFns mode env).whnf d b >>= fun w₂ =>
-                match rawNatLit? w₂ with
-                | some _ => throw (.notImplemented
-                    s!"native Nat computation on literals ({cv})")
-                | none => pure none
-              | none => pure none
-            else pure none) from rfl]
-          rw [natOpStoredF_eq, natLitSupportedF_eq]
-          by_cases hg1 : (cv = natAddName ∨ cv = natSubName ∨
-              cv = natMulName ∨ cv = natPowName ∨ cv = natBeqName ∨
-              cv = natBleName ∨ cv = natDivName ∨ cv = natModName ∨
-              cv = natGcdName ∨ cv = natLandName ∨ cv = natLorName ∨
-              cv = natXorName ∨ cv = natShiftLeftName ∨
-              cv = natShiftRightName) ∧ natOpStored env cv = true
-          · rw [ite_eq_left hg1, ite_eq_left hg1]
-            -- first argument first; the second only behind a literal (D15)
-            refine SimC.bind (ih.whnf hs rfl hwf₂a.2)
-              (fun s₁ w₁ wx₁ hs₁ hP₁ => ?_)
-            obtain ⟨hw1den, hww1⟩ := hP₁
-            refine SimC.pureB ?_
-            rw [rawNatLitC?_spec' hw1den]
-            cases rawNatLit? wx₁ with
-            | some n₁ =>
-              refine SimC.bind (ih.whnf hs₁ rfl hwfb.2)
-                (fun s₂ w₂ wx₂ hs₂ hP₂ => ?_)
-              obtain ⟨hw2den, hww2⟩ := hP₂
-              refine SimC.pureB ?_
-              rw [rawNatLitC?_spec' hw2den]
-              cases rawNatLit? wx₂ with
-              | some n₂ =>
-                dsimp only
-                cases hres : natOpResult cv n₁ n₂ with
-                | some x =>
-                  dsimp only
-                  refine SimC.bind_left (pureC_eff hs₂ x)
-                    (fun s₃ r hs₃ hQ => ?_)
-                  refine SimC.pure hs₃ ⟨hQ, ?_⟩
-                  rcases natOpResult_shape hres with ⟨n', rfl⟩ |
-                    ⟨bn, rfl⟩ <;> simp [Expr.WScoped]
-                | none => exact SimC.pure hs₂ trivial
-              | none => exact SimC.pure hs₂ trivial
-            | none => exact SimC.pure hs₁ trivial
-          · rw [ite_eq_right hg1, ite_eq_right hg1]
-            by_cases hg2 : natOpWfNames.contains cv ∧ natLitSupported env
-            · rw [ite_eq_left hg2, ite_eq_left hg2]
-              refine SimC.bind (ih.whnf hs rfl hwf₂a.2)
-                (fun s₁ w₁ wx₁ hs₁ hP₁ => ?_)
-              obtain ⟨hw1den, hww1⟩ := hP₁
-              refine SimC.pureB ?_
-              rw [rawNatLitC?_spec' hw1den]
-              cases rawNatLit? wx₁ with
-              | some n₁ =>
-                refine SimC.bind (ih.whnf hs₁ rfl hwfb.2)
-                  (fun s₂ w₂ wx₂ hs₂ hP₂ => ?_)
-                obtain ⟨hw2den, hww2⟩ := hP₂
-                refine SimC.pureB ?_
-                rw [rawNatLitC?_spec' hw2den]
-                cases rawNatLit? wx₂ with
-                | some n₂ => exact SimC.throw
-                | none => exact SimC.pure hs₂ trivial
-              | none => exact SimC.pure hs₁ trivial
-            · rw [ite_eq_right hg2, ite_eq_right hg2]
-              exact SimC.pure hs trivial
-      | bvar k => exact SimC.pure hs trivial
-      | sort u => exact SimC.pure hs trivial
-      | lit l => exact SimC.pure hs trivial
-      | fvar idx t => exact SimC.pure hs trivial
-      | app f₃ a₃ => exact SimC.pure hs trivial
-      | lam t b' => exact SimC.pure hs trivial
-      | forallE t b' => exact SimC.pure hs trivial
-      | letE t v b' => exact SimC.pure hs trivial
-      | proj sn jj e' => exact SimC.pure hs trivial
-    | bvar k => exact SimC.pure hs trivial
-    | sort u => exact SimC.pure hs trivial
-    | lit l => exact SimC.pure hs trivial
-    | fvar idx t => exact SimC.pure hs trivial
-    | lam t b' => exact SimC.pure hs trivial
-    | forallE t b' => exact SimC.pure hs trivial
-    | letE t v b' => exact SimC.pure hs trivial
-    | proj sn jj e' => exact SimC.pure hs trivial
-  | bvar k => exact SimC.pure hs trivial
-  | sort u => exact SimC.pure hs trivial
-  | const nm us => exact SimC.pure hs trivial
-  | lit l => exact SimC.pure hs trivial
-  | fvar idx t => exact SimC.pure hs trivial
-  | lam t b' => exact SimC.pure hs trivial
-  | forallE t b' => exact SimC.pure hs trivial
-  | letE t v b' => exact SimC.pure hs trivial
-  | proj sn jj e' => exact SimC.pure hs trivial
+  subst hden; exact SimC.of_triple relOC_diag (reduceNatC_spec ih hs hw)
 
-/-- `reduceNatC_sim` under the defeq-side fvar guard (the guard is the
-same `Bool` on both sides after the `Expr.hasFvar` read is peeled, so the
-pruned branch is `pure none` twinned). -/
+/-- `reduceNatC_spec` under the defeq-side fvar guard (the same `Bool`
+on both sides). -/
+theorem reduceNatIfC_spec (ih : SSimC mode env f) {d : Nat} {i : Expr} {s₀ : CState}
+    (hs : CSOK mode env s₀) (hw : Expr.WScoped d i) (g : Bool) :
+    ⦃fun s => s = s₀⦄
+      (if g then reduceNatI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i else pure none)
+    ⦃fun o s' => CSOK mode env s' ∧
+      Runs (if g then reduceNat (fueledFns mode env) env d i else pure none) o ∧
+      OptWS d o; ⊤⦄ := by
+  sym only [conleche_grind] =>
+    vcgen [reduceNatC_spec ih hs hw] <;> finish
+
+/-- `reduceNatIfC_spec` as a simulation, for the unconverted callers. -/
 theorem reduceNatIfC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
     {e : Expr} {s₀ : CState} (hs : CSOK mode env s₀)
     (hden : RelC i e) (hw : Expr.WScoped d e) (g : Bool) :
@@ -791,9 +592,7 @@ theorem reduceNatIfC_sim (ih : SSimC mode env f) {d : Nat} {i : Expr}
       (if g then reduceNatI (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d i
         else pure none)
       (if g then reduceNat (fueledFns mode env) env d e else pure none) := by
-  cases g
-  · exact SimC.pure hs trivial
-  · exact reduceNatC_sim ih hs hden hw
+  subst hden; exact SimC.of_triple relOC_diag (reduceNatIfC_spec ih hs hw g)
 
 end Walks4
 
