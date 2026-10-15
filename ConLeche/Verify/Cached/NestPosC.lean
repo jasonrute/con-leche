@@ -3,7 +3,7 @@ module
 public import ConLeche.Cached.CheckerC
 public import ConLeche.Verify.BridgeDecl
 public import ConLeche.Verify.Cached.Grind
-import ConLeche.Verify.Cached.BridgeCS2
+import ConLeche.Verify.BridgeWfImp
 import ConLeche.Verify.Denote.IndFrame
 import ConLeche.Verify.Cached.SimCS
 import ConLeche.Verify.Cached.Erase
@@ -20,7 +20,15 @@ positivity stage (`checkBlockPositivity`, `BlockInstall.lean`) are
 written once, over `CheckerOps`; the cached driver runs them at the
 shared operations (`sharedOpsC`), the model at the fueled ones.  This
 file is the simulation: a successful cached run is reproduced by the
-fueled one, with the same result (`SimC`, `Verify/Cached/SimC.lean`).
+fueled one, with the same result.  Every walk is a `Std.WP` triple whose
+post names the cached value as the fueled answer (`Runs`,
+`Verify/Cached/Grind.lean`), proved by `vcgen` and `grind` — one
+`sym … => vcgen […] <;> finish` per arm: the cached and the fueled side
+are the same generic function, so its own equation lemmas unfold the
+fueled side, and the callees' triples go into `vcgen`'s list.  The walk's
+recursive call is the named predicate `RecSpec`; the scope side
+conditions are named predicates (`ListAll` of an element predicate,
+`TeleWS`, `InstWS`, `HolesOk`, `FvsWS`), each with its equations.
 
 The only operations the function calls are `whnf` (every step), and at
 the install stage `inferType`/`ensureSort` (U2); their simulations need
@@ -200,7 +208,7 @@ theorem nestInstTypeS_spec {ctx : NestCtx} (hc : NestCtxOk ctx) {s₀ : CState}
   -- generation per bind, through five binds and two guards
   sym only [conleche_grind, nestInstType.eq_1, unwrapOr.eq_1, liftFueled.eq_1,
       → nestCtx_find_closed hc, → instWS_instPisWith] =>
-    vcgen [nestInstType, unwrapOr, liftFueled] <;> finish (gen := 16)
+    vcgen [nestInstType, unwrapOr, liftFueled] <;> finish (gen := 12)
 
 theorem nestGrowGroupS_spec {ctx : NestCtx} (hc : NestCtxOk ctx) (hi : Nat) (us : List Level)
     (ds : List Expr) :
@@ -570,7 +578,7 @@ theorem checkStructFieldSortsIS_spec (hμ : mode.verifiedChecks = true) (henv : 
         → hfvs.get] =>
       vcgen [checkStructFieldSortsI, unwrapOr, liftFueled, opE_infer_spec hμ henv,
         opS_spec hμ henv, checkStructFieldSortsIS_spec hμ henv hfvs (j := j)] <;>
-        finish (gen := 16)
+        finish (gen := 12)
 
 theorem checkStructFieldSortsIS_sim (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {isProp large : Bool} {s : Level} {nP : Nat} {fvs idxArgs : List Expr}
@@ -708,7 +716,7 @@ theorem blockNestCtxS_spec (henv : EnvWF env) (p : BlockShape) (cvTas : List Con
   -- context's facts after the last one
   sym only [conleche_grind, blockNestCtx.eq_1, unwrapOr.eq_1, → blockNestCtx_ok henv hT,
       → holesOk_nestHoles, → allWS_hiAt] =>
-    vcgen [blockNestCtx, unwrapOr] <;> finish (ematch := 16)
+    vcgen [blockNestCtx, unwrapOr] <;> finish (ematch := 8)
 
 /-- **The install's positivity stage at the shared operations**: every
 successful cached run is a fueled one. -/

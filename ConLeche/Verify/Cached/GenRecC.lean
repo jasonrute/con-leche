@@ -3,13 +3,10 @@ module
 public import ConLeche.Verify.Cached.TargetRecC
 public import ConLeche.Kernel.Inductives.GenRec
 import ConLeche.Verify.Inductives.RecCheckScope
-import ConLeche.Verify.BridgeDecl
-import ConLeche.Verify.BridgeWfImp
 import ConLeche.Verify.Cached.WalkersC
 public import ConLeche.Verify.Cached.NestPosC
 public import ConLeche.Verify.Inductives.NestScope
 import ConLeche.Verify.Cached.AgreeFloor
-import ConLeche.Verify.Denote.IndFrame
 import ConLeche.Verify.Cached.BlockOverlay
 public import ConLeche.Verify.Inductives.TargetAuxFire
 
@@ -23,11 +20,15 @@ The generated recursor stage `genRecCheck`
 `ShadowOps`: the pure install runs it at `ShadowOps.ofOps`
 (`checkBlockRec`), the cached driver at `shadowOpsC` (`checkBlockTailS`).
 This file proves the cached run reproduced by the pure fueled one
-(`genRecCheckS_simG`, `genRecCheckS_run`), reusing the class kit's
+(`genRecCheckS_spec`, `genRecCheckS_run`), reusing the class kit's
 per-operation simulations (`TargetRecC.lean`), the pass's classes
-(`checkBlockClassesS_sim`), and with them the cached uniform install
+(`checkBlockClassesS_spec`), and with them the cached uniform install
 (`checkBlockPassS_run`, `checkBlockTailS_run`, `checkBlockKS_run`) and
-the `.indDecl` dispatch (`checkModeledOrNativeSF_run`).
+the `.indDecl` dispatch (`checkModeledOrNativeSF_run`).  The stages are
+`Std.WP` triples proved by `vcgen` and `grind`, as the positivity walk's
+(`NestPosC.lean`); the rule stage runs from and to a flushed state
+(`CSOKAll`); the install's assembly reads the triples back as runs
+(`triple_iff_run`).
 
 Scoping, per cached operation:
 * the stream's recursor types and the GENERATED types are closed by
@@ -35,7 +36,7 @@ Scoping, per cached operation:
 * the classes' parameters are the pre-pass's reading of the stream's
   RAW recursor types, moved to the canonical parameters and kept below
   them by `classKeyOf`'s guard (every free variable left is a canonical
-  parameter, `replaceFVars_WScoped_of_below`, `classKeyOfS_sim`) — so
+  parameter, `replaceFVars_WScoped_of_below`, `classKeyOf_ws`) — so
   every class is scoped by the parameter openers
   (`TargetMajScoped`), which is all the class match (`targetMajorNfs`,
   `targetK53`) and the pin typing need;
@@ -171,8 +172,9 @@ class's own, below the parameters. -/
 
 private theorem classMajorOf_shape (fe : FEnv) (p : BlockShape)
     (ctorsAs : List (List (ConstantVal × Nat))) (pfvs fvs : List Expr) (mty : Expr) :
-    Yields (targetMajorOf (m := CheckCM) fe p ctorsAs pfvs fvs mty)
-      (ClassShape p pfvs fvs mty) := by
+    ∀ s M s', targetMajorOf (m := CheckCM) fe p ctorsAs pfvs fvs mty s = .ok (M, s') →
+      ClassShape p pfvs fvs mty M := by
+  show Yields _ _
   unfold targetMajorOf ClassShape
   dsimp only
   split
@@ -269,7 +271,7 @@ theorem blockNestCtxS_spec₂ {env₁ env₂ : Env} (henv₁ : EnvWF env₁) (p 
   -- context's facts after the last one
   sym only [conleche_grind, blockNestCtx.eq_1, unwrapOr.eq_1, → blockNestCtx_ok henv₁ hT,
       → holesOk_nestHoles] =>
-    vcgen [blockNestCtx, unwrapOr] <;> finish (ematch := 16)
+    vcgen [blockNestCtx, unwrapOr] <;> finish (ematch := 8)
 
 /-- **The classes, each checked as a major**: every class scoped. -/
 theorem classMajorsS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
@@ -336,10 +338,11 @@ theorem checkBlockClassesS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (checkBlockClasses (fueledOpsM mode) (mkFEnv env) p params ctorsAs) v ∧
       ListAll (ClassMajScoped p.nP) v.2; ⊤⦄ := by
+  -- `ematch`: the pure side's `mapM` meets the loop's answer one round after its unfolding
   sym only [conleche_grind, checkBlockClasses.eq_1, unwrapOr.eq_1, List.mapM.eq_1] =>
     vcgen [checkBlockClasses, unwrapOr, List.mapM,
       classKeysLoopS_spec (mode := mode) (env := env) hpl hp,
-      classMajorsS_spec hμ henv hpl hp] <;> finish (ematch := 16)
+      classMajorsS_spec hμ henv hpl hp] <;> finish (ematch := 8)
 
 @[conleche_grind =] theorem TargetMajScoped.nfs_eq (M : TargetMajor) (es : List NestCtorNf) :
     TargetMajScoped { M with nfs := es } = TargetMajScoped M := rfl
@@ -434,10 +437,12 @@ theorem classCtorOfS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     ⦃fun s => s = s₀⦄ classCtorOf (sharedOpsC mode (mkFEnv env)) env p formerTys rd Ms c cA
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (classCtorOf (fueledOpsM mode) env p formerTys rd Ms c cA) v; ⊤⦄ := by
+  -- `gen`: E-matching evaluates the pure side bind by bind (`Runs.pure_bind_eq`), one
+  -- generation per bind, through seven binds
   sym only [conleche_grind, classCtorOf.eq_1, unwrapOr.eq_1] =>
     vcgen [classCtorOf, unwrapOr, classMinorSlotS_spec (mode := mode) (env := env),
       classFieldsOfS_spec (mode := mode) (env := env),
-      classFieldsAgreeS_spec hμ henv hformer hMs] <;> finish (gen := 16) (ematch := 16)
+      classFieldsAgreeS_spec hμ henv hformer hMs] <;> finish (gen := 12)
 
 theorem classCtorsOfS_spec (hμ : mode.verifiedChecks = true) (henv : EnvWF env)
     {p : BlockShape} {formerTys : List Expr} (hformer : AllWS 0 formerTys)
@@ -611,6 +616,25 @@ theorem classRuleOkS_spec (hμ : mode.verifiedChecks = true) {envR : Env} (henvR
   sym only [conleche_grind, classRuleOk.eq_1, unwrapOr.eq_1, → wscoped_of_closed] =>
     vcgen [classRuleOk, unwrapOr, ruleR_infer_spec hμ henvR] <;> finish
 
+/-- `classRulesOk`'s step (the equation lemma is realized in
+`BlockOverlay.lean`, which this file's public interface must not name). -/
+theorem classRulesOk_cons {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
+    (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
+    (recOf : Nat → Option Name) (cvR : ConstantVal) (c : Nat) (x : ClassCtor)
+    (xs : List ClassCtor) :
+    classRulesOk ops w feT feR g recOf cvR c (x :: xs) = (do
+      let gen ← unwrapOr (classGenRule g recOf (cvR.levelParams.map .param) c x)
+        (.invalid s!"generated recursor: the rule of {x.cv.name} calls a class whose recursor the \
+          stream omits (official: unknown constant)")
+      let r ← classRuleOk ops w feT feR cvR (g.nP + g.slots.length + x.nF) gen
+      let rs ← classRulesOk ops w feT feR g recOf cvR c xs
+      pure (r :: rs)) := rfl
+
+theorem classRulesOk_nil {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
+    (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
+    (recOf : Nat → Option Name) (cvR : ConstantVal) (c : Nat) :
+    classRulesOk ops w feT feR g recOf cvR c [] = pure [] := rfl
+
 theorem classRulesOkS_spec (hμ : mode.verifiedChecks = true) {envR envT : Env}
     (henvR : EnvWF envR) {g : ClassGen} {recOf : Nat → Option Name} {cvR : ConstantVal}
     {c : Nat} :
@@ -622,12 +646,21 @@ theorem classRulesOkS_spec (hμ : mode.verifiedChecks = true) {envR envT : Env}
         Runs (classRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf cvR c xs)
           v; ⊤⦄
   | [], _, hs => by
-    sym only [conleche_grind, classRulesOk.eq_1] =>
-      vcgen [classRulesOk] <;> finish
+    sym only [conleche_grind, classRulesOk_nil] =>
+      vcgen [classRulesOk_nil] <;> finish
   | x :: xs, _, hs => by
-    sym only [conleche_grind, classRulesOk.eq_2, unwrapOr.eq_1] =>
-      vcgen [classRulesOk, unwrapOr, classRuleOkS_spec hμ henvR envT,
+    sym only [conleche_grind, classRulesOk_cons, unwrapOr.eq_1] =>
+      vcgen [classRulesOk_cons, unwrapOr, classRuleOkS_spec hμ henvR envT,
         classRulesOkS_spec hμ henvR xs] <;> finish
+
+theorem classRecsRulesOk_cons {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
+    (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
+    (recOf : Nat → Option Name) (cvG : ConstantVal) (cvs : List ConstantVal) (c : Nat)
+    (cs : List Nat) :
+    classRecsRulesOk ops w feT feR g recOf (cvG :: cvs) (c :: cs) = (do
+      let rhss ← classRulesOk ops w feT feR g recOf cvG c (g.ctors.getD c [])
+      let xs ← classRecsRulesOk ops w feT feR g recOf cvs cs
+      pure ((cvG, g.cls.getD c default, rhss) :: xs)) := rfl
 
 theorem classRecsRulesOk_nil {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
     (ops : CheckerOps m) (w : StructWalkers) (feT feR : FEnv) (g : ClassGen)
@@ -650,8 +683,8 @@ theorem classRecsRulesOkS_spec (hμ : mode.verifiedChecks = true) {envR envT : E
         Runs (classRecsRulesOk (fueledOpsM mode) .plain (mkFEnv envT) (mkFEnv envR) g recOf cvs
           cs) v; ⊤⦄
   | cvG :: cvs, c :: cs, _, henvR, hs => by
-    sym only [conleche_grind, classRecsRulesOk.eq_1] =>
-      vcgen [classRecsRulesOk, classRulesOkS_spec (envT := envT) hμ henvR,
+    sym only [conleche_grind, classRecsRulesOk_cons] =>
+      vcgen [classRecsRulesOk_cons, classRulesOkS_spec (envT := envT) hμ henvR,
         classRecsRulesOkS_spec hμ cvs cs] <;> finish
   | [], _, _, _, hs => by
     sym only [conleche_grind, classRecsRulesOk_nil] =>
@@ -746,6 +779,7 @@ theorem genRecCheckS_spec (hμ : mode.verifiedChecks = true) {env₂ : Env}
   dsimp only [shadowOpsC, ShadowOps.ofOps]
   simp only [classRecsRulesOk_classFeROvl mode (fe := mkFEnv env₂) rfl]
   simp only [structWalkersC_eq_plain, classFeR_mkFEnv, mkFEnv_env]
+  -- `gen`: the pure side, evaluated bind by bind, through eleven binds and three guards
   sym only [conleche_grind, unwrapOr.eq_1, mkFEnv_env, listAll_targetMajScoped hMs₀,
       → csok_residue, → CSOKAll.residue] =>
     vcgen [unwrapOr, flushC, targetRecPinsS_spec (mode := mode) (env := env₂),
@@ -753,7 +787,7 @@ theorem genRecCheckS_spec (hμ : mode.verifiedChecks = true) {env₂ : Env}
       classesCtorsS_spec hμ henv₂ (allWS_types hT),
       classFormerTysS_spec (mode := mode) (env := env₂),
       classRecTysOkS_spec hμ henv₂, classRecsRulesOkS_spec (envT := env₂) hμ] <;>
-      finish (gen := 32) (ematch := 32)
+      finish (gen := 12)
 
 /-- **The generated recursor stage at the cached driver** is reproduced
 by the pure fueled stage. -/
