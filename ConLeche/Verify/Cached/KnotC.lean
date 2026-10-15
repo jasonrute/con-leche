@@ -1,7 +1,7 @@
 module
 
 public import ConLeche.Verify.Cached.DiscC5
-public import ConLeche.Verify.Cached.Grind
+import ConLeche.Verify.Cached.Grind
 
 public section
 
@@ -341,9 +341,8 @@ theorem memoEI_whnf_spec (henv : EnvWF env)
     ⦃fun s => s = s₀⦄ (coreKnotI mode (mkFEnv env) (f + 1)).whnf d i
     ⦃fun r s' => CSOK mode env s' ∧ Runs ((fueledFns mode env).whnf d i) r ∧
       Expr.WScoped d r; ⊤⦄ := by
-  rw [coreKnotI_whnf_succ]
   sym only [conleche_grind, CSOK.whnf_insert henv] =>
-    vcgen [memoEI, hbody.triple] <;> finish
+    vcgen [coreKnotI_whnf_succ, memoEI, hbody.triple] <;> finish
 
 theorem memoEI_infer_sim (henv : EnvWF env)
     (hbody : ∀ {s₀ : CState} {d : Nat} {i : Expr} {e : Expr},

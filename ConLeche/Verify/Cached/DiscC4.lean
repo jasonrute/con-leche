@@ -14,7 +14,10 @@ Simulation walks (task #163) for the cached `whnfAppI`/`betaPeelI`,
 `whnfStepI`/`whnfLoopI`/`whnfBodyI`, `inferSpineI` and `inferBodyI`
 (`ConLeche/Cached/CoreC.lean`) against the pure fueled comparands, with
 value relations `RelC`/`RelCL` and node inversion by `cases` on the
-`Expr` constructor.
+`Expr` constructor.  The argument loop (`whnfAppC_spec`, `betaPeelC_spec`)
+is stated as `Std.WP` triples and proved by `vcgen` and `grind`
+(`ConLeche/Verify/Cached/Grind.lean`); its caller takes it back as a
+`SimC` by `SimC.of_triple`.
 
 In `inferBodyI` the binder-telescope peel fuel is the constant
 `peelFuelM`, opaque to the binder-loop tails, which quantify over the

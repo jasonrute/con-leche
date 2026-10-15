@@ -106125,3 +106125,62 @@ generator reproduces the new prelude byte-for-byte, three of three
 pinners reproduced), fragment, links, quote, shake, challenge,
 selfcheck (46,980 declarations), arena 90/92, e2e 487/487, the
 trusted and `--jobs` sweeps.
+
+## TASK #356 — spike: the cached simulation by `vcgen` and `grind` (2026-10-15, agent/356-spike)
+
+The brief: convert one chain of Theorem 1 (`ConLeche/Verify/Cached/*`) to
+the toolchain's `vcgen` + `grind`-in-`SymM` idiom, as con-ron's tasks
+#122–#124 did for its bridge; measure; estimate the rest; stop.  The
+chain: DiscC4's `whnfAppC`/`whnfAppIotaC`/`betaPeelC` block and KnotC's
+whnf memo wrapper.
+
+**The idiom.**  Every converted proof is one
+`sym only [conleche_grind, local facts…] => vcgen [f, callee specs…] <;> finish`
+(per recursion arm where the theorem recurses on a list); no custom
+tactic, one `register_grind_attr conleche_grind` line
+(`Verify/Cached/GrindAttr.lean`: `register_grind_attr` expands to a
+`public meta initialize`, so the module needs `public meta import
+Lean.Meta.Tactic.Grind.Attr`; the attribute and `grind_pattern
+[conleche_grind]` registrations then work across `module` files).  The
+triples are `Std.WP`'s (`⦃P⦄ x ⦃Q; E⦄`), which is what `vcgen` reads: a
+`Std.Do` triple gives "could not determine the program type".
+
+**The restatement** (`Verify/Cached/Grind.lean`).  `SimC`/`CEff` keep
+their run-based definitions, so the 30-odd proofs that `intro v' s' hr`
+into them build unchanged; `triple_iff_run` is the bridge, and
+`SimC.triple`/`SimC.of_triple`/`CEff.triple` convert at an equality-like
+value relation.  A converted walk states its post as
+`CSOK mode env s' ∧ Runs p v ∧ W v` — the cached value IS the pure
+answer, `Runs p v := ∃ F, p.val F = .ok v` the one `∃` (fuel), with
+`Runs.pure_eq` and `Runs.bind_eq` (an equation on `Runs (x >>= f) b`
+once `Runs x a` is known: it pushes the goal into the continuation, the
+fuel merge by `FueledM`'s monotonicity inside its proof).  Scope side
+conditions are named predicates with one equation per constructor
+(`AllWS`, `StepWS`, `OptWS`; `WScoped` opened at `app`/`lam`, carried
+through `instantiateList` and `mkAppN`).  A memo wrapper's body
+hypothesis is the named predicate `BodySpec` (as a `∀`-triple in the
+context `grind` instantiated it at every input and split on the equality
+of the posts' lambdas).
+
+**What `vcgen` needed per cached function**: one unconditional unfolding
+equation.  The equation compiler splits an inner `match t with | .lam _ b
+=> … | _ => …` into one equation per arm, the fall-through one
+conditional, and `vcgen` cannot use it ("No spec found"); `eq_def` looped.
+`betaPeelI_cons`/`whnfAppI_cons` state the step as one `match` (the latter
+with the ι arity guard already discharged — `vcgen` splits an `ite`
+before trying an equation whose left side is that `ite`).  `vcgen` then
+splits the `match`, the pure mirror's own equation lemmas
+(`whnfAppW.eq_2`/`eq_3`, …, the conditional fall-through one included) go
+into the `sym` list, and `grind` discharges the fall-through premise from
+the arm's hypothesis.  No tags or projections were needed for a
+one-level `match`.  Reproducers: `_tmp/356-repro/`.
+
+**Numbers** (`instructions:u`, `scripts/twin-measure.sh` and truncated
+copies; one run each): DiscC4 20.55 G → 17.93 G, of which the chain
+(with its new unfolding equations and adapters, imports and the
+unchanged prefix subtracted) 6.22 G → 3.42 G; KnotC 3.93 G → 4.17 G, of
+which `memoEI_whnf_spec` 0.29 G → 0.35 G and its three support lemmas
++0.13 G; `Grind` 1.68 G and `GrindAttr` 1.00 G, mostly imports.  Census
+(`scripts/twin-census.py`) of the converted code: DiscC4's block 127
+proof / 41 statement lines → 39 / 31 (+2 vocabulary), the memo wrapper
+43 / 9 → 19 / 15 (+4).
