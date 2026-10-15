@@ -11,8 +11,6 @@ Each walk is a `Std.WP` triple whose post names the cached value as the
 fueled answer (`Runs`), proved by `vcgen` and `grind`
 (`ConLeche/Verify/Cached/Grind.lean`; the triple forms of the knot's
 entry points and the vocabulary these walks add are in `DiscC1.lean`).
-A `…_sim`/`…_eff` corollary restates a walk for the callers that are
-still stated as `SimC`/`CEff`.
 -/
 
 set_option experimental.vcgen true

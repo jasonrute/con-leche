@@ -18,12 +18,12 @@ post names the cached value as the fueled answer (`Runs`) and proved by
 `vcgen` and `grind` (`ConLeche/Verify/Cached/Grind.lean`).  The list
 loops (`defEqListC_spec`, `iotaCertsFullCAux_spec`) recurse one
 `sym … => vcgen … <;> finish` per list arm, the induction hypothesis a
-term in `vcgen`'s list.  A `…_sim`/`…_eff` corollary restates a walk for
-the callers that are still stated as `SimC`/`CEff`.
+term in `vcgen`'s list.
 
 The module also declares the knot's hypothesis `SSimC` and, after it,
-the triple forms of its fields and of the small effects, with the
-`grind` vocabulary the walks of this module and `DiscC2.lean` add.
+the triple forms of its fields, with the `grind` vocabulary the walks of
+this module and `DiscC2.lean` add (the η projections `projsOf`, the
+native `Nat` operations' answers, the peel steps' scope).
 -/
 
 set_option experimental.vcgen true

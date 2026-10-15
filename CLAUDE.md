@@ -37,6 +37,24 @@ current fact changed.
 * Load the `lean-rc-linearity` skill before touching hot-path state
   threading, memo/arena mutation or per-node arithmetic.
 
+## The cached simulation proofs
+
+`ConLeche/Verify/Cached/*` (DESIGN task #356). A walk is a `Std.WP` triple
+`⦃fun s => s = s₀⦄ c ⦃fun v s' => CSOK mode env s' ∧ Runs p v ∧ W v; ⊤⦄` (`…_spec`),
+proved by one `sym only [conleche_grind, …] => vcgen [f, …] <;> finish` (one per
+arm or induction case). No custom tactic, macro or elab.
+
+* General vocabulary lives in `Grind.lean` (its header lists the families), as
+  equations about named functions; a walk module adds only its own.
+* Callee specs and induction hypotheses go into `vcgen`'s list as terms, never
+  `have`s, without the initial `hs` and with `(mode := mode) (env := env)` pins.
+* The pure side's nested `match` never reaches `grind`: one guarded equation per
+  reachable arm. Name the blocks between arms (both sides, `rfl` restatements),
+  every `fun` and every mode gate; no `∃`, disjunction or `fun` in a post.
+* `vcgen` needs one unconditional unfolding equation per cached function.
+* Recursive triples by `induction`, not by recursive pattern matching.
+* Every raised `finish`/`sym` limit carries a comment saying why.
+
 ## Documents
 
 * `README.md` is the maintainer's, human-written. An agent may turn an

@@ -22,8 +22,9 @@ cached match's own arm hypotheses (`iotaRec_rec`, `iotaRecK_ctor`,
 the arms are named functions (`iotaRecK`, `iotaCertGate`, `iotaCertP`,
 `iotaRecFire`, `mtcBodyP`; the cached blocks `iotaCertI`, `mtcBodyI`), so
 that no `fun` holding a `match` reaches grind.  The environment reads
-are named (`findRule`, `ctorVal?`, `constTyOf`, `ruleRhsOf`), with one
-guarded equation each at the arm that reads them.
+are named (`ctorVal?`; the caches' `findRule`, `constTyOf`, `ruleRhsOf`
+in `SimCEff.lean`), with one guarded equation each at the arm that reads
+them.
 -/
 
 set_option experimental.vcgen true

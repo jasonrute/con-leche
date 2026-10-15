@@ -9,10 +9,15 @@ public section
 /-!
 # The cached-core faithfulness kit (task #163, batch 5)
 
-The relation and combinators for proving that the cached clone core
-(`ConLeche/Cached/CoreC.lean`) simulates the pure fueled families.  The
-cached and pure sides are *the same terms*, so the value relation is
-equality.
+The state invariant and the run-level relations of the proof that the
+cached clone core (`ConLeche/Cached/CoreC.lean`) simulates the pure
+fueled families.  The cached and pure sides are *the same terms*, so the
+value relation is equality.  The walks themselves are `Std.WP` triples
+(`Grind.lean`); `SimC`/`CEff` are what a triple says about one run
+(`triple_iff_run`, `SimC.of_triple`), the form the knot (`SSimC`), the
+binder loops' tail compositions and the driver's run theorems consume,
+with the few run-level combinators they use (`SimC.pure`, `SimC.throw`,
+`SimC.wp`, `SimC.wr`, `SimC.liftFueled`, `CEff.pure`).
 
 * `CSOK mode env s` — the cached-state invariant: the lazy
   stored-constant caches hold `RelC`-related conversions of the

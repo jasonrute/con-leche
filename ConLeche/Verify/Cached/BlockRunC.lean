@@ -16,7 +16,7 @@ public section
 `checkBlockKS` (`ConLeche/Cached/CheckerC.lean`), the cached mirror of
 the uniform installer at any number of members, is reproduced by the
 pure fueled `checkBlock`.  This file holds the stages' simulations and
-the `SimG` kit; the pass (`checkBlockPassS_run`, which checks the
+the rule stage's `SimG`; the pass (`checkBlockPassS_run`, which checks the
 classes), the recursor stage, its install and the `.indDecl` dispatch
 (`checkBlockTailS_run`, `checkBlockKS_run`, `checkModeledOrNativeSF_run`)
 are in `ConLeche/Verify/Cached/GenRecC.lean`.
@@ -24,13 +24,14 @@ are in `ConLeche/Verify/Cached/GenRecC.lean`.
 The file follows `BridgeCSDecl.lean`'s layout:
 
 1. the index mirrors at `mkFEnv` ARE the pure stages (`*_eqC`);
-2. the scoping facts every cached operation's simulation needs
-   (`SimC`, `ConLeche/Verify/Cached/SimC.lean`, is stated at well-scoped
-   inputs);
-3. the single-environment stages as `SimC`s;
+2. the scoping facts every cached operation's triple needs (they are
+   stated at well-scoped inputs);
+3. the single-environment stages as `Std.WP` triples, proved by `vcgen`
+   and `grind`;
 4. the rule stage, whose one rule alternates between the rule-less
-   recursors' environment and the constructors' (`sharedOpsRuleR`'s
-   flushes are what make that a chain of `SimC`s);
+   recursors' environment and the constructors' (`SimG`, a run-level
+   simulation whose invariant may change at `sharedOpsRuleR`'s
+   flushes);
 5. the assembly, and the dispatch.
 -/
 
@@ -284,12 +285,6 @@ chain of operations can change environment where a flush lets it. -/
 @[expose] def SimG (Pre Post : CState → Prop) {β α : Type} (P : β → α → Prop) (c : CheckCM β)
     (p : FueledM α) : Prop :=
   ∀ s₀, Pre s₀ → ∀ v' s', c s₀ = .ok (v', s') → Post s' ∧ ∃ v, P v' v ∧ ∃ F, p.val F = .ok v
-
-namespace SimG
-
-variable {A B C : CState → Prop}
-
-end SimG
 
 /-- The rule stage's `inferType` at the rule-less recursors'
 environment: it flushes first and last, so it hands on a state that is

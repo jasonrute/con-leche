@@ -12,8 +12,10 @@ Simulation walks relating the cached binder-telescope loops
 (`inferLamsI`/`inferPisI`, `ConLeche/Cached/CoreC.lean`) to the pure
 mirrors (`ConLeche/Verify/BinderLoop.lean`) at the fueled record, plus
 the two *tail compositions* against `inferBody`'s own λ/∀ tails.  The
-relations are `SimC` and `RelC`; a stack entry is an opened domain, related
-by `RelC`.
+loops are `Std.WP` triples proved by `vcgen` and `grind`, one unconditional
+step equation per loop (`inferLamsI_succ`, `inferPisI_succ`); the tail
+compositions are run-level `SimC`s (`SimC.wp`/`SimC.wr` over the pure
+loops' soundness, `inferLams_sound`), read as triples in `DiscC4.lean`.
 
 **The peel fuel is not a parameter of these walks.**  Every loop
 theorem quantifies over the fuel, so the constant `peelFuel` is an

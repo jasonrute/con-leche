@@ -11,18 +11,21 @@ public section
 /-!
 # Effect specs for the cached checker's state wrappers (task #163, batch 5)
 
-One lemma per `ConLeche/Cached/StateC.lean` wrapper.
+One `Std.WP` triple (`…_spec`) per `ConLeche/Cached/StateC.lean`
+wrapper the walks call, stated over the program's own arguments (an
+argument the program does not determine would stay a metavariable in
+`vcgen`'s instantiation).
 
-Almost every wrapper is a `pure`, so almost every lemma here is a
-two-liner consuming the commutation spec (`OpsC.lean`) of the
-underlying `Expr` operation.  The ones that are *not* pure are the
-persistent memos — the bulk-instantiation cache (`instListM`), the
-level memo (`isEquivLM`) and the lazy stored-constant caches
-(`constTyAtM`/`constValAtM`/`ruleRhsAtM`) — and they are `Std.WP`
-triples (`…_spec`, proved by `vcgen` and `grind`; the `CEff` forms
-`…_eff` are their run-based reading) with hit and insert lemmas against
-the matching `CSOK` clause.  The memo keys are lawful (`LawfulBEq`), so
-a colliding key is the inserted one (`HashMap.insert_backed`).
+The pure wrappers are `CEff.pure` at the commutation spec (`OpsC.lean`)
+of the underlying `Expr` operation.  The persistent memos — the
+bulk-instantiation cache (`instListM`), the level memo (`isEquivLM`) and
+the lazy stored-constant caches (`constTyAtM`/`constValAtM`/
+`ruleRhsAtM`) — are proved by `vcgen` and `grind` from hit and insert
+lemmas against the matching `CSOK` clause; a lazy cache's spec at a
+stored entry (`…_spec_of_find`) is read at the walks' named lookups
+(`constTyOf`, `constValAt?`, `ruleRhsOf`).  The memo keys are lawful
+(`LawfulBEq`), so a colliding key is the inserted one
+(`HashMap.insert_backed`, `SimC.lean`).
 -/
 
 set_option experimental.vcgen true

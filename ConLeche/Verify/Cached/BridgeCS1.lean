@@ -20,9 +20,10 @@ walks (`ConLeche/Verify/BridgeWfImp.lean`).
 The walks are `Std.WP` triples (`…S_spec`) proved by `vcgen` and `grind`
 (`ConLeche/Verify/Cached/Grind.lean`): the cached and the fueled side are
 the same generic function, so its own equation lemmas unfold the fueled
-side and the shared operations' triples (§ vocabulary) are the callee
-specs.  The `…S_sim` forms the unconverted callers use are one-line
-`SimC.of_triple`s.
+side and the shared operations' triples (`SimCS.lean`) are the callee
+specs.  The error-recovering `orElse` is proved on runs (`SimC.orElse`:
+the exception post `⊤` cannot state a recovery) and read as a triple
+(`orElseS_spec`).
 -/
 
 set_option experimental.vcgen true

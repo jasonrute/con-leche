@@ -10,7 +10,7 @@ public section
 
 The single-environment stages of the inductive install
 (`checkStructDomsAt`, the telescope loop, `checkSumCtors`) and the
-recursor conformance check's generator (`checkNativeRec`), as `SimC`s
+recursor conformance check's generator (`checkNativeRec`), as triples
 between the `sharedOpsC` and `(fueledOpsM mode)` instantiations.  The per-site scoping facts mirror
 `ConLeche/Verify/BridgeWfImp.lean`'s `_wfimp` walks one for one; the
 `FEnv`-to-`Env` step is `ConLeche/Verify/CheckerF.lean`'s `_eq`/`_push`
@@ -18,8 +18,8 @@ family and happens in `ConLeche/Verify/Cached/BridgeCS4.lean`, so
 everything here is stated over the generic functions.
 
 The walks are `Std.WP` triples proved by `vcgen` and `grind`
-(`ConLeche/Verify/Cached/Grind.lean`, `BridgeCS1.lean`'s shared
-operations' triples).
+(`ConLeche/Verify/Cached/Grind.lean`, `SimCS.lean`'s shared operations'
+triples).
 -/
 
 set_option experimental.vcgen true

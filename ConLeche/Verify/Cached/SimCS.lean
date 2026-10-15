@@ -16,8 +16,10 @@ declaration needs no new state invariant: this file provides the shared
 entry points' triples (`opE_infer_spec`, `opE_whnf_spec`, `opB_spec`,
 `opS_spec`) — a successful shared-state operation run from any `CSOK`
 state preserves the invariant and answers what the pure fueled family
-answers — and their simulation forms (`…_sim`) for the walks stated as
-`SimC`.
+answers — and the same triples at the `sharedOpsC` projections a generic
+checker function calls (`inferS_spec`, `whnfS_spec`, `defeqS_spec`,
+`sortS_spec`: `vcgen` finds a spec by the program's head, and a triple
+about `opB …` is not found for `(sharedOpsC …).isDefEq …`).
 
 Two facts the kit relies on live elsewhere:
 
@@ -29,8 +31,8 @@ Two facts the kit relies on live elsewhere:
   driver-directed flush at environment transitions sound.
 
 The runners pass their argument through, so a fabricated node is a
-plain `pure` (`pureC_eff`) and the `opE` result relation stays on
-`Expr` and is state-free.
+plain `pure` and the `opE` result relation stays on `Expr` and is
+state-free.
 
 The driver-level walks composing these are in
 `ConLeche/Verify/Cached/BridgeCS*.lean`.
