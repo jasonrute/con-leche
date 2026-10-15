@@ -15,13 +15,18 @@ the two lazy-delta loops, `defeqProjPairI`, `defeqStuckI`) and
 Every walk is a `Std.WP` triple proved by `vcgen` and `grind`
 (`ConLeche/Verify/Cached/Grind.lean`).  The two-sided dispatches
 (`defeqStuck`, `quickDefEq`, `defeqProjPair`) reach `grind` as the pure
-side's own per-arm equation lemmas, the fall-through one conditional;
+side's own per-arm equation lemmas, the fall-through one conditional:
 `vcgen` splits the cached `match` and `grind` discharges the
-fall-through premises from the arm's hypotheses.  The λ telescope's
-recursion goes through a named step on both sides (`lamsStepI`,
-`lamsStepP`: two separately elaborated `match`es on `lamPair?` are
-different matchers, which `grind` and `vcgen` would compare by
-unfolding) and a named induction hypothesis (`LamsSpec`).
+fall-through premises from the arm's hypotheses.
+
+The walks with continuations past a `match` (the λ telescope's step,
+the lazy-delta loop, `defeqBody`) have them named on both sides
+(`lamsStepI`/`lamsStepP`, `ldr…I`/`ldr…P`, `body…I`/`body…P`), each
+block its own triple: a `fun` holding a `match` reaches `grind` as a
+lambda it compares by splitting, and the do-notation's matchers are
+shared between such lambdas.  The loops' induction hypotheses are named
+predicates (`LamsSpec`, `LazySpec`, `LazyProjSpec`), atoms in `grind`'s
+context rather than `∀`-facts it instantiates at every state in sight.
 -/
 
 set_option experimental.vcgen true
@@ -103,38 +108,15 @@ section Walks
 
 variable {env : Env} {f : Nat}
 
+/-- The innermost level of the λ-telescope comparison: the opened
+bodies, then (at the verified mode) their full-grade types. -/
 theorem defeqLamsInnerC_spec (ih : SSimC mode env f) {d : Nat} {b₁ b₂ : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (h1 : Expr.WScoped (d + 1) b₁) (h2 : Expr.WScoped (d + 1) b₂) :
     ⦃fun s => s = s₀⦄ defeqLamsInnerI mode (coreKnotI mode (mkFEnv env) f) d b₁ b₂
-    ⦃fun v s' => CSOK mode env s' ∧ Runs (defeqLamsInner mode (fueledFns mode env) d b₁ b₂) v; ⊤⦄ := by
+    ⦃fun v s' => CSOK mode env s' ∧
+      Runs (defeqLamsInner mode (fueledFns mode env) d b₁ b₂) v; ⊤⦄ := by
   sym only [conleche_grind, defeqLamsInner] =>
     vcgen [defeqLamsInnerI, ih.defeq_spec, ih.infer_spec] <;> finish
-
-set_option smartUnfolding false in
-theorem defeqLamsI_unfold (r : CoreFnsI) (fuel d : Nat)
-    (ty₁ body₁ ty₂ body₂ : Expr) :
-    defeqLamsI mode r fuel d ty₁ body₁ ty₂ body₂ = (do
-      unless ← r.defeq d ty₁ ty₂ do return false
-      let fv ← pure (Expr.fvar d ty₂)
-      let b₁ ← inst1M body₁ fv
-      let b₂ ← inst1M body₂ fv
-      match fuel, Expr.lamPair? b₁ b₂ with
-      | fuel + 1, some (ty₁', body₁', ty₂', body₂') =>
-        if b₁ == b₂ then pure true
-        else defeqLamsI mode r fuel (d + 1) ty₁' body₁' ty₂' body₂'
-      | _, _ => defeqLamsInnerI mode r d b₁ b₂ : CheckCM Bool) := by
-  cases fuel with
-  | zero => rfl
-  | succ n =>
-    refine congrArg (r.defeq d ty₁ ty₂ >>= ·) (funext fun x => ?_)
-    cases x
-    · rfl
-    · refine congrArg (pure (Expr.fvar d ty₂) >>= ·) (funext fun fv => ?_)
-      refine congrArg (inst1M body₁ fv >>= ·) (funext fun b₁ => ?_)
-      refine congrArg (inst1M body₂ fv >>= ·) (funext fun b₂ => ?_)
-      cases Expr.lamPair? b₁ b₂ with
-      | none => rfl
-      | some q => rfl
 
 /-- The cached λ-telescope comparison past the opened bodies. -/
 @[expose] def lamsStepI (mode : CheckMode) (r : CoreFnsI) (n d : Nat) (b₁ b₂ : Expr) :
@@ -151,9 +133,12 @@ theorem defeqLamsI_zero (r : CoreFnsI) (d : Nat) (ty₁ body₁ ty₂ body₂ : 
       let fv ← pure (Expr.fvar d ty₂)
       let b₁ ← inst1M body₁ fv
       let b₂ ← inst1M body₂ fv
-      defeqLamsInnerI mode r d b₁ b₂ : CheckCM Bool) := by
-  rw [defeqLamsI_unfold]
+      defeqLamsInnerI mode r d b₁ b₂ : CheckCM Bool) := rfl
 
+set_option smartUnfolding false in
+/-- `defeqLamsI`'s step (its structural recursion sits under the binds,
+where the equation compiler generates no equation; smart unfolding
+would not unfold it past the stuck `lamPair?` match). -/
 theorem defeqLamsI_succ (r : CoreFnsI) (n d : Nat) (ty₁ body₁ ty₂ body₂ : Expr) :
     defeqLamsI mode r (n + 1) d ty₁ body₁ ty₂ body₂ = (do
       unless ← r.defeq d ty₁ ty₂ do return false
@@ -161,7 +146,6 @@ theorem defeqLamsI_succ (r : CoreFnsI) (n d : Nat) (ty₁ body₁ ty₂ body₂ 
       let b₁ ← inst1M body₁ fv
       let b₂ ← inst1M body₂ fv
       lamsStepI mode r n d b₁ b₂ : CheckCM Bool) := by
-  rw [defeqLamsI_unfold]
   refine congrArg (r.defeq d ty₁ ty₂ >>= ·) (funext fun x => ?_)
   cases x
   · rfl
@@ -190,18 +174,6 @@ theorem defeqLams_zero (d : Nat) (ty₁ body₁ ty₂ body₂ : Expr) :
     if b₁ == b₂ then pure true
     else defeqLams mode r n (d + 1) q.1 q.2.1 q.2.2.1 q.2.2.2
   | none => defeqLamsInner mode r d b₁ b₂
-
-theorem lamsStepP_some {n d : Nat} {b₁ b₂ : Expr} {q : Expr × Expr × Expr × Expr}
-    (h : Expr.lamPair? b₁ b₂ = some q) :
-    lamsStepP r mode n d b₁ b₂ = if b₁ == b₂ then pure true
-      else defeqLams mode r n (d + 1) q.1 q.2.1 q.2.2.1 q.2.2.2 := by
-  simp only [lamsStepP, h]
-grind_pattern [conleche_grind] lamsStepP_some => lamsStepP r mode n d b₁ b₂, some q where
-  guard Expr.lamPair? b₁ b₂ = some q
-
-theorem lamsStepP_none {n d : Nat} {b₁ b₂ : Expr} (h : Expr.lamPair? b₁ b₂ = none) :
-    lamsStepP r mode n d b₁ b₂ = defeqLamsInner mode r d b₁ b₂ := by
-  simp only [lamsStepP, h]
 
 theorem defeqLams_succ (n d : Nat) (ty₁ body₁ ty₂ body₂ : Expr) :
     defeqLams mode r (n + 1) d ty₁ body₁ ty₂ body₂ = (do
@@ -247,9 +219,10 @@ theorem lamsStepC_spec (ih : SSimC mode env f) {n : Nat} (hn : LamsSpec mode env
     ⦃fun s => s = s₀⦄ lamsStepI mode (coreKnotI mode (mkFEnv env) f) n d b₁ b₂
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (lamsStepP (fueledFns mode env) mode n d b₁ b₂) v; ⊤⦄ := by
-  sym only [conleche_grind, lamsStepP_none] =>
+  sym only [conleche_grind, lamsStepP] =>
     vcgen [lamsStepI, defeqLamsInnerC_spec ih, hn.triple] <;> finish
 
+/-- By induction on the descent budget. -/
 theorem lamsSpec_all (ih : SSimC mode env f) (fuel : Nat) : LamsSpec mode env f fuel := by
   induction fuel with
   | zero =>
@@ -259,9 +232,8 @@ theorem lamsSpec_all (ih : SSimC mode env f) (fuel : Nat) : LamsSpec mode env f 
         defeqLamsInnerC_spec ih] <;> finish
   | succ n ihn =>
     intro d ty₁ body₁ ty₂ body₂ s₀ hs _ _ _ _
-    rw [defeqLamsI_succ, defeqLams_succ]
-    sym only [conleche_grind] =>
-      vcgen [ih.defeq_spec, inst1M_spec (mode := mode) (env := env),
+    sym only [conleche_grind, defeqLams_succ] =>
+      vcgen [defeqLamsI_succ, ih.defeq_spec, inst1M_spec (mode := mode) (env := env),
         lamsStepC_spec ih ihn] <;> finish
 
 /-- The λ-telescope comparison simulates its fueled original. -/
@@ -275,11 +247,15 @@ theorem defeqLamsC_spec (ih : SSimC mode env f) (fuel : Nat) {d : Nat}
       Runs (defeqLams mode (fueledFns mode env) fuel d ty₁ body₁ ty₂ body₂) v; ⊤⦄ :=
   LamsSpec.triple (lamsSpec_all ih fuel) hs h1 h2 h3 h4
 
-theorem quickDefEq_self {m : Type → Type} [Monad m] [MonadExceptOf CheckError m] (r : CoreFns m) {d : Nat} {a b : Expr}
-    (h : a = b) : quickDefEq mode r d a b = pure (some true) := by
+/-- The syntactic fast path of `quickDefEq` (the arms' equations carry
+it inside their `if`). -/
+theorem quickDefEq_self {m : Type → Type} [Monad m] [MonadExceptOf CheckError m]
+    (r : CoreFns m) {d : Nat} {a b : Expr} (h : a = b) :
+    quickDefEq mode r d a b = pure (some true) := by
   subst h; simp [quickDefEq]
 grind_pattern [conleche_grind] quickDefEq_self => quickDefEq mode r d a b
 
+/-- The easy cases simulate their specification. -/
 theorem quickDefEqC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
     ⦃fun s => s = s₀⦄ quickDefEqI mode (coreKnotI mode (mkFEnv env) f) d a b
@@ -289,6 +265,7 @@ theorem quickDefEqC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : 
       isEquivLM_spec (mode := mode) (env := env), liftFueled_spec (mode := mode) (env := env),
       defeqLamsC_spec ih lamsFuel] <;> finish
 
+/-- Offsets simulate their specification. -/
 theorem defeqOffsetC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
     ⦃fun s => s = s₀⦄ defeqOffsetI (coreKnotI mode (mkFEnv env) f) d a b
@@ -296,6 +273,7 @@ theorem defeqOffsetC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ :
   sym only [conleche_grind, defeqOffset] =>
     vcgen [defeqOffsetI, ih.defeq_spec] <;> finish
 
+/-- `try_unfold_proj_app` simulates its specification. -/
 theorem tryUnfoldProjAppC_spec (ih : SSimC mode env f) {d : Nat} {e : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hw : Expr.WScoped d e) :
     ⦃fun s => s = s₀⦄ tryUnfoldProjAppI (coreKnotI mode (mkFEnv env) f) d e
@@ -304,6 +282,7 @@ theorem tryUnfoldProjAppC_spec (ih : SSimC mode env f) {d : Nat} {e : Expr} {s�
   sym only [conleche_grind, tryUnfoldProjApp] =>
     vcgen [tryUnfoldProjAppI, ih.whnfCore_spec] <;> finish
 
+/-- The end of a step simulates its specification. -/
 theorem deltaQuickC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : CState}
     (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
     ⦃fun s => s = s₀⦄ deltaQuickI mode (coreKnotI mode (mkFEnv env) f) d a b
@@ -312,6 +291,7 @@ theorem deltaQuickC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : 
   sym only [conleche_grind, deltaQuick] =>
     vcgen [deltaQuickI, quickDefEqC_spec ih] <;> finish
 
+/-- One lazy-delta step simulates its specification. -/
 theorem lazyDeltaStepC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} {a b : Expr}
     {s₀ : CState} (hs : CSOK mode env s₀) (hwa : Expr.WScoped d a) (hwb : Expr.WScoped d b) :
     ⦃fun s => s = s₀⦄ lazyDeltaStepI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b
@@ -361,14 +341,17 @@ grind_pattern [conleche_grind] natIfP_false => natIfP r env depth g e
 @[expose] def ldrNatAP (mode : CheckMode) (n : Nat) (a b : Expr) : Option Expr → m LazyRes
   | some a₂ => r.defeq depth a₂ b >>= fun v => pure (.verdict v)
   | none =>
-    natIfP r env depth (mode.eager || (!a.hasFvar && !b.hasFvar)) b >>= ldrNatBP r env depth mode n a b
+    natIfP r env depth (mode.eager || (!a.hasFvar && !b.hasFvar)) b >>=
+      ldrNatBP r env depth mode n a b
 
 /-- Past the offset check. -/
 @[expose] def ldrOffP (mode : CheckMode) (n : Nat) (a b : Expr) : Option Bool → m LazyRes
   | some v => pure (.verdict v)
   | none =>
-    natIfP r env depth (mode.eager || (!a.hasFvar && !b.hasFvar)) a >>= ldrNatAP r env depth mode n a b
+    natIfP r env depth (mode.eager || (!a.hasFvar && !b.hasFvar)) a >>=
+      ldrNatAP r env depth mode n a b
 
+/-- The pure loop's step with its continuations named. -/
 theorem lazyDeltaReduction_succ (mode : CheckMode) (n : Nat) (a b : Expr) :
     lazyDeltaReduction mode r env depth (n + 1) a b =
       defeqOffset r depth a b >>= ldrOffP r env depth mode n a b := by
@@ -430,6 +413,7 @@ block its own triple (one short bind chain each). -/
     let fold ← pure (mode.eager || (!Expr.hasFvar a && !Expr.hasFvar b))
     (if fold then reduceNatI r fe depth a else pure none) >>= ldrNatAI mode r fe depth n a b fold
 
+/-- The cached loop's step with its continuations named. -/
 theorem lazyDeltaReductionI_succ (r : CoreFnsI) (fe : FEnv) (depth n : Nat) (a b : Expr) :
     lazyDeltaReductionI mode r fe depth (n + 1) a b =
       defeqOffsetI r depth a b >>= ldrOffI mode r fe depth n a b := by
@@ -441,7 +425,7 @@ theorem ldrStepC_spec {d n : Nat} (hn : LazySpec mode env f d n) {a b : Expr} {s
     ⦃fun s => s = s₀⦄ ldrStepI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d n a b st
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (ldrStepP (fueledFns mode env) env d mode n a b st) v ∧ LazyPairWS d v; ⊤⦄ := by
-  sym only [conleche_grind, ldrStepP.eq_1, ldrStepP.eq_2, ldrStepP.eq_3, ldrStepP.eq_4] =>
+  sym only [conleche_grind, ldrStepP] =>
     vcgen [ldrStepI, hn.triple] <;> finish
 
 theorem ldrNatBC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d n : Nat}
@@ -450,7 +434,7 @@ theorem ldrNatBC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d n : Nat}
     ⦃fun s => s = s₀⦄ ldrNatBI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d n a b o
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (ldrNatBP (fueledFns mode env) env d mode n a b o) v ∧ LazyPairWS d v; ⊤⦄ := by
-  sym only [conleche_grind, ldrNatBP.eq_1, ldrNatBP.eq_2] =>
+  sym only [conleche_grind, ldrNatBP] =>
     vcgen [ldrNatBI, ih.defeq_spec, lazyDeltaStepC_spec ih henv, ldrStepC_spec hn] <;> finish
 
 theorem ldrNatAC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d n : Nat}
@@ -460,7 +444,7 @@ theorem ldrNatAC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d n : Nat}
       (mode.eager || (!Expr.hasFvar a && !Expr.hasFvar b)) o
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (ldrNatAP (fueledFns mode env) env d mode n a b o) v ∧ LazyPairWS d v; ⊤⦄ := by
-  sym only [conleche_grind, ldrNatAP.eq_1, ldrNatAP.eq_2] =>
+  sym only [conleche_grind, ldrNatAP] =>
     vcgen [ldrNatAI, ih.defeq_spec, reduceNatC_spec ih, ldrNatBC_spec ih henv hn] <;> finish
 
 theorem ldrOffC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d n : Nat}
@@ -469,9 +453,10 @@ theorem ldrOffC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d n : Nat}
     ⦃fun s => s = s₀⦄ ldrOffI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d n a b o
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (ldrOffP (fueledFns mode env) env d mode n a b o) v ∧ LazyPairWS d v; ⊤⦄ := by
-  sym only [conleche_grind, ldrOffP.eq_1, ldrOffP.eq_2] =>
+  sym only [conleche_grind, ldrOffP] =>
     vcgen [ldrOffI, reduceNatC_spec ih, ldrNatAC_spec ih henv hn] <;> finish
 
+/-- By induction on the step budget. -/
 theorem lazySpec_all (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} (n : Nat) :
     LazySpec mode env f d n := by
   induction n with
@@ -513,6 +498,7 @@ theorem LazyProjSpec.triple {d : Nat} {sn : Name} {ip n : Nat}
       Runs (lazyDeltaProjReduction mode (fueledFns mode env) env d sn ip n a b) v; ⊤⦄ :=
   h hs hwa hwb
 
+/-- By induction on the step budget. -/
 theorem lazyProjSpec_all (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} {sn : Name}
     {ip : Nat} (n : Nat) : LazyProjSpec mode env f d sn ip n := by
   induction n with
@@ -542,7 +528,7 @@ theorem defeqProjPairC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat}
       defeqProjPairI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (defeqProjPair mode (fueledFns mode env) env d a b) v; ⊤⦄ := by
-  sym only [conleche_grind, defeqProjPair.eq_1, defeqProjPair.eq_2] =>
+  sym only [conleche_grind, defeqProjPair] =>
     vcgen [defeqProjPairI, lazyDeltaProjReductionC_spec ih henv] <;> finish
 
 /-- The stuck comparison simulates its specification. -/
@@ -551,9 +537,7 @@ theorem defeqStuckC_spec (ih : SSimC mode env f) {d : Nat} {a b : Expr} {s₀ : 
     ⦃fun s => s = s₀⦄ defeqStuckI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (defeqStuck mode (fueledFns mode env) env d a b) v; ⊤⦄ := by
-  sym only [conleche_grind, defeqStuck.eq_1, defeqStuck.eq_2, defeqStuck.eq_3, defeqStuck.eq_4,
-      defeqStuck.eq_5, defeqStuck.eq_6, defeqStuck.eq_7, defeqStuck.eq_8, defeqStuck.eq_9,
-      defeqStuck.eq_10, strLitSupportedF_eq, strLitToConstructor_WScoped] =>
+  sym only [conleche_grind, defeqStuck, strLitSupportedF_eq, strLitToConstructor_WScoped] =>
     vcgen [defeqStuckI, ih.defeq_spec, stuckIrrelC_spec ih, etaCertC_spec ih, defEqListC_spec ih,
       isEquivListLM_spec (mode := mode) (env := env),
       liftFueled_spec (mode := mode) (env := env)] <;> finish
@@ -674,7 +658,7 @@ theorem bodyLazyC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} {s�
     ⦃fun s => s = s₀⦄ bodyLazyI mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d lr
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (bodyLazyP (fueledFns mode env) env d mode lr) v; ⊤⦄ := by
-  sym only [conleche_grind, bodyLazyP.eq_1, bodyLazyP.eq_2] =>
+  sym only [conleche_grind, bodyLazyP] =>
     vcgen [bodyLazyI, bodyTailC_spec ih henv] <;> finish
 
 theorem bodyQ2C_spec (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} {a b : Expr}
@@ -683,7 +667,7 @@ theorem bodyQ2C_spec (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} {a b :
     ⦃fun s => s = s₀⦄ bodyQ2I mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b o
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (bodyQ2P (fueledFns mode env) env d mode a b o) v; ⊤⦄ := by
-  sym only [conleche_grind, bodyQ2P.eq_1, bodyQ2P.eq_2] =>
+  sym only [conleche_grind, bodyQ2P] =>
     vcgen [bodyQ2I, lazyDeltaReductionC_spec ih henv, bodyLazyC_spec ih henv] <;> finish
 
 theorem bodyPIC_spec (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} {a b : Expr}
@@ -701,7 +685,7 @@ theorem bodyQ1C_spec (ih : SSimC mode env f) (henv : EnvWF env) {d : Nat} {a b :
     ⦃fun s => s = s₀⦄ bodyQ1I mode (coreKnotI mode (mkFEnv env) f) (mkFEnv env) d a b o
     ⦃fun v s' => CSOK mode env s' ∧
       Runs (bodyQ1P (fueledFns mode env) env d mode a b o) v; ⊤⦄ := by
-  sym only [conleche_grind, bodyQ1P.eq_1, bodyQ1P.eq_2] =>
+  sym only [conleche_grind, bodyQ1P] =>
     vcgen [bodyQ1I, bodyPIC_spec ih henv] <;> finish
 
 /-- The definitional-equality body simulates its specification. -/
