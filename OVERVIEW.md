@@ -1245,7 +1245,9 @@ proposition in the model
 Proofs by `native_decide` and `bv_decide` are declined: each such
 proof adds an axiom of its own to the environment, recording the
 result the native evaluator computed, and that axiom is not a pinned
-one, so the stream declines at its record. ConLeche never runs native
+one, so the stream declines at its record. The message names the tactic,
+read off the axiom's name (`<declaration>._native.<tactic>.ax_…`, as
+`decide +native`, `native_decide` and `bv_decide` name it). ConLeche never runs native
 code and never evaluates a decision procedure on a proof's behalf.
 (The `ofReduceBool` mechanism above is the older, deprecated route to
 the same trust, kept only because streams from the toolchain still

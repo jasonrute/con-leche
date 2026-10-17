@@ -215,7 +215,7 @@ def checkDeclC (pins : List NatOpPinSet) (fe : FEnv) (pd : Declaration) :
       else if cv.name = sorryAxName then
         pure fe
       else
-        throw (.notImplemented s!"non-standard axiom ({cv.name})")
+        throw (.notImplemented (nonStdAxiomMsg cv.name))
   | .basisDecl kind => checkBasisDeclC fe kind
   | .indDecl block nP =>
     -- **THE PINNED BASIS BLOCKS** (`checkDecl`'s twin, task #293): the

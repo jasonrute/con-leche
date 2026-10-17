@@ -46,6 +46,12 @@
 0 tolerated_axiom_unused.ndjson
 2 tolerated_axiom_use.ndjson
 2 custom_axiom_declined.ndjson
+# native_decide_axiom, decide_native_axiom (task #360): real exports of
+# a `native_decide` and a `decide +native` proof; the tactic's axiom
+# (`<decl>._native.<tactic>.ax_1_1`) declines, the message naming the
+# tactic.  Target: decline (con-leche does not model such axioms).
+2 native_decide_axiom.ndjson
+2 decide_native_axiom.ndjson
 # The decline is AT THE USE, not at the end of the run (task #292, user
 # ruling: the fold owns sorryAx; the parser's taint pre-scan is gone).
 # The midstream twin puts a checkable declaration after the use — the

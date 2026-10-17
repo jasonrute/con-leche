@@ -162,7 +162,7 @@ def checkDecl (_mode : CheckMode) (ops : CheckerOps m) (pins : List NatOpPinSet)
       else if cv.name = sorryAxName then
         pure env
       else
-        throw (.notImplemented s!"non-standard axiom ({cv.name})")
+        throw (.notImplemented (nonStdAxiomMsg cv.name))
   | .basisDecl kind => checkBasisDecl env kind
   | .indDecl block nP =>
     -- **THE PINNED BASIS BLOCKS** (task #293).  A stream's `Nat` block

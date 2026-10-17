@@ -200,4 +200,27 @@ type. -/
 def reduceCertVar (c : Name) : Expr :=
   .fvar 0 (reduceElemTy c)
 
+/-- The tactic that apparently added an axiom, read off its name.
+`Lean.Meta.nativeEqTrue` (`Lean/Meta/Native.lean`, the basis of
+`native_decide`, `decide +native` and `bv_decide`) asserts the result of
+a compiled computation as an axiom named
+`<declaration>._native.<tactic>.ax_<i>_<j>`; `decide +native` passes the
+tactic name `decide`. -/
+def nativeAxiomTactic? : Name → Option String
+  | .str (.str (.str _ "_native") tac) ax =>
+    if ax.startsWith "ax" then
+      some (if tac = "decide" then "decide +native" else tac)
+    else none
+  | _ => none
+
+/-- The decline message for an axiom that is none of the standard
+axioms, the compiler-trust family and `sorryAx`. -/
+def nonStdAxiomMsg (n : Name) : String :=
+  match nativeAxiomTactic? n with
+  | some tac =>
+    s!"non-standard axiom ({n}), apparently added by the `{tac}` tactic; \
+      con-leche does not support such axioms at the moment"
+  | none =>
+    s!"non-standard axiom ({n}); con-leche does not support such axioms at the moment"
+
 end ConLeche

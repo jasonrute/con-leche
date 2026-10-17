@@ -439,4 +439,25 @@ private def zMutual (rA rB : Expr) : Declaration :=
     [zMutual (.const ((zNm "ZA").str "c") []) (.const (zNm "ZB") [])]
   matches .error (.invalid _)
 
+/-! ## The decline message names the tactic behind a native axiom (task #360)
+
+`Lean.Meta.nativeEqTrue` names its axiom
+`<declaration>._native.<tactic>.ax_<i>_<j>`. -/
+
+private def nativeAx (decl tac ax : String) : Name :=
+  ((Name.anonymous.str decl).str "_native" |>.str tac).str ax
+
+#guard nativeAxiomTactic? (nativeAx "nd" "native_decide" "ax_1_1") == some "native_decide"
+#guard nativeAxiomTactic? (nativeAx "dn" "decide" "ax_1_1") == some "decide +native"
+#guard nativeAxiomTactic? (nativeAx "bv" "bv_decide" "ax_1_5") == some "bv_decide"
+#guard nativeAxiomTactic? (Name.anonymous.str "customAx") == none
+#guard nativeAxiomTactic? (nativeAx "nd" "native_decide" "decl_1") == none
+
+-- The installer declines such an axiom with that message.
+#guard checkDeclsPure .verified (pureOps .verified) natOpPinSets
+    [.axiomDecl
+      { name := nativeAx "nd" "native_decide" "ax_1_1", levelParams := [], type := .sort .zero }]
+  matches .error (.notImplemented "non-standard axiom (nd._native.native_decide.ax_1_1), apparently added by the `native_decide` tactic; con-leche does not support such axioms at the moment")
+
+
 end ConLecheTests

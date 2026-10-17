@@ -106383,3 +106383,28 @@ a deterministic rewriting chain like speculative instantiation, so a
 rule class that does not raise the generation, or `vcgen` driving the
 pure side in lockstep, would make the limit independent of the walk's
 length.  That is a question for upstream.
+
+## TASK #360 — the decline message names the tactic behind a native axiom (2026-10-17, agent/360-axioms)
+
+A user was confused by `not implemented yet: non-standard axiom
+(nd._native.native_decide.ax_1_1)`.  Every axiom that is none of the
+standard ones, the compiler-trust family and `sorryAx` still declines
+(exit 2) at its own record; the message now says why and, for the axioms
+`Lean.Meta.nativeEqTrue` adds (`Lean/Meta/Native.lean`, named
+`<declaration>._native.<tactic>.ax_<i>_<j>`), which tactic apparently
+added it: `native_decide`, `decide +native` (tactic name `decide`) or
+`bv_decide`.  `nativeAxiomTactic?` and `nonStdAxiomMsg`
+(`ConLeche/Kernel/TrustAxioms.lean`) serve the pure installer
+(`checkDecl`) and the cached one (`ParsedC`) alike.  Message, e.g.:
+
+    not implemented yet: non-standard axiom (nd._native.native_decide.ax_1_1),
+    apparently added by the `native_decide` tactic; con-leche does not
+    support such axioms at the moment
+
+Tests: `#guard`s on the recogniser (the three tactics, a plain axiom, a
+`_native…decl` name) and on the installer's exact message; two e2e
+fixtures exported from real proofs (`native_decide_axiom`,
+`decide_native_axiom`, lean4export at v4.29.1, verdict 2).  A
+`bv_decide` export is 1.6 M lines, so that tactic is covered by the
+`#guard` alone (checked by hand on a real export: same message with
+`bv_decide`).
