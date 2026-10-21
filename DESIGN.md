@@ -106479,3 +106479,77 @@ should fall back to `f.eq_def` like a non-recursive one),
 CLAUDE.md's "`vcgen` needs one unconditional unfolding equation per
 cached function" would read: pass a recursive cached function to
 `vcgen` as `f.eq_def` (the plain name for a non-recursive one).
+
+## TASK #361 — the eager tower keeps its memos for the declaration (2026-10-21, agent/361-eager-memos)
+
+**Diagnosis.**  Since task #353 the eager slot (`defeqE`,
+`ConLeche/Cached/CoreC.lean`) ran each eager comparison under
+`withFreshMemos`: the six mode-dependent memos (`whnfCoreC`,
+`whnfCoreCheapC`, `whnfC`, `inferC`, `inferIOC`, `defeqC`) were
+detached, the comparison started from empty ones, and everything it
+learned was dropped.  The arena test `perf/grind-ring-5` (333 ring
+certificates `… (eagerReduce (Eq.refl true))` sharing their
+`toPoly`/`Int` arithmetic) paid +44 % for it: dd695ca 16.67 G → c26f793
+24.07 G instructions:u (`--verified --jobs=1`).  Probe P3, a separate
+eager memo set that persists across eager calls, gave 16.80 G with the
+same verdict.  Maintainer's ruling: a separate, persistent memo set for
+the eager mode; plain and eager entries stay apart.
+
+**Design.**  `ModeMemos` (the six maps, each defaulting to empty) moves
+before `CState`, which gains `eagerMemos : ModeMemos := {}` — the eager
+tower's set; `flushed` empties it with the others.  `withEagerMemos mode
+x` (replacing `withFreshMemos`) is `modifyGet (CState.enterEager
+mode.eager)`, `x`, `modify (·.leaveEager saved)`: from a plain mode,
+`enterEager` returns the plain six as `some` and moves the stored eager
+six into the fields (the eager slot left empty); `leaveEager` stores the
+six fields back as the eager set and restores the plain ones.  Every
+map moves, none is shared (generated C read: the projected maps are
+back at RC 1 before the run).  Nesting: inside the eager tower the mode
+is already eager (`mode.toEager = mode`) and the fields already hold the
+eager set, so `enterEager true` returns `none` and moves nothing — a
+nested eager comparison REUSES the same set.  The mode test sits in
+`enterEager`, not in an `if` around `x`: a first version branched
+(`if mode.eager then x else swap`), `x` then occurred twice, the
+compiler hoisted the memo wrapper's body closure out of the slot, and
+every `coreKnotI` record built one closure more (7 instead of 6) — +0.2
+to +2 % on the perf tests that have no `eagerReduce` at all, +0.75 % on
+init-full.  A probe with only the new field (no swap change) cost
++0.06 M on `args-before-unfold`, i.e. nothing.
+
+**Proofs.**  `SimC.lean`: a structure `ModeMemosOK mode env mm` (the six
+memo clauses of `CSOK`, over a `ModeMemos`, with `ModeMemosOK.empty`);
+`CSOK` gains `eager : ModeMemosOK mode.toEager env s.eagerMemos`.
+`CSOK.takeModeMemos`/`putModeMemos`/`SimC.freshMemos` become
+`CSOK.modeMemos`, `CSOK.enterEager` (invariant at `mode.toEager` after
+entering; at an eager mode by `CheckMode.toEager_of_eager`),
+`CSOK.leaveEager` and `SimC.eagerMemos`, one statement for both cases,
+no case split on the mode at the call site.  `flushC_csok` takes
+`ModeMemosOK.empty`.  `KnotC.lean`'s `defeqE` arm names
+`withEagerMemos mode` and `SimC.eagerMemos`; nothing else moved — the
+`{ hs with … }` memo-insert lemmas keep the new field by projection, and
+the Model tier and the capstones are untouched.
+
+**Fixture.**  `tests/e2e/eager_memo_shared` (accept): two eager
+comparisons in one declaration (`eager_open_nat`'s at 999999 and
+999998), the second on the eager memos the first left.
+
+**Measurements** (instructions:u ×10⁹, `--verified --jobs=1`, one run
+each; before = master 672e2e2cb, after = this branch; verdicts identical
+on every stream):
+
+| stream | before | after | Δ |
+|---|---|---|---|
+| grind-ring-5 | 22.696 | 15.857 | −30.13 % |
+| app-lam | 22.077 | 22.078 | +0.01 % |
+| beta-ladder | 4.858 | 4.858 | +0.00 % |
+| let-ladder | 2.563 | 2.563 | +0.00 % |
+| church-numerals | 0.295 | 0.295 | +0.15 % |
+| shared-subterm | 0.204 | 0.204 | +0.19 % |
+| discarded-argument-match | 0.201 | 0.201 | +0.12 % |
+| folded-constant-first / -last | 0.095 / 0.095 | 0.095 / 0.096 | +0.21 / +0.19 % |
+| the seven others (< 0.07 G each) | | | ≤ +0.15 % |
+| init-full | 381.259 | 381.004 | −0.07 % |
+
+None of the perf streams but grind-ring-5 has an `eagerReduce`; their
++0.0–0.2 % (0.02–0.4 M instructions) is the state's shape (on
+args-before-unfold the field alone, probed, is +0.06 M of the +0.11 M).

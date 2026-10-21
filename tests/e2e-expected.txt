@@ -2952,6 +2952,11 @@
 # 100000: the free `x` blocks the fold and the literal is peeled in
 # unary, in official (~1 s) and in con-leche (~4 s) alike.
 0 eager_open_nat_control.ndjson
+# eager_memo_shared.ndjson (task #361): two eager comparisons in one
+# declaration (`eager_open_nat`'s, at 999999 and 999998); the second
+# runs on the eager tower's memos the first left in the state.  Accept,
+# instantly, in official and con-leche alike (the target verdict).
+0 eager_memo_shared.ndjson
 # --- the let ζ-fold (task #348; the mechanism of the openai/math
 # SquareDifference blow-up, `source_ordered_contraction`): a `let`
 # bound to a closed Nat that is expensive to head-normalise (`bits 14 0`,

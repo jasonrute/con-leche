@@ -478,7 +478,8 @@ the eager variant, for that comparison and everything it calls, where
 the lazy-delta `Nat`-literal fold and the `Bool.true` shortcut also fire
 on terms with free variables
 ([function `defeqArg` in `ConLeche/Kernel/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Core.lean#L1070)).
-The eager comparison runs under memos of its own.
+The eager comparisons run on memos of their own, kept for the whole
+declaration apart from the plain ones.
 
 The checker is a Lean-kernel-style type checker in the shape of the
 official one: `whnfCore` does β/ι/projection/quotient reduction (with
