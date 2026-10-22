@@ -17,7 +17,6 @@ import ConLeche.Verify.Knot
 import ConLeche.Verify.CheckerF
 import ConLeche.Verify.Extend.Inversions
 import ConLeche.Verify.Level
-import ConLeche.Verify.InferProjSlots
 
 public section
 

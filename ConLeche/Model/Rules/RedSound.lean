@@ -138,7 +138,7 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
       fun l hl => hL' l (by simpa [Expr.fvarLeaves] using hl)⟩,
     fun l hl => hsube l (hsub l (by simpa [Expr.fvarLeaves] using hl)), ?_⟩
   rcases hrd with ⟨entry, hfe, rfl⟩ | ⟨hnt, hdec⟩
-  · refine ⟨projNV (i + entry.off) vp', ?_, fun σ hσ hL hg hne => ?_⟩
+  · refine ⟨projNV (i + 1) vp', ?_, fun σ hσ hL hg hne => ?_⟩
     · rw [denote, hvp', hfe]; rfl
     have hnv : interp V σ vp ≠ pt := by
       intro h; apply hne; rw [projNV_interp, h, ConLeche.SetTheory.Tower.projS_pt]

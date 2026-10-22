@@ -1,7 +1,8 @@
 module
 
 public import ConLeche.Model.Env.EnvModelM
-public import ConLeche.Verify.Denote.ConsCross
+public import ConLeche.Verify.Denote.EnvExtend
+public import ConLeche.Verify.Denote.OpenVars
 import ConLeche.Model.Install
 import ConLeche.Model.Env.CanonCrest
 

@@ -770,7 +770,7 @@ theorem denote_liftN_of_leaf_free {env : Env} (m : EnvModel V env) {φ : Name �
     simp only [Expr.WScoped] at hw
     obtain ⟨Xe, rfl⟩ := ihe hw hq (fun l hl' => hl l (by simpa [Expr.fvarLeaves] using hl')) hia
     rcases hcase with ⟨entry, -, rfl⟩ | ⟨-, hdec⟩
-    · exact ⟨projNV (i + entry.off) Xe, by rw [projNV_liftN]⟩
+    · exact ⟨projNV (i + 1) Xe, by rw [projNV_liftN]⟩
     · rcases Term.projPair?_cases hdec with rfl | rfl
       · exact ⟨.fst Xe, by rw [Term.liftN_fst]⟩
       · exact ⟨.snd Xe, by rw [Term.liftN_snd]⟩

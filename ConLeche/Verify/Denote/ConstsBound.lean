@@ -17,8 +17,7 @@ predicate, with `Expr` clause equations and one `instantiate1` closure
 fact.
 
 `strLitSupported_listNames` comes with them: it is the same kind of
-fact (a guard inversion producing two `isSome` obligations) and
-`Verify/Denote/TowerExtend` reads it at the same clause.
+fact (a guard inversion producing two `isSome` obligations).
 -/
 
 namespace ConLeche.Verify

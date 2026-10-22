@@ -2,7 +2,8 @@ module
 
 public import ConLeche.Model.Tiers
 public import ConLeche.Verify.Denote.EnvExtend
-public import ConLeche.Verify.Denote.ConsCross
+public import ConLeche.Verify.Denote.EnvExtend
+public import ConLeche.Verify.Denote.OpenVars
 public import ConLeche.Verify.Denote.ConstsBound
 public import ConLeche.Verify.Extend.Sibs
 import ConLeche.Model.Env.CanonCrest

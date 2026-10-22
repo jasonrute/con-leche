@@ -144,7 +144,7 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List Term}
       fun j entry hfe => ConLeche.Env.findProj?_off_eq hfe hfe0
     have hslotE : ∀ j, j < caps.etaFields → ∃ entry : ProjEntry,
         env.findProj? T j = some entry := ConLeche.towerSlotsAll_slot htow
-    refine ⟨(List.range caps.etaFields).map fun j => projNV (j + e0.off) ba,
+    refine ⟨(List.range caps.etaFields).map fun j => projNV (j + 1) ba,
       ?_, ?_, TCa, hTCa, fun ρ hρ hLb hLt hokW hneW hokB hmemB => ?_⟩
     · rw [etaProjs_eq]
       refine DenoteSpine.map_list _ fun j hj => ?_
@@ -170,10 +170,10 @@ theorem etaSide (hin : RulesInputs V m φ) {d : Nat} {Δa : List Term}
       have hb := hlaw ρ (tsa.map (interp V ρ)) rest (interp V ρ ba) hlenP hfit hmemFam
       obtain ⟨restC, hfC'⟩ := hfitC ρ (tsa.map (interp V ρ)) rest (interp V ρ ba)
         hlenP hfit hmemFam
-      have hps : ((List.range caps.etaFields).map fun j => projNV (j + e0.off) ba).map
+      have hps : ((List.range caps.etaFields).map fun j => projNV (j + 1) ba).map
             (interp V ρ)
           = (List.range e0.numFields).map fun j =>
-              ConLeche.SetTheory.Tower.projS (j + e0.off) (interp V ρ ba) := by
+              ConLeche.SetTheory.Tower.projS (j + 1) (interp V ρ ba) := by
         rw [List.map_map, hfld']
         refine List.map_congr_left fun j _ => ?_
         rw [Function.comp_apply, projNV_interp]

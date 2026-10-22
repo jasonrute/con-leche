@@ -200,7 +200,7 @@ theorem denote_noBVar_of_nestOcc' {names : List Name} {lo hi : Nat} :
     simp only [ConLeche.Expr.nestOcc] at hocc
     have hsub := ihe hws hd hocc hea
     replace h : (match env.findProj? sn i with
-        | some entry => some (projNV (i + entry.off) ea')
+        | some entry => some (projNV (i + 1) ea')
         | none => Term.projPair? i ea') = some ea := h
     cases hfp : env.findProj? sn i with
     | some entry =>

@@ -77,8 +77,7 @@ theorem envWF_cons_blockInd {p₁ : BlockShape} {isRec : Bool} {i : Nat} {env : 
     (h5 : (cvTa.type.stripPis p₁.nP).isSome = true) :
     EnvWF ⟨.indInfo cvTa (blockCapsAt p₁ i isRec) :: env.consts, env.tables⟩ := by
   refine EnvWF.cons henv (structConstWF h1 h2 (Expr.constsResolve_mono h3) h4
-    (fun _ _ _ heq => nomatch heq) (fun _ _ _ _ heq => nomatch heq)
-    (by intro tbl hh; exact ConstantInfo.noConfusion hh) ?_)
+    (fun _ _ _ heq => nomatch heq) (fun _ _ _ _ heq => nomatch heq) ?_)
   refine IndCapsWF.of_caps ?_ ?_
   · intro hu; rw [(blockCapsAt_arity p₁ i isRec).1 hu]; exact h5
   · intro he; rw [(blockCapsAt_arity p₁ i isRec).2 he]; exact h5
@@ -221,15 +220,10 @@ through `constsResolve`, and the capability arities not at all. -/
 theorem ConstWF.mono {envA envB : Env}
     (hf : ∀ n, (envA.find? n).isSome = true → (envB.find? n).isSome = true)
     {c : ConstantInfo} (h : ConstWF envA c) : ConstWF envB c := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h9⟩ := h
   refine ⟨h1, h2, Expr.constsResolve_of_find hf h3, h4, fun cv value hint heq =>
     let ⟨g1, g2, g3, g4⟩ := h5 cv value hint heq
-    ⟨g1, g2, Expr.constsResolve_of_find hf g3, g4⟩, ?_,
-    fun tbl heq =>
-      let ⟨g0, g⟩ := h8 tbl heq
-      ⟨g0, fun i b hb =>
-        let ⟨g1, g2, g3, g4⟩ := g i b hb
-        ⟨g1, g2, Expr.constsResolve_of_find hf g3, g4⟩⟩, h9⟩
+    ⟨g1, g2, Expr.constsResolve_of_find hf g3, g4⟩, ?_, h9⟩
   intro cv mI rP rules heq r hr
   obtain ⟨g1, g2, g3, g4, g5⟩ := h6 cv mI rP rules heq r hr
   refine ⟨g1, g2, Expr.constsResolve_of_find hf g3, g4, ?_⟩
@@ -238,6 +232,16 @@ theorem ConstWF.mono {envA envB : Env}
   exact ⟨n1, n2, fun pin hpin =>
     let ⟨p1, p2, p3, p4⟩ := n3 pin hpin
     ⟨p1, p2, Expr.constsResolve_of_find hf p3, p4⟩, n4⟩
+
+/-- Well-formedness of a stored table transfers along a lookup
+dominance, as a constant's (task #362). -/
+theorem TableWF.mono {envA envB : Env}
+    (hf : ∀ n, (envA.find? n).isSome = true → (envB.find? n).isSome = true)
+    {t : ProjTable} (h : TableWF envA t) : TableWF envB t := by
+  obtain ⟨h0, h1, h2⟩ := h
+  exact ⟨hf _ h0, h1, fun i b hb =>
+    let ⟨g1, g2, g3, g4⟩ := h2 i b hb
+    ⟨g1, g2, Expr.constsResolve_of_find hf g3, g4⟩⟩
 
 /-- Conses of the SAME name over dominating environments dominate. -/
 theorem find?_cons_mono {c c' : ConstantInfo} {envA envB : Env} (hn : c.name = c'.name)
@@ -272,6 +276,15 @@ premises, discharged per instance. -/
   | m, r :: rest, env =>
     consBlockRecsR R q (m + 1) rest
       ⟨.recInfo r.1 (q.majorIdxAt m) (q.rulePrefixAt m) (R m r) :: env.consts, env.tables⟩
+
+/-- The recursors' conses leave the tables alone. -/
+theorem consBlockRecsR_tables
+    (R : Nat → ConstantVal × List Expr × Nat × List (ConstantVal × Nat) → List RecRule)
+    (q : BlockShape) :
+    ∀ (m : Nat) (rs : List (ConstantVal × List Expr × Nat × List (ConstantVal × Nat))) (env : Env),
+      (consBlockRecsR R q m rs env).tables = env.tables
+  | _, [], _ => rfl
+  | m, _ :: rest, _ => consBlockRecsR_tables R q (m + 1) rest _
 
 /-- The member cons' rules function: `sumRules` at the block's
 parameter count. -/
@@ -409,9 +422,10 @@ theorem envWF_consBlockRecsR
       ((consBlockRecsBare q 0 (rs.map fun r => (r.1, r.2.2.1)) env).find? n).isSome = true →
       ((consBlockRecsR R q 0 rs env).find? n).isSome = true :=
     find?_consBlockRecsR_of_bare (fun _ hn => hn)
-  intro c hc
+  refine ⟨fun c hc => ?_, fun t ht => TableWF.mono hdomEnv
+    (henv.tables t (by rw [consBlockRecsR_tables] at ht; exact ht))⟩
   rcases mem_consBlockRecsR hc with hc' | ⟨j, r, hr, rfl⟩
-  · exact ConstWF.mono hdomEnv (henv c hc')
+  · exact ConstWF.mono hdomEnv (henv.consts c hc')
   · rw [Nat.zero_add]
     obtain ⟨h1, h2, h3, h4, h5⟩ := hall r (List.mem_of_getElem? hr)
     refine structConstWF h1 h2 (Expr.constsResolve_of_find hdomEnv h3) h4

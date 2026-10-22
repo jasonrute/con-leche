@@ -278,7 +278,7 @@ theorem targetAbs_read
     | some entry =>
       intro vals τ hvl hτ
       obtain ⟨hv, hw⟩ := he vals τ hvl hτ
-      exact projNV_agree (i + entry.off) hv hw
+      exact projNV_agree (i + 1) hv hw
     | none =>
       rcases i with _ | _ | i
       · intro vals τ hvl hτ

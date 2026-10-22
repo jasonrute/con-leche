@@ -6,7 +6,6 @@ import ConLeche.Model.Env.LfpHoleOp
 import ConLeche.Model.Inductives.BlockCaps
 import ConLeche.Model.Inductives.BlockHoleGrade
 import ConLeche.Verify.Inductives.NfMemberFree
-import ConLeche.Verify.InferProjSlots
 public import ConLeche.Model.Inductives.BlockPosRun
 import ConLeche.Model.Inductives.BlockCover
 import ConLeche.Model.Inductives.BlockAccRunCont

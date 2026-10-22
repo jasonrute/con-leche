@@ -6,7 +6,6 @@ public import ConLeche.Verify.Inductives.BlockRecRun
 import ConLeche.Verify.ExceptBind
 import ConLeche.Verify.Inductives.DirectInv
 import ConLeche.Verify.CheckerF
-import ConLeche.Verify.InferProjSlots
 
 public section
 
@@ -428,10 +427,7 @@ theorem classConstOk_typeWF {env : Env} {cv : ConstantVal} {F : Nat}
   exact ⟨hfv, hlp, hcr, hlb⟩
 
 /-- **A `classConstOk` run's facts** (`ConstChecked`): the guards and the
-inference are the run's; the stored type is the checked one, and its
-empty-slot freshness is the full inference's (`inferTypeCore_noProjAt`:
-a successful inference of a closed subject names only occupied slots —
-the stored type is the one inferred). -/
+inference are the run's; the stored type is the checked one. -/
 theorem classConstOk_checked {env : Env} {cv : ConstantVal} {F : Nat}
     (h : classConstOk (fueledOps mode F) (mkFEnv env) cv = .ok ()) :
     ConstChecked mode F env cv cv := by
@@ -440,8 +436,7 @@ theorem classConstOk_checked {env : Env} {cv : ConstantVal} {F : Nat}
   exact {
     name := rfl, lps := rfl, fresh := hfr, unreserved := hres, notProjShape := hps,
     nodup := hnd, bounded := hlb, noFvar := hfv, lpsDef := hlp, resolves := hcr,
-    sorted := ⟨stype, u, hinf, hsort⟩,
-    noProj := fun _ _ hslot => inferTypeCore_noProjAt hinf hfv hslot }
+    sorted := ⟨stype, u, hinf, hsort⟩ }
 
 /-- **One recursor's generated type, as `classRecTyOk` ran**: the record's
 member, rule prefix and major index are the generated ones; the STORED
