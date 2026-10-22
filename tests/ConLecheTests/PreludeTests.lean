@@ -62,18 +62,18 @@ def preludeIx : PreludeIx :=
   [0, 0, 0, 0, 1, 1, 1, 1, 2, 0, 0]
 
 /-- The fold accepts the prelude alone, at both modes, from the empty
-environment: 24 constants (16 basis + `And`, `And.intro`, `And.rec` and
-`And`'s projection table + `Bool`, `Bool.false`, `Bool.true`,
-`Bool.rec`).  The four pinned blocks and the quotient package install
+environment: 23 constants (16 basis + `And`, `And.intro`, `And.rec` +
+`Bool`, `Bool.false`, `Bool.true`, `Bool.rec`) and one projection
+table (`And`'s).  The four pinned blocks and the quotient package install
 as the PINS — `checkDecl` recognises them (`basisPinHit`,
 `quotPinHit`), which is the whole of task #293's move. -/
-def preludeEnvSize (mode : CheckMode) : Option Nat :=
+def preludeEnvSize (mode : CheckMode) : Option (Nat × Nat) :=
   match checkDecls mode natOpPinSets preludeIx.decls with
-  | .ok env => some env.consts.length
+  | .ok env => some (env.consts.length, env.tables.length)
   | .error _ => none
 
-#guard preludeEnvSize .verified == some 24
-#guard preludeEnvSize .trusted == some 24
+#guard preludeEnvSize .verified == some (23, 1)
+#guard preludeEnvSize .trusted == some (23, 1)
 
 /-! The `And` pin (`andPinOk`, `ConLeche/Kernel/Basis.lean`): the
 prelude's `And` block — the toolchain's, as exported — IS the pin, up

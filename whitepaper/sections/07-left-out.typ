@@ -15,12 +15,12 @@ field of a structure value. For every inductive type with one
 constructor and no index the checker stores #src("ConLeche/Kernel/Inductives/BlockTail.lean", 106, 109)[a
 projection table], the fields' types read off the constructor. The
 real checker #src("ConLeche/Rules/Rel.lean", 169, 185)[reduces a projection of a
-constructor application to that field] and #src("ConLeche/Rules/Rel.lean", 627, 637)[infers its type from
+constructor application to that field] and #src("ConLeche/Rules/Rel.lean", 628, 638)[infers its type from
 the table]\; in the model a structure value is the tagged tuple of
 @sec:ext-eta and a projection reads a component, which
 #src("ConLeche/Model/Inductives/BlockStageTables.lean", 10, 12)[the
 install of the table] establishes
-(#src("ConLeche/Model/Inductives/FixKit.lean", 714, 719)[its typing
+(#src("ConLeche/Model/Inductives/FixKit.lean", 713, 718)[its typing
 and ι laws]).]
 
 #left-out[Mutual inductive types][Several types declared together,
@@ -39,12 +39,12 @@ constructor form when reduction needs it
 binary `Nat` operations] on literals with machine arithmetic. The folding is sound only for
 the operations as the toolchain defines them, so the checker compares
 each stream's definition against #src("ConLeche/Kernel/NatOpPins.lean", 8, 21)[a pinned copy] and the model
-#src("ConLeche/Model/NatEqs.lean", 1101, 1105)[establishes the operations' recurrences] from that comparison.]
+#src("ConLeche/Model/NatEqs.lean", 1078, 1082)[establishes the operations' recurrences] from that comparison.]
 
 #left-out[Quotients][`Quot`, `Quot.mk`, `Quot.lift`, `Quot.ind` and the
 axiom `Quot.sound` are installed from #src("ConLeche/Kernel/Basis/Quot.lean", 8, 14)[a built-in pin] and modelled by #src("ConLeche/SetTheory/Derive/Quot.lean", 65, 67)[the
 set-theoretic quotient of a set by a relation], for which the pinned
-constants are #src("ConLeche/Model/BasisQuot.lean", 2435, 2439)[shown to be members of their types].]
+constants are #src("ConLeche/Model/BasisQuot.lean", 2431, 2435)[shown to be members of their types].]
 
 #left-out[Pinned blocks][In the fragment `False` is whatever empty
 proposition the stream declares. The real checker installs `Eq`,
@@ -73,8 +73,8 @@ real checker never unfolds a theorem or an opaque: #src("ConLeche/Rules/Rel.lean
 unfolds].]
 
 #left-out[Structure η and unit-likeness][The checker has
-#src("ConLeche/Rules/Rel.lean", 466, 469)[structure η] and
-#src("ConLeche/Rules/Rel.lean", 494, 499)[unit-likeness] as Lean has them;
+#src("ConLeche/Rules/Rel.lean", 467, 470)[structure η] and
+#src("ConLeche/Rules/Rel.lean", 495, 500)[unit-likeness] as Lean has them;
 @sec:ext-eta and @sec:ext-unit derive both from extensionality.]
 
 #left-out[Recursors on stuck proofs of `A ∧ B`][The checker never
@@ -112,10 +112,10 @@ opening at all.
 
 *An intermediate term language.* The real proof does not interpret the
 checker's terms directly. It first reads a term into a smaller language,
-#src("ConLeche/Term/Syntax.lean", 187, 218)[`Term`]: de Bruijn
+#src("ConLeche/Term/Syntax.lean", 188, 219)[`Term`]: de Bruijn
 indices, sorts at concrete numbers (the level valuation already
 applied), and built-in constants at concrete levels. That reading,
-#src("ConLeche/Verify/Denote.lean", 152, 153)[`denote`], is partial only for
+#src("ConLeche/Verify/Denote.lean", 153, 154)[`denote`], is partial only for
 syntactic reasons: an unknown constant, a wrong number of levels, or a
 projection with no table. The interpretation
 #src("ConLeche/Semantics/Interp.lean", 134, 145)[`interp`] then maps
@@ -125,10 +125,10 @@ denotation on the terms themselves.
 
 *Six relations, and a mode index.* Beside reduction,
 definitional equality and inference the real description has three
-more: #src("ConLeche/Rules/Rel.lean", 639, 648)[the certification of an argument spine against
+more: #src("ConLeche/Rules/Rel.lean", 640, 649)[the certification of an argument spine against
 a binder telescope] (the certified case of $iota$),
-#src("ConLeche/Rules/Rel.lean", 650, 655)[pairwise definitional equality], and
-#src("ConLeche/Rules/Rel.lean", 507, 546)[the congruence of two lambda telescopes]
+#src("ConLeche/Rules/Rel.lean", 651, 656)[pairwise definitional equality], and
+#src("ConLeche/Rules/Rel.lean", 508, 547)[the congruence of two lambda telescopes]
 (@sec:tax). A rule with a premise about a list or a telescope needs a
 relation of its own in a mutual block; the paper inlines them into the
 rules that use them. Inference also carries a
@@ -144,9 +144,9 @@ lemma about one rule, never mentioning the implementation. #src("ConLeche/Model/
 recomposition] puts them together, claim by claim. It bridges the run,
 applies the soundness, and hands the result to the declaration fold.
 
-*The statement over `Denotes`.* The main theorem is stated over #src("ConLeche/Denotes.lean", 124, 127)[`Denotes`], a relation on the checker's
+*The statement over `Denotes`.* The main theorem is stated over #src("ConLeche/Denotes.lean", 121, 124)[`Denotes`], a relation on the checker's
 own terms with one rule per syntax form, written to be read in one
-sitting, and over the structure #src("ConLeche/Denotes.lean", 269, 289)[`Model`] built on it. #src("ConLeche/Model/Denotes.lean", 192, 198)[A theorem]
+sitting, and over the structure #src("ConLeche/Denotes.lean", 248, 268)[`Model`] built on it. #src("ConLeche/Model/Denotes.lean", 192, 198)[A theorem]
 connects the two: wherever the reading `denote` exists, its
 interpretation is a `Denotes`-denotation of the term. The paper's theorem is
 the model side directly.

@@ -2957,6 +2957,18 @@
 # runs on the eager tower's memos the first left in the state.  Accept,
 # instantly, in official and con-leche alike (the target verdict).
 0 eager_memo_shared.ndjson
+# projtable_name_free.ndjson (task #362): `prop_proj.ndjson` with one
+# record spliced in after the structure — a definition named
+# `PropPair.projTable.0` (a numeric last component, which surface Lean
+# cannot write; built by hand from the raw stream) — ahead of the
+# theorems that project from `PropPair`.  The projection tables are
+# their own environment component since #362, keyed by the structure,
+# so no constant name is reserved for them: the definition installs
+# and the projections still read `PropPair`'s table.  Until #362 the
+# table was a constant of that name and this stream was rejected
+# (duplicate declaration, exit 1).  Official accepts; accept is the
+# target verdict and today's.
+0 projtable_name_free.ndjson
 # --- the let ζ-fold (task #348; the mechanism of the openai/math
 # SquareDifference blow-up, `source_ordered_contraction`): a `let`
 # bound to a closed Nat that is expensive to head-normalise (`bits 14 0`,

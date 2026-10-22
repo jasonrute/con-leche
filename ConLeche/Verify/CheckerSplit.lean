@@ -202,7 +202,7 @@ theorem checkDefnVal_of_facts {cv : ConstantVal} {value vtype : Expr}
     (hvr : value.constsResolve env = true)
     (hvt : inferTypeCore μ env F 0 value = .ok vtype)
     (hde : isDefEqCore μ env F 0 vtype cv.type = .ok true) :
-    checkDefnVal (fueledOps μ F) env cv value hint = .ok ⟨.defnInfo cv value hint :: env.consts⟩ := by
+    checkDefnVal (fueledOps μ F) env cv value hint = .ok ⟨.defnInfo cv value hint :: env.consts, env.tables⟩ := by
   simp only [checkDefnVal, fueledOps_inferType, fueledOps_isDefEq,
     Bind.bind, Except.bind, Pure.pure, Except.pure, hlb, hif, hvp, hvr, hvt, hde,
     Bool.false_eq_true, ↓reduceIte]
@@ -217,7 +217,7 @@ theorem checkThmVal_of_facts {cv : ConstantVal} {value vtype stype : Expr} {u : 
     (hvr : value.constsResolve env = true)
     (hvt : inferTypeCore μ env F 0 value = .ok vtype)
     (hde : isDefEqCore μ env F 0 vtype cv.type = .ok true) :
-    checkThmVal (fueledOps μ F) env cv value = .ok ⟨.thmInfo cv :: env.consts⟩ := by
+    checkThmVal (fueledOps μ F) env cv value = .ok ⟨.thmInfo cv :: env.consts, env.tables⟩ := by
   simp only [checkThmVal, fueledOps_inferType, fueledOps_isDefEq,
     fueledOps_ensureSort, liftFueled, Bind.bind, Except.bind, Pure.pure, Except.pure, hst,
     hsort, heqv, hlb, hif, hvp, hvr, hvt, hde, Bool.false_eq_true, ↓reduceIte]
@@ -229,7 +229,7 @@ theorem checkOpaqueVal_of_facts {cv : ConstantVal} {value vtype : Expr}
     (hvr : value.constsResolve env = true)
     (hvt : inferTypeCore μ env F 0 value = .ok vtype)
     (hde : isDefEqCore μ env F 0 vtype cv.type = .ok true) :
-    checkOpaqueVal (fueledOps μ F) env cv value = .ok ⟨.axiomInfo cv :: env.consts⟩ := by
+    checkOpaqueVal (fueledOps μ F) env cv value = .ok ⟨.axiomInfo cv :: env.consts, env.tables⟩ := by
   simp only [checkOpaqueVal, fueledOps_inferType, fueledOps_isDefEq,
     Bind.bind, Except.bind, Pure.pure, Except.pure, hlb, hif, hvp, hvr, hvt, hde,
     Bool.false_eq_true, ↓reduceIte]
@@ -244,7 +244,7 @@ theorem checkDecl_of_split_defn {cv : ConstantVal} {value : Expr}
     (hV : installValueGuards (m := CheckM) env vg.cv value = .ok ())
     (hC : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
     checkDecl μ (fueledOps μ F) pins env (.defnDecl cv value hint)
-      = .ok ⟨.defnInfo vg.cv vg.jv hint :: env.consts⟩ := by
+      = .ok ⟨.defnInfo vg.cv vg.jv hint :: env.consts, env.tables⟩ := by
   obtain ⟨hfind, hres, hshape, hnd, hlb, hif, htp, htr⟩ :=
     installHeader_inv hI
   rw [hcvA] at hV
@@ -268,7 +268,7 @@ theorem checkDecl_of_split_thm {cv : ConstantVal} {value : Expr} {vg : ValueGrou
     (hI : installHeader (m := CheckM) env cv = .ok ())
     (hC : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
     checkDecl μ (fueledOps μ F) pins env (.thmDecl cv value)
-      = .ok ⟨.thmInfo vg.cv :: env.consts⟩ := by
+      = .ok ⟨.thmInfo vg.cv :: env.consts, env.tables⟩ := by
   obtain ⟨hfind, hres, hshape, hnd, hlb, hif, htp, htr⟩ :=
     installHeader_inv hI
   obtain ⟨stype, u, hst, hsort, hthm, hiv, vtype, hvt, hde⟩ := checkValueGroup_inv hC
@@ -291,7 +291,7 @@ theorem checkDecl_of_split_opaque {cv : ConstantVal} {value : Expr} {vg : ValueG
     (hV : installValueGuards (m := CheckM) env vg.cv value = .ok ())
     (hC : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
     checkDecl μ (fueledOps μ F) pins env (.opaqueDecl cv value)
-      = .ok ⟨.axiomInfo vg.cv :: env.consts⟩ := by
+      = .ok ⟨.axiomInfo vg.cv :: env.consts, env.tables⟩ := by
   obtain ⟨hfind, hres, hshape, hnd, hlb, hif, htp, htr⟩ :=
     installHeader_inv hI
   rw [hcvA] at hV

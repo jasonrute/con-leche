@@ -226,7 +226,7 @@ reductions: it reduces a side, then continues (red-l).
   are each sound alone into an unsound one. Free variables are
   #src("ConLeche/Rules/Rel.lean", 375, 381)[compared by index], not by
   the types they carry, and a
-  #src("ConLeche/Rules/Rel.lean", 439, 444)[fast path] equates two
+  #src("ConLeche/Rules/Rel.lean", 439, 445)[fast path] equates two
   terms whose heads' declared types say they are proofs. Chained, the
   two would equate any two variables: give each the type of a
   proposition, then compare the two proofs.
@@ -235,7 +235,7 @@ reductions: it reduces a side, then continues (red-l).
 === Inference <sec:infer>
 
 A variable's type is #src("whitepaper/Fragment/Rules.lean", 740, 748)[read off the context], and a sort
-#src("ConLeche/Rules/Rel.lean", 549, 565)[has the next sort]. The rules
+#src("ConLeche/Rules/Rel.lean", 550, 566)[has the next sort]. The rules
 of this subsection are the checker's _full inference_. The checker
 also has a cheaper mode, `infer_only`, which skips some of their
 checks; @sec:io presents it.
@@ -264,7 +264,7 @@ the sort of that type is not computed.
 )
 
 An #src("whitepaper/Fragment/Rules.lean", 772, 781)[application infers the head's type], reduces it to a $forall$,
-infers the argument's type and #src("ConLeche/Rules/Rel.lean", 617, 621)[compares it with the domain].
+infers the argument's type and #src("ConLeche/Rules/Rel.lean", 618, 622)[compares it with the domain].
 A #src("whitepaper/Fragment/Rules.lean", 782, 796)[let-expression] checks that its type has a
 sort and that its value's type agrees with it, as Lean does, and then
 infers the type of the body with the value substituted.
@@ -309,7 +309,7 @@ itself in place of the variable.
 #real[
   The checker substitutes the value in the same way, both when it
   #src("ConLeche/Kernel/Core.lean", 979, 981)[reduces] and when it
-  #src("ConLeche/Kernel/Core.lean", 1179, 1184)[infers]\; it keeps no
+  #src("ConLeche/Kernel/Core.lean", 1175, 1180)[infers]\; it keeps no
   variables bound to values.
   The official kernel opens the body at such a variable instead, which
   avoids copying the value when the body uses it many times; for

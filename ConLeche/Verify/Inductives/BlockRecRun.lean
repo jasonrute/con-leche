@@ -1,6 +1,5 @@
 module
 
-public import ConLeche.Verify.ProjSlots
 public import ConLeche.Kernel.Inductives.BlockInstall
 import ConLeche.Verify.Inductives.BlockWF
 import ConLeche.Verify.ExceptBind
@@ -41,8 +40,7 @@ stream's type, as declared: `checkConstantVal_checked`) or `classConstOk`
 (the GENERATED type, stored as generated: the generated stage's
 `classConstOk_inv`).  `cv0` is the constant checked, `cv` the stored
 one: the name guards, the stored type closed, its levels declared, its
-constants resolved, its inference sorted, and no `.proj` node at an
-empty table slot. -/
+constants resolved, its inference sorted. -/
 structure ConstChecked (mode : CheckMode) (F : Nat) (env : Env) (cv0 cv : ConstantVal) :
     Prop where
   name : cv.name = cv0.name
@@ -57,7 +55,6 @@ structure ConstChecked (mode : CheckMode) (F : Nat) (env : Env) (cv0 cv : Consta
   resolves : cv.type.constsResolve env = true
   sorted : ∃ stype u, inferTypeCore mode env F 0 cv.type = .ok stype ∧
     ensureSortCore mode env F 0 stype = .ok u
-  noProj : ∀ (T : Name) (i : Nat), env.findProj? T i = none → Expr.NoProjAt T i cv.type
 
 /-- **Stage (b) at ONE recursor, at ANY major**: the checked constant,
 the prefix and the major's position, the recursor type's openers, the

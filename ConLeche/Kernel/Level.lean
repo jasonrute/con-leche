@@ -213,13 +213,10 @@ def Name.nodup : List Name → Bool
   | [] => true
   | n :: ns => !ns.contains n && Name.nodup ns
 
-/-- Is this shaped like an installed projection function's name
-(`(T.proj).i`) or a
-projection table's (`(T.projTable).0`, task #175 S1)?  Both shapes
-are reserved for the checker's own installs. -/
+/-- Is this shaped like a projection function's name (`(T.proj).i`)?
+The front door refuses the shape. -/
 def Name.isProjFnShape : Name → Bool
   | .num (.str _ "proj") _ => true
-  | .num (.str _ "projTable") _ => true
   | _ => false
 
 /-- Substitute level parameters throughout an expression (sorts and

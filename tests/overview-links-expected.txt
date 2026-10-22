@@ -19,32 +19,32 @@
     98      (accepted : checkDecls .verified pins ds = .ok env) :
     99      Nonempty (Model V env) := by
 
-== ConLeche/Denotes.lean#L126-L127
-   126  inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ : LevelParam → Nat) :
-   127      (BVarIdx → V) → Expr → V → Prop
+== ConLeche/Denotes.lean#L123-L124
+   123  inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ : LevelParam → Nat) :
+   124      (BVarIdx → V) → Expr → V → Prop
 
-== ConLeche/Denotes.lean#L269-L289
-   269  structure Model (V : Type w) [SetTheory V] (env : Env) where
-   270    /-- the set a constant denotes, per level assignment -/
-   271    cval : Name → (LevelParam → Nat) → V
-   272    /-- every stored constant is a member of what its type denotes, at
-   273    every level assignment (and every variable environment — the type
-   274    is closed) -/
-   275    mem : ∀ c ∈ env.consts, ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V),
-   276      ∃ T, Denotes cval env φ ρ c.toConstantVal.type T ∧ cval c.name φ ∈ˢ T
-   277    /-- whatever the built-in `False` denotes is the empty set -/
-   278    false_empty : ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V) (F : V),
-   279      Denotes cval env φ ρ (.const falseName []) F → F = empty
-   280    /-- whatever the built-in `Eq` denotes is set equality: at a type `A`
-   281    of the universe the level `u` names, and two of its members `a` and
-   282    `b`, `@Eq.{u} A a b` denotes the truth value of `a = b`.  The three
-   283    membership premises are the graph's domains — `Eq`'s denotation is a
-   284    three-fold graph over `univ (Level.eval φ u)`, then over `A`, then
-   285    over `A` again, and a graph read off its domain says nothing -/
-   286    eq_equality : ∀ (u : Level) (φ : LevelParam → Nat) (ρ : BVarIdx → V) (E A a b : V),
-   287      Denotes cval env φ ρ (.const eqName [u]) E →
-   288      A ∈ˢ univ (Level.eval φ u) → a ∈ˢ A → b ∈ˢ A →
-   289      app (app (app E A) a) b = eqv a b
+== ConLeche/Denotes.lean#L248-L268
+   248  structure Model (V : Type w) [SetTheory V] (env : Env) where
+   249    /-- the set a constant denotes, per level assignment -/
+   250    cval : Name → (LevelParam → Nat) → V
+   251    /-- every stored constant is a member of what its type denotes, at
+   252    every level assignment (and every variable environment — the type
+   253    is closed) -/
+   254    mem : ∀ c ∈ env.consts, ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V),
+   255      ∃ T, Denotes cval env φ ρ c.toConstantVal.type T ∧ cval c.name φ ∈ˢ T
+   256    /-- whatever the built-in `False` denotes is the empty set -/
+   257    false_empty : ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V) (F : V),
+   258      Denotes cval env φ ρ (.const falseName []) F → F = empty
+   259    /-- whatever the built-in `Eq` denotes is set equality: at a type `A`
+   260    of the universe the level `u` names, and two of its members `a` and
+   261    `b`, `@Eq.{u} A a b` denotes the truth value of `a = b`.  The three
+   262    membership premises are the graph's domains — `Eq`'s denotation is a
+   263    three-fold graph over `univ (Level.eval φ u)`, then over `A`, then
+   264    over `A` again, and a graph read off its domain says nothing -/
+   265    eq_equality : ∀ (u : Level) (φ : LevelParam → Nat) (ρ : BVarIdx → V) (E A a b : V),
+   266      Denotes cval env φ ρ (.const eqName [u]) E →
+   267      A ∈ˢ univ (Level.eval φ u) → a ∈ˢ A → b ∈ˢ A →
+   268      app (app (app E A) a) b = eqv a b
 
 == ConLeche/MainTheorem.lean#L110-L117
    110  theorem no_False_declaration (V : Type w) [SetTheory V]
@@ -163,26 +163,26 @@
    142      Declaration → CheckCM (FEnv × Array PendingCheck)
    143    | .defnDecl cv value hint =>
 
-== ConLeche/Driver/ParInstall.lean#L748-L757
-   748  def commitLoop (err : IO.FS.Stream) (stride total t0 : Nat)
-   749      (hB : BaseInj B) (sh : Shared mode ds B S vis) (cst : IO.Ref (Array Nat))
-   750      (p₀ : Nat × FEnv × Array PendingCheck) :
-   751      (k i c : Nat) → (fe : FEnv) → (pend : Array PendingCheck) →
-   752      fe.visibleBelow = c →
-   753      InstallRun mode natOpPinSets (ds.toList.take k) p₀ (i, fe, pend) →
-   754      IdxBelow fe → ViewAgrees B S fe →
-   755        IO (Except (CheckError × Nat)
-   756          (Σ' (p' : Nat × FEnv × Array PendingCheck),
-   757            PLift (InstallRun mode natOpPinSets ds.toList p₀ p')))
+== ConLeche/Driver/ParInstall.lean#L749-L758
+   749  def commitLoop (err : IO.FS.Stream) (stride total t0 : Nat)
+   750      (hB : BaseInj B) (sh : Shared mode ds B S vis) (cst : IO.Ref (Array Nat))
+   751      (p₀ : Nat × FEnv × Array PendingCheck) :
+   752      (k i c : Nat) → (fe : FEnv) → (pend : Array PendingCheck) →
+   753      fe.visibleBelow = c →
+   754      InstallRun mode natOpPinSets (ds.toList.take k) p₀ (i, fe, pend) →
+   755      IdxBelow fe → ViewAgrees B S fe →
+   756        IO (Except (CheckError × Nat)
+   757          (Σ' (p' : Nat × FEnv × Array PendingCheck),
+   758            PLift (InstallRun mode natOpPinSets ds.toList p₀ p')))
 
-== ConLeche/Verify/Cached/ViewCongr.lean#L1281-L1287
-  1281  theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {i : Nat}
-  1282      {fe : FEnv} {pend : Array PendingCheck} {pd : Declaration} {L : List ConstantInfo}
-  1283      {vg? : Option ValueGroup} (hag : ViewAgrees B S fe) (hidx : IdxBelow fe)
-  1284      (hand : andPinOk pd = true)
-  1285      (h : installStep mode pins (workerView B S fe.visibleBelow) pd = .ok (L, vg?)) :
-  1286      installDeclStep mode pins (i, fe, pend) pd =
-  1287        .ok (i + 1, FEnv.pushAll L fe, pushPending pend i fe.visibleBelow vg?) := by
+== ConLeche/Verify/Cached/ViewCongr.lean#L1389-L1395
+  1389  theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {i : Nat}
+  1390      {fe : FEnv} {pend : Array PendingCheck} {pd : Declaration} {L : List ConstantInfo}
+  1391      {Q : List ProjTable} {vg? : Option ValueGroup} (hag : ViewAgrees B S fe) (hidx : IdxBelow fe)
+  1392      (hand : andPinOk pd = true)
+  1393      (h : installStep mode pins (workerView B S fe.visibleBelow) pd = .ok (L, Q, vg?)) :
+  1394      installDeclStep mode pins (i, fe, pend) pd =
+  1395        .ok (i + 1, FEnv.pushDelta L Q fe, pushPending pend i fe.visibleBelow vg?) := by
 
 == ConLeche/Cached/Installed.lean#L358-L360
    358  def checkRecord {pins : List NatOpPinSet} {ds : List Declaration}
@@ -242,24 +242,25 @@
    536  theorem checkDecls_fullyChecked {pins : List NatOpPinSet} {ds : Array Declaration}
    537      {env : Env} (h : checkDecls mode pins ds = .ok env) :
 
-== ConLeche/Model/InstallRun.lean#L202-L209
-   202  theorem installRun_model (hμ : μ.isVerified = true) {ds : List Declaration}
-   203      {p : Nat × FEnv × Array PendingCheck}
-   204      {q : Nat × FEnv × Array PendingCheck}
-   205      (hrun : InstallRun μ pins ds p q) :
-   206      p.2.1 = mkFEnv p.2.1.env → EnvModelOk V μ p.2.1.env →
-   207      NodupNames q.2.1.env →
-   208      (∀ pc ∈ q.2.2.toList, ∃ s'', checkPending μ q.2.1 pc {} = .ok ((), s'')) →
-   209      EnvModelOk V μ q.2.1.env := by
+== ConLeche/Model/InstallRun.lean#L215-L222
+   215  theorem installRun_model (hμ : μ.isVerified = true) {ds : List Declaration}
+   216      {p : Nat × FEnv × Array PendingCheck}
+   217      {q : Nat × FEnv × Array PendingCheck}
+   218      (hrun : InstallRun μ pins ds p q) :
+   219      p.2.1 = mkFEnv p.2.1.env → EnvModelOk V μ p.2.1.env →
+   220      NodupNames q.2.1.env →
+   221      (∀ pc ∈ q.2.2.toList, ∃ s'', checkPending μ q.2.1 pc {} = .ok ((), s'')) →
+   222      EnvModelOk V μ q.2.1.env := by
 
-== ConLeche/Verify/Cached/KnotCongr.lean#L429-L430
-   429  theorem coreKnotI_congr (hfe : fe₁.find? = fe₂.find?) :
-   430      ∀ F, coreKnotI mode fe₁ F = coreKnotI mode fe₂ F := by
+== ConLeche/Verify/Cached/KnotCongr.lean#L510-L512
+   510  theorem coreKnotI_congr (hfe : fe₁.find? = fe₂.find?)
+   511      (htb : fe₁.findTable? = fe₂.findTable?) :
+   512      ∀ F, coreKnotI mode fe₁ F = coreKnotI mode fe₂ F := by
 
-== ConLeche/Model/InstallRun.lean#L230-L232
-   230  theorem fullyChecked_sound (V : Type w) [SetTheory V] (hμ : μ.isVerified = true)
-   231      {ds : List Declaration} (fc : FullyChecked μ pins ds) :
-   232      Nonempty (EnvModelM V μ fc.env) := by
+== ConLeche/Model/InstallRun.lean#L243-L245
+   243  theorem fullyChecked_sound (V : Type w) [SetTheory V] (hμ : μ.isVerified = true)
+   244      {ds : List Declaration} (fc : FullyChecked μ pins ds) :
+   245      Nonempty (EnvModelM V μ fc.env) := by
 
 == ConLeche/Verify/Cached/MainC.lean#L59-L65
     59  theorem no_proof_of_False_cached (V : Type w) [SetTheory V]
@@ -306,13 +307,13 @@
     53  def ensureSortCore (env : Env) (fuel depth : Nat) (e : Expr) : CheckM Level :=
     54    ensureSort (pureFns mode env fuel) env depth e
 
-== ConLeche/Kernel/Core.lean#L1744-L1749
-  1744      (wrap : CoreFns m → CoreFns m) : Nat → CoreFns m
-  1745    | 0 =>
-  1746      { whnfCore := fun _ _ _ => throw (.internal "fuel exhausted: whnfCore")
-  1747        whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
-  1748        infer := fun _ _ => throw (.internal "fuel exhausted: infer")
-  1749        defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
+== ConLeche/Kernel/Core.lean#L1736-L1741
+  1736      (wrap : CoreFns m → CoreFns m) : Nat → CoreFns m
+  1737    | 0 =>
+  1738      { whnfCore := fun _ _ _ => throw (.internal "fuel exhausted: whnfCore")
+  1739        whnf := fun _ _ => throw (.internal "fuel exhausted: whnf")
+  1740        infer := fun _ _ => throw (.internal "fuel exhausted: infer")
+  1741        defeq := fun _ _ _ => throw (.internal "fuel exhausted: defeq")
 
 == ConLeche/Model/Fold.lean#L268-L275
    268  theorem no_proof_of_False_pure (V : Type w) [SetTheory V]
@@ -336,9 +337,9 @@
    142      c hc hty
    143  
 
-== ConLeche/Model/Denotes.lean#L342-L343
-   342  `EnvModelM V μ env`. -/
-   343  noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
+== ConLeche/Model/Denotes.lean#L329-L330
+   329  `EnvModelM V μ env`. -/
+   330  noncomputable def Model.ofEnvModelM {μ : ConLeche.CheckMode} {env : Env}
 
 == tests/layering.sh#L1-L3
      1  #!/usr/bin/env bash
@@ -354,22 +355,22 @@
 == ConLeche/Kernel/Core.lean#L1053
   1053  /-- The reduction loop's body: run `whnfLoop` at its own step budget. -/
 
-== ConLeche/Kernel/Core.lean#L1317
-  1317  def defeqSpine (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
+== ConLeche/Kernel/Core.lean#L1309
+  1309  def defeqSpine (r : CoreFns m) (env : Env) (depth : Nat) (a b : Expr) :
 
-== ConLeche/Kernel/Core.lean#L1202
-  1202  def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
+== ConLeche/Kernel/Core.lean#L1198
+  1198  def inferBodyIO (r : CoreFns m) (env : Env) : Nat → Expr → m Expr :=
 
-== ConLeche/Kernel/Core.lean#L1355
-  1355  def defeqLams (r : CoreFns m) :
+== ConLeche/Kernel/Core.lean#L1347
+  1347  def defeqLams (r : CoreFns m) :
 
-== ConLeche/Verify/Cached/AgreeFloor.lean#L1102-L1104
-  1102  theorem checkDecls_skels {mode : CheckMode} {ds : Array Declaration}
-  1103      {env : Env} (h : checkDecls mode pins ds = .ok env) :
-  1104      envSkels env = streamSkels ds.toList := by
+== ConLeche/Verify/Cached/AgreeFloor.lean#L1075-L1077
+  1075  theorem checkDecls_skels {mode : CheckMode} {ds : Array Declaration}
+  1076      {env : Env} (h : checkDecls mode pins ds = .ok env) :
+  1077      envSkels env = streamSkels ds.toList := by
 
-== ConLeche/Kernel/Core.lean#L1793
-  1793  @[irreducible, noinline] def checkFuel : Nat := 4611686018427387904  -- 2^62
+== ConLeche/Kernel/Core.lean#L1785
+  1785  @[irreducible, noinline] def checkFuel : Nat := 4611686018427387904  -- 2^62
 
 == ConLeche/Kernel/Exclusive.lean#L6-L42
      6  # `withExclusive`: the reference-count read behind the walk memo
@@ -410,39 +411,39 @@
     41  only when `!is_likely_unshared(e)` — the same read.  The walks memoise
     42  exactly the nodes this primitive reports shared.
 
-== ConLeche/Term/Syntax.lean#L187-L218
-   187  inductive Term where
-   188    /-- de Bruijn index -/
-   189    | bvar (i : Nat)
-   190    /-- `Sort u` at a concrete level -/
-   191    | sort (u : Nat)
-   192    /-- a built-in constant at a concrete level instantiation -/
-   193    | const (c : BConst) (us : List Nat)
-   194    /-- application -/
-   195    | app (f a : Term)
-   196    /-- `fun (_ : ty) => body` -/
-   197    | lam (ty body : Term)
-   198    /-- `(_ : ty) → body` -/
-   199    | pi (ty body : Term)
-   200    /-- `let _ := val; body`, **without the type**: the body is under one
-   201    binder, read at the value -/
-   202    | letE (val body : Term)
-   203    /-- `@Eq _ lhs rhs`, **without the type**: the interpretation is
-   204    `⟦eqE a b⟧ = eqv ⟦a⟧ ⟦b⟧`, so soundness never constrains the type,
-   205    and no definition and no theorem in any tier reads the type, so
-   206    the constructor does not carry it; a producer that knows the type
-   207    simply drops it. -/
-   208    | eqE (lhs rhs : Term)
-   209    /-- First field of a pair.  Carries **only** the subject: the pair's
-   210    type arguments come from the typing premise `Γ ⊢ p : Σ A B`,
-   211    not from the term — see the module docstring.  Interpreted by
-   212    `sfst`, i.e. literally `interp`'s clause. -/
-   213    | fst (e : Term)
-   214    /-- Second field of a pair; the `fst` twin, interpreted by `ssnd`. -/
-   215    | snd (e : Term)
-   216    /-- the canonical (irrelevant) proof of a derivable equation -/
-   217    | prf
-   218    deriving Repr, Inhabited
+== ConLeche/Term/Syntax.lean#L188-L219
+   188  inductive Term where
+   189    /-- de Bruijn index -/
+   190    | bvar (i : Nat)
+   191    /-- `Sort u` at a concrete level -/
+   192    | sort (u : Nat)
+   193    /-- a built-in constant at a concrete level instantiation -/
+   194    | const (c : BConst) (us : List Nat)
+   195    /-- application -/
+   196    | app (f a : Term)
+   197    /-- `fun (_ : ty) => body` -/
+   198    | lam (ty body : Term)
+   199    /-- `(_ : ty) → body` -/
+   200    | pi (ty body : Term)
+   201    /-- `let _ := val; body`, **without the type**: the body is under one
+   202    binder, read at the value -/
+   203    | letE (val body : Term)
+   204    /-- `@Eq _ lhs rhs`, **without the type**: the interpretation is
+   205    `⟦eqE a b⟧ = eqv ⟦a⟧ ⟦b⟧`, so soundness never constrains the type,
+   206    and no definition and no theorem in any tier reads the type, so
+   207    the constructor does not carry it; a producer that knows the type
+   208    simply drops it. -/
+   209    | eqE (lhs rhs : Term)
+   210    /-- First field of a pair.  Carries **only** the subject: the pair's
+   211    type arguments come from the typing premise `Γ ⊢ p : Σ A B`,
+   212    not from the term — see the module docstring.  Interpreted by
+   213    `sfst`, i.e. literally `interp`'s clause. -/
+   214    | fst (e : Term)
+   215    /-- Second field of a pair; the `fst` twin, interpreted by `ssnd`. -/
+   216    | snd (e : Term)
+   217    /-- the canonical (irrelevant) proof of a derivable equation -/
+   218    | prf
+   219    deriving Repr, Inhabited
 
 == ConLeche/Semantics/Interp.lean#L134-L145
    134  noncomputable def interp : (Nat → V) → Term → V
@@ -862,15 +863,15 @@
 == ConLeche/Kernel/Inductives/BlockParts.lean#L444
    444  def blockParts? (nPd : Nat) (block : List ConstantInfo) : Option BlockParts :=
 
-== ConLeche/Kernel/Env.lean#L509-L516
-   509  def indParamsOk (nP : Nat) (block : List ConstantInfo) : Bool :=
-   510    block.all fun ci => match ci with
-   511      | .indInfo cvT _ =>
-   512        match cvT.type.piSortTeleLen? with
-   513        | some n => decide (nP ≤ n)
-   514        | none => true
-   515      | .ctorInfo _ nPc _ => nPc == nP
-   516      | _ => true
+== ConLeche/Kernel/Env.lean#L491-L498
+   491  def indParamsOk (nP : Nat) (block : List ConstantInfo) : Bool :=
+   492    block.all fun ci => match ci with
+   493      | .indInfo cvT _ =>
+   494        match cvT.type.piSortTeleLen? with
+   495        | some n => decide (nP ≤ n)
+   496        | none => true
+   497      | .ctorInfo _ nPc _ => nPc == nP
+   498      | _ => true
 
 == ConLeche/Kernel/Inductives/BlockTail.lean#L141
    141  def checkBlock (ops : CheckerOps m) (env : Env) (block : List ConstantInfo) (p₀ : BlockParts) :
@@ -908,13 +909,13 @@
 == ConLeche/SetModel/Access.lean#L243
    243  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
 
-== ConLeche/Model/Inductives/DeclBlockStep.lean#L71-L76
-    71  theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
-    72      {block : List ConstantInfo} {nPd : Nat} {p₀ : BlockParts}
-    73      (mp : EnvModelM V μ env)
-    74      (hE : ConLeche.EtaFamiliesClosed env) (hdp : ConLeche.blockParts? nPd block = some p₀)
-    75      (hrun : ConLeche.Semantics.DeclBlockRun μ F env block p₀ env₂) (hcov : LfpCover mp []) :
-    76      ∃ mp' : EnvModelM V μ env₂, LfpCover mp' [] := by
+== ConLeche/Model/Inductives/DeclBlockStep.lean#L70-L75
+    70  theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
+    71      {block : List ConstantInfo} {nPd : Nat} {p₀ : BlockParts}
+    72      (mp : EnvModelM V μ env)
+    73      (hE : ConLeche.EtaFamiliesClosed env) (hdp : ConLeche.blockParts? nPd block = some p₀)
+    74      (hrun : ConLeche.Semantics.DeclBlockRun μ F env block p₀ env₂) (hcov : LfpCover mp []) :
+    75      ∃ mp' : EnvModelM V μ env₂, LfpCover mp' [] := by
 
 == ConLeche/Kernel/CheckDecl.lean#L32-L33
     32  def checkShapeless (ops : CheckerOps m) (env : Env) (block : List ConstantInfo) :
@@ -1012,8 +1013,8 @@
    113  
    114  /-- The pinned defining expression of a pin-certified WF-recursive op
 
-== ConLeche/Model/NatEqs.lean#L1101
-  1101  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
+== ConLeche/Model/NatEqs.lean#L1078
+  1078  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
 
 == ConLeche/Kernel/CoreDefs.lean#L450-L465
    450  /-- The WF-recursive operations with a *pinned-declaration* certified
@@ -1273,32 +1274,32 @@
    116        let ds := preparePrelude pre r.decls
    117        checkDecls .verified pins ds) = .error e := by
 
-== ConLeche/Denotes.lean#L269-L289
-   269  structure Model (V : Type w) [SetTheory V] (env : Env) where
-   270    /-- the set a constant denotes, per level assignment -/
-   271    cval : Name → (LevelParam → Nat) → V
-   272    /-- every stored constant is a member of what its type denotes, at
-   273    every level assignment (and every variable environment — the type
-   274    is closed) -/
-   275    mem : ∀ c ∈ env.consts, ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V),
-   276      ∃ T, Denotes cval env φ ρ c.toConstantVal.type T ∧ cval c.name φ ∈ˢ T
-   277    /-- whatever the built-in `False` denotes is the empty set -/
-   278    false_empty : ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V) (F : V),
-   279      Denotes cval env φ ρ (.const falseName []) F → F = empty
-   280    /-- whatever the built-in `Eq` denotes is set equality: at a type `A`
-   281    of the universe the level `u` names, and two of its members `a` and
-   282    `b`, `@Eq.{u} A a b` denotes the truth value of `a = b`.  The three
-   283    membership premises are the graph's domains — `Eq`'s denotation is a
-   284    three-fold graph over `univ (Level.eval φ u)`, then over `A`, then
-   285    over `A` again, and a graph read off its domain says nothing -/
-   286    eq_equality : ∀ (u : Level) (φ : LevelParam → Nat) (ρ : BVarIdx → V) (E A a b : V),
-   287      Denotes cval env φ ρ (.const eqName [u]) E →
-   288      A ∈ˢ univ (Level.eval φ u) → a ∈ˢ A → b ∈ˢ A →
-   289      app (app (app E A) a) b = eqv a b
+== ConLeche/Denotes.lean#L248-L268
+   248  structure Model (V : Type w) [SetTheory V] (env : Env) where
+   249    /-- the set a constant denotes, per level assignment -/
+   250    cval : Name → (LevelParam → Nat) → V
+   251    /-- every stored constant is a member of what its type denotes, at
+   252    every level assignment (and every variable environment — the type
+   253    is closed) -/
+   254    mem : ∀ c ∈ env.consts, ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V),
+   255      ∃ T, Denotes cval env φ ρ c.toConstantVal.type T ∧ cval c.name φ ∈ˢ T
+   256    /-- whatever the built-in `False` denotes is the empty set -/
+   257    false_empty : ∀ (φ : LevelParam → Nat) (ρ : BVarIdx → V) (F : V),
+   258      Denotes cval env φ ρ (.const falseName []) F → F = empty
+   259    /-- whatever the built-in `Eq` denotes is set equality: at a type `A`
+   260    of the universe the level `u` names, and two of its members `a` and
+   261    `b`, `@Eq.{u} A a b` denotes the truth value of `a = b`.  The three
+   262    membership premises are the graph's domains — `Eq`'s denotation is a
+   263    three-fold graph over `univ (Level.eval φ u)`, then over `A`, then
+   264    over `A` again, and a graph read off its domain says nothing -/
+   265    eq_equality : ∀ (u : Level) (φ : LevelParam → Nat) (ρ : BVarIdx → V) (E A a b : V),
+   266      Denotes cval env φ ρ (.const eqName [u]) E →
+   267      A ∈ˢ univ (Level.eval φ u) → a ∈ˢ A → b ∈ˢ A →
+   268      app (app (app E A) a) b = eqv a b
 
-== ConLeche/Denotes.lean#L126-L127
-   126  inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ : LevelParam → Nat) :
-   127      (BVarIdx → V) → Expr → V → Prop
+== ConLeche/Denotes.lean#L123-L124
+   123  inductive Denotes (cval : Name → (LevelParam → Nat) → V) (env : Env) (φ : LevelParam → Nat) :
+   124      (BVarIdx → V) → Expr → V → Prop
 
 == ConLeche/Cached/Installed.lean#L443-L448
    443  def checkDecls (mode : CheckMode) (pins : List NatOpPinSet)

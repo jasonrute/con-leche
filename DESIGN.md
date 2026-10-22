@@ -106553,3 +106553,145 @@ on every stream):
 None of the perf streams but grind-ring-5 has an `eagerReduce`; their
 +0.0–0.2 % (0.02–0.4 M instructions) is the state's shape (on
 args-before-unfold the field alone, probed, is +0.06 M of the +0.11 M).
+
+## TASK #362 — the projection tables leave the constants; no carrier offset (2026-10-22, agent/362-projtables)
+
+**Ruling.**  "Go for the separate projtable map, and drop the off field
+while you are at it", and (second ruling) wherever the model still
+treats some structures specially — fields read at offset 0 of a bare
+tuple — unify: every structure carries its constructor's tag, a field
+is always at offset 1.
+
+**Design.**
+* `Env := {consts, tables : List ProjTable}` (`Kernel/Env.lean`): the
+  tables are their own component, newest first, keyed by
+  `structName`.  `Env.findTable? env T` is the first table of `T`
+  **gated by `T`'s visibility** (`(env.find? T).isSome`); `findProj?`
+  reads through it.  The gate is what keeps every prefix view
+  (`prefixTo`, `restrictTo`, the worker views) correct with no counter
+  of its own: a table is visible exactly where its structure is, and
+  `mkFEnv_findTable?` / `mkFEnv_findTable?_visibleBelow` are
+  unconditional.  (An ungated pure lookup was tried first; the cached
+  simulation then needed table ownership facts at every view — the
+  gate removes them.)
+* `FEnv` gains `tbls : Std.HashMap Name ProjTable`; `rawTable?` reads
+  the map, then the base layer; `findTable?` is the same visibility
+  gate over it.  `pushTable` inserts; `pushTables` installs a block's
+  tables in install order and is tail-recursive, so the map is threaded
+  owned (a first, non-tail version was compiled with a borrowed `fe`,
+  and the parallel commit's `markLinear` panicked on the copy);
+  `FEnv.pushDelta L Q = pushTables Q ∘ pushAll L` is a record's whole
+  effect.  `markLinear` marks the map too.  The worker base's slots
+  carry the record's tables beside its constants
+  (`Thunk (Array ConstantInfo × List ProjTable)`), answered below the
+  view's counter only.
+* The install (`checkStructProjTable`, `StructInstall(F).lean`, at the
+  block tail) requires the structure stored (an internal error
+  otherwise) and `findTable? T = none` (**invalid**, "projection table
+  taken" — kept as the ruling asked, unreachable from a stream since a
+  structure's name is fresh at its block), then pushes the table.
+* The parallel install's commit (`commitOk`, `Verify/Cached/ParInstall`)
+  checks the slot's tables against the worker's and that every table's
+  structure is one of the record's constants; `ViewAgrees` is a pair
+  {constant lookup, raw table lookup}; `installStep` returns
+  `(L, Q, vg?)` and the commit applies `pushDelta`.
+* `PushChain` gains its table half: the final tables are the prefix's
+  with new tables of structures the prefix does not store;
+  `checkPending_run` takes the view's table agreement, read off it
+  (`restrictTo_findTable?_of_extends`).
+* `EnvWF` is a structure {`consts`, `tables`}; `ConstWF` lost its table
+  clause; `TableWF` is the old clause plus "the structure is stored".
+  `EnvWF.findTable?_cons` / `_extend`: a fresh cons, and any extension
+  keeping the stored names and the tables, keep the table lookups.
+
+**The model, at one offset.**  `denote (.proj T i e)` reads
+`projNV (i + 1)` of `e`'s reading when `T` has a table, and nothing
+otherwise; `Denotes.proj_table` is `field (i + 1) P`.  Found and
+removed with `off`: the one special case was the TABLE-LESS reading — a
+`.proj` of a structure without a table read fields `0`/`1` of a bare
+pair (`Term.projPair?`, `Denotes.proj_fst`/`proj_snd`, the pinned pair
+the checker's own inductive models were once built from).  It carried
+the whole empty-slot machinery: `NoProjAt`/`NoProjEnv`/`NoProjHead`
+(no stored term mentions a slot that has no table yet) with
+`inferTypeCore_noProjAt`, the `ConsCrossAt` premise of every cons
+transport, and the files `Verify/ProjSlots.lean`,
+`Verify/InferProjSlots.lean`, `Verify/Denote/TowerExtend.lean`,
+`Verify/Denote/ConsCross.lean`, `Model/Inductives/TowerCons.lean`.  A
+reading that exists survives every extension now with no premise on the
+slot (`findProj?_mono_of_tables`, `denote_pushTable_mono`), so all of
+it went.  `StructEntryKit`'s `off` parameter is fixed at `1`.  Nothing
+else reads a structure value at offset 0: `BasisLfp`'s `projS 0` is
+`Eq`'s INDEX tuple, `GenNodeCalls`' `(off := 0)` a binder offset of
+`fieldCall_core`.
+
+**The table install's P step** (`Model/Inductives/TableInstall.lean`,
+replacing `TowerCons.lean`): `declStep_preserves_of_pushTable` — the
+leaf valuation is the prefix's, every law transports along
+`ModelExt.pushTable` (a reading at the prefix is a reading after), and
+the one row it owes is the new table's `TowerEntryLaw` at every field.
+`ModelExt mp env' acval'` (agree/leaf/denote, `Model/Install.lean`) is
+the shared abstraction of a fresh cons and a table install; the law
+transports (`recRuleLaw_ext`, `recRuleExtra_ext`, `towerEntryLaw_ext`)
+are stated over it once.  `stageFixTable` and `stageBlockTables` run
+through it (`BlockTablesCore.pushTable`, `EnvModelM.keepLfpOfTable`,
+`LfpCover.pushTable`); `BlockRecStagedAt` lost its fourth conjunct
+(`NoProjEnv` preservation) and `BlockTablesCore` its third.
+
+**Removed.**  `ConstantInfo.projInfo`, `projTableName` and the table's
+dummy type; the `T.projTable.0` arm of `Name.isProjFnShape` (the `.proj`
+arm stays: the earlier record found it verdict-relevant); `isTowerEntry`
+and `Infer.const`'s premise on it; the table arms of `Canon`,
+`InstallSkel` (no `.proj` skeleton, no `blockTableSkels`) and `BasisGen`;
+`ProjTable.off`/`ProjEntry.off` and every `hoffE`; the five files
+above (1105 lines, 67 declarations); `Term.projPair?` and its four
+lemmas, `projPair?_substAV`, `deqStep_fstCong`/`sndCong`,
+`WellDenoted.fst_arg`/`snd_arg`, `Env.findProj?_none_of_fresh`,
+`findProj?_append_none`, `find?_none_consBlockCtors`/`RecsT`,
+`blockTablesTblFree`, the model's `pshape`/`shapeT`/`pshapeOf` and
+`noProjT`/`noProjC`/`noProjB` fields.
+
+**Verdicts.**  Unchanged on every arena stream and every e2e fixture but
+one: a constant named `T.projTable.0` is an ordinary name now
+(official accepts it).  New fixture `projtable_name_free` (accept; was
+reject, "duplicate declaration").
+
+**`ConLeche/Denotes.lean`** (the README's `Model`/`Denotes`) changed
+with the model: `proj_table` reads `field (i + 1)`, `proj_fst`/`proj_snd`
+are gone.  The capstone statements and the axiom pins are unchanged.
+
+**Churn** (vs master ae1f31983; 185 files, +3951 −5275, this record
+included):
+
+| directory | files | + | − |
+|---|---|---|---|
+| ConLeche/Kernel | 15 | 171 | 121 |
+| ConLeche/Cached, Driver | 3 | 34 | 45 |
+| ConLeche/Verify | 55 | 1398 | 1957 |
+| ConLeche/Model | 85 | 1408 | 2390 |
+| ConLeche/Semantics, Rules, Term, Denotes.lean | 8 | 54 | 134 |
+| tests (with the new fixture) | 6 | 303 | 186 |
+| OVERVIEW, README, whitepaper, scripts | 12 | 442 | 442 |
+
+(tests and whitepaper are mostly the regenerated citation
+expectations.)
+
+**Measurements** (instructions:u ×10⁹, `--verified --jobs=1`, one run
+each; before = master ae1f31983, after = this branch; verdicts
+identical on every stream):
+
+| stream | before | after | Δ |
+|---|---|---|---|
+| init-full | 380.986 | 381.072 | +0.022 % |
+| mathlib-prefix (projection-heavy) | 521.358 | 521.686 | +0.063 % |
+| grind-ring-5 | 15.860 | 15.863 | +0.019 % |
+| app-lam | 22.077 | 22.076 | −0.001 % |
+| beta-ladder | 4.858 | 4.858 | +0.000 % |
+| let-ladder | 2.563 | 2.563 | −0.000 % |
+| church-numerals | 0.295 | 0.298 | +0.76 % (+2.2 M) |
+| discarded-argument-match | 0.201 | 0.200 | −0.67 % (−1.3 M) |
+| the ten others (< 0.21 G each) | | | −0.01 … +0.17 % |
+
+The table lookup is one hash probe behind the constant lookup it is
+gated by; no stream moved beyond a tenth of a percent but two of the
+sub-0.3 G ones, whose ±2 M instructions are the environment's shape,
+not the lookup.
