@@ -76,6 +76,89 @@ theorem denote_cons_mono {acval : Name → (Name → Nat) → Term}
     (findProj?_mono_of_tables (findPreserved_cons hfresh) rfl) d e hcb
     (by rw [denote_acvalWith_fresh hfresh]; exact h)
 
+/-! ## Extensions that keep the prefix's readings (task #362)
+
+Two installs extend the environment without moving anything the
+prefix's stored data reads: a fresh constant (the leaf valuation gains
+one name) and a projection table (the valuation is unchanged; the table
+is of a stored structure without one).  At both, every stored name
+looks up as before and keeps its leaf, and every successful prefix
+reading of a prefix-bound subject survives (`denote_envExtend_mono`).
+`ModelExt` is that much; the environment laws' transports
+(`recRuleLaw_ext`, `towerEntryLaw_ext`, …) consume nothing else, so
+both installs share them. -/
+
+/-- **An extension keeping the prefix's readings**: stored names look up
+and read as before, and successful readings of prefix-bound subjects
+survive. -/
+structure ModelExt {μ : CheckMode} {env : Env} (mp : EnvModelM V μ env) (env' : Env)
+    (acval' : Name → (Name → Nat) → Term) : Prop where
+  agree : ∀ n, (env.find? n).isSome = true → env'.find? n = env.find? n
+  leaf : ∀ n, (env.find? n).isSome = true → acval' n = mp.base2.acval n
+  denote : ∀ {ψ : Name → Nat} {d : Nat} {e : Expr} {ea : Term}, ConstsBound env e →
+    denote mp.base2.acval env ψ d e = some ea → denote acval' env' ψ d e = some ea
+
+namespace ModelExt
+
+variable {mp : EnvModelM V μ env} {env' : Env} {acval' : Name → (Name → Nat) → Term}
+
+theorem find (hx : ModelExt mp env' acval') {n : Name} {ci : ConstantInfo}
+    (hf : env.find? n = some ci) : env'.find? n = some ci := by
+  rw [hx.agree n (by rw [hf]; rfl)]; exact hf
+
+theorem back (hx : ModelExt mp env' acval') {n : Name} {ci : ConstantInfo}
+    (hs : (env.find? n).isSome = true) (hf : env'.find? n = some ci) :
+    env.find? n = some ci := by
+  rw [← hx.agree n hs]; exact hf
+
+theorem leafOf (hx : ModelExt mp env' acval') {n : Name} {ci : ConstantInfo}
+    (hf : env.find? n = some ci) : acval' n = mp.base2.acval n :=
+  hx.leaf n (by rw [hf]; rfl)
+
+/-- A fresh constant's install keeps the prefix's readings. -/
+theorem cons (mp : EnvModelM V μ env) {c₀ : ConstantInfo}
+    (hfresh : env.find? c₀.name = none) (A : (Name → Nat) → Term) :
+    ModelExt mp ⟨c₀ :: env.consts, env.tables⟩ (acvalWith mp.base2.acval c₀.name A) :=
+  ⟨fun _ hn => ConLeche.Env.find?_cons_of_isSome hfresh hn,
+    fun n hn => acvalWith_ne (fun h => by rw [h, hfresh] at hn; exact nomatch hn),
+    fun hcb h => denote_cons_mono hfresh _ _ hcb h⟩
+
+/-- A fresh constant's install, at any model whose valuation is the
+installed one. -/
+theorem consOf (mp : EnvModelM V μ env) {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
+    (hfresh : env.find? c₀.name = none)
+    {m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩}
+    (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A) :
+    ModelExt mp ⟨c₀ :: env.consts, env.tables⟩ m₂.acval := by
+  rw [hac]; exact ModelExt.cons mp hfresh A
+
+end ModelExt
+
+/-- **A table install keeps every successful reading** (task #362): the
+new table is of a structure that had none, so every table a reading
+consulted is still there. -/
+theorem denote_pushTable_mono {acval : Name → (Name → Nat) → Term} {t : ConLeche.ProjTable}
+    (hT : env.findTable? t.structName = none) {e : Expr} (ψ : Name → Nat) (d : Nat)
+    (hcb : ConstsBound env e) {ea : Term} (h : denote acval env ψ d e = some ea) :
+    denote acval ⟨env.consts, t :: env.tables⟩ ψ d e = some ea := by
+  refine denote_envExtend_mono (env₀ := env) (env := ⟨env.consts, t :: env.tables⟩)
+    (fun hf => hf) ⟨fun h => h, fun h => h⟩ ?_ d e hcb h
+  intro sn i entry hfp
+  obtain ⟨tbl, hft, hi, rfl⟩ := ConLeche.Env.findProj?_some hfp
+  refine ConLeche.Env.findProj?_of_table ?_ hi
+  rw [ConLeche.Env.findTable?_pushTable]
+  split
+  · next hh =>
+    rw [← hh.1, hT] at hft
+    exact nomatch hft
+  · exact hft
+
+/-- A table install keeps the prefix's readings, at the same valuation. -/
+theorem ModelExt.pushTable (mp : EnvModelM V μ env) {t : ConLeche.ProjTable}
+    (hT : env.findTable? t.structName = none) :
+    ModelExt mp ⟨env.consts, t :: env.tables⟩ mp.base2.acval :=
+  ⟨fun _ _ => rfl, fun _ _ => rfl, fun hcb h => denote_pushTable_mono hT _ _ hcb h⟩
+
 /-- The pinned-basis valuation survives any fresh cons that moves no
 other name (`BasisPinnedTT.cons` without the install record — its
 proof consults only freshness and agreement). -/
