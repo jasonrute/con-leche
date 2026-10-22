@@ -1,8 +1,7 @@
 module
 
 public import ConLeche.Model.Env.EnvModelM
-public import ConLeche.Verify.Denote.EnvExtend
-public import ConLeche.Verify.Denote.OpenVars
+public import ConLeche.Verify.Denote.ConstsBound
 import ConLeche.Verify.Inductives.ReplaceApps
 
 public section

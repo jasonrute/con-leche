@@ -1,6 +1,5 @@
 module
 
-public import ConLeche.Verify.Abstract
 public import ConLeche.Kernel.Inductives.BlockInstall
 import ConLeche.Verify.Inductives.BlockWF
 import ConLeche.Verify.ExceptBind

@@ -2,7 +2,7 @@ module
 
 import ConLeche.Verify.Denote.Lemmas
 public import ConLeche.Verify.BinderLoop
-public import ConLeche.Model.Inductives.TableInstall
+import ConLeche.Model.Inductives.TableInstall
 public import ConLeche.Model.IndTowerRead
 public import ConLeche.Model.Capstone
 import ConLeche.Semantics.Tower.TowerKit

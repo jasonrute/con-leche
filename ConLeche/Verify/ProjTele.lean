@@ -2,7 +2,6 @@ module
 
 import ConLeche.Verify.InstSpine
 public import ConLeche.Verify.InferLemmas
-public import ConLeche.Verify.Abstract
 
 public section
 
