@@ -362,7 +362,7 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
     have := teleFitPA_to_chain (ab.take ds.length).length htele hle hTF n (by simpa using hn)
     simpa using this
   -- the former's telescope is closed, so the fit holds at the key frame's base
-  have hwf := mp.base2.wf _ (ConLeche.Env.find?_mem hf)
+  have hwf := mp.base2.wf.consts _ (ConLeche.Env.find?_mem hf)
   have hcl : Term.bvarsBelow 0 (mkPisAV ab (.sort (D.w ψ))) :=
     ConLeche.Verify.denote_bvarsBelow mp.base2.cval_closed 0 _
       (ConLeche.Expr.WScoped.of_not_hasFvar hwf.1) hwf.2.2.2.1

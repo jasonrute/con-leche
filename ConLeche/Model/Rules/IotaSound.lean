@@ -395,7 +395,7 @@ theorem Red.iota_sound (hin : RulesInputs V m φ) {d : Nat} {e : Expr} {c : Name
     intro lvls pins hn hpt i hi vpa hvpa hy hx
     have hdefP' := hparams (hcase3_of_ptC hpt)
     obtain ⟨-, -, -, -, -, hrec', -⟩ :=
-      m.wf _ (ConLeche.Env.find?_mem hrec)
+      m.wf.consts _ (ConLeche.Env.find?_mem hrec)
     obtain ⟨-, -, -, -, hnest⟩ := hrec' cv mI rP rules rfl rl hrmem
     obtain ⟨-, -, hpinsWf, -⟩ := hnest lvls pins hn
     have hpinF' : ∀ p ∈ pins,

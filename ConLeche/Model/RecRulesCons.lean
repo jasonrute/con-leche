@@ -118,7 +118,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
     rw [hh, hfresh] at hst
     exact nomatch hst
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
-    mp.base2.wf _ (ConLeche.Env.find?_mem hfE)
+    mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfE)
   obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
   intro us hlen TVa hTVa
   obtain ⟨TVa', hTVa', -, -⟩ := mp.constType 0 n _ us hfE rfl (by exact hlen)
@@ -198,7 +198,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
           = ConLeche.iotaCtorNeverProp env.find? cvj lvs := by
       intro lvs
       obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
-        mp.base2.wf _ (ConLeche.Env.find?_mem hfcjE)
+        mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfcjE)
       dsimp only [ConLeche.ConstantInfo.toConstantVal] at hresolve
       have hTiso : ∀ T us', cvj.type.piResult.getAppFn = .const T us' →
           (env.find? T).isSome = true :=
@@ -279,7 +279,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     recRuleExtra_cons_prefix mp hfresh hntc m₂ hac φ hnN hfE hmem⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
-    mp.base2.wf _ (ConLeche.Env.find?_mem hfE)
+    mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfE)
   obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
   refine ⟨Ra, ?_, hokRa, ?_, ?_⟩
   · rw [hac]

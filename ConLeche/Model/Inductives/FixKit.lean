@@ -87,7 +87,7 @@ theorem idxOk_of (hμ : μ.isVerified = true) (mp : EnvModelM V μ env)
     (ψ : Name → Nat) (ρp : Nat → V)
     (hρp : Sat V (((ppsAll ψ).take nP)).reverse ρp) :
     IdxOk (idxUniv ψ isorts) ρp (((ppsAll ψ).drop nP)) := by
-  obtain ⟨hTf, -, -, hTb, -⟩ := mp.base2.wf _ (ConLeche.Env.find?_mem hfT)
+  obtain ⟨hTf, -, -, hTb, -⟩ := mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfT)
   simp only [ConstantInfo.toConstantVal] at hTf hTb
   have hT : Opened mp.base2 ψ (nP + nIdx) cvTa.type tfvs trest
       (((ppsAll ψ)).reverse) (.sort (resSort.eval ψ)) :=
@@ -421,7 +421,7 @@ theorem ctorsLoopEta (hμ : μ.isVerified = true)
       rw [hleafT ψ]
       exact hfold k cA hcAk ψ ρ hρ bs hsp
     have hcbT : ConstsBound env cvTa.type :=
-      constsBound_of_constsResolve _ (mp.base2.wf _ (ConLeche.Env.find?_mem hfT)).2.2.1
+      constsBound_of_constsResolve _ (mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfT)).2.2.1
     have hcross : ∀ e : Expr, ConsCrossAt (.ctorInfo cA.1 p.nP cA.2) e :=
       fun _ => ConsCrossAt.ofNtc (fun _ h => nomatch h)
     obtain ⟨mpC, hacC⟩ := stageCtorGen (j := k)
@@ -466,7 +466,7 @@ theorem ctorsLoopEta (hμ : μ.isVerified = true)
         have hne : cAi.1.name ≠ cA.1.name := names_ne_of_nodup hnd hcAi hcAk (by omega)
         have hcbi : ConstsBound env cAi.1.type :=
           constsBound_of_constsResolve _
-            (mp.base2.wf _ (ConLeche.Env.find?_mem hfi)).2.2.1
+            (mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfi)).2.2.1
         refine ⟨⟨ConLeche.Env.find?_cons_of_fresh hfresh hfi, hlpsi,
           hCDi.cross (c₀ := .ctorInfo cA.1 p.nP cA.2) hfresh hTC hcross hcbi
             (fun e he => constsBound_of_constsResolve _ (hresi e he)) mpC.base2 hacC⟩,
@@ -1360,7 +1360,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
     have := Level.leq_sound (hleq j (by omega) (by rw [hProp]; exact hne)) ψ
     omega
   -- the constructor type's scoping
-  obtain ⟨hCf, -, -, hCb, -⟩ := mp.base2.wf _ (ConLeche.Env.find?_mem hfC)
+  obtain ⟨hCf, -, -, hCb, -⟩ := mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfC)
   simp only [ConstantInfo.toConstantVal] at hCf hCb
   -- the unused earlier fields are free in the projected field's type
   obtain ⟨fvsA, oA, hopAll⟩ := openPisAtFvars_of_stripPis_isSome (nP + nF) 0 hstripC
@@ -1433,9 +1433,9 @@ theorem stageFixTable (mp : EnvModelM V μ env)
     cases he'
     exact (hnp j).type _ (ConLeche.Env.find?_mem hfC)
   have hcbT : ConstsBound env cvTa.type :=
-    constsBound_of_constsResolve _ (mp.base2.wf _ (ConLeche.Env.find?_mem hfT)).2.2.1
+    constsBound_of_constsResolve _ (mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfT)).2.2.1
   have hcbC : ConstsBound env cvCa.type :=
-    constsBound_of_constsResolve _ (mp.base2.wf _ (ConLeche.Env.find?_mem hfC)).2.2.1
+    constsBound_of_constsResolve _ (mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfC)).2.2.1
   -- the lookups at the extension
   have hfT₂ : (⟨.projInfo tbl :: env.consts, env.tables⟩ : Env).find? T
       = some (.indInfo cvTa caps) := by

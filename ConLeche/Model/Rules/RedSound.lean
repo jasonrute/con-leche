@@ -463,7 +463,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
     fun l hl => by simpa [Expr.fvarLeaves] using hl
   have hLe : Expr.LeavesBounded e := fun l hl => hLb l (hsube l hl)
   have hCe : CtxOkS m φ d Δa e := hC.of_subset hsube
-  obtain ⟨vp, hvp, rfl⟩ := denote_proj_inv_tower hent hea
+  obtain ⟨vp, -, hvp, -, rfl⟩ := denote_proj_inv hea
   -- the tower entry's laws
   obtain ⟨-, -, -, -, hO5, cvC₀, hfC, hlpsC, hlaw, -⟩ := hin.tower_ok sn i entry hent
   obtain rfl : cvC₀ = cvC := by
@@ -495,7 +495,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
       (e.getAppArgs.getD (entry.numParams + i) (.bvar 0))
       = some (vs.getD (entry.numParams + i) default) := hspa.getD_read hidx
   -- the constructor type's frame and reading
-  have hwfC := m.wf _ (ConLeche.Env.find?_mem hfC)
+  have hwfC := m.wf.consts _ (ConLeche.Env.find?_mem hfC)
   have hnfC : (cvC₀.type.instantiateLevelParams cvC₀.levelParams us).hasFvar
       = false := by
     rw [ConLeche.Expr.hasFvar_instantiateLevelParams]; exact hwfC.1

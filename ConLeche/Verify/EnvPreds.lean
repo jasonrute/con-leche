@@ -264,7 +264,7 @@ discipline is uniform over every stored table (task #175). -/
     ∀ i, i < tbl.numFields → TowerHead env (tbl.entry i)
 
 theorem ProjOkT.empty : ProjOkT Env.empty := by
-  intro T tbl h; simp [Env.findTable?, Env.empty] at h
+  intro T tbl h; simp [Env.findTable?, Env.find?, Env.empty] at h
 
 /-- The discipline at a lookup: a stored entry's head data. -/
 theorem ProjOkT.towerHead {env : Env} (h : ProjOkT env)

@@ -138,7 +138,7 @@ theorem constTy_pkg {m : EnvModel V env} (hct : ConstType m φ)
       (ci.toConstantVal.type.instantiateLevelParams
         ci.toConstantVal.levelParams us).looseBVarsBounded 0 = true := by
   obtain ⟨ta, hta, hok, hmem⟩ := hct 0 n ci us hf hnt hlen
-  have hwf := m.wf _ (ConLeche.Env.find?_mem hf)
+  have hwf := m.wf.consts _ (ConLeche.Env.find?_mem hf)
   have hnf : (ci.toConstantVal.type.instantiateLevelParams
       ci.toConstantVal.levelParams us).hasFvar = false := by
     rw [ConLeche.Expr.hasFvar_instantiateLevelParams]; exact hwf.1
@@ -232,7 +232,7 @@ theorem recRhs_depthK {m : EnvModel V env}
       ((RecRule.rhs rl).instantiateLevelParams cv.levelParams
         us).looseBVarsBounded 0 = true := by
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
-    m.wf _ (ConLeche.Env.find?_mem hf)
+    m.wf.consts _ (ConLeche.Env.find?_mem hf)
   obtain ⟨hRnf, -, -, hRbd, -⟩ := hrec' cv mI rP rules rfl rl hmem
   have hnf : ((RecRule.rhs rl).instantiateLevelParams cv.levelParams
       us).hasFvar = false := by

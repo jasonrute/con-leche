@@ -204,7 +204,6 @@ theorem checkDivModPin_inv {env env2 : Env} {F : Nat} {c : Name} {u : Unit}
       | indInfo cv' caps => intro h; exact nomatch h
       | ctorInfo cv' nP nF => intro h; exact nomatch h
       | recInfo cv' mI rP rules => intro h; exact nomatch h
-      | projInfo _ => intro h; exact nomatch h
       | defnInfo cv' value' hint' =>
         intro h
         obtain ⟨ps, hm, hg', hat⟩ := checkDivModPinLoop_inv h

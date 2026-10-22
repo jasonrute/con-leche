@@ -1,7 +1,7 @@
 module
 
 -- `RedSoundKit` is the SHARED kit: `DenoteSpine`'s list algebra,
--- `denote_mkAppN(_inv)`, `denote_proj_inv_tower`,
+-- `denote_mkAppN(_inv)`, `denote_proj_inv`,
 -- `teleFit_nil_inv` and the tower entry's reading live there
 public import ConLeche.Model.Rules.Inputs
 import ConLeche.Model.Rules.RedSoundKit

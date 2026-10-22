@@ -667,7 +667,7 @@ theorem ctorFramesGen (hμ : μ.isVerified = true) (mp : EnvModelM V μ env)
   have hbt' := hlbt
   have hlenP : fvsP.length = nP := openPisAtFvars_length _ hopC
   have hopAll := openPisAtFvars_add nP hopC (by rw [Nat.zero_add]; exact hopX)
-  obtain ⟨hTf, -, -, hTb, -⟩ := mp.base2.wf _ (ConLeche.Env.find?_mem hfT)
+  obtain ⟨hTf, -, -, hTb, -⟩ := mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfT)
   simp only [ConstantInfo.toConstantVal] at hTf hTb
   obtain ⟨hlenS, hfields⟩ := ConLeche.checkStructFieldSortsI_inv hsorts
   have hpins := ConLeche.checkStructDomsAt_inv hdoms

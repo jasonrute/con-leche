@@ -164,7 +164,7 @@ theorem denote_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr}
       simp only [Option.map_some]
       split
       · exact congrArg some (Term.substAV_projNV _ t _ ea).symm
-      · exact (projPair?_substAV _ t i ea).symm
+      · rfl
   | .lit l, t, _ => by
     have hd : ∀ d, denote m.acval env φ d (.lit l) = denote m.acval env φ 0 (.lit l) := by
       intro d; cases l <;> simp only [denote]
