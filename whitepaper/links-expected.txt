@@ -6172,9 +6172,9 @@
     79        nparams := p.nP
     80        ctors := [c.1.name] }
 
-== ConLeche/Model/Inductives/FixKit.lean#L718-L719
-   718  * **(C) the η law** (`fixEntryEtaCore`): a member is the constructor at
-   719    the parameters and its own projections below the tag.
+== ConLeche/Model/Inductives/FixKit.lean#L719-L720
+   719  * **(C) the η law** (`fixEntryEtaCore`): a member is the constructor at
+   720    the parameters and its own projections below the tag.
 
 == ConLeche/Model/Inductives/BlockStageTables.lean#L10-L12
     10  `stageBlockTables`: the loop `checkBlockTables` runs — a table at
@@ -6193,9 +6193,9 @@
    293  theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
    294      {a ta wta b tb wtb : Expr} {T : Name} {us' : List Level}
 
-== ConLeche/Model/Inductives/FixKit.lean#L1728-L1729
-  1728  /-- **Unit-likeness at a fieldless one-constructor block's leaf**: the
-  1729  fibre is the one tagged empty tuple (the point at a squash instance).
+== ConLeche/Model/Inductives/FixKit.lean#L1729-L1730
+  1729  /-- **Unit-likeness at a fieldless one-constructor block's leaf**: the
+  1730  fibre is the one tagged empty tuple (the point at a squash instance).
 
 >>> whitepaper/sections/07-left-out.typ
 
@@ -6242,13 +6242,13 @@
     11  every member with ONE constructor and no index, nothing at any other
     12  member — with `stageFixTable` at each table (abstract in the former's
 
-== ConLeche/Model/Inductives/FixKit.lean#L712-L717
-   712  * **(A) the typing law** (`fixEntryTypingCore`): a member projects at
-   713    `i + 1` into the body's residual — the graph regime by the tower's
-   714    projection membership below the tag, the squash regime by the point;
-   715  * **(B) the iota law** (`fixEntryIotaCore`/`fixEntryIotaCoreZero`): the
-   716    projection of a graded constructor application is the selected field
-   717    (`sumMkAV_fold`: the application folds to the tagged tuple);
+== ConLeche/Model/Inductives/FixKit.lean#L713-L718
+   713  * **(A) the typing law** (`fixEntryTypingCore`): a member projects at
+   714    `i + 1` into the body's residual — the graph regime by the tower's
+   715    projection membership below the tag, the squash regime by the point;
+   716  * **(B) the iota law** (`fixEntryIotaCore`/`fixEntryIotaCoreZero`): the
+   717    projection of a graded constructor application is the selected field
+   718    (`sumMkAV_fold`: the application folds to the tagged tuple);
 
 == ConLeche/SetTheory/Derive/LfpTuple.lean#L8-L12
      8  
