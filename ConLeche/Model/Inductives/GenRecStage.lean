@@ -44,9 +44,7 @@ What the record asks of it:
   `0` itself);
 * the family's rule prefix is SHARED SYNTACTICALLY (`RecPrefixSame`): every
   generated type is a telescope over the same prefix `g.pre` (`SameDoms`);
-* every stored rule is the generated rule (`ClassRuleRun`);
-* no stored term has a `.proj` node at an empty table slot
-  (the stored terms' own checking inference's: `inferTypeCore_noProjAt`).
+* every stored rule is the generated rule (`ClassRuleRun`).
 -/
 
 namespace ConLeche

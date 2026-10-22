@@ -39,12 +39,6 @@ theorem Env.findProj?_of_table {env : Env} {T : Name} {tbl : ProjTable}
   rw [h]
   exact ite_eq_left hi
 
-/-- No table stored, no entry. -/
-theorem Env.findProj?_none_of_fresh {env : Env} {T : Name}
-    (h : env.findTable? T = none) (i : Nat) : env.findProj? T i = none := by
-  unfold Env.findProj?
-  rw [h]
-
 /-- A stored table is a member of the table component, under its
 structure's name, and the structure is stored. -/
 theorem Env.findTable?_mem {env : Env} {T : Name} {tbl : ProjTable}

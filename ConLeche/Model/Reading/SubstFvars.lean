@@ -41,14 +41,6 @@ rest move to `D`. -/
 @[expose] def substTau (b D : Nat) (x : Nat → Term) : Nat → Term :=
   fun j => if j < b then x (b - 1 - j) else .bvar (j - b + D)
 
-theorem projPair?_substAV (τ : Nat → Term) (k : Nat) :
-    ∀ (i : Nat) (e : Term),
-      (Term.projPair? i e).map (Term.substAV τ · k)
-        = Term.projPair? i (Term.substAV τ e k)
-  | 0, _ => rfl
-  | 1, _ => rfl
-  | _ + 2, _ => rfl
-
 /-- **The reading crosses a parallel substitution of free variables.** -/
 theorem denote_substFvars (m : EnvModel V env) {b D : Nat} {s : Nat → Expr}
     {x : Nat → Term}

@@ -17,12 +17,13 @@ the truncated environment's only under name uniqueness
 (`mkFEnv_find?_visibleBelow`, `ConLeche/Verify/EnvBound.lean`).  Name
 uniqueness is an install-time invariant: every push a driver step
 performs is guarded by a lookup — `checkConstantValC`'s duplicate
-guard, `installBasisDeclF`'s, the projection
-name-family guards — so this file proves, once and OPERATIONALLY (no
+guard, `installBasisDeclF`'s — and every table install by a lookup of
+its structure — so this file proves, once and OPERATIONALLY (no
 environment well-formedness, no simulation: the final-value discipline
 of `ConLeche/Verify/Cached/AgreeFloor.lean`), that an accepted step
 returns `PushChain env fe'`: a canonical index whose constants extend
-`env` by fresh names.  Chained from the empty environment, that is
+`env` by fresh names, and whose tables extend `env`'s by tables of
+structures `env` does not store.  Chained from the empty environment, that is
 `NodupNames` of every environment a driver ever holds, and the
 suffix relation between the environment a declaration was installed at
 and the final one.
