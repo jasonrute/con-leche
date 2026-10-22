@@ -537,7 +537,7 @@ theorem prf_head (hin : RulesInputs V m φ) {d : Nat} {Δa : List Term} {a : Exp
     (hf : Frame d a) (hC : CtxOkS m φ d Δa a)
     (hda : denote m.acval env φ d a = some aa) (hρ : Sat V Δa ρ)
     (hL : LeavesGr m φ d a ρ)
-    (hpw : ConLeche.headProofPW env.find? a = some pw) (hprop : pw.isProp = true) :
+    (hpw : ConLeche.headProofPW env.find? env.findTable? a = some pw) (hprop : pw.isProp = true) :
     interp V ρ aa = pt := by
   have hholds := holds_of_isProp hprop φ
   cases a with
@@ -616,7 +616,7 @@ theorem prf_core (hin : RulesInputs V m φ) :
         {pw : ConLeche.PropWhen},
         Frame d a → CtxOkS m φ d Δa a → denote m.acval env φ d a = some aa →
         Sat V Δa ρ → LeavesGr m φ d a ρ → WellDenoted V ρ aa →
-        ConLeche.proofPW env.find? a = some pw → pw.isProp = true →
+        ConLeche.proofPW env.find? env.findTable? a = some pw → pw.isProp = true →
         interp V ρ aa = pt := by
   intro n
   induction n with
@@ -670,7 +670,7 @@ theorem prf_core (hin : RulesInputs V m φ) :
 `isProofFast` yes-arm's justification (`DefEq.proofFast`). -/
 theorem prf_of_isProofFast (hin : RulesInputs V m φ)
     {d : Nat} {a : Expr} {Δa : List Term} {aa : Term}
-    (h : ConLeche.isProofFast env.find? a = true) (hfa : Frame d a)
+    (h : ConLeche.isProofFast env.find? env.findTable? a = true) (hfa : Frame d a)
     (hCa : CtxOkS m φ d Δa a)
     (hda : denote m.acval env φ d a = some aa)
     (ρ : Nat → V) (hρ : Sat V Δa ρ) (hL : LeavesGr m φ d a ρ)

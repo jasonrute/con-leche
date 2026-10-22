@@ -248,8 +248,8 @@ def rawTable? (fe : FEnv) (T : Name) : Option ProjTable :=
 /-- **The table lookup** (task #362): `T`'s table, visible exactly
 where the constant `T` is — the table map holds every installed table,
 and the prefix views (`restrictTo`) and the worker views hide a table by
-hiding its structure (`= Env.findTable?` for `mkFEnv` of an environment
-whose tables' structures are installed, `mkFEnv_findTable?`). -/
+hiding its structure (`= Env.findTable?` for `mkFEnv`,
+`mkFEnv_findTable?`). -/
 def findTable? (fe : FEnv) (T : Name) : Option ProjTable :=
   if (fe.find? T).isSome then fe.rawTable? T else none
 

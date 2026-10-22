@@ -287,8 +287,8 @@ theorem DefEq.proj_sound {d : Nat} {s : Name} {i : Nat} {e₁ e₂ : Expr}
 /-- Both sides are the point (`prf_of_isProofFast`): vacuous at the
 conditional motive. -/
 theorem DefEq.proofFast_sound (hin : RulesInputs V m φ) {d : Nat} {a b : Expr}
-    (ha : ConLeche.isProofFast env.find? a = true)
-    (_hb : ConLeche.isProofFast env.find? b = true) :
+    (ha : ConLeche.isProofFast env.find? env.findTable? a = true)
+    (_hb : ConLeche.isProofFast env.find? env.findTable? b = true) :
     DefEqSem m φ d a b := by
   intro hfa _ Δa aa ba hCa hCb haa _ ρ hρ hLa _ hwa _ hna _
   exact absurd (prf_of_isProofFast hin ha hfa hCa haa ρ hρ hLa hwa) hna

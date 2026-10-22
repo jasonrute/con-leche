@@ -546,9 +546,12 @@ def empty : Env := ⟨[], []⟩
 def find? (env : Env) (n : Name) : Option ConstantInfo :=
   env.consts.find? (·.name == n)
 
-/-- The projection table of structure `T`. -/
+/-- The projection table of structure `T`, visible where `T` is (a block
+installs a table only for its own structures, so on every environment
+the checker builds the gate passes exactly where a table is stored; it
+makes a view that hides a structure hide its table, `FEnv.findTable?`). -/
 def findTable? (env : Env) (T : Name) : Option ProjTable :=
-  env.tables.find? (·.structName == T)
+  if (env.find? T).isSome then env.tables.find? (·.structName == T) else none
 
 /-- Look up the projection-table entry for field `i` of `T`: the
 structure's table, viewed at field `i` (task #175 S1; `none` beyond the

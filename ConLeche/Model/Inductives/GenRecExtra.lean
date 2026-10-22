@@ -124,8 +124,7 @@ theorem iotaCtorNeverProp_inv {f : Name → Option ConstantInfo} {cvj : Constant
     match hfT : f T with
     | none => intro h; exact nomatch h
     | some (.axiomInfo _) | some (.defnInfo _ _ _) | some (.thmInfo _)
-    | some (.ctorInfo _ _ _) | some (.recInfo _ _ _ _)
-    | some (.projInfo _) => intro h; exact nomatch h
+    | some (.ctorInfo _ _ _) | some (.recInfo _ _ _ _) => intro h; exact nomatch h
     | some (.indInfo cvT caps) =>
       intro h
       simp only [Bool.and_eq_true, beq_iff_eq] at h
