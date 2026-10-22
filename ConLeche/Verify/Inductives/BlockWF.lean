@@ -75,7 +75,7 @@ theorem envWF_cons_blockInd {p₁ : BlockShape} {isRec : Bool} {i : Nat} {env : 
     (h3 : cvTa.type.constsResolve env = true)
     (h4 : cvTa.type.looseBVarsBounded 0 = true)
     (h5 : (cvTa.type.stripPis p₁.nP).isSome = true) :
-    EnvWF ⟨.indInfo cvTa (blockCapsAt p₁ i isRec) :: env.consts⟩ := by
+    EnvWF ⟨.indInfo cvTa (blockCapsAt p₁ i isRec) :: env.consts, env.tables⟩ := by
   refine EnvWF.cons henv (structConstWF h1 h2 (Expr.constsResolve_mono h3) h4
     (fun _ _ _ heq => nomatch heq) (fun _ _ _ _ heq => nomatch heq)
     (by intro tbl hh; exact ConstantInfo.noConfusion hh) ?_)
@@ -242,8 +242,8 @@ theorem ConstWF.mono {envA envB : Env}
 /-- Conses of the SAME name over dominating environments dominate. -/
 theorem find?_cons_mono {c c' : ConstantInfo} {envA envB : Env} (hn : c.name = c'.name)
     (hf : ∀ n, (envA.find? n).isSome = true → (envB.find? n).isSome = true) :
-    ∀ n, (Env.find? ⟨c :: envA.consts⟩ n).isSome = true →
-      (Env.find? ⟨c' :: envB.consts⟩ n).isSome = true := by
+    ∀ n, (Env.find? ⟨c :: envA.consts, envA.tables⟩ n).isSome = true →
+      (Env.find? ⟨c' :: envB.consts, envB.tables⟩ n).isSome = true := by
   intro n h
   rw [Env.find?_cons] at h
   rw [Env.find?_cons, ← hn]
@@ -271,7 +271,7 @@ premises, discharged per instance. -/
   | _, [], env => env
   | m, r :: rest, env =>
     consBlockRecsR R q (m + 1) rest
-      ⟨.recInfo r.1 (q.majorIdxAt m) (q.rulePrefixAt m) (R m r) :: env.consts⟩
+      ⟨.recInfo r.1 (q.majorIdxAt m) (q.rulePrefixAt m) (R m r) :: env.consts, env.tables⟩
 
 /-- The member cons' rules function: `sumRules` at the block's
 parameter count. -/
@@ -343,7 +343,7 @@ theorem find?_consBlockRecsR_of_bare
     simp only [List.map_cons, consBlockRecsBare] at h
     simp only [consBlockRecsR]
     refine find?_consBlockRecsR_of_bare
-      (envA := ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: envA.consts⟩) ?_ n h
+      (envA := ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: envA.consts, envA.tables⟩) ?_ n h
     exact find?_cons_mono rfl hf
 
 /-- **What the recursors' cons holds**: the `k` recursor records, each

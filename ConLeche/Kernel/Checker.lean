@@ -25,7 +25,7 @@ variable (mode : CheckMode)
 def installBasisDecl (env : Env) (ci : ConstantInfo) : m Env := do
   unless (env.find? ci.name).isNone do
     throw (.invalid s!"duplicate declaration {ci.name}")
-  pure (⟨ci :: env.consts⟩ : Env)
+  pure (⟨ci :: env.consts, env.tables⟩ : Env)
 
 /-- Check a `def` declaration's value against its checked constant.
 The reducibility hint is stored untouched: it steers only the lazy
@@ -44,7 +44,7 @@ def checkDefnVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
   let vtype ← ops.inferType env 0 value
   unless ← ops.isDefEq env 0 vtype cv.type do
     throw (.invalid s!"type mismatch in definition {cv.name}")
-  pure ⟨.defnInfo cv value hint :: env.consts⟩
+  pure ⟨.defnInfo cv value hint :: env.consts, env.tables⟩
 
 /-- Check a `theorem` declaration's value against its checked constant
 (whose type must additionally be a proposition).  **A theorem is
@@ -76,7 +76,7 @@ def checkThmVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
   let vtype ← ops.inferType env 0 jv
   unless ← ops.isDefEq env 0 vtype cv.type do
     throw (.invalid s!"type mismatch in theorem {cv.name}")
-  pure ⟨.thmInfo cv :: env.consts⟩
+  pure ⟨.thmInfo cv :: env.consts, env.tables⟩
 
 /-- Check an `opaque` declaration's value against its checked
 constant: exactly the theorem check without the is-a-proposition
@@ -100,7 +100,7 @@ def checkOpaqueVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
   let vtype ← ops.inferType env 0 value
   unless ← ops.isDefEq env 0 vtype cv.type do
     throw (.invalid s!"type mismatch in opaque {cv.name}")
-  pure ⟨.axiomInfo cv :: env.consts⟩
+  pure ⟨.axiomInfo cv :: env.consts, env.tables⟩
 /-- Certify a list of recurrence equations by definitional equality
 (at depth 2: the equations' variables are `fvar 0`/`fvar 1`). -/
 def certifyNatEqs (ops : CheckerOps m) (env : Env) :

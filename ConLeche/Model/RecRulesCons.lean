@@ -74,7 +74,7 @@ theorem iotaCtorNeverProp_cons_of_isSome {c₀ : ConstantInfo} {env : Env}
     (hfresh : env.find? c₀.name = none) {cvj : ConstantVal} {usj : List Level}
     (hT : ∀ T us, cvj.type.piResult.getAppFn = .const T us →
       (env.find? T).isSome = true) :
-    ConLeche.iotaCtorNeverProp (ConLeche.Env.find? ⟨c₀ :: env.consts⟩) cvj usj
+    ConLeche.iotaCtorNeverProp (ConLeche.Env.find? ⟨c₀ :: env.consts, env.tables⟩) cvj usj
       = ConLeche.iotaCtorNeverProp env.find? cvj usj := by
   unfold ConLeche.iotaCtorNeverProp
   match hh : cvj.type.piResult.getAppFn with
@@ -103,7 +103,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) {n : Name} {cv : ConstantVal} {mI rP : Nat}
     {rules : List RecRule} (hnN : n ≠ c₀.name)
@@ -166,7 +166,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
     intro hk
     -- a constructor type's reading at the cons is the prefix's
     have hTVjaOf : ∀ usj : List Level, usj.length = cvj.levelParams.length →
-        ∀ TVja : Term, denote m₂.acval ⟨c₀ :: env.consts⟩ φ 0
+        ∀ TVja : Term, denote m₂.acval ⟨c₀ :: env.consts, env.tables⟩ φ 0
           (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
         denote mp.base2.acval env φ 0
           (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja := by
@@ -184,7 +184,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
     have hTVjaTo : ∀ usj : List Level, ∀ TVja : Term,
         denote mp.base2.acval env φ 0
           (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja →
-        denote m₂.acval ⟨c₀ :: env.consts⟩ φ 0
+        denote m₂.acval ⟨c₀ :: env.consts, env.tables⟩ φ 0
           (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja := by
       intro usj TVja hTVja
       rw [hac]
@@ -194,7 +194,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
           (ConLeche.Env.find?_mem hfcjE) usj) hTVja
     -- (S)/(T)'s `iotaCtorNeverProp` guard is the prefix's
     have hlicE : ∀ lvs : List Level,
-        ConLeche.iotaCtorNeverProp (ConLeche.Env.find? ⟨c₀ :: env.consts⟩) cvj lvs
+        ConLeche.iotaCtorNeverProp (ConLeche.Env.find? ⟨c₀ :: env.consts, env.tables⟩) cvj lvs
           = ConLeche.iotaCtorNeverProp env.find? cvj lvs := by
       intro lvs
       obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
@@ -267,7 +267,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hntc : ConsCrossEnv env c₀)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) {n : Name} {cv : ConstantVal} {mI rP : Nat}
     {rules : List RecRule} (hnN : n ≠ c₀.name)
@@ -373,7 +373,7 @@ theorem recRules_cons_fresh (mp : EnvModelM V μ env)
     (hntc : ConsCrossEnv env c₀)
     (hnotrec : ∀ cv mI rP rules, c₀ = .recInfo cv mI rP rules →
       rules = [])
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) : RecRules m₂ φ := by
   intro n cv mI rP rules hf rl hmem
@@ -403,7 +403,7 @@ theorem recRules_cons_rec (mp : EnvModelM V μ env)
     {cv₀ : ConstantVal} {mI₀ rP₀ : Nat} {rules₀ : List RecRule}
     (hfresh : env.find? c₀.name = none)
     (hkind : c₀ = .recInfo cv₀ mI₀ rP₀ rules₀)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat)
     (hnew : ∀ rl ∈ rules₀, RecRuleLaw m₂ φ c₀.name cv₀ mI₀ rP₀ rl) :
@@ -444,7 +444,7 @@ theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
     (hcross : ConsCrossEnv env c₀)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) {T : Name} {i : Nat} {entry : ProjEntry}
     (hfP : env.findProj? T i = some entry) :
@@ -526,7 +526,7 @@ theorem towerOk_cons_fresh (mp : EnvModelM V μ env)
     (hfresh : env.find? c₀.name = none)
     (hcross : ConsCrossEnv env c₀)
     (hntc : ∀ tbl, c₀ ≠ .projInfo tbl)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) : TowerOk m₂ φ := by
   intro T i entry hf
@@ -546,7 +546,7 @@ theorem towerOk_cons_tower (mp : EnvModelM V μ env)
     {tbl₀ : ProjTable} {A : (Name → Nat) → Term}
     (hfresh : env.find? (ConstantInfo.projInfo tbl₀).name = none)
     (hcross : ConsCrossEnv env (.projInfo tbl₀))
-    (m₂ : EnvModel V ⟨.projInfo tbl₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨.projInfo tbl₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval
       (ConstantInfo.projInfo tbl₀).name A)
     (hlaw : ∀ (φ : Name → Nat) (i : Nat), i < tbl₀.numFields →

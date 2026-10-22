@@ -182,7 +182,7 @@ theorem BlockTablesCore.consTable {env : Env} {m' : EnvModel V env} {d : BlockDa
     (hnoB : ∀ c, mm + 1 ≤ c → c < d.k → (∃ cA, d.ctorsM c = [cA]) → d.nIdxAt c = 0 →
       ∀ (i j : Nat), j < tbl.numFields →
       Expr.NoProjAt (d.memberName c) i (tbl.bodies.getD j default))
-    (mC : EnvModel V ⟨.projInfo tbl :: env.consts⟩)
+    (mC : EnvModel V ⟨.projInfo tbl :: env.consts, env.tables⟩)
     (hac : mC.acval = acvalWith m'.acval (ConstantInfo.projInfo tbl).name (fun _ => .sort 0)) :
     BlockTablesCore mC d lps cvTasAll p₁ isRec A (mm + 1) := by
   obtain ⟨hform, hctor, hnp⟩ := h

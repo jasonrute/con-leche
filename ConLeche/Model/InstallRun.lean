@@ -99,7 +99,7 @@ theorem installStepC_model (hμ : μ.isVerified = true)
         Expr.WScoped 0 cv.type →
         (kind ≠ .thm → Expr.WScoped 0 jv) →
         (∀ F, checkValueGroup (fueledOps μ F) fe.env ⟨kind, cv, jv⟩ = .ok () →
-          ∃ F', checkDecl μ (fueledOps μ F') pins fe.env d = .ok ⟨mk cv jv :: fe.env.consts⟩) →
+          ∃ F', checkDecl μ (fueledOps μ F') pins fe.env d = .ok ⟨mk cv jv :: fe.env.consts, fe.env.tables⟩) →
         EnvModelOk V μ fe₁.env ∧ CSOKF s₁ ∧
           ∃ F, checkDecl μ (fueledOps μ F) pins fe.env pd = .ok fe₁.env := by
       intro kind mk d cv jv hdrel hres₁ hfe₁' hpend₁' hwty hwv hsplit

@@ -87,7 +87,7 @@ theorem NoProjHead.ofType {c₀ : ConstantInfo} {T : Name} {i : Nat}
 
 theorem _root_.ConLeche.Verify.NoProjEnv.cons {T : Name} {i : Nat} (h : NoProjEnv env T i)
     {c₀ : ConstantInfo} (hh : NoProjHead c₀ T i) :
-    NoProjEnv ⟨c₀ :: env.consts⟩ T i where
+    NoProjEnv ⟨c₀ :: env.consts, env.tables⟩ T i where
   type c hc := by
     rcases List.mem_cons.mp hc with rfl | hc
     · exact hh.type
@@ -118,16 +118,16 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
     (hfresh : env.find? (ConstantInfo.projInfo tbl).name = none)
     (hnres : ConLeche.reservedBasisNames.contains
       (ConstantInfo.projInfo tbl).name = false)
-    (hwf : ConLeche.EnvWF ⟨.projInfo tbl :: env.consts⟩)
+    (hwf : ConLeche.EnvWF ⟨.projInfo tbl :: env.consts, env.tables⟩)
     (hnp : ∀ i, NoProjEnv env tbl.structName i)
     (hhead : ∀ i, i < tbl.numFields →
-      ConLeche.TowerHead ⟨.projInfo tbl :: env.consts⟩ (tbl.entry i))
-    (hlaw : ∀ m₂ : EnvModel V ⟨.projInfo tbl :: env.consts⟩,
+      ConLeche.TowerHead ⟨.projInfo tbl :: env.consts, env.tables⟩ (tbl.entry i))
+    (hlaw : ∀ m₂ : EnvModel V ⟨.projInfo tbl :: env.consts, env.tables⟩,
       m₂.acval = acvalWith mp.base2.acval
         (ConstantInfo.projInfo tbl).name (fun _ => .sort 0) →
       ∀ (φ : Name → Nat) (i : Nat), i < tbl.numFields →
         TowerEntryLaw m₂ φ tbl.structName i (tbl.entry i)) :
-    ∃ mp' : EnvModelM V μ ⟨.projInfo tbl :: env.consts⟩,
+    ∃ mp' : EnvModelM V μ ⟨.projInfo tbl :: env.consts, env.tables⟩,
       mp'.base2.acval = acvalWith mp.base2.acval
         (ConstantInfo.projInfo tbl).name (fun _ => .sort 0) := by
   have hh : ConsHead env (.projInfo tbl) (fun _ => .sort 0) :=
@@ -142,7 +142,7 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
       fun _ _ _ _ heq => nomatch heq⟩
   have hreads : ∀ ψ : Name → Nat,
       denote (acvalWith mp.base2.acval (ConstantInfo.projInfo tbl).name (fun _ => .sort 0))
-        ⟨.projInfo tbl :: env.consts⟩ ψ 0 (ConstantInfo.projInfo tbl).toConstantVal.type
+        ⟨.projInfo tbl :: env.consts, env.tables⟩ ψ 0 (ConstantInfo.projInfo tbl).toConstantVal.type
         = some (.sort 1) := by
     intro ψ
     show denote _ _ ψ 0 (.sort (.succ .zero)) = _

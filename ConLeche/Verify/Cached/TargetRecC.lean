@@ -268,7 +268,7 @@ theorem find?_consBlockRecsT_of_bare {find? : Name → Option ConstantInfo}
     simp only [List.map_cons, consBlockRecsBare] at h
     simp only [consBlockRecsT]
     refine find?_consBlockRecsT_of_bare
-      (envA := ⟨.recInfo cv (q.majorIdxAt m) (q.rulePrefixAt m) [] :: envA.consts⟩) ?_ n h
+      (envA := ⟨.recInfo cv (q.majorIdxAt m) (q.rulePrefixAt m) [] :: envA.consts, envA.tables⟩) ?_ n h
     exact find?_cons_mono rfl hf
 
 theorem mem_consBlockRecsT {find? : Name → Option ConstantInfo}

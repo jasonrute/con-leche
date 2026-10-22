@@ -55,10 +55,10 @@ nat half is free, and the str half is never consulted backward.) -/
 theorem natLitSupported_cons_back {env : Env} {c₀ : ConstantInfo}
     (hknd : (∀ cv mI, c₀ ≠ .indInfo cv mI) ∧
       ∀ cv a b, c₀ ≠ .ctorInfo cv a b)
-    (hg : ConLeche.natLitSupported ⟨c₀ :: env.consts⟩ = true) :
+    (hg : ConLeche.natLitSupported ⟨c₀ :: env.consts, env.tables⟩ = true) :
     ConLeche.natLitSupported env = true := by
   have hfind : ∀ p : Name,
-      (⟨c₀ :: env.consts⟩ : Env).find? p
+      (⟨c₀ :: env.consts, env.tables⟩ : Env).find? p
         = if c₀.name = p then some c₀ else env.find? p := by
     intro p
     show List.find? _ (c₀ :: env.consts) = _
@@ -99,7 +99,7 @@ theorem natHeads_cons_fresh (mp : EnvModelM V μ env)
     (hfresh : env.find? c₀.name = none)
     (hknd : (∀ cv mI, c₀ ≠ .indInfo cv mI) ∧
       ∀ cv a b, c₀ ≠ .ctorInfo cv a b)
-    (m2 : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m2 : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hacval : m2.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) : NatHeads m2 φ := by
   intro hg ρ
@@ -288,7 +288,7 @@ theorem harvestDefn (hμ : μ.isVerified = true)
       ∀ {ea : Term}, denote mp.base2.acval env ψ 0 e = some ea →
       denote (acvalWith mp.base2.acval cv.name A)
           ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
-            env.consts⟩ ψ 0 e = some ea :=
+            env.consts, env.tables⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
       denote_cons_fresh_mono
         (acval := mp.base2.acval)
@@ -317,13 +317,13 @@ theorem harvestDefn (hμ : μ.isVerified = true)
     intro ψ
     show ∃ ta, denote (acvalWith mp.base2.acval cv.name A)
       ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
-        env.consts⟩ ψ 0 type' = some ta
+        env.consts, env.tables⟩ ψ 0 type' = some ta
     exact ⟨Ta ψ, hcomp ψ type' hcbT (hTa ψ)⟩
   · -- `htyOk`
     intro ψ ta hta ρ
     replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
-          env.consts⟩ ψ 0 type' = some ta := hta
+          env.consts, env.tables⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
@@ -333,7 +333,7 @@ theorem harvestDefn (hμ : μ.isVerified = true)
     intro ψ ta hta ρ
     replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
-          env.consts⟩ ψ 0 type' = some ta := hta
+          env.consts, env.tables⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
@@ -344,7 +344,7 @@ theorem harvestDefn (hμ : μ.isVerified = true)
     injection hdt with h1 h2 h3
     show denote (acvalWith mp.base2.acval cv.name A)
         ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
-          env.consts⟩ ψ 0 value2
+          env.consts, env.tables⟩ ψ 0 value2
       = some (A ψ)
     rw [h2]
     exact hcomp ψ value' hcbV (hA ψ)
@@ -415,7 +415,7 @@ theorem harvestDefn (hμ : μ.isVerified = true)
       have hd := List.all_eq_true.mp hdeps₂ cv.name (by simpa using hself)
       unfold ConLeche.natOpStoredOk at hd
       rw [show (⟨ConstantInfo.defnInfo ⟨cv.name, cv.levelParams, type'⟩
-            value' hint :: env.consts⟩ : Env).find? cv.name
+            value' hint :: env.consts, env.tables⟩ : Env).find? cv.name
           = some (.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value'
             hint) from by
         rw [ConLeche.Env.find?_cons]; exact ite_eq_left rfl] at hd
@@ -424,7 +424,7 @@ theorem harvestDefn (hμ : μ.isVerified = true)
         simpa [List.isEmpty_iff] using hd.1
       have hpin : ConLeche.natOpTyPinned
           (⟨ConstantInfo.defnInfo ⟨cv.name, cv.levelParams, type'⟩
-            value' hint :: env.consts⟩ : Env) cv.name type' = true :=
+            value' hint :: env.consts, env.tables⟩ : Env) cv.name type' = true :=
         hd.2
       have hsE : ConLeche.natLitSupported env = true :=
         natLitSupported_cons_back
@@ -661,7 +661,7 @@ theorem harvestThm (hμ : μ.isVerified = true)
       ∀ {ea : Term}, denote mp.base2.acval env ψ 0 e = some ea →
       denote (acvalWith mp.base2.acval cv.name A)
           ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-            env.consts⟩ ψ 0 e = some ea :=
+            env.consts, env.tables⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
       denote_cons_fresh_mono
         (acval := mp.base2.acval)
@@ -688,13 +688,13 @@ theorem harvestThm (hμ : μ.isVerified = true)
     intro ψ
     show ∃ ta, denote (acvalWith mp.base2.acval cv.name A)
       ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-        env.consts⟩ ψ 0 type' = some ta
+        env.consts, env.tables⟩ ψ 0 type' = some ta
     exact ⟨Ta ψ, hcomp ψ type' hcbT (hTa ψ)⟩
   · -- `htyOk`
     intro ψ ta hta ρ
     replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-          env.consts⟩ ψ 0 type' = some ta := hta
+          env.consts, env.tables⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
@@ -704,7 +704,7 @@ theorem harvestThm (hμ : μ.isVerified = true)
     intro ψ ta hta ρ
     replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-          env.consts⟩ ψ 0 type' = some ta := hta
+          env.consts, env.tables⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
@@ -796,7 +796,7 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
     -- the operations are installed as `opaque`s, never as axioms.
     (hnotreduce : cv.name ∉ ConLeche.reduceOpNames) :
     CoverStep mp
-      ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts⟩ := by
+      ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts, env.tables⟩ := by
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
@@ -848,7 +848,7 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
       ∀ {ea : Term}, denote mp.base2.acval env ψ 0 e = some ea →
       denote (acvalWith mp.base2.acval cv.name A)
           ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-            env.consts⟩ ψ 0 e = some ea :=
+            env.consts, env.tables⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
       denote_cons_fresh_mono
         (acval := mp.base2.acval)
@@ -873,13 +873,13 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
     intro ψ
     show ∃ ta, denote (acvalWith mp.base2.acval cv.name A)
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-        env.consts⟩ ψ 0 type' = some ta
+        env.consts, env.tables⟩ ψ 0 type' = some ta
     exact ⟨Ta ψ, hcomp ψ type' hcbT (hTa ψ)⟩
   · -- `htyOk`
     intro ψ ta hta ρ
     replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-          env.consts⟩ ψ 0 type' = some ta := hta
+          env.consts, env.tables⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
@@ -892,7 +892,7 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
     intro ψ ta hta ρ
     replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-          env.consts⟩ ψ 0 type' = some ta := hta
+          env.consts, env.tables⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
@@ -1100,7 +1100,7 @@ theorem harvestOpaque (hμ : μ.isVerified = true)
       ∀ {ea : Term}, denote mp.base2.acval env ψ 0 e = some ea →
       denote (acvalWith mp.base2.acval cv.name A)
           ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-            env.consts⟩ ψ 0 e = some ea :=
+            env.consts, env.tables⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
       denote_cons_fresh_mono
         (acval := mp.base2.acval)
@@ -1127,13 +1127,13 @@ theorem harvestOpaque (hμ : μ.isVerified = true)
     intro ψ
     show ∃ ta, denote (acvalWith mp.base2.acval cv.name A)
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-        env.consts⟩ ψ 0 type' = some ta
+        env.consts, env.tables⟩ ψ 0 type' = some ta
     exact ⟨Ta ψ, hcomp ψ type' hcbT (hTa ψ)⟩
   · -- `htyOk`
     intro ψ ta hta ρ
     replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-          env.consts⟩ ψ 0 type' = some ta := hta
+          env.consts, env.tables⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm
@@ -1143,7 +1143,7 @@ theorem harvestOpaque (hμ : μ.isVerified = true)
     intro ψ ta hta ρ
     replace hta : denote (acvalWith mp.base2.acval cv.name A)
         ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-          env.consts⟩ ψ 0 type' = some ta := hta
+          env.consts, env.tables⟩ ψ 0 type' = some ta := hta
     obtain rfl : ta = Ta ψ :=
       (Option.some.inj
         ((hcomp ψ type' hcbT (hTa ψ)).symm.trans hta)).symm

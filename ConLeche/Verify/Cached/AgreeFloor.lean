@@ -186,7 +186,7 @@ def Canon (fe : FEnv) : Prop := ∃ env, fe = mkFEnv env
 theorem canon_push {fe : FEnv} (h : Canon fe) (ci : ConstantInfo) :
     Canon (fe.push ci) := by
   obtain ⟨env, rfl⟩ := h
-  exact ⟨⟨ci :: env.consts⟩, rfl⟩
+  exact ⟨⟨ci :: env.consts, env.tables⟩, rfl⟩
 
 /-- The floor's induction hypothesis: a canonical index whose
 environment has the given skeleton list. -/

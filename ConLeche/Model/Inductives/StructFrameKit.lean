@@ -327,24 +327,24 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       env.find? T' = some (.indInfo cvT' caps') → T' ≠ T →
       ConLeche.reservedBasisNames.contains T' = false →
       caps'.eta = true →
-      ConLeche.EtaFamilyStored ⟨c₀ :: env.consts⟩ T' caps' →
+      ConLeche.EtaFamilyStored ⟨c₀ :: env.consts, env.tables⟩ T' caps' →
       caps'.etaCtor ≠ c₀.name)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (hTlaws : ∀ (cvT : ConstantVal) (caps : IndCaps),
-      (⟨c₀ :: env.consts⟩ : Env).find? T = some (.indInfo cvT caps) →
+      (⟨c₀ :: env.consts, env.tables⟩ : Env).find? T = some (.indInfo cvT caps) →
       ConLeche.reservedBasisNames.contains T = false →
-      (caps.eta = true → ConLeche.EtaFamilyStored ⟨c₀ :: env.consts⟩ T caps →
+      (caps.eta = true → ConLeche.EtaFamilyStored ⟨c₀ :: env.consts, env.tables⟩ T caps →
         ∀ φ' : Name → Nat, EtaLaw m₂ φ' T cvT caps) ∧
       (caps.unitlike = true → ∀ φ' : Name → Nat, UnitLaw m₂ φ' T cvT caps)) :
     CapsOk m₂ := by
   -- a stored family other than the block's is a prefix lookup
   have hdown : ∀ n : Name, n ≠ c₀.name →
-      (⟨c₀ :: env.consts⟩ : Env).find? n = env.find? n := by
+      (⟨c₀ :: env.consts, env.tables⟩ : Env).find? n = env.find? n := by
     intro n hn
     rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hn hh.symm)]
   have hneT : ∀ (T' : Name) (cvT' : ConstantVal) (caps' : IndCaps),
-      (⟨c₀ :: env.consts⟩ : Env).find? T' = some (.indInfo cvT' caps') →
+      (⟨c₀ :: env.consts, env.tables⟩ : Env).find? T' = some (.indInfo cvT' caps') →
       T' ≠ T → T' ≠ c₀.name := by
     intro T' cvT' caps' hf hne hh
     rcases hkind with ⟨cvT₀, caps₀, rfl, hname⟩ | hnotind
@@ -1613,7 +1613,7 @@ theorem FormerData.cross {m : EnvModel V env} {cvT : ConstantVal}
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none) (hat : ConsCrossAt c₀ cvT.type)
     (hcb : ConstsBound env cvT.type)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith m.acval c₀.name A) :
     FormerData m₂ cvT nP resSort pps where
   read ψ := by

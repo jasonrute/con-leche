@@ -227,7 +227,7 @@ theorem nestContainer_consBlockCtors {envI : Env} {nP : Nat}
     obtain ⟨a, ha, rfl⟩ := List.mem_map.mp (List.mem_reverse.mp hc)
     exact ⟨a, ha, rfl⟩
   have hEq : ConLeche.consBlockCtors nP ctorsAs envI
-      = ⟨(ctorsAs.flatten.map fun c => ConstantInfo.ctorInfo c.1 nP c.2).reverse ++ envI.consts⟩ :=
+      = ⟨(ctorsAs.flatten.map fun c => ConstantInfo.ctorInfo c.1 nP c.2).reverse ++ envI.consts, envI.tables⟩ :=
     by cases h : ConLeche.consBlockCtors nP ctorsAs envI; simp_all
   -- a lookup above the constructors: a new constructor (fresh below), or the old one
   have hlook : ∀ n, (ConLeche.consBlockCtors nP ctorsAs envI).find? n

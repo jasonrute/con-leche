@@ -92,7 +92,7 @@ def FreshNames (env : Env) (ns : List Name) : Prop :=
 /-- After pushing the head's constant, the tail is fresh at the
 extended environment. -/
 theorem FreshNames.step {env : Env} {c : ConstantInfo} {ns : List Name}
-    (h : FreshNames env (c.name :: ns)) : FreshNames ⟨c :: env.consts⟩ ns := by
+    (h : FreshNames env (c.name :: ns)) : FreshNames ⟨c :: env.consts, env.tables⟩ ns := by
   obtain ⟨hnd, hfr⟩ := h
   rw [List.nodup_cons] at hnd
   refine ⟨hnd.2, fun n hn => ?_⟩

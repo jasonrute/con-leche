@@ -93,7 +93,7 @@ reduces with the kernel's whnf (`(fun _ => T) Nat ⇝ T`). -/
   .indInfo ⟨nm "T", [], ty1⟩ {},
   .ctorInfo ⟨nm "LF.mk", [], pi (pi ty1 ty1) (pi (.app (.bvar 0) cNat)
     (.app cLF (.bvar 1)))⟩ 1 1,
-  .indInfo ⟨nm "LF", [], pi (pi ty1 ty1) ty1⟩ { ctors := [nm "LF.mk"] }] ++ envT.consts⟩
+  .indInfo ⟨nm "LF", [], pi (pi ty1 ty1) ty1⟩ { ctors := [nm "LF.mk"] }] ++ envT.consts, envT.tables⟩
 @[expose] def ctxF : NestCtx :=
   ⟨[nm "T"], [], 0, [0], [], .succ .zero, envF.find?⟩
 @[expose] def runF (dom : Expr) : Except CheckError NestedPositivity :=
@@ -170,7 +170,7 @@ block member, so it is not a nested occurrence). -/
   .ctorInfo ⟨nm "G.mk", [], pi ty1 (pi (.app cF (.bvar 0)) (.app cG (.bvar 1)))⟩ 1 1,
   .ctorInfo ⟨nm "F.mk", [], pi ty1 (pi (.app cL (.app cG (.bvar 0))) (.app cF (.bvar 1)))⟩ 1 1,
   .indInfo ⟨nm "G", [], pi ty1 ty1⟩ { all := [nm "F", nm "G"], ctors := [nm "G.mk"] },
-  .indInfo ⟨nm "F", [], pi ty1 ty1⟩ { all := [nm "F", nm "G"], ctors := [nm "F.mk"] }] ++ envT.consts⟩
+  .indInfo ⟨nm "F", [], pi ty1 ty1⟩ { all := [nm "F", nm "G"], ctors := [nm "F.mk"] }] ++ envT.consts, envT.tables⟩
 @[expose] def ctxC : NestCtx :=
   ⟨[nm "T"], [], 0, [0], [], .succ .zero, envC.find?⟩
 @[expose] def runC (dom : Expr) : Except CheckError NestedPositivity :=
@@ -250,7 +250,7 @@ is unreached from the first and negative in its parameter. -/
 occurs at levels other than the block's, inside a redex its whnf
 drops: the abstracted constructor type still names `T`. -/
 @[expose] def envLv : Env := ⟨[
-  .indInfo ⟨nm "T", [nm "u"], ty1⟩ {}] ++ envT.consts⟩
+  .indInfo ⟨nm "T", [nm "u"], ty1⟩ {}] ++ envT.consts, envT.tables⟩
 #guard (nestedBlockPositivity (pureOps .verified) envLv
     ⟨[nm "T"], [nm "u"], 0, [0], [], .succ .zero, envLv.find?⟩
     [[(⟨nm "T.mk", [nm "u"], pi (.app (.lam ty1 cNat)
@@ -316,7 +316,7 @@ the one function's Π-type. -/
 @[expose] def cId : Expr := .const (nm "Id'") []
 @[expose] def envU : Env := ⟨[
   .axiomInfo ⟨nm "F4", [], pi cT ty1⟩,
-  .defnInfo ⟨nm "Id'", [], pi ty1 ty1⟩ (.lam ty1 (.bvar 0)) .abbrev] ++ envT.consts⟩
+  .defnInfo ⟨nm "Id'", [], pi ty1 ty1⟩ (.lam ty1 (.bvar 0)) .abbrev] ++ envT.consts, envT.tables⟩
 @[expose] def ctxU : NestCtx :=
   ⟨[nm "T"], [], 0, [0], [], .succ .zero, envU.find?⟩
 

@@ -368,7 +368,7 @@ theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} 
       (∀ (j' : Nat) (cvTb : ConstantVal), cvTas[j']? = some cvTb →
         (ConLeche.blockCapsAt q j' isRec).eta = true →
         env'.find? (ConLeche.blockCapsAt q j' isRec).etaCtor = none) →
-      ∀ m₂ : EnvModel V ⟨.indInfo cvTa (ConLeche.blockCapsAt q j isRec) :: env'.consts⟩,
+      ∀ m₂ : EnvModel V ⟨.indInfo cvTa (ConLeche.blockCapsAt q j isRec) :: env'.consts, env'.tables⟩,
       m₂.acval = acvalWith m'.acval cvTa.name (A j) →
       CapsLawsAt m₂ cvTa.name cvTa (ConLeche.blockCapsAt q j isRec)) :
     ∃ mp' : EnvModelM V μ envI,
@@ -421,7 +421,7 @@ theorem blockFormerPass (mp : EnvModelM V μ env) {F : Nat} {p₀ : BlockParts} 
 
 /-- A name absent from a cons is absent from the base. -/
 theorem find?_none_of_consB {c : ConstantInfo} {env : Env} {n : Name}
-    (h : Env.find? ⟨c :: env.consts⟩ n = none) : env.find? n = none := by
+    (h : Env.find? ⟨c :: env.consts, env.tables⟩ n = none) : env.find? n = none := by
   rw [ConLeche.Env.find?_cons] at h
   split at h
   · exact nomatch h

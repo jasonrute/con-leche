@@ -175,7 +175,7 @@ theorem EnvWF.indCaps {env : Env} (henv : EnvWF env) {T : Name}
 
 /-- `find?` on a cons. -/
 theorem Env.find?_cons {c : ConstantInfo} {env : Env} {n : Name} :
-    Env.find? ⟨c :: env.consts⟩ n = if c.name = n then some c else env.find? n := by
+    Env.find? ⟨c :: env.consts, env.tables⟩ n = if c.name = n then some c else env.find? n := by
   simp only [Env.find?, List.find?]
   split
   · next h => simp_all
@@ -183,14 +183,14 @@ theorem Env.find?_cons {c : ConstantInfo} {env : Env} {n : Name} :
 
 /-- A cons finds its own head. -/
 theorem Env.find?_cons_self (c : ConstantInfo) (env : Env) :
-    Env.find? ⟨c :: env.consts⟩ c.name = some c := by
+    Env.find? ⟨c :: env.consts, env.tables⟩ c.name = some c := by
   rw [Env.find?_cons, ite_eq_left rfl]
 
 /-- A cons of a *fresh* head does not find anything new. -/
 theorem Env.find?_cons_of_fresh {c : ConstantInfo} {env : Env}
     {n : Name} {ci : ConstantInfo} (hfresh : env.find? c.name = none)
     (h : env.find? n = some ci) :
-    Env.find? ⟨c :: env.consts⟩ n = some ci := by
+    Env.find? ⟨c :: env.consts, env.tables⟩ n = some ci := by
   rw [Env.find?_cons]
   split
   · next heq => rw [heq, h] at hfresh; exact nomatch hfresh
@@ -200,7 +200,7 @@ theorem Env.find?_cons_of_fresh {c : ConstantInfo} {env : Env}
 successful lookups. -/
 theorem Env.find?_cons_of_isSome {c : ConstantInfo} {env : Env} {n : Name}
     (hfresh : env.find? c.name = none) (h : (env.find? n).isSome = true) :
-    Env.find? ⟨c :: env.consts⟩ n = env.find? n := by
+    Env.find? ⟨c :: env.consts, env.tables⟩ n = env.find? n := by
   rw [Env.find?_cons]
   split
   · next heq => rw [← heq] at h; rw [hfresh] at h; simp at h
@@ -209,7 +209,7 @@ theorem Env.find?_cons_of_isSome {c : ConstantInfo} {env : Env} {n : Name}
 /-- A cons at another name does not change a table lookup. -/
 theorem Env.findProj?_cons_ne {env : Env} {c₀ : ConstantInfo} {T : Name}
     (hn : c₀.name ≠ projTableName T) (i : Nat) :
-    Env.findProj? ⟨c₀ :: env.consts⟩ T i = env.findProj? T i := by
+    Env.findProj? ⟨c₀ :: env.consts, env.tables⟩ T i = env.findProj? T i := by
   unfold Env.findProj?
   rw [Env.find?_cons, ite_eq_right hn]
 
@@ -268,7 +268,7 @@ theorem Expr.constsResolve_of_find {env env' : Env}
 /-- Resolution is monotone under environment extension. -/
 theorem Expr.constsResolve_mono {c : ConstantInfo} {env : Env} :
     ∀ {e : Expr}, e.constsResolve env = true →
-      e.constsResolve ⟨c :: env.consts⟩ = true :=
+      e.constsResolve ⟨c :: env.consts, env.tables⟩ = true :=
   Expr.constsResolve_of_find fun n h => by
     rw [Env.find?_cons]
     split <;> simp_all
@@ -333,7 +333,7 @@ theorem Expr.find?_isSome_of_piResult_getAppFn_const {env : Env} {e : Expr}
 /-- Extending with a fresh, well-formed constant preserves `EnvWF`. -/
 theorem EnvWF.cons {c : ConstantInfo} {env : Env}
     (henv : EnvWF env)
-    (hc : ConstWF ⟨c :: env.consts⟩ c) : EnvWF ⟨c :: env.consts⟩ := by
+    (hc : ConstWF ⟨c :: env.consts, env.tables⟩ c) : EnvWF ⟨c :: env.consts, env.tables⟩ := by
   intro c' hc'
   rcases List.mem_cons.mp hc' with rfl | hmem
   · exact hc

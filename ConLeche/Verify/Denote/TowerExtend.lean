@@ -169,7 +169,7 @@ new at the extension is the head's (task #175 S1). -/
 theorem findProj?_cons_tower {env : Env} {tbl₀ : ConLeche.ProjTable} :
     ∀ (sn : Name) (j : Nat) (entry : ConLeche.ProjEntry),
       env.findProj? sn j = none →
-      Env.findProj? ⟨.projInfo tbl₀ :: env.consts⟩ sn j = some entry →
+      Env.findProj? ⟨.projInfo tbl₀ :: env.consts, env.tables⟩ sn j = some entry →
       sn = tbl₀.structName := by
   intro sn j entry h0 h1
   by_cases hn : (ConLeche.ConstantInfo.projInfo tbl₀).name = ConLeche.projTableName sn

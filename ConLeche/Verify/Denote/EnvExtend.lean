@@ -153,7 +153,7 @@ subjects, whose acceptance guaranteed prefix-supported literals. -/
 /-- Free at every fresh cons, of any kind. -/
 theorem litGuardsMono_cons {env : Env} {c₀ : ConLeche.ConstantInfo}
     (hfresh : env.find? c₀.name = none) :
-    LitGuardsMono env ⟨c₀ :: env.consts⟩ :=
+    LitGuardsMono env ⟨c₀ :: env.consts, env.tables⟩ :=
   ⟨natLitSupported_cons hfresh, strLitSupported_cons hfresh⟩
 
 /-- **The monotone crossing**: a successful prefix reading is

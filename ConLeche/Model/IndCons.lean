@@ -108,28 +108,28 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     (htyReads : ∀ ψ : Name → Nat,
       ∃ ta : Term,
         denote (acvalWith mp.base2.acval c₀.name A)
-          ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta)
+          ⟨c₀ :: env.consts, env.tables⟩ ψ 0 c₀.toConstantVal.type = some ta)
     (htyOk : ∀ (ψ : Name → Nat) (ta : Term),
       denote (acvalWith mp.base2.acval c₀.name A)
-          ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
+          ⟨c₀ :: env.consts, env.tables⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
     (hmemNew : ∀ (ψ : Name → Nat) (ta : Term),
       denote (acvalWith mp.base2.acval c₀.name A)
-          ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
+          ⟨c₀ :: env.consts, env.tables⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
     -- the tier's two genuine rows
-    (hcaps : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts⟩,
+    (hcaps : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩,
       m₂.acval = acvalWith mp.base2.acval c₀.name A → CapsOk m₂)
-    (hrec : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts⟩,
+    (hrec : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩,
       m₂.acval = acvalWith mp.base2.acval c₀.name A →
       ∀ φ : Name → Nat, RecRules m₂ φ)
     -- the head is not a projection table (those are discharged by
     -- their own step)
     (hntc : ∀ entry, c₀ ≠ .projInfo entry)
     (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
-      ⟨c₀ :: env.consts⟩ c₀ := by
+      ⟨c₀ :: env.consts, env.tables⟩ c₀ := by
       intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
-    ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
+    ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts, env.tables⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_cons mp (c₀ := c₀) (A := A) hfresh hh
     hAparams hAok htyReads htyOk hmemNew
@@ -178,21 +178,21 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
     (htyReads : ∀ ψ : Name → Nat,
       ∃ ta : Term,
         denote (acvalWith mp.base2.acval c₀.name A)
-          ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta)
+          ⟨c₀ :: env.consts, env.tables⟩ ψ 0 c₀.toConstantVal.type = some ta)
     (htyOk : ∀ (ψ : Name → Nat) (ta : Term),
       denote (acvalWith mp.base2.acval c₀.name A)
-          ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
+          ⟨c₀ :: env.consts, env.tables⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
     (hmemNew : ∀ (ψ : Name → Nat) (ta : Term),
       denote (acvalWith mp.base2.acval c₀.name A)
-          ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
+          ⟨c₀ :: env.consts, env.tables⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
-    (hcaps : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts⟩,
+    (hcaps : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩,
       m₂.acval = acvalWith mp.base2.acval c₀.name A → CapsOk m₂)
     (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
-      ⟨c₀ :: env.consts⟩ c₀ := by
+      ⟨c₀ :: env.consts, env.tables⟩ c₀ := by
       intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
-    ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
+    ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts, env.tables⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_ind_cons mp hfresh hnres ?_ ?_ hh
     hAparams hAok htyReads htyOk hmemNew
@@ -223,21 +223,21 @@ theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
     (htyReads : ∀ ψ : Name → Nat,
       ∃ ta : Term,
         denote (acvalWith mp.base2.acval c₀.name A)
-          ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta)
+          ⟨c₀ :: env.consts, env.tables⟩ ψ 0 c₀.toConstantVal.type = some ta)
     (htyOk : ∀ (ψ : Name → Nat) (ta : Term),
       denote (acvalWith mp.base2.acval c₀.name A)
-          ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
+          ⟨c₀ :: env.consts, env.tables⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, WellDenotedTy V ρ ta)
     (hmemNew : ∀ (ψ : Name → Nat) (ta : Term),
       denote (acvalWith mp.base2.acval c₀.name A)
-          ⟨c₀ :: env.consts⟩ ψ 0 c₀.toConstantVal.type = some ta →
+          ⟨c₀ :: env.consts, env.tables⟩ ψ 0 c₀.toConstantVal.type = some ta →
       ∀ ρ : Nat → V, interp V ρ (A ψ) ∈ˢ interp V ρ ta)
-    (hcaps : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts⟩,
+    (hcaps : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩,
       m₂.acval = acvalWith mp.base2.acval c₀.name A → CapsOk m₂)
-    (hrec : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts⟩,
+    (hrec : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩,
       m₂.acval = acvalWith mp.base2.acval c₀.name A →
       ∀ φ : Name → Nat, RecRules m₂ φ) :
-    ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts⟩,
+    ∃ mp' : EnvModelM V μ ⟨c₀ :: env.consts, env.tables⟩,
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   obtain ⟨cv, mI, rP, rules, rfl⟩ := hknd
   exact declStep_preserves_of_ind_cons mp hfresh hnres

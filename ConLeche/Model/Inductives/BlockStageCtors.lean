@@ -88,7 +88,7 @@ theorem BlockCtorsCore.cons {env : Env} {m' : EnvModel V env} {d : BlockData V}
     (h : BlockCtorsCore m' d lps cvTasAll p₁ isRec A nc)
     {cA : ConstantVal × Nat} {B : (Name → Nat) → Term}
     (hfresh : env.find? cA.1.name = none)
-    (mC : EnvModel V ⟨.ctorInfo cA.1 d.nP cA.2 :: env.consts⟩)
+    (mC : EnvModel V ⟨.ctorInfo cA.1 d.nP cA.2 :: env.consts, env.tables⟩)
     (hac : mC.acval = acvalWith m'.acval cA.1.name B) :
     BlockCtorsCore mC d lps cvTasAll p₁ isRec A nc := by
   obtain ⟨hnameOf, hctorLt, hlenCv⟩ := hN

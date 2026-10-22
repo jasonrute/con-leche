@@ -252,7 +252,7 @@ it.  The monadic `_push` equations that consume it are stated at the
 executing monad, in `ConLeche/Verify/Cached/BridgeCSDecl.lean`. -/
 
 theorem push_mkFEnv (env : Env) (ci : ConstantInfo) :
-    (mkFEnv env).push ci = mkFEnv ⟨ci :: env.consts⟩ := rfl
+    (mkFEnv env).push ci = mkFEnv ⟨ci :: env.consts, env.tables⟩ := rfl
 
 /-- The direct sum's constructor conses through the index (task #175
 sum-types): the pushed index of the consed environment *is* `mkFEnv`
@@ -263,6 +263,6 @@ theorem consSumCtorsF_mkFEnv (nP : Nat) :
   | [], _ => rfl
   | c :: cs, env => by
     simp only [consSumCtorsF, consSumCtors, push_mkFEnv,
-      consSumCtorsF_mkFEnv nP cs ⟨.ctorInfo c.1 nP c.2 :: env.consts⟩]
+      consSumCtorsF_mkFEnv nP cs ⟨.ctorInfo c.1 nP c.2 :: env.consts, env.tables⟩]
 
 end ConLeche

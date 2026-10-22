@@ -79,7 +79,7 @@ theorem axiomTrustCompiler (hμ : μ.isVerified = true)
     (hok : ConLeche.trustCompilerOk env ⟨cv.name, cv.levelParams, type'⟩
       = true) :
     CoverStep mp
-      ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts⟩ := by
+      ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts, env.tables⟩ := by
   have hcv' := hcv
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     -⟩ := hcv'
@@ -160,7 +160,7 @@ theorem axiomStd (hμ : μ.isVerified = true)
     (hok : ConLeche.stdAxiomOk env ⟨cv.name, cv.levelParams, type'⟩
       = true) :
     CoverStep mp
-      ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts⟩ := by
+      ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts, env.tables⟩ := by
   have hcv' := hcv
   obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
     -⟩ := hcv'
@@ -168,7 +168,7 @@ theorem axiomStd (hμ : μ.isVerified = true)
   have hfresh : env.find? cv.name = none :=
     Option.isNone_iff_eq_none.mp hfind
   have hwfc : ConLeche.EnvWF ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
-      env.consts⟩ := by
+      env.consts, env.tables⟩ := by
     refine ConLeche.EnvWF.cons mp.base2.wf
       ⟨htf', htp, Expr.constsResolve_mono htr, hbt', ?_, ?_, ?_, ?_⟩
     · intro cv2 value2 hint2 heq; exact nomatch heq

@@ -100,7 +100,7 @@ theorem checkStructProjTable_inv {env envOut : Env} {T C : Name}
         b.looseBVarsBounded (nP + 1)) = true) ∧
       env.find? (projTableName T) = none ∧
       envOut = ⟨.projInfo ⟨T, lps, nP, C, nF, rs, bodies, guards, off⟩
-        :: env.consts⟩ := by
+        :: env.consts, env.tables⟩ := by
   unfold checkStructProjTable at h
   obtain ⟨bodies, hb, h⟩ := exceptBind_ok h
   have hb' := unwrapOr_ok hb

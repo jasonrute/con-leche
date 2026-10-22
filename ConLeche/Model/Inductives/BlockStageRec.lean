@@ -129,7 +129,7 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
       fun _ => ConsCrossAt.ofNtc (fun _ h => nomatch h)
     have hreadUp : ∀ ψ : Name → Nat, ∃ ta : Term,
         denote (acvalWith mp.base2.acval r0.1.name (acv r0.1.name))
-            ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: env.consts⟩ ψ 0
+            ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: env.consts, env.tables⟩ ψ 0
             r0.1.type = some ta ∧
           (∀ ρ : Nat → V, WellDenotedTy V ρ ta) ∧
           (∀ ρ : Nat → V, interp V ρ (acv r0.1.name ψ) ∈ˢ interp V ρ ta) := by
@@ -176,7 +176,7 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
             (fun _ _ _ _ heq => by injection heq with _ _ _ e4; exact e4.symm) m₂ hac φ)
     -- the tail
     show ∃ mp' : EnvModelM V μ (consBlockRecsBare q (m + 1) rest
-        ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: env.consts⟩),
+        ⟨.recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [] :: env.consts, env.tables⟩),
       mp'.base2.acval = acv
     refine envModelM_consBlockRecsBare mp₁ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
     · exact hnd.2
@@ -225,7 +225,7 @@ theorem swapShList_consBlockRecsR {R : Nat → RecDatum → List RecRule}
   | m, (cvRa, rhss, nIdx, ctorsA) :: rest, envA, envB, h => by
     simp only [bareOf, List.map_cons, consBlockRecsBare, consBlockRecsR]
     exact swapShList_consBlockRecsR (R := R) (q := q)
-      (rs := rest) (envA := ⟨_ :: envA.consts⟩) (envB := ⟨_ :: envB.consts⟩)
+      (rs := rest) (envA := ⟨_ :: envA.consts, envA.tables⟩) (envB := ⟨_ :: envB.consts, envB.tables⟩)
       (ConLeche.SwapShList.cons
         (Or.inr ⟨cvRa, q.majorIdxAt m, q.rulePrefixAt m, _, rfl, rfl⟩) h)
 
@@ -382,7 +382,7 @@ theorem noProjEnv_consBlockRecsR {R : Nat → RecDatum → List RecRule}
       injection heq with _ _ _ e4
       subst e4
       exact hR 0 r0 rfl rl hrl
-    show NoProjEnv (consBlockRecsR R q (m + 1) rest ⟨_ :: env.consts⟩) T i
+    show NoProjEnv (consBlockRecsR R q (m + 1) rest ⟨_ :: env.consts, env.tables⟩) T i
     exact noProjEnv_consBlockRecsR (h.cons hhead)
       (fun r hr => hT r (List.mem_cons_of_mem _ hr))
       (fun j r hr rl hrl => hR (j + 1) r (by simpa using hr) rl

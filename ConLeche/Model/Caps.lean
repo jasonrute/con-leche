@@ -73,8 +73,8 @@ theorem etaFamilyStored_descend {c₀ : ConstantInfo} {T : Name}
     {cvT : ConstantVal} {caps : IndCaps}
     (hnotind : ∀ cv caps, c₀ ≠ .indInfo cv caps)
     (hnotctor : ∀ cv np nf, c₀ ≠ .ctorInfo cv np nf)
-    (hf : (⟨c₀ :: env.consts⟩ : Env).find? T = some (.indInfo cvT caps))
-    (hfam : ConLeche.EtaFamilyStored ⟨c₀ :: env.consts⟩ T caps) :
+    (hf : (⟨c₀ :: env.consts, env.tables⟩ : Env).find? T = some (.indInfo cvT caps))
+    (hfam : ConLeche.EtaFamilyStored ⟨c₀ :: env.consts, env.tables⟩ T caps) :
     env.find? T = some (.indInfo cvT caps) ∧
       ConLeche.EtaFamilyStored env T caps ∧
       T ≠ c₀.name ∧ caps.etaCtor ≠ c₀.name := by
@@ -90,7 +90,7 @@ theorem etaFamilyStored_descend {c₀ : ConstantInfo} {T : Name}
     rw [heq, ConLeche.Env.find?_cons, ite_eq_left rfl] at hfC
     exact hnotctor cvC cnP cnF (Option.some.inj hfC)
   have hdown : ∀ n : Name, n ≠ c₀.name →
-      (⟨c₀ :: env.consts⟩ : Env).find? n = env.find? n := by
+      (⟨c₀ :: env.consts, env.tables⟩ : Env).find? n = env.find? n := by
     intro n hn
     rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hn hh.symm)]
   exact ⟨by rwa [hdown _ hnT] at hf,
@@ -125,7 +125,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
     (hntc : ConsCrossEnv env c₀)
     (hnotind : ∀ cv caps, c₀ ≠ .indInfo cv caps)
     (hnotctor : ∀ cv np nf, c₀ ≠ .ctorInfo cv np nf)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩)
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A) :
     CapsOk m₂ := by
   constructor

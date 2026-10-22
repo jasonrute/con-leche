@@ -171,7 +171,7 @@ theorem canonOcc_of_positivity {ops : ConLeche.CheckerOps ConLeche.CheckM} {env�
 omit [SetTheory V] in
 /-- Every constant bound before a cons is bound after it. -/
 theorem _root_.ConLeche.Verify.ConstsBound.mono_cons {env : Env} {c₀ : ConstantInfo} :
-    ∀ {e : Expr}, ConstsBound env e → ConstsBound ⟨c₀ :: env.consts⟩ e := by
+    ∀ {e : Expr}, ConstsBound env e → ConstsBound ⟨c₀ :: env.consts, env.tables⟩ e := by
   intro e
   induction e with
   | const n us =>
@@ -223,7 +223,7 @@ theorem BlockAbsRead.cross {env : Env} {m : EnvModel V env} {d : BlockData V} {l
     {c₀ : ConstantInfo} {B : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none) (hat : ∀ e : Expr, ConsCrossAt c₀ e)
     (hcb : ConstsBound env cA.1.type)
-    (m₂ : EnvModel V ⟨c₀ :: env.consts⟩) (hac : m₂.acval = acvalWith m.acval c₀.name B) :
+    (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩) (hac : m₂.acval = acvalWith m.acval c₀.name B) :
     BlockAbsRead m₂ d lps c j cA := by
   obtain ⟨hnb, A, hA, hr⟩ := h
   refine ⟨ConstsBound.mono_cons hnb, A, hA, fun ψ => ?_⟩

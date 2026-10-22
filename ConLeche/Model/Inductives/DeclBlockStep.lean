@@ -645,7 +645,7 @@ theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
     -- the constructors' conses keep every lookup (their names fresh at `env₁`)
     have hEq : ConLeche.consBlockCtors p₁.nP ctorsAs env₁
         = ⟨(ctorsAs.flatten.map fun cA => ConstantInfo.ctorInfo cA.1 p₁.nP cA.2).reverse
-            ++ env₁.consts⟩ := by
+            ++ env₁.consts, env₁.tables⟩ := by
       rw [← consBlockCtors_consts]
     have hfrC : ∀ c ∈ (ctorsAs.flatten.map fun cA => ConstantInfo.ctorInfo cA.1 p₁.nP cA.2).reverse,
         env₁.find? c.name = none := by

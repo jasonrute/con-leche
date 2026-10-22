@@ -36,7 +36,7 @@ theorem checkStructProjTable_shape {T C : Name}
     (h : checkStructProjTable (m := ConLeche.CheckM) T C lps nP nF
       resSort guards off cvCa env = .ok env') :
     ∃ tbl : ConLeche.ProjTable, env.find? (projTableName T) = none ∧
-      tbl.structName = T ∧ env' = ⟨.projInfo tbl :: env.consts⟩ := by
+      tbl.structName = T ∧ env' = ⟨.projInfo tbl :: env.consts, env.tables⟩ := by
   obtain ⟨bodies, -, -, hfresh, rfl⟩ := ConLeche.checkStructProjTable_inv h
   exact ⟨_, hfresh, rfl, rfl⟩
 
@@ -288,7 +288,7 @@ theorem checkBlockInds_fresh {mode : CheckMode} {env envI : Env} {p : BlockParts
 base: it shadows no name the base finds and stores no former. -/
 theorem extEta_snoc {env env' : Env} {c₀ : ConstantInfo} (hx : ExtEta env env')
     (hfresh : env.find? c₀.name = none) (hnotind : ∀ cv caps, c₀ ≠ .indInfo cv caps) :
-    ExtEta env ⟨c₀ :: env'.consts⟩ := by
+    ExtEta env ⟨c₀ :: env'.consts, env'.tables⟩ := by
   refine ⟨fun n ci hf hnr => ?_, fun T cvT caps hf => ?_⟩
   · have hne : c₀.name ≠ n := fun hh => by rw [hh, hf] at hfresh; exact nomatch hfresh
     rw [ConLeche.Env.find?_cons, ite_eq_right hne]

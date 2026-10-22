@@ -144,7 +144,7 @@ theorem consBlockInds_constsResolve {p₁ : BlockShape} {isRec : Bool} :
   | [], _, _, _, h => h
   | cvT :: rest, i, env, e, h => by
     show e.constsResolve (ConLeche.consBlockInds p₁ isRec rest (i + 1)
-      ⟨.indInfo cvT (ConLeche.blockCapsAt p₁ i isRec) :: env.consts⟩) = true
+      ⟨.indInfo cvT (ConLeche.blockCapsAt p₁ i isRec) :: env.consts, env.tables⟩) = true
     exact consBlockInds_constsResolve rest (i + 1) _ e (Expr.constsResolve_mono h)
 
 /-- **A member's recursor name is reserved only if the member's is**:
@@ -249,7 +249,7 @@ theorem blockCtorFacts_of {envI : Env} {q : BlockShape} {F : Nat} {cvTa : Consta
 /-- A name found stays found across a cons. -/
 theorem find?_isSome_consB {c : ConstantInfo} {env : Env} {n : Name}
     (h : (env.find? n).isSome = true) :
-    (((⟨c :: env.consts⟩ : Env)).find? n).isSome = true := by
+    (((⟨c :: env.consts, env.tables⟩ : Env)).find? n).isSome = true := by
   rw [ConLeche.Env.find?_cons]
   split
   · rfl
@@ -263,7 +263,7 @@ theorem consBlockInds_find?_isSome_mono {p₁ : BlockShape} {isRec : Bool} :
   | [], _, _, _, h => h
   | cvT :: rest, i, env, n, h => by
     show ((ConLeche.consBlockInds p₁ isRec rest (i + 1)
-      ⟨.indInfo cvT (ConLeche.blockCapsAt p₁ i isRec) :: env.consts⟩).find? n).isSome = true
+      ⟨.indInfo cvT (ConLeche.blockCapsAt p₁ i isRec) :: env.consts, env.tables⟩).find? n).isSome = true
     exact consBlockInds_find?_isSome_mono rest (i + 1) _ n (find?_isSome_consB h)
 
 /-- **Every former is stored after the `k` conses.** -/
@@ -275,7 +275,7 @@ theorem consBlockInds_find?_isSome {p₁ : BlockShape} {isRec : Bool} :
   | cvT :: rest, i, 0, env, cvTa, h => by
     simp only [List.getElem?_cons_zero, Option.some.injEq] at h
     show ((ConLeche.consBlockInds p₁ isRec rest (i + 1)
-      ⟨.indInfo cvT (ConLeche.blockCapsAt p₁ i isRec) :: env.consts⟩).find? cvTa.name).isSome
+      ⟨.indInfo cvT (ConLeche.blockCapsAt p₁ i isRec) :: env.consts, env.tables⟩).find? cvTa.name).isSome
       = true
     refine consBlockInds_find?_isSome_mono rest (i + 1) _ cvTa.name ?_
     have hn : (ConstantInfo.indInfo cvT (ConLeche.blockCapsAt p₁ i isRec)).name = cvT.name := rfl
@@ -284,7 +284,7 @@ theorem consBlockInds_find?_isSome {p₁ : BlockShape} {isRec : Bool} :
   | cvT :: rest, i, j + 1, env, cvTa, h => by
     simp only [List.getElem?_cons_succ] at h
     show ((ConLeche.consBlockInds p₁ isRec rest (i + 1)
-      ⟨.indInfo cvT (ConLeche.blockCapsAt p₁ i isRec) :: env.consts⟩).find? cvTa.name).isSome
+      ⟨.indInfo cvT (ConLeche.blockCapsAt p₁ i isRec) :: env.consts, env.tables⟩).find? cvTa.name).isSome
       = true
     exact consBlockInds_find?_isSome rest (i + 1) j _ cvTa h
 
