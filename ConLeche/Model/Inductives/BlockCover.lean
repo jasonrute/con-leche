@@ -53,16 +53,6 @@ theorem find?_append_of_fresh {new : List ConstantInfo} {env : Env}
     have := hfresh c hc; rw [hh, h] at this; exact nomatch this)]
   exact h
 
-theorem findProj?_append_none {new : List ConstantInfo} {env : Env}
-    (hntc : ∀ c ∈ new, ∀ tbl, c ≠ .projInfo tbl) (sn : Name) (i : Nat)
-    (h : env.findProj? sn i = none) : Env.findProj? ⟨new ++ env.consts, env.tables⟩ sn i = none := by
-  induction new with
-  | nil => exact h
-  | cons c rest ih =>
-    exact findProj?_cons_of_base_none (env := ⟨rest ++ env.consts, env.tables⟩)
-      (hntc c List.mem_cons_self) sn i
-      (ih fun c' hc' => hntc c' (List.mem_cons_of_mem _ hc'))
-
 /-- **Coverage across a stage that conses a list of non-table constants**
 on top of the environment, keeping every lookup, at a carrier that
 keeps every old name's leaf: the carrier rebuilt with the input's
@@ -70,7 +60,7 @@ recorded list (the clauses re-read through the monotone crossing), and
 coverage carried to an exemption list that holds the new inductives. -/
 theorem lfpCover_append {env env' : Env} {new : List ConstantInfo} (mp : EnvModelM V μ env)
     (mpX : EnvModelM V μ env') {ex ex' : List Name}
-    (henv : env'.consts = new ++ env.consts)
+    (henv : env'.consts = new ++ env.consts) (htab : env'.tables = env.tables)
     (hfwd : ∀ n ci, env.find? n = some ci → env'.find? n = some ci)
     (hag : ∀ n, (env.find? n).isSome = true → mpX.base2.acval n = mp.base2.acval n)
     (hex : ∀ n ∈ ex, n ∈ ex')
@@ -81,9 +71,9 @@ theorem lfpCover_append {env env' : Env} {new : List ConstantInfo} (mp : EnvMode
         ∃ cv caps, env.find? C = some (.indInfo cv caps) ∧ caps.all = []) :
     ∃ mk : EnvModelM V μ env', mk.base2 = mpX.base2 ∧ mk.lfpBlocks = mp.lfpBlocks ∧
       (LfpCover mp ex → LfpCover mk ex') := by
-  obtain ⟨cs⟩ := env'
-  simp only at henv
-  subst henv
+  obtain ⟨cs, ts⟩ := env'
+  simp only at henv htab
+  subst henv htab
   have hbound := ConLeche.Verify.envWF_constsBound mp.base2.wf
   have hden : ∀ (ψ : Name → Nat) (d : Nat) (e : Expr), ConstsBound env e →
       ∀ {ea : Term}, denote mp.base2.acval env ψ d e = some ea →
@@ -91,7 +81,7 @@ theorem lfpCover_append {env env' : Env} {new : List ConstantInfo} (mp : EnvMode
     intro ψ d e hcb ea h
     refine denote_envExtend_mono (fun hf => hfwd _ _ hf)
       ⟨natLitSupported_mono_of_keep hfwd, strLitSupported_mono_of_keep hfwd⟩
-      (findProj?_append_none hntc) d e hcb ?_
+      (findProj?_mono_of_tables (fun hf => hfwd _ _ hf) rfl) d e hcb ?_
     rw [denote_acval_congr (env := env) hag]
     exact h
   have hok := mp.lfp_ok_transport (acval' := mpX.base2.acval)
@@ -152,6 +142,34 @@ theorem consSumCtors_consts (nP : Nat) :
       consSumCtors_consts nP cs]
     simp
 
+/-- The block's conses leave the tables alone. -/
+theorem consSumCtors_tables (nP : Nat) :
+    ∀ (L : List (ConstantVal × Nat)) (env : Env),
+      (ConLeche.consSumCtors nP L env).tables = env.tables
+  | [], _ => rfl
+  | _ :: rest, _ => consSumCtors_tables nP rest _
+
+theorem consBlockCtors_tables (nP : Nat) :
+    ∀ (L : List (List (ConstantVal × Nat))) (env : Env),
+      (ConLeche.consBlockCtors nP L env).tables = env.tables
+  | [], _ => rfl
+  | l :: L, env => by
+    rw [show ConLeche.consBlockCtors nP (l :: L) env
+      = ConLeche.consBlockCtors nP L (ConLeche.consSumCtors nP l env) from rfl,
+      consBlockCtors_tables nP L, consSumCtors_tables]
+
+theorem consBlockInds_tables {p₁ : BlockShape} {isRec : Bool} :
+    ∀ (cvs : List ConstantVal) (i : Nat) (env : Env),
+      (ConLeche.consBlockInds p₁ isRec cvs i env).tables = env.tables
+  | [], _, _ => rfl
+  | _ :: rest, i, _ => consBlockInds_tables (p₁ := p₁) (isRec := isRec) rest (i + 1) _
+
+theorem consBlockRecsT_tables {find? : Name → Option ConstantInfo} {q : BlockShape} :
+    ∀ (m : Nat) (out : List (ConstantVal × ConLeche.TargetMajor × List Expr)) (env : Env),
+      (ConLeche.consBlockRecsT find? q m out env).tables = env.tables
+  | _, [], _ => rfl
+  | m, _ :: rest, _ => consBlockRecsT_tables (find? := find?) (q := q) (m + 1) rest _
+
 theorem consBlockCtors_consts (nP : Nat) :
     ∀ (L : List (List (ConstantVal × Nat))) (env : Env),
       (ConLeche.consBlockCtors nP L env).consts
@@ -205,20 +223,6 @@ theorem consBlockRecsT_consts {find? : Name → Option ConstantInfo}
         exact ⟨r', List.mem_cons_of_mem _ hr', rest'⟩
       · rw [List.mem_singleton.mp h]
         exact ⟨_, List.mem_cons_self, _, _, _, rfl⟩
-
-/-- A name absent above the cons at the majors was absent below it. -/
-theorem find?_none_consBlockRecsT {find? : Name → Option ConstantInfo}
-    {q : BlockShape} :
-    ∀ {m : Nat} {out : List (ConstantVal × ConLeche.TargetMajor × List Expr)} {env : Env}
-      {n : Name}, (ConLeche.consBlockRecsT find? q m out env).find? n = none →
-      env.find? n = none
-  | _, [], _, _, h => h
-  | m, (cv, M, rhss) :: rest, env, n, h => by
-    have h' := find?_none_consBlockRecsT (m := m + 1) (out := rest) h
-    rw [ConLeche.Env.find?_cons] at h'
-    split at h'
-    · exact nomatch h'
-    · exact h'
 
 /-! ## The block's own constructor ownership -/
 

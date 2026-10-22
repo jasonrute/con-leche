@@ -243,7 +243,7 @@ theorem checkDecls_consts (V : Type w) [SetTheory V]
   obtain ⟨fc, rfl⟩ := checkDecls_fullyChecked _ accepted
   obtain ⟨n, run⟩ := fc.1.run
   have hchain := installRun_trace _ run (PushChain.refl Env.empty)
-  have hnd : NodupNames fc.1.fe.env := hchain.1.2.2 List.nodup_nil
+  have hnd : NodupNames fc.1.fe.env := hchain.1.2.2.1 List.nodup_nil
   obtain ⟨c, hc, h1, h2, h3⟩ :=
     installRun_declares (V := V) rfl run rfl
       EnvModelOk.empty

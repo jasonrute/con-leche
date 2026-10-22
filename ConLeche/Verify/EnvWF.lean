@@ -254,6 +254,33 @@ theorem EnvWF.findProj?_cons {env : Env} (henv : EnvWF env) {c : ConstantInfo}
   unfold Env.findProj?
   rw [henv.findTable?_cons hfresh]
 
+/-- **An extension that keeps the tables keeps the table lookups**
+(task #362): a stored name stays stored, and a table waits for no name
+the prefix lacks, since every stored table's structure is stored. -/
+theorem EnvWF.findTable?_extend {env₀ env : Env} (henv : EnvWF env₀)
+    (hF : ∀ n, (env₀.find? n).isSome = true → (env.find? n).isSome = true)
+    (hT : env.tables = env₀.tables) (T : Name) :
+    env.findTable? T = env₀.findTable? T := by
+  unfold Env.findTable?
+  by_cases h0 : (env₀.find? T).isSome = true
+  · rw [ite_eq_left (hF T h0), ite_eq_left h0, hT]
+  · rw [ite_eq_right h0]
+    split
+    · rw [hT, List.find?_eq_none]
+      intro t ht hq
+      have hn : t.structName = T := by simpa using hq
+      have := (henv.tables t ht).1
+      rw [hn] at this
+      exact h0 this
+    · rfl
+
+theorem EnvWF.findProj?_extend {env₀ env : Env} (henv : EnvWF env₀)
+    (hF : ∀ n, (env₀.find? n).isSome = true → (env.find? n).isSome = true)
+    (hT : env.tables = env₀.tables) (T : Name) (i : Nat) :
+    env.findProj? T i = env₀.findProj? T i := by
+  unfold Env.findProj?
+  rw [henv.findTable?_extend hF hT]
+
 /-- Resolution depends on the environment only through which names it
 finds: every name found in `env` being found in `env'` carries
 resolution over. -/

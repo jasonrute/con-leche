@@ -315,7 +315,7 @@ theorem keyParamsFit {μ : ConLeche.CheckMode} (mp : EnvModelM V μ env)
       T' = cv.type.instantiateLevelParams cv.levelParams us := by
     intro T' h
     cases h with
-    | const hf' _ _ =>
+    | const hf' _ =>
       rw [hf] at hf'
       cases hf'
       rfl

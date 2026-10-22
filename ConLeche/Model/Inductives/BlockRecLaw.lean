@@ -118,7 +118,6 @@ as there (`iotaCtorNeverProp_consBlockRecsR_of_isSome`). -/
 theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
     {envC : Env} {acv : Name → (Name → Nat) → Term} (mpC : EnvModelM V μ envC)
     (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
-    (hpsh : ∀ r ∈ rs, r.1.name.isProjFnShape = false)
     (hag : ∀ n : Name, (∀ r ∈ rs, n ≠ r.1.name) → acv n = mpC.base2.acval n)
     (m₃ : EnvModel V (consBlockRecsR R q 0 rs envC))
     (hac : m₃.acval = acv) (φ : Name → Nat)
@@ -138,7 +137,7 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
         denote m₃.acval (consBlockRecsR R q 0 rs envC) ψ d e = some ea := by
     intro ψ d e hcb ea h
     rw [hac]
-    exact denote_consBlockRecsR_mono hfr hpsh hag ψ d e hcb h
+    exact denote_consBlockRecsR_mono hfr hag ψ d e hcb h
   obtain ⟨-, hlaw0, hextra⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
     mpC.base2.wf.consts _ (ConLeche.Env.find?_mem hfE)
@@ -255,7 +254,6 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
 theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
     {envC : Env} {acv : Name → (Name → Nat) → Term} (mpC : EnvModelM V μ envC)
     (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
-    (hpsh : ∀ r ∈ rs, r.1.name.isProjFnShape = false)
     (hag : ∀ n : Name, (∀ r ∈ rs, n ≠ r.1.name) → acv n = mpC.base2.acval n)
     (m₃ : EnvModel V (consBlockRecsR R q 0 rs envC))
     (hac : m₃.acval = acv) (φ : Name → Nat)
@@ -276,10 +274,10 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
         denote m₃.acval (consBlockRecsR R q 0 rs envC) ψ d e = some ea := by
     intro ψ d e hcb ea h
     rw [hac]
-    exact denote_consBlockRecsR_mono hfr hpsh hag ψ d e hcb h
+    exact denote_consBlockRecsR_mono hfr hag ψ d e hcb h
   obtain ⟨hrPle, hlaw0, hextra⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem
   refine ⟨hrPle, fun us hlen => ?_,
-    recRuleExtra_consBlockRecsR_prefix mpC hfr hpsh hag m₃ hac φ hfE hmem⟩
+    recRuleExtra_consBlockRecsR_prefix mpC hfr hag m₃ hac φ hfE hmem⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
     mpC.base2.wf.consts _ (ConLeche.Env.find?_mem hfE)
@@ -355,7 +353,6 @@ actually stores. -/
 theorem recRules_consBlockRecsR_of {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs : List RecDatum}
     {envC : Env} {acv : Name → (Name → Nat) → Term} (mpC : EnvModelM V μ envC)
     (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
-    (hpsh : ∀ r ∈ rs, r.1.name.isProjFnShape = false)
     (hag : ∀ n : Name, (∀ r ∈ rs, n ≠ r.1.name) → acv n = mpC.base2.acval n)
     (m₃ : EnvModel V (consBlockRecsR R q 0 rs envC))
     (hac : m₃.acval = acv) (φ : Name → Nat)
@@ -365,7 +362,7 @@ theorem recRules_consBlockRecsR_of {R : Nat → RecDatum → List RecRule} {q : 
     RecRules m₃ φ := by
   intro n cv mI rP rules hf rl hmem
   rcases find?_consBlockRecsR_inv hf with hE | ⟨j, r, hr, rfl, hci⟩
-  · exact recRuleLaw_consBlockRecsR_prefix mpC hfr hpsh hag m₃ hac φ hE hmem
+  · exact recRuleLaw_consBlockRecsR_prefix mpC hfr hag m₃ hac φ hE hmem
   · rw [Nat.zero_add] at hci
     obtain ⟨rfl, rfl, rfl, rfl⟩ :
         cv = r.1 ∧ mI = q.majorIdxAt j ∧ rP = q.rulePrefixAt j ∧ rules = R j r := by
@@ -970,7 +967,6 @@ theorem hrecP_ofR {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs :
     {nPc : Nat → Nat} {fireOf : Nat → RecDatum → ConLeche.RecRuleFire}
     (hshape : ConLeche.RecRulesShape envC.find? R rs nPc fireOf)
     (hfr : ∀ r ∈ rs, envC.find? r.1.name = none)
-    (hpsh : ∀ r ∈ rs, r.1.name.isProjFnShape = false)
     (hag : ∀ n : Name, (∀ r ∈ rs, n ≠ r.1.name) → acv n = mpC.base2.acval n)
     (hnew : ∀ m₃ : EnvModel V (consBlockRecsR R q 0 rs envC), m₃.acval = acv →
       ∀ (φ : Name → Nat) (j : Nat) (r : RecDatum), rs[j]? = some r →
@@ -983,7 +979,7 @@ theorem hrecP_ofR {R : Nat → RecDatum → List RecRule} {q : BlockShape} {rs :
     ∀ m₃ : EnvModel V (consBlockRecsR R q 0 rs envC),
       m₃.acval = acv → ∀ φ : Name → Nat, RecRules m₃ φ := by
   intro m₃ hac φ
-  refine recRules_consBlockRecsR_of mpC hfr hpsh hag m₃ hac φ ?_
+  refine recRules_consBlockRecsR_of mpC hfr hag m₃ hac φ ?_
   intro j r hr rl hrl
   obtain ⟨i, cA, rhs, hcA, hrhs, rfl⟩ := hshape j r hr rl hrl
   exact hnew m₃ hac φ j r hr i cA rhs hcA hrhs

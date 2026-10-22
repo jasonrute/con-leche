@@ -149,6 +149,11 @@ structure SwapCongr (env₀ env₃ : Env) : Prop where
 /-- Projection-table lookups transport across the swap: the tables are
 untouched (task #175 wiring W3 — `denote`'s `.proj` clause reads the
 entry; task #362 — the tables are their own component). -/
+theorem SwapCongr.tableEq {env₀ env₃ : Env} (hcg : SwapCongr env₀ env₃) (T : Name) :
+    env₀.findTable? T = env₃.findTable? T := by
+  unfold Env.findTable?
+  rw [hcg.isSomeEq, hcg.tablesEq]
+
 theorem SwapCongr.projEq {env₀ env₃ : Env} (hcg : SwapCongr env₀ env₃) :
     ∀ (sn : Name) (i : Nat), env₀.findProj? sn i = env₃.findProj? sn i := by
   intro sn i
@@ -224,5 +229,26 @@ theorem SwapShList.congr {consts₀ consts₃ : List ConstantInfo} {ts : List Pr
     · rw [h₀] at hf
       obtain rfl := Option.some.inj hf
       exact absurd rfl (hnr cv mI rP [])
+
+/-- A shape-level swap of two environments' constants, their tables
+equal, induces the congruences. -/
+theorem SwapShList.congrEnv {env₀ env₃ : Env} (hsw : SwapShList env₀.consts env₃.consts)
+    (ht : env₃.tables = env₀.tables) : SwapCongr env₀ env₃ := by
+  obtain ⟨c₀, t₀⟩ := env₀
+  obtain ⟨c₃, t₃⟩ := env₃
+  simp only at ht hsw
+  subst ht
+  exact SwapShList.congr hsw
+
+/-- The lookup correspondence of a shape-level swap of two
+environments' constants (lookups read the constants alone). -/
+theorem swapSh_find?_corrEnv {env₀ env₃ : Env} (hsw : SwapShList env₀.consts env₃.consts)
+    (n : Name) :
+    env₃.find? n = env₀.find? n ∨
+    ∃ cv mI rP rules,
+      env₀.find? n = some (.recInfo cv mI rP []) ∧
+      env₃.find? n = some (.recInfo cv mI rP rules) ∧
+      cv.name = n :=
+  swapSh_find?_corr (ts := []) hsw n
 
 end ConLeche

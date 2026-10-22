@@ -51,7 +51,7 @@ universe w
 variable {V : Type w} [SetTheory V] {μ : CheckMode}
 
 set_option maxHeartbeats 4000000 in
-/-- **THE GENERATED RECURSORS' STAGE**: the four cons-monotonicities at
+/-- **THE GENERATED RECURSORS' STAGE**: the three cons-monotonicities at
 the cons at the classes (`BlockRecStagedT`). -/
 theorem genRecStage (hμ : μ.isVerified = true) {F : Nat}
     {block : List ConstantInfo} {envC envI : Env} {pp : BlockParts} {cvTasR : List ConstantVal}
@@ -301,9 +301,7 @@ theorem genRecStage (hμ : μ.isVerified = true) {F : Nat}
     (fun j r hr lvls pins hf => by
       have hread := R.fire_nestedRead hr hf
       obtain ⟨n1, n2, n3, pre, dom, body, D, e1, e2, e3, -⟩ := id hread
-      exact ⟨n1, n2, fun pin hpin => ⟨(n3 pin hpin).1, (n3 pin hpin).2.1,
-        (n3 pin hpin).2.2.1, (n3 pin hpin).2.2.2,
-        tgtFire_pinsNoProj h j r hr hread pin hpin⟩, pre, dom, body, D, e1, e2, e3⟩)
+      exact ⟨n1, n2, n3, pre, dom, body, D, e1, e2, e3⟩)
     (genRecCtor_in R hN hcore hctorsAs ⟨pk, uOfD, ppsOf, hdRe⟩ hcov)
     (pdoms0 := fun ψ => blockRulePdomsAV mpC.base2.acval envC pp.toBlockShape (tgtRs out) ψ)
     (fdoms0 := fun ψ => tgtFdomsAV pp.toBlockShape out mpC.base2.acval envC ψ)

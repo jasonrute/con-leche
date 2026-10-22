@@ -412,8 +412,7 @@ theorem stageBlockFormers {p₁ : BlockShape} {isRec : Bool} {names : List Name}
         FormerData mpI.base2 cvTb (nPOf j) resSort (ppsOf j) := by
       intro j cvTb hj
       exact (hFD j cvTb hj).cross (c₀ := .indInfo cvTa (ConLeche.blockCapsAt p₁ i isRec))
-        hfresh (ConsCrossAt.ofNtc fun _ h => nomatch h)
-        (constsBound_of_constsResolve _ (hres j cvTb hj)) mpI.base2 hacI
+        hfresh (constsBound_of_constsResolve _ (hres j cvTb hj)) mpI.base2 hacI
     have hcons' : ∀ (j : Nat) (cvTb : ConstantVal), j < i + 1 → cvTasAll[j]? = some cvTb →
         (⟨.indInfo cvTa (ConLeche.blockCapsAt p₁ i isRec) :: env.consts, env.tables⟩ : Env).find? cvTb.name
           = some (.indInfo cvTb (ConLeche.blockCapsAt p₁ j isRec)) ∧

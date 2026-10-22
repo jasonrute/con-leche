@@ -286,6 +286,13 @@ theorem consBlockRecsR_tables
   | _, [], _ => rfl
   | m, _ :: rest, _ => consBlockRecsR_tables R q (m + 1) rest _
 
+/-- The rule-less recursors' conses leave the tables alone. -/
+theorem consBlockRecsBare_tables (q : BlockShape) :
+    ∀ (m : Nat) (rs : List (ConstantVal × Nat)) (env : Env),
+      (consBlockRecsBare q m rs env).tables = env.tables
+  | _, [], _ => rfl
+  | m, _ :: rest, _ => consBlockRecsBare_tables q (m + 1) rest _
+
 /-- The member cons' rules function: `sumRules` at the block's
 parameter count. -/
 @[expose] def sumRulesR (find? : Name → Option ConstantInfo) (nP : Nat) :

@@ -328,7 +328,7 @@ theorem genOutsideClass_reachedNode {envC envI : Env} (hwf : ConLeche.EnvWF envI
   obtain ⟨cvTa0, fvsP, rest, holes, h1, h2, h3, hder⟩ :=
     ConLeche.checkBlockPositivity_deriv hwsc hpos
   have hctx : NestCtxOk (pp.nestCtx fvsP envI.find?) :=
-    fun n ci hf => (hwf ci (List.mem_of_find?_eq_some hf)).1
+    fun n ci hf => (hwf.consts ci (List.mem_of_find?_eq_some hf)).1
   have hparIdx : ∀ i, i < pp.nP → ∃ ty, fvsP[i]? = some (.fvar i ty) := by
     intro i hi
     have hl := ConLeche.Verify.openPisAtFvars_length _ h2

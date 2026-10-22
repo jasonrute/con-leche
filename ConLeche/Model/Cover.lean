@@ -561,6 +561,40 @@ theorem EnvModelM.keepLfpOf {env : Env} {mp : EnvModelM V μ env} {c₀ : Consta
     lfpBlocks := mp.lfpBlocks
     lfp_ok := by rw [hac]; exact hok }, rfl, rfl⟩
 
+/-- **A table install's carrier, rebuilt with the input's recorded
+list** (task #362): the install moves no leaf, and every prefix reading
+survives (`denote_pushTable_mono`). -/
+theorem EnvModelM.keepLfpOfTable {env : Env} {mp : EnvModelM V μ env} {t : ConLeche.ProjTable}
+    (hT : env.findTable? t.structName = none)
+    (mp' : EnvModelM V μ ⟨env.consts, t :: env.tables⟩)
+    (hac : mp'.base2.acval = mp.base2.acval) :
+    ∃ mk : EnvModelM V μ ⟨env.consts, t :: env.tables⟩,
+      mk.base2 = mp'.base2 ∧ mk.lfpBlocks = mp.lfpBlocks := by
+  have hbound := ConLeche.Verify.envWF_constsBound mp.base2.wf
+  have hok := mp.lfp_ok_transport (env' := ⟨env.consts, t :: env.tables⟩) (acval' := mp.base2.acval)
+    (fun _ _ hf _ => hf) (fun _ _ _ _ => rfl)
+    (fun _ _ _ hf ψ _ hta =>
+      have hm := ConLeche.Env.find?_mem hf
+      denote_pushTable_mono hT ψ 0 (hbound _ hm).1 hta)
+    (fun _ _ _ _ hf ψ _ hta =>
+      have hm := ConLeche.Env.find?_mem hf
+      denote_pushTable_mono hT ψ 0 (hbound _ hm).1 hta)
+    (fun _ _ hf _ _ hA ψ d _ hta =>
+      have hm := ConLeche.Env.find?_mem hf
+      denote_pushTable_mono hT ψ d
+        (canonOf_constsBound (hbound _ hm).1 hA) hta)
+  exact ⟨{ mp' with
+    lfpBlocks := mp.lfpBlocks
+    lfp_ok := by rw [hac]; exact hok }, rfl, rfl⟩
+
+/-- **Coverage across a table install**: no name is added, so the
+exemption list stays. -/
+theorem LfpCover.pushTable {env : Env} {mp : EnvModelM V μ env} {t : ConLeche.ProjTable}
+    {mp' : EnvModelM V μ ⟨env.consts, t :: env.tables⟩} {ex : List Name} (h : LfpCover mp ex)
+    (hL : mp'.lfpBlocks = mp.lfpBlocks) : LfpCover mp' ex :=
+  h.ext hL (fun _ _ hf => hf) (fun _ _ _ hf hn _ => ⟨hf, hn⟩) (fun _ hn => Or.inl hn)
+    (fun _ _ _ _ => rfl)
+
 /-- **The cons funnel's carrier, with the input's recorded list.**  The
 funnel (`declStep_preserves_of_cons*`, and every basis variant) builds
 `lfpBlocks := mp.lfpBlocks` but exposes only its leaf; this rebuilds a

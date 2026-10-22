@@ -347,11 +347,7 @@ syntactically, every rule the generated one, stored as generated.
   constructor telescopes over the parameters, minors after their
   motives, the stored prefix the generator's own) — what the ported
   generator lemmas take throughout (`classGenRecTy_spec`, the prefix's
-  motive entry), a fact of the run's earlier binds (`genScoped_of_run`);
-the stage record's `.proj`-freedom of every stored term
-(`ConstChecked.noProj`, `RuleOutOk.hnoProj`) is the stored term's own full inference
-(`inferTypeCore_noProjAt`: a successful inference names only occupied
-slots). -/
+  motive entry), a fact of the run's earlier binds (`genScoped_of_run`). -/
 theorem recStage_of_gen (hμ : μ.isVerified = true)
     (R : GenRecRun μ F (mkFEnv env₁) env₁ (mkFEnv envC) p.toBlockShape nestedBit pos cvTas
       block ctorsAs out)
@@ -522,8 +518,7 @@ theorem recStage_of_gen (hμ : μ.isVerified = true)
     rw [hfeR] at hres
     simp only [StructWalkers.plain, ConLeche.constsResolveF_eq] at hres
     rw [hfeR, ConLeche.mkFEnv_env, ConLeche.fueledOps_inferType] at htyR
-    exact ⟨rc, hrc, ⟨Q.hbv, Q.hfv, by rw [← E.lps_eq]; exact Q.hlp, hres, ⟨_, htyR⟩,
-      fun _ _ hslot => inferTypeCore_noProjAt htyR Q.hfv hslot⟩⟩
+    exact ⟨rc, hrc, ⟨Q.hbv, Q.hfv, by rw [← E.lps_eq]; exact Q.hlp, hres, ⟨_, htyR⟩⟩⟩
 
 end Stage
 

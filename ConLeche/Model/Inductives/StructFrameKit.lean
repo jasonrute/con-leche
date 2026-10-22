@@ -1622,6 +1622,26 @@ theorem FormerData.cross {m : EnvModel V env} {cvT : ConstantVal}
   syn := h.syn
 
 
+/-- The former's data crosses a projection table's install: the table
+is of a structure that had none, so every prefix reading survives. -/
+theorem FormerData.pushTable {m : EnvModel V env} {cvT : ConstantVal}
+    {nP : Nat} {resSort : Level}
+    {pps : (Name → Nat) → List Term}
+    (h : FormerData m cvT nP resSort pps)
+    {t : ConLeche.ProjTable} (hT : env.findTable? t.structName = none)
+    (hcb : ConstsBound env cvT.type)
+    (m₂ : EnvModel V ⟨env.consts, t :: env.tables⟩)
+    (hac : m₂.acval = m.acval) :
+    FormerData m₂ cvT nP resSort pps where
+  read ψ := by
+    rw [hac]
+    exact denote_pushTable_mono hT ψ 0 hcb (h.read ψ)
+  len := h.len
+  okTy := h.okTy
+  below := h.below
+  params := h.params
+  syn := h.syn
+
 theorem stripPisAV_mkPisAV :
     ∀ (pps : List Term) (b : Term),
       stripPisAV pps.length (mkPisAV pps b) = some (pps, b)

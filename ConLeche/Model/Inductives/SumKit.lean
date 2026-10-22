@@ -196,7 +196,7 @@ theorem DenoteSpine.cons_mono {acval : Name → (Name → Nat) → Term}
   | _, _, _, .nil => .nil
   | a :: _, _, hcb, .cons ha htl =>
     .cons (denote_cons_mono hfresh ψ d (hcb a List.mem_cons_self) ha)
-      (DenoteSpine.cons_mono hfresh hat (fun a' ha' => hcb a' (List.mem_cons_of_mem _ ha')) htl)
+      (DenoteSpine.cons_mono hfresh (fun a' ha' => hcb a' (List.mem_cons_of_mem _ ha')) htl)
 
 omit [SetTheory V] in
 /-- A valuation agreeing with the parameters below `nP`. -/
@@ -388,7 +388,7 @@ theorem CtorDataI.cross {m : EnvModel V env} {T : Name} {lps : List Name} {cvC :
   · rw [hac, hbody]
     exact denote_cons_mono hfresh ψ 0 hcb (h.read ψ)
   · rw [hac]
-    exact DenoteSpine.cons_mono hfresh hat hcbI (h.idxRead ψ)
+    exact DenoteSpine.cons_mono hfresh hcbI (h.idxRead ψ)
   · rw [hbody]; exact h.okTy ψ ρ
 
 
