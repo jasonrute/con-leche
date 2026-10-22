@@ -241,7 +241,7 @@ theorem BlockCtorDataI.cross {m : EnvModel V env} {T : Name} {lps : List Name}
       fvsP xFvs xrest)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none) (hT : T ≠ c₀.name)
-    (hat : ∀ e : Expr, ConsCrossAt c₀ e) (hcb : ConstsBound env cvC.type)
+    (hcb : ConstsBound env cvC.type)
     (hcbI : ∀ e ∈ idxArgs, ConstsBound env e)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith m.acval c₀.name A) :
@@ -269,7 +269,7 @@ theorem BlockCtorDataI.cross {m : EnvModel V env} {T : Name} {lps : List Name}
     idxEq := h.idxEq
     domRead := fun ψ i x hx => by
       rw [hac]
-      exact denote_cons_mono hfresh (hat _) ψ (nP + i) (hxcb i x hx) (h.domRead ψ i x hx)
+      exact denote_cons_mono hfresh ψ (nP + i) (hxcb i x hx) (h.domRead ψ i x hx)
     resShape := h.resShape }
 
 
@@ -1485,7 +1485,7 @@ theorem stageFixTable (mp : EnvModelM V μ env)
         = ctorBodyAVI mp.base2 T nP nF ψ (Es ψ) := by
       unfold ctorBodyAVI; rw [hacT]
     rw [hbody, hac]
-    exact denote_cons_mono hfresh hcrossC ψ 0 hcbC (hCDread ψ)
+    exact denote_cons_mono hfresh ψ 0 hcbC (hCDread ψ)
   -- the body, opened at the variables
   obtain ⟨cds, bodyB, hcf⟩ :=
     ConLeche.structProjBody_open hbodies hstripC hCb hi

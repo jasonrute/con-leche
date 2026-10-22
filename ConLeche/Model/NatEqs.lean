@@ -892,33 +892,12 @@ theorem natOpEquations_frag_of_guard {c : Name}
       rcases hc with rfl | rfl <;> simp)).1)
     (fun hc => (hbool (by rcases hc with rfl | rfl <;> simp)).2)
 
-/-- A `Nat`-operation fragment has no `.proj` node at all. -/
-theorem consCrossAt_of_natFragOk {c : Name} {c₀ : ConstantInfo} :
-    ∀ {e : Expr}, ConLeche.Verify.natFragOk env c e = true →
-      ConsCrossAt c₀ e := by
-  intro e
-  induction e with
-  | sort _ => intro _ _ _ _; simp
-  | fvar i ty =>
-    intro h entry heq j
-    simp only [ConLeche.Verify.natFragOk, Bool.and_eq_true, beq_iff_eq] at h
-    simp [h.2]
-  | const _ _ => intro _ _ _ _; simp
-  | app f a ihf iha =>
-    intro h entry heq j
-    simp only [ConLeche.Verify.natFragOk, Bool.and_eq_true] at h
-    simp only [Expr.NoProjAt]
-    exact ⟨ihf h.1 entry heq j, iha h.2 entry heq j⟩
-  | bvar _ | lam _ _ | forallE _ _ | letE _ _ _ | lit _ | proj _ _ _ =>
-    intro h; simp [ConLeche.Verify.natFragOk] at h
-
 /-- **The per-operation crossing at a fresh cons**: an operation
 stored in the prefix keeps its `NatOps` entry at the extension. -/
 theorem natOps_entry_cons (mp : EnvModelM V μ env) {φ : Name → Nat}
     (hprev : NatOps mp.base2 φ)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
-    (hntc : ConsCrossEnv env c₀)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     {c : Name} (hcN : c ∈ ConLeche.natOpNames) (hne : c ≠ c₀.name)
@@ -935,7 +914,6 @@ theorem natOps_entry_cons (mp : EnvModelM V μ env) {φ : Name → Nat}
         y ∈ˢ interp V ρ (m₂.acval ConLeche.natName φ) →
         interp V (cons y (cons x ρ)) L
           = interp V (cons y (cons x ρ)) R := by
-  have _ := hntc
   have hfE : env.find? c = some (.defnInfo cv' v' hint') := by
     rw [ConLeche.Env.find?_cons] at hf₂
     split at hf₂
@@ -960,10 +938,10 @@ theorem natOps_entry_cons (mp : EnvModelM V μ env) {φ : Name → Nat}
   have hfrag := natOpEquations_frag_of_guard hg eq hq
   refine ⟨L, R, ?_, ?_, ?_⟩
   · rw [hac]
-    exact denote_cons_mono hfresh (consCrossAt_of_natFragOk hfrag.1) φ 2
+    exact denote_cons_mono hfresh φ 2
       (hcb eq hq).1 hL
   · rw [hac]
-    exact denote_cons_mono hfresh (consCrossAt_of_natFragOk hfrag.2) φ 2
+    exact denote_cons_mono hfresh φ 2
       (hcb eq hq).2 hR
   · intro ρ x y hx hy
     rw [hac, show acvalWith mp.base2.acval c₀.name A ConLeche.natName
@@ -979,7 +957,6 @@ theorem natOps_cons_fresh (mp : EnvModelM V μ env) {φ : Name → Nat}
     (hprev : NatOps mp.base2 φ)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
-    (hntc : ConsCrossEnv env c₀)
     (hnothead : (∀ cv v hint, c₀ ≠ .defnInfo cv v hint) ∨
       c₀.name ∉ ConLeche.natOpNames)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
@@ -992,7 +969,7 @@ theorem natOps_cons_fresh (mp : EnvModelM V μ env) {φ : Name → Nat}
     rcases hnothead with hnd | hnn
     · exact absurd (Option.some.inj hf₂) (hnd cv' v' hint')
     · exact absurd hcN hnn
-  · exact natOps_entry_cons mp hprev hfresh hntc m₂ hac hcN hne hf₂
+  · exact natOps_entry_cons mp hprev hfresh m₂ hac hcN hne hf₂
 
 /-- **The installing operation's own head packages**, from the
 harvest's facts: the stored value's reading, grading and membership
@@ -1144,7 +1121,6 @@ theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}
   case neg =>
     exact natOps_entry_cons mp hprev
       (c₀ := .defnInfo ⟨c, lps, type'⟩ value' hint)
-      (hntc := fun _ h => ConstantInfo.noConfusion h)
       (show env.find? (ConstantInfo.defnInfo ⟨c, lps, type'⟩ value'
         hint).name = none from hfresh) m₂
       (show m₂.acval = acvalWith mp.base2.acval

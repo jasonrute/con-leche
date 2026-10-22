@@ -136,7 +136,7 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
           (∀ ρ : Nat → V, interp V ρ (acv r0.1.name ψ) ∈ˢ interp V ρ ta) := by
       intro ψ
       obtain ⟨ta, hta, hokta, hmemta⟩ := hrd r0 hmem0 ψ
-      exact ⟨ta, denote_cons_mono hfresh (hcross _) ψ 0 hcb hta, hokta, hmemta⟩
+      exact ⟨ta, denote_cons_mono hfresh ψ 0 hcb hta, hokta, hmemta⟩
     -- the cons
     obtain ⟨mp₁, hac₁⟩ :=
       declStep_preserves_of_ind_rec_cons (A := acv r0.1.name)
@@ -151,7 +151,6 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
                 subst e4
                 exact nomatch hr)))
           (fun ψ => hcl r0 hmem0 ψ) (hnres r0 hmem0)
-          (fun _ h => nomatch h)
           (fun _ _ _ rules heq r hr => by
             injection heq with _ _ _ e4
             subst e4
@@ -169,11 +168,11 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
           exact hmemta ρ)
         (fun m₂ hac =>
           capsOk_cons_fresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
-            mp mp.caps_ok hfresh (ConsCrossEnv.ofNtc (fun _ h => nomatch h))
+            mp mp.caps_ok hfresh
             (fun _ _ h => nomatch h) (fun _ _ _ h => nomatch h) m₂ hac)
         (fun m₂ hac φ =>
           recRules_cons_fresh (c₀ := .recInfo r0.1 (q.majorIdxAt m) (q.rulePrefixAt m) [])
-            mp hfresh (ConsCrossEnv.ofNtc (fun _ h => nomatch h))
+            mp hfresh
             (fun _ _ _ _ heq => by injection heq with _ _ _ e4; exact e4.symm) m₂ hac φ)
     -- the tail
     show ∃ mp' : EnvModelM V μ (consBlockRecsBare q (m + 1) rest
@@ -206,7 +205,7 @@ theorem envModelM_consBlockRecsBare {q : BlockShape}
       obtain ⟨ta, hta, hokta, hmemta⟩ := hrd r (List.mem_cons_of_mem _ hr) ψ
       refine ⟨ta, ?_, hokta, hmemta⟩
       rw [hac₁]
-      exact denote_cons_mono hfresh (hcross _) ψ 0
+      exact denote_cons_mono hfresh ψ 0
         (constsBound_of_constsResolve _ (hty r (List.mem_cons_of_mem _ hr)).2.2.1) hta
 
 /-! ## The rules, attached in one step
@@ -731,7 +730,7 @@ theorem strLitSupported_mono_of_keep {envA envB : Env}
     guardOk_mono rfl hkeep h.2⟩
 
 /-- **Conjunct 3's monotone half, unconditionally** — the form the tree
-uses everywhere else (`denote_cons_fresh_mono`): a SUCCESSFUL
+uses everywhere else (`denote_cons_mono`): a SUCCESSFUL
 reading at the constructors' environment is reproduced verbatim at the
 recursors'.  The equation `blockRecStaged_of` states needs the NAME
 check (`hresRec`); this does not. -/

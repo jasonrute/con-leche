@@ -272,8 +272,7 @@ theorem extendNat (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT natA.name ψ
           = some (Term.const .nat []) from rfl] at hp
-        rw [← Option.some.inj hp])
-      (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
+        rw [← Option.some.inj hp]) (fun _ _ _ _ h => nomatch h))
     (fun _ _ _ => rfl)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, denote_natA_type ψ⟩) ?_ ?_ ?_ ?_
@@ -294,7 +293,6 @@ theorem extendNat (mp : EnvModelM V μ env)
     rw [hguard] at hg
     exact nomatch hg
   · exact fun m₂ hac φ => recRules_cons_fresh mp (c₀ := natA) hfresh
-      (fun _ h => nomatch h)
       (fun _ _ _ _ h => nomatch h) m₂ hac φ
 
 /-- **`Nat.zero`, installed at the P tier.** -/
@@ -317,8 +315,7 @@ theorem extendNatZero (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT natZeroA.name ψ
           = some (Term.const .natZero []) from rfl] at hp
-        rw [← Option.some.inj hp])
-      (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
+        rw [← Option.some.inj hp]) (fun _ _ _ _ h => nomatch h))
     (fun _ _ _ => rfl)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_ ?_ ?_)
@@ -334,7 +331,6 @@ theorem extendNatZero (mp : EnvModelM V μ env)
     rw [hguard] at hg
     exact nomatch hg
   · exact fun m₂ hac φ => recRules_cons_fresh mp (c₀ := natZeroA)
-      (hntc := fun _ h => nomatch h)
       hfresh (fun _ _ _ _ h => nomatch h) m₂ hac φ
 
 /-- **`Nat.succ`, installed at the P tier** — the cons where the
@@ -443,8 +439,7 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT natSuccA.name ψ
           = some (Term.const .natSucc []) from rfl] at hp
-        rw [← Option.some.inj hp])
-      (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
+        rw [← Option.some.inj hp]) (fun _ _ _ _ h => nomatch h))
     (fun _ _ _ => rfl)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, hty ψ⟩) ?_ ?_ ?_ ?_)
@@ -481,7 +476,6 @@ theorem extendNatSucc (mp : EnvModelM V μ env)
       by simpa [interp_const, bval] using natSuccV_mem V,
       by simpa [interp_const, bval] using (IsTy_omega : IsTy (omega : V))⟩
   · exact fun m₂ hac φ => recRules_cons_fresh mp (c₀ := natSuccA)
-      (hntc := fun _ h => nomatch h)
       hfresh (fun _ _ _ _ h => nomatch h) m₂ hac φ
 
 /-! ### The two firing rules
@@ -1311,7 +1305,6 @@ theorem extendNatRec (mp : EnvModelM V μ env)
         rw [show ConLeche.Verify.pinnedStructT natRecA.name ψ
           = some (Term.const .natRec [ψ uN]) from rfl] at hp
         rw [← Option.some.inj hp])
-      (fun _ h => nomatch h)
       (fun _ _ _ _ heq r hr => by
         injection heq with _ _ _ h4
         rw [← h4] at hr
@@ -1361,7 +1354,6 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
   have hwf1 : EnvWF ⟨natA :: env.consts, env.tables⟩ :=
     EnvWF.cons mp.base2.wf ⟨rfl, rfl, rfl, rfl,
       (fun _ _ _ heq => nomatch heq), (fun _ _ _ _ heq => nomatch heq),
-      (fun _ heq => nomatch heq),
       (by first
         | (refine ConLeche.IndCapsWF.of_caps ?_ ?_ <;> intro h <;>
             first | exact absurd h (by decide) | rfl)
@@ -1378,7 +1370,6 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
   have hwf2 : EnvWF ⟨natZeroA :: natA :: env.consts, env.tables⟩ := by
     refine EnvWF.cons hwf1 ⟨rfl, rfl, ?_, rfl,
       (fun _ _ _ heq => nomatch heq), (fun _ _ _ _ heq => nomatch heq),
-      (fun _ heq => nomatch heq),
       (by first
         | (refine ConLeche.IndCapsWF.of_caps ?_ ?_ <;> intro h <;>
             first | exact absurd h (by decide) | rfl)
@@ -1405,7 +1396,6 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
   have hwf3 : EnvWF ⟨natSuccA :: natZeroA :: natA :: env.consts, env.tables⟩ := by
     refine EnvWF.cons hwf2 ⟨rfl, rfl, ?_, rfl,
       (fun _ _ _ heq => nomatch heq), (fun _ _ _ _ heq => nomatch heq),
-      (fun _ heq => nomatch heq),
       (by first
         | (refine ConLeche.IndCapsWF.of_caps ?_ ?_ <;> intro h <;>
             first | exact absurd h (by decide) | rfl)
@@ -1444,7 +1434,6 @@ theorem declBasisPB_natK {env₁ : Env} (mp : EnvModelM V μ env)
       rw [ConLeche.Env.find?_cons, ite_eq_right (by decide)]; exact hS3
     refine EnvWF.cons hwf3 ⟨rfl, rfl, ?_, rfl,
       (fun _ _ _ heq => nomatch heq), ?_,
-      (fun _ heq => nomatch heq),
       (by first
         | (refine ConLeche.IndCapsWF.of_caps ?_ ?_ <;> intro h <;>
             first | exact absurd h (by decide) | rfl)

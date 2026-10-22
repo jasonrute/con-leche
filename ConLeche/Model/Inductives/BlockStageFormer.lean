@@ -252,14 +252,12 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
       denote (acvalWith mp.base2.acval cvTa.name A)
         ⟨.indInfo cvTa caps :: env.consts, env.tables⟩ ψ 0 cvTa.type
         = some (mkPisAV (pps ψ) (.sort (resSort.eval ψ))) := fun ψ =>
-    denote_cons_mono (c₀ := .indInfo cvTa caps) hfresh
-      (ConsCrossAt.ofNtc fun _ h => nomatch h) ψ 0 hcb (hFD.read ψ)
+    denote_cons_mono (c₀ := .indInfo cvTa caps) hfresh ψ 0 hcb (hFD.read ψ)
   have hnresI : ConLeche.reservedBasisNames.contains
       (ConstantInfo.indInfo cvTa caps).name = false := hnres
   refine declStep_preserves_of_ind_member_cons mp (c₀ := .indInfo cvTa caps)
     (A := A) hfresh hnresI (Or.inl ⟨_, _, rfl⟩)
     (ConsHead.ofFresh hwfI hAbelow hnresI
-      (fun _ h => nomatch h)
       (fun _ _ _ _ h => nomatch h))
     hAparams hAok (fun ψ => ⟨_, hreadI ψ⟩) ?_ ?_ ?_
     (hind := indStrictHead_cons hreadI fun ψ hn ρ vs hsp =>
@@ -273,7 +271,6 @@ theorem stageBlockFormer (mp : EnvModelM V μ env) {names : List Name}
   · intro m₂ hac
     refine capsOk_cons_native mp (c₀ := .indInfo cvTa caps)
       (A := A) (T := cvTa.name) hfresh
-      (ConsCrossEnv.ofNtc fun _ h => nomatch h)
       (Or.inl ⟨cvTa, caps, rfl, rfl⟩) ?_ m₂ hac ?_
     · -- the OTHER stored families: outside the block they are closed;
       -- a still-pending MEMBER's η constructor is a `ctorInfo`, which

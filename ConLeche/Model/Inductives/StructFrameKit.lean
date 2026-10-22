@@ -320,7 +320,6 @@ family's laws at the extension are supplied (`hTlaws`). -/
 theorem capsOk_cons_native (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term} {T : Name}
     (hfresh : env.find? c₀.name = none)
-    (hcross : ConsCrossEnv env c₀)
     (hkind : (∃ cvT caps, c₀ = .indInfo cvT caps ∧ c₀.name = T) ∨
       ∀ cv caps, c₀ ≠ .indInfo cv caps)
     (hother : ∀ (T' : Name) (cvT' : ConstantVal) (caps' : IndCaps),
@@ -369,8 +368,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       mp.caps_ok.1 T' cvT' caps' hfE hcape hres hfam₀ φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_, ?_⟩
     · rw [hac]
-      exact denote_cons_mono hfresh
-        ((hcross.typeOf hfE).instantiateLevelParams _ _) _ 0
+      exact denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
@@ -382,8 +380,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
         (fun _ _ _ => rfl)
       · rwa [hdown _ hnC] at hf₂
       · rw [hac]
-        exact denote_cons_mono hfresh
-          ((hcross.typeOf hf).instantiateLevelParams _ _) _ 0
+        exact denote_cons_mono hfresh _ 0
           (constsBound_instType mp.base2.wf
             (ConLeche.Env.find?_mem hf) us) hTCa
   · -- the unit-like half
@@ -398,8 +395,7 @@ theorem capsOk_cons_native (mp : EnvModelM V μ env)
       mp.caps_ok.2 T' cvT' caps' hfE hcapu hres φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_⟩
     · rw [hac]
-      exact denote_cons_mono hfresh
-        ((hcross.typeOf hfE).instantiateLevelParams _ _) _ 0
+      exact denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x y hlents hfit hmx hmy
@@ -1611,14 +1607,14 @@ theorem FormerData.cross {m : EnvModel V env} {cvT : ConstantVal}
     {pps : (Name → Nat) → List Term}
     (h : FormerData m cvT nP resSort pps)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
-    (hfresh : env.find? c₀.name = none) (hat : ConsCrossAt c₀ cvT.type)
+    (hfresh : env.find? c₀.name = none)
     (hcb : ConstsBound env cvT.type)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith m.acval c₀.name A) :
     FormerData m₂ cvT nP resSort pps where
   read ψ := by
     rw [hac]
-    exact denote_cons_mono hfresh hat ψ 0 hcb (h.read ψ)
+    exact denote_cons_mono hfresh ψ 0 hcb (h.read ψ)
   len := h.len
   okTy := h.okTy
   below := h.below

@@ -189,13 +189,13 @@ theorem IsTy_body_of_sat {R : Term} {ds : List Term} {σ : Nat → V}
 /-- A read spine crosses a cons its terms do not mention. -/
 theorem DenoteSpine.cons_mono {acval : Name → (Name → Nat) → Term}
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term} (hfresh : env.find? c₀.name = none)
-    (hat : ∀ e : Expr, ConsCrossAt c₀ e) {ψ : Name → Nat} {d : Nat} :
+    {ψ : Name → Nat} {d : Nat} :
     ∀ {as : List Expr} {vs : List Term}, (∀ a ∈ as, ConstsBound env a) →
       DenoteSpine acval env ψ d as vs →
       DenoteSpine (acvalWith acval c₀.name A) ⟨c₀ :: env.consts, env.tables⟩ ψ d as vs
   | _, _, _, .nil => .nil
   | a :: _, _, hcb, .cons ha htl =>
-    .cons (denote_cons_mono hfresh (hat a) ψ d (hcb a List.mem_cons_self) ha)
+    .cons (denote_cons_mono hfresh ψ d (hcb a List.mem_cons_self) ha)
       (DenoteSpine.cons_mono hfresh hat (fun a' ha' => hcb a' (List.mem_cons_of_mem _ ha')) htl)
 
 omit [SetTheory V] in
@@ -374,7 +374,7 @@ theorem CtorDataI.cross {m : EnvModel V env} {T : Name} {lps : List Name} {cvC :
     (h : CtorDataI m T lps cvC nP nF nIdx resSort isProp large idxArgs ds Es srcs)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none) (hT : T ≠ c₀.name)
-    (hat : ∀ e : Expr, ConsCrossAt c₀ e) (hcb : ConstsBound env cvC.type)
+    (hcb : ConstsBound env cvC.type)
     (hcbI : ∀ e ∈ idxArgs, ConstsBound env e)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith m.acval c₀.name A) :
@@ -386,7 +386,7 @@ theorem CtorDataI.cross {m : EnvModel V env} {T : Name} {lps : List Name} {cvC :
   refine ⟨h.resid, fun ψ => ?_, h.len, h.lenE, h.idxLen, fun ψ => ?_,
     fun ψ ρ => ?_, h.below, h.belowE, h.params, h.srcLen, h.srcBnd, h.srcIdx, h.srcProp⟩
   · rw [hac, hbody]
-    exact denote_cons_mono hfresh (hat _) ψ 0 hcb (h.read ψ)
+    exact denote_cons_mono hfresh ψ 0 hcb (h.read ψ)
   · rw [hac]
     exact DenoteSpine.cons_mono hfresh hat hcbI (h.idxRead ψ)
   · rw [hbody]; exact h.okTy ψ ρ
@@ -1126,8 +1126,7 @@ theorem stageCtorGen {T : Name}
       denote (acvalWith mp.base2.acval cvCa.name A)
         ⟨.ctorInfo cvCa nP nF :: env.consts, env.tables⟩ ψ 0 cvCa.type
         = some (mkPisAV (ds ψ) (ctorBodyAVI mp.base2 T nP nF ψ (Es ψ))) := fun ψ =>
-    denote_cons_mono (c₀ := .ctorInfo cvCa nP nF) hfresh
-      (ConsCrossAt.ofNtc fun _ h => nomatch h) ψ 0 hcb (hCD.read ψ)
+    denote_cons_mono (c₀ := .ctorInfo cvCa nP nF) hfresh ψ 0 hcb (hCD.read ψ)
   have hnresC : ConLeche.reservedBasisNames.contains
       (ConstantInfo.ctorInfo cvCa nP nF).name = false := by
     show ConLeche.reservedBasisNames.contains cvCa.name = false
@@ -1135,7 +1134,6 @@ theorem stageCtorGen {T : Name}
   refine declStep_preserves_of_ind_member_cons mp (c₀ := .ctorInfo cvCa nP nF)
     (A := A) hfresh hnresC (Or.inr ⟨_, _, _, rfl⟩)
     (ConsHead.ofFresh hwfC (fun ψ => hAbelow ψ) hnresC
-      (fun _ h => nomatch h)
       (fun _ _ _ _ h => nomatch h))
     ?_ ?_ ?_ ?_ ?_ ?_
   · intro ψ₁ ψ₂ hφ
@@ -1160,7 +1158,7 @@ theorem stageCtorGen {T : Name}
   · -- `caps_ok`: nothing is claimed by the block's family
     intro m₂ hac
     refine capsOk_cons_native mp (c₀ := .ctorInfo cvCa nP nF) (A := A)
-      (T := T) hfresh (ConsCrossEnv.ofNtc fun _ h => nomatch h)
+      (T := T) hfresh
       (Or.inr fun _ _ h => nomatch h) ?_ m₂ hac ?_
     · intro T' cvT' caps' hf hne hres hcape hfam
       exact hE T' cvT' caps' hf hne hres hcape hfam

@@ -195,8 +195,9 @@ theorem EnvWF.indCaps {env : Env} (henv : EnvWF env) {T : Name}
   (henv.consts _ (List.mem_of_find?_eq_some h)).2.2.2.2.2.2 cv caps rfl
 
 /-- `find?` on a cons. -/
-theorem Env.find?_cons {c : ConstantInfo} {env : Env} {n : Name} :
-    Env.find? ⟨c :: env.consts, env.tables⟩ n = if c.name = n then some c else env.find? n := by
+theorem Env.find?_cons {c : ConstantInfo} {cs : List ConstantInfo} {ts : List ProjTable}
+    {n : Name} :
+    Env.find? ⟨c :: cs, ts⟩ n = if c.name = n then some c else Env.find? ⟨cs, ts⟩ n := by
   simp only [Env.find?, List.find?]
   split
   · next h => simp_all

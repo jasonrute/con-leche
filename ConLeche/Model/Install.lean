@@ -2,7 +2,6 @@ module
 
 public import ConLeche.Model.Tiers
 public import ConLeche.Verify.Denote.EnvExtend
-public import ConLeche.Verify.Denote.EnvExtend
 public import ConLeche.Verify.Denote.OpenVars
 public import ConLeche.Verify.Denote.ConstsBound
 public import ConLeche.Verify.Extend.Sibs
@@ -65,43 +64,17 @@ equality form is refutable at support-completing installs — see
 extension and ignores the fresh leaf.  The only direction the step
 and the harvests use for their subjects, whose acceptance guaranteed
 prefix-supported literals. -/
-theorem denote_cons_fresh_mono {acval : Name → (Name → Nat) → Term}
+theorem denote_cons_mono {acval : Name → (Name → Nat) → Term}
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
-    (hfresh : env.find? c₀.name = none)
-    (hntc : ∀ entry, c₀ ≠ .projInfo entry)
-    (ψ : Name → Nat) (d : Nat) (e : Expr) (hcb : ConstsBound env e)
+    (hfresh : env.find? c₀.name = none) {e : Expr}
+    (ψ : Name → Nat) (d : Nat) (hcb : ConstsBound env e)
     {ea : Term} (h : denote acval env ψ d e = some ea) :
     denote (acvalWith acval c₀.name A) ⟨c₀ :: env.consts, env.tables⟩ ψ d e
       = some ea :=
   denote_envExtend_mono (findPreserved_cons hfresh)
     (litGuardsMono_cons hfresh)
-    (ConLeche.Verify.findProj?_cons_of_base_none hntc) d e hcb
+    (findProj?_mono_of_tables (findPreserved_cons hfresh) rfl) d e hcb
     (by rw [denote_acvalWith_fresh hfresh]; exact h)
-
-/-- **The P cons crossing at any head** (task #175 W4c, module 4): a
-prefix reading of a subject the head's slot does not mention
-(`ConsCrossAt`) survives the cons — the fresh crossing at a non-table
-head, the table-slot refinement (`denote_envExtend_mono_at`) at a
-table one. -/
-theorem denote_cons_mono {acval : Name → (Name → Nat) → Term}
-    {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
-    (hfresh : env.find? c₀.name = none)
-    {e : Expr} (hat : ConsCrossAt c₀ e)
-    (ψ : Name → Nat) (d : Nat) (hcb : ConstsBound env e)
-    {ea : Term} (h : denote acval env ψ d e = some ea) :
-    denote (acvalWith acval c₀.name A) ⟨c₀ :: env.consts, env.tables⟩ ψ d e
-      = some ea := by
-  by_cases htw : ∃ tbl : ConLeche.ProjTable, c₀ = .projInfo tbl
-  · obtain ⟨tbl, rfl⟩ := htw
-    refine denote_envExtend_mono_at (findPreserved_cons hfresh)
-      (litGuardsMono_cons hfresh)
-      (fun sn j e' h0 h1 => findProj?_cons_tower sn j e' h0 h1)
-      d e hcb (hat tbl rfl) ?_
-    rw [denote_acvalWith_fresh hfresh]
-    exact h
-  · refine denote_cons_fresh_mono hfresh ?_ ψ d e hcb h
-    intro e' heq
-    exact htw ⟨e', heq⟩
 
 /-- The pinned-basis valuation survives any fresh cons that moves no
 other name (`BasisPinnedTT.cons` without the install record — its
@@ -149,14 +122,6 @@ structure ConsHead (env : Env) (c₀ : ConstantInfo)
     c₀ = pinnedInfo c₀.name ∧
     ∀ (ψ : Name → Nat) (t : Term),
       pinnedStructT c₀.name ψ = some t → (A ψ) = t
-  /-- a head table's slots are mentioned by no stored piece, so
-  the store's readings survive the cons (task #175 W4c, module 4;
-  vacuous at every other head — `ConsCrossEnv.ofNtc`) -/
-  projTower : ConsCrossEnv env c₀
-  /-- a head table carries its head data, at every field, at the
-  extension (task #175 S1) -/
-  projTowerHead : ∀ tbl, c₀ = .projInfo tbl →
-    ∀ i, i < tbl.numFields → ConLeche.TowerHead ⟨c₀ :: env.consts, env.tables⟩ (tbl.entry i)
   /-- a head recursor's rules' constructors are stored and its two
   rescue bits are the store's own verdict (`RecCtorsStored`'s head) -/
   ctorsHead : ∀ cvR mI rP rules, c₀ = .recInfo cvR mI rP rules →
@@ -169,8 +134,8 @@ structure ConsHead (env : Env) (c₀ : ConstantInfo)
         ConLeche.recRuleEtaOf env.find? r.ctor = true)
 
 /-- **The head obligations of a basis cons**: the head is the pinned
-declaration, its leaf is the direct pin, it is not a projection-table
-entry, and (for a recursor) its rules' constructors are stored. -/
+declaration, its leaf is the direct pin, and (for a recursor) its rules'
+constructors are stored. -/
 theorem ConsHead.ofBasis {c₀ : ConstantInfo}
     {A : (Name → Nat) → Term}
     (hwf : EnvWF ⟨c₀ :: env.consts, env.tables⟩)
@@ -178,7 +143,6 @@ theorem ConsHead.ofBasis {c₀ : ConstantInfo}
     (hpinned : c₀ = pinnedInfo c₀.name)
     (hleaf : ∀ (ψ : Name → Nat) (t : Term),
       pinnedStructT c₀.name ψ = some t → (A ψ) = t)
-    (hnotproj : ∀ tbl, c₀ ≠ .projInfo tbl)
     (hctors : ∀ cvR mI rP rules, c₀ = .recInfo cvR mI rP rules →
       ∀ r ∈ rules,
         (∃ cvj cnP cnF,
@@ -188,9 +152,7 @@ theorem ConsHead.ofBasis {c₀ : ConstantInfo}
         (r.eta = true →
           ConLeche.recRuleEtaOf env.find? r.ctor = true)) :
     ConsHead env c₀ A :=
-  ⟨hwf, hvclosed, fun _ => ⟨hpinned, hleaf⟩,
-    fun tbl heq => absurd heq (hnotproj tbl),
-    fun tbl heq => absurd heq (hnotproj tbl), hctors⟩
+  ⟨hwf, hvclosed, fun _ => ⟨hpinned, hleaf⟩, hctors⟩
 
 /-- **The head obligations of an ordinary (non-reserved) cons**: the
 pin clause is vacuous. -/
@@ -199,7 +161,6 @@ theorem ConsHead.ofFresh {c₀ : ConstantInfo}
     (hwf : EnvWF ⟨c₀ :: env.consts, env.tables⟩)
     (hvclosed : ∀ ψ : Name → Nat, Term.Closed (A ψ))
     (hnres : ConLeche.reservedBasisNames.contains c₀.name = false)
-    (hprojTower : ∀ tbl, c₀ ≠ .projInfo tbl)
     (hctors : ∀ cvR mI rP rules, c₀ = .recInfo cvR mI rP rules →
       ∀ r ∈ rules,
         (∃ cvj cnP cnF,
@@ -211,8 +172,6 @@ theorem ConsHead.ofFresh {c₀ : ConstantInfo}
     ConsHead env c₀ A :=
   ⟨hwf, hvclosed,
     fun hres => absurd hres (by rw [hnres]; exact fun h => nomatch h),
-    ConsCrossEnv.ofNtc hprojTower,
-    fun tbl heq => absurd heq (hprojTower tbl),
     hctors⟩
 
 /-- `acval_wellDenoted` extends. -/
@@ -262,7 +221,7 @@ head's obligation; nothing of the collapsed model is consulted. -/
         rw [show acvalWith m.acval c₀.name A c₀.name = A from
           acvalWith_self]
         exact (hh.pin hres).2 ψ t hp⟩)
-  proj_ok := ProjOkT.cons m.proj_ok hfresh hh.projTowerHead
+  proj_ok := ProjOkT.cons m.proj_ok m.wf hfresh
   rec_ctors := ConLeche.RecCtorsStored.cons m.rec_ctors hfresh hh.ctorsHead
   acval_params := acvalWith_params m.acval_params hAparams
   acval_wellDenoted := acvalWith_wellDenoted m.acval_wellDenoted hAok
@@ -349,13 +308,12 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     intro c hc h
     exact h0 c hc (by simp [h])
   -- the P crossing, forward only: successful prefix readings of the
-  -- stored pieces survive (the head's slot mentions none of them)
+  -- stored pieces survive
   have hcompM : ∀ (ψ : Name → Nat) (e : Expr), ConstsBound env e →
-      ConsCrossAt c₀ e →
       ∀ {ea : Term}, denote mp.base2.acval env ψ 0 e = some ea →
       denote (acvalWith mp.base2.acval c₀.name A)
           ⟨c₀ :: env.consts, env.tables⟩ ψ 0 e = some ea :=
-    fun ψ e hcb hat {ea} h => denote_cons_mono hfresh hat ψ 0 hcb h
+    fun ψ e hcb {ea} h => denote_cons_mono hfresh ψ 0 hcb h
   -- the P fields, at the `acvalWith` spelling (defeq to the core's)
   have htr : ∀ c ∈ (⟨c₀ :: env.consts, env.tables⟩ : Env).consts, ∀ ψ : Name → Nat,
       ∃ ta : Term,
@@ -365,7 +323,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     rcases List.mem_cons.mp hc with h | h
     · subst h; exact htyReads ψ
     · obtain ⟨ta, hta⟩ := mp.type_reads c h ψ
-      exact ⟨ta, hcompM ψ _ (hbound _ h).1 (hh.projTower.type h) hta⟩
+      exact ⟨ta, hcompM ψ _ (hbound _ h).1 hta⟩
   have hto : ∀ c ∈ (⟨c₀ :: env.consts, env.tables⟩ : Env).consts,
       ∀ (ψ : Name → Nat) (ta : Term),
       denote (acvalWith mp.base2.acval c₀.name A)
@@ -377,7 +335,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     · obtain ⟨ta', hta'⟩ := mp.type_reads c h ψ
       obtain rfl : ta' = ta :=
         Option.some.inj
-          ((hcompM ψ _ (hbound _ h).1 (hh.projTower.type h) hta').symm.trans
+          ((hcompM ψ _ (hbound _ h).1 hta').symm.trans
             hta)
       exact mp.type_wellDenotedTy c h ψ ta' hta' ρ
   have hmt : ∀ c ∈ (⟨c₀ :: env.consts, env.tables⟩ : Env).consts,
@@ -395,7 +353,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
     · obtain ⟨ta', hta'⟩ := mp.type_reads c h ψ
       obtain rfl : ta' = ta :=
         Option.some.inj
-          ((hcompM ψ _ (hbound _ h).1 (hh.projTower.type h) hta').symm.trans
+          ((hcompM ψ _ (hbound _ h).1 hta').symm.trans
             hta)
       rw [show acvalWith mp.base2.acval c₀.name A c.name
             = mp.base2.acval c.name from acvalWith_ne (hne _ h)]
@@ -419,7 +377,6 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
           = mp.base2.acval cv.name from
           acvalWith_ne (show cv.name ≠ c₀.name from hne _ h)]
       exact hcompM ψ value ((hbound _ h).2 cv value hint rfl)
-        (hh.projTower.defn h)
         (mp.defn_reads ψ cv value ⟨hint, h⟩)
   -- the stored formers' strict fibres: the head's is `hind`; a prefix
   -- former keeps its leaf and its type's reading
@@ -436,7 +393,7 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
       obtain ⟨ta, hta⟩ := mp.type_reads _ hm ψ
       have hcv : (ConstantInfo.indInfo cv caps).toConstantVal = cv := rfl
       rw [hcv] at hta
-      have hta' := hcompM ψ _ ((hbound _ hm).1) (hh.projTower.type hm) hta
+      have hta' := hcompM ψ _ ((hbound _ hm).1) hta
       rw [hcv] at hta'
       have hEq : ta = mkPisAV ab (.sort n) := Option.some.inj (hta'.symm.trans hread)
       subst hEq
@@ -466,13 +423,12 @@ theorem declStep_preserves_of_cons (mp : EnvModelM V μ env)
         rw [h, hfresh] at hf; exact nomatch hf)
       (fun _ _ _ hf ψ _ hta =>
         have hm := ConLeche.Env.find?_mem hf
-        hcompM ψ _ (hbound _ hm).1 (hh.projTower.type hm) hta)
+        hcompM ψ _ (hbound _ hm).1 hta)
       (fun _ _ _ _ hf ψ _ hta =>
         have hm := ConLeche.Env.find?_mem hf
-        hcompM ψ _ (hbound _ hm).1 (hh.projTower.type hm) hta)
+        hcompM ψ _ (hbound _ hm).1 hta)
       (fun _ _ hf _ _ hA ψ d _ hta =>
         have hm := ConLeche.Env.find?_mem hf
-        denote_cons_mono hfresh (canonOf_consCrossAt (hh.projTower.type hm) hA) ψ d
-          (canonOf_constsBound (hbound _ hm).1 hA) hta) }, rfl⟩
+        denote_cons_mono hfresh ψ d (canonOf_constsBound (hbound _ hm).1 hA) hta) }, rfl⟩
 
 end ConLeche.Model

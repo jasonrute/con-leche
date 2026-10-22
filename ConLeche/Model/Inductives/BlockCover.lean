@@ -72,7 +72,6 @@ theorem lfpCover_append {env env' : Env} {new : List ConstantInfo} (mp : EnvMode
     (mpX : EnvModelM V μ env') {ex ex' : List Name}
     (henv : env'.consts = new ++ env.consts)
     (hfwd : ∀ n ci, env.find? n = some ci → env'.find? n = some ci)
-    (hntc : ∀ c ∈ new, ∀ tbl, c ≠ .projInfo tbl)
     (hag : ∀ n, (env.find? n).isSome = true → mpX.base2.acval n = mp.base2.acval n)
     (hex : ∀ n ∈ ex, n ∈ ex')
     (hex' : ∀ n ∈ ex', n ∈ ex ∨ env.find? n = none)

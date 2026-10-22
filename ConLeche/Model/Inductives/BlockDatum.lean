@@ -364,14 +364,6 @@ theorem lfpCover_formers (mp : EnvModelM V μ env) {envI : Env} {q : BlockShape}
   obtain ⟨newI, hnewI, hnewIall⟩ := consBlockInds_consts (p₁ := q) (isRec := isRec) cvTas 0 env
   have henv : envI.consts = newI ++ env.consts := by rw [hcons]; exact hnewI
   obtain ⟨mk, hbk, hlk, hcov⟩ := lfpCover_append (ex := []) (ex' := names) mp mpX (new := newI) henv
-    (fun n ci hf => by
-      have hfr : ∀ c ∈ newI, env.find? c.name = none := by
-        intro c hc
-        obtain ⟨cv, hcv, j, rfl⟩ := hnewIall c hc
-        exact hfresh cv hcv
-      show List.find? _ _ = _
-      rw [henv]
-      exact find?_append_of_fresh hfr hf)
     (fun c hc tbl h => by
       obtain ⟨cv, -, j, rfl⟩ := hnewIall c hc
       exact nomatch h)

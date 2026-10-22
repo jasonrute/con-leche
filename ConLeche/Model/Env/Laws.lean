@@ -163,7 +163,7 @@ completed family (`EtaFamilyStored`).  They live here because the
 * **The laws carry their readings** (`∃ TVa, …`), the `NatOps`
   pattern: establishment stores the instantiated type's reading at
   its own environment; preservation transfers it *forward*
-  (`denote_cons_fresh_mono`); consumers identify it with their own
+  (`denote_cons_mono`); consumers identify it with their own
   reading by determinism.  The equality-form crossing is refutable
   at support-completing installs, so no backward transfer ever
   appears.

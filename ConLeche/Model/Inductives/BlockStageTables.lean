@@ -214,7 +214,7 @@ theorem BlockTablesCore.consTable {env : Env} {m' : EnvModel V env} {d : BlockDa
     refine ⟨ConLeche.Env.find?_cons_of_fresh hfresh hfind, hlps, Expr.constsResolve_mono hres,
       fun ψ => ?_, fun ψ => ?_⟩
     · rw [hac]
-      exact denote_cons_mono hfresh hcross ψ 0
+      exact denote_cons_mono hfresh ψ 0
         (constsBound_of_constsResolve _ hres) (hread ψ)
     · rw [hac]
       show acvalWith m'.acval (ConstantInfo.projInfo tbl).name _ cA.1.name ψ = _

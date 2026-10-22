@@ -29,7 +29,7 @@ P machinery at the prefix environment, the P invariant extends —
   (`natLitSupported_cons_back`) + freshness — no bespoke premise.
 
 The harvests carry no literal-tier premise: the monotone crossing
-(`denote_cons_fresh_mono`) plus guard reflection cover the literal
+(`denote_cons_mono`) plus guard reflection cover the literal
 guards.  `harvestThm`, `harvestAxiom` and `harvestOpaque` follow.
 -/
 
@@ -290,11 +290,11 @@ theorem harvestDefn (hμ : μ.isVerified = true)
           ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint ::
             env.consts, env.tables⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
-      denote_cons_fresh_mono
+      denote_cons_mono
         (acval := mp.base2.acval)
         (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
-        (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
-        ψ 0 e hcb h
+        (A := A) hfresh
+        ψ 0 hcb h
   -- assemble
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_cons mp
     (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
@@ -306,11 +306,10 @@ theorem harvestDefn (hμ : μ.isVerified = true)
           obtain ⟨rfl, rfl, rfl⟩ := ConstantInfo.defnInfo.inj heq
           exact ⟨hvf', hvp, Expr.constsResolve_mono hvr, hbv'⟩),
         (fun _ _ _ _ heq => nomatch heq),
-        (fun _ heq => nomatch heq),
       (fun _ _ heq => nomatch heq)⟩)
       (fun ψ => denote_closed mp.base2.cval_closed hvf' hbv'
         (hA ψ))
-      hnres (fun _ heq => nomatch heq)
+      hnres
       (fun _ _ _ _ heq => nomatch heq))
     hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
@@ -447,7 +446,7 @@ theorem harvestDefn (hμ : μ.isVerified = true)
         hSelfBin hSelfUn hBoolS _ rfl
     · exact natOps_cons_fresh mp (mp.nat_ops φ)
         (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
-        (A := A) hfresh (hntc := fun _ h => ConstantInfo.noConfusion h)
+        (A := A) hfresh
         (Or.inr (fun hm => hno (List.contains_iff_mem.mpr hm))) _ rfl
   · -- `div_mod` at the extension: a WF operation's own install goes
     -- through the certificate conversion; any other definition
@@ -478,14 +477,14 @@ theorem harvestDefn (hμ : μ.isVerified = true)
     -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
+      (A := A) hfresh
       (fun _ _ h => ConstantInfo.noConfusion h)
       (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
       (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
+      (A := A) hfresh
       (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl φ
   · -- `reduce_ops` at the extension: a definition is not an
     -- `axiomInfo`, so no reduce operation can be this cons
@@ -497,8 +496,7 @@ theorem harvestDefn (hμ : μ.isVerified = true)
     -- tower entry
     exact fun φ => towerOk_cons_fresh mp
       (c₀ := .defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
-      (fun _ h => ConstantInfo.noConfusion h) _ rfl φ
+      (A := A) hfresh _ rfl φ
 
 /-! ## The `thm` mirror
 
@@ -663,11 +661,11 @@ theorem harvestThm (hμ : μ.isVerified = true)
           ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩ ::
             env.consts, env.tables⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
-      denote_cons_fresh_mono
+      denote_cons_mono
         (acval := mp.base2.acval)
         (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
-        (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
-        ψ 0 e hcb h
+        (A := A) hfresh
+        ψ 0 hcb h
   -- assemble
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_cons mp
     (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
@@ -677,11 +675,10 @@ theorem harvestThm (hμ : μ.isVerified = true)
         Expr.constsResolve_mono htr, hbt',
         (fun _ _ _ heq => nomatch heq),
         (fun _ _ _ _ heq => nomatch heq),
-        (fun _ heq => nomatch heq),
       (fun _ _ heq => nomatch heq)⟩)
       (fun ψ => denote_closed mp.base2.cval_closed hvf' hbv'
         (hA ψ))
-      hnres (fun _ heq => nomatch heq)
+      hnres
       (fun _ _ _ _ heq => nomatch heq))
     hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
@@ -723,7 +720,7 @@ theorem harvestThm (hμ : μ.isVerified = true)
   · -- `nat_ops` at the extension: a theorem is not a definition
     exact fun φ => natOps_cons_fresh mp (mp.nat_ops φ)
       (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩) (A := A)
-      hfresh (hntc := fun _ h => ConstantInfo.noConfusion h)
+      hfresh
       (Or.inl (fun _ _ _ h => ConstantInfo.noConfusion h)) _ rfl
   · -- `div_mod`/`eq_law` at the extension: a theorem is neither a
     -- definition nor an inductive
@@ -739,14 +736,14 @@ theorem harvestThm (hμ : μ.isVerified = true)
     -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
+      (A := A) hfresh
       (fun _ _ h => ConstantInfo.noConfusion h)
       (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
       (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
+      (A := A) hfresh
       (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl φ
   · -- `reduce_ops` at the extension: a theorem is not an `axiomInfo`
     exact reduceOps_cons_fresh mp.reduce_ops
@@ -757,8 +754,7 @@ theorem harvestThm (hμ : μ.isVerified = true)
     -- tower entry
     exact fun φ => towerOk_cons_fresh mp
       (c₀ := .thmInfo ⟨cv.name, cv.levelParams, type'⟩)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
-      (fun _ h => ConstantInfo.noConfusion h) _ rfl φ
+      (A := A) hfresh _ rfl φ
 
 /-! ## The `axiom` kind
 
@@ -850,11 +846,11 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
           ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
             env.consts, env.tables⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
-      denote_cons_fresh_mono
+      denote_cons_mono
         (acval := mp.base2.acval)
         (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
-        (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
-        ψ 0 e hcb h
+        (A := A) hfresh
+        ψ 0 hcb h
   -- assemble
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_cons mp
     (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
@@ -864,9 +860,8 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
         Expr.constsResolve_mono htr, hbt',
         (fun _ _ _ heq => nomatch heq),
         (fun _ _ _ _ heq => nomatch heq),
-        (fun _ heq => nomatch heq),
       (fun _ _ heq => nomatch heq)⟩)
-      hAvclosed hnres (fun _ heq => nomatch heq)
+      hAvclosed hnres
       (fun _ _ _ _ heq => nomatch heq))
     hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
@@ -910,7 +905,7 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
   · -- `nat_ops` at the extension: an axiom is not a definition
     exact fun φ => natOps_cons_fresh mp (mp.nat_ops φ)
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩) (A := A)
-      hfresh (hntc := fun _ h => ConstantInfo.noConfusion h)
+      hfresh
       (Or.inl (fun _ _ _ h => ConstantInfo.noConfusion h)) _ rfl
   · -- `div_mod`/`eq_law` at the extension: an axiom is neither
     exact fun φ => divMod_cons_fresh (mp.div_mod φ)
@@ -925,14 +920,14 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
     -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
+      (A := A) hfresh
       (fun _ _ h => ConstantInfo.noConfusion h)
       (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
+      (A := A) hfresh
       (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl φ
   · -- `reduce_ops` at the extension: the cons *is* an `axiomInfo`, so
     -- the preservation goes through the pinned name (the branch's
@@ -944,8 +939,7 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
     -- tower entry
     exact fun φ => towerOk_cons_fresh mp
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
-      (fun _ h => ConstantInfo.noConfusion h) _ rfl φ
+      (A := A) hfresh _ rfl φ
 
 
 /-! ## The `opaque` kind
@@ -1102,11 +1096,11 @@ theorem harvestOpaque (hμ : μ.isVerified = true)
           ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ ::
             env.consts, env.tables⟩ ψ 0 e = some ea :=
     fun ψ e hcb {ea} h =>
-      denote_cons_fresh_mono
+      denote_cons_mono
         (acval := mp.base2.acval)
         (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
-        (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
-        ψ 0 e hcb h
+        (A := A) hfresh
+        ψ 0 hcb h
   -- assemble
   refine coverTo_cons hfresh (fun _ _ h => nomatch h) (declStep_preserves_of_cons mp
     (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
@@ -1116,11 +1110,10 @@ theorem harvestOpaque (hμ : μ.isVerified = true)
         Expr.constsResolve_mono htr, hbt',
         (fun _ _ _ heq => nomatch heq),
         (fun _ _ _ _ heq => nomatch heq),
-        (fun _ heq => nomatch heq),
       (fun _ _ heq => nomatch heq)⟩)
       (fun ψ => denote_closed mp.base2.cval_closed hvf' hbv'
         (hA ψ))
-      hnres (fun _ heq => nomatch heq)
+      hnres
       (fun _ _ _ _ heq => nomatch heq))
     hAparams hAok ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_)
   · -- `htyReads`
@@ -1161,7 +1154,7 @@ theorem harvestOpaque (hμ : μ.isVerified = true)
   · -- `nat_ops` at the extension: an opaque stores an axiom entry
     exact fun φ => natOps_cons_fresh mp (mp.nat_ops φ)
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩) (A := A)
-      hfresh (hntc := fun _ h => ConstantInfo.noConfusion h)
+      hfresh
       (Or.inl (fun _ _ _ h => ConstantInfo.noConfusion h)) _ rfl
   · -- `div_mod`/`eq_law` at the extension: an opaque stores an axiom
     -- entry, which is neither a definition nor an inductive
@@ -1177,14 +1170,14 @@ theorem harvestOpaque (hμ : μ.isVerified = true)
     -- completed here
     exact capsOk_cons_fresh mp mp.caps_ok
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
+      (A := A) hfresh
       (fun _ _ h => ConstantInfo.noConfusion h)
       (fun _ _ _ h => ConstantInfo.noConfusion h) _ rfl
   · -- `rec_rules` at the extension: a value-kind cons is neither a
     -- recursor nor a constructor, so no stored rule moves
     exact fun φ => recRules_cons_fresh mp
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
+      (A := A) hfresh
       (fun _ _ _ _ h => ConstantInfo.noConfusion h) _ rfl φ
   · -- `reduce_ops` at the extension: **this is the establishment**.
     -- An `opaque` cons is the only place a compiler-trust operation is
@@ -1201,7 +1194,6 @@ theorem harvestOpaque (hμ : μ.isVerified = true)
     -- tower entry
     exact fun φ => towerOk_cons_fresh mp
       (c₀ := .axiomInfo ⟨cv.name, cv.levelParams, type'⟩)
-      (A := A) hfresh (fun _ h => ConstantInfo.noConfusion h)
-      (fun _ h => ConstantInfo.noConfusion h) _ rfl φ
+      (A := A) hfresh _ rfl φ
 
 end ConLeche.Model

@@ -15,7 +15,7 @@ value-kind harvest discharges.
 
 The law **carries the instantiated former type's reading**, so the
 crossing must move that reading forward too
-(`denote_cons_fresh_mono`, on `ConstsBound` of the instantiated type
+(`denote_cons_mono`, on `ConstsBound` of the instantiated type
 — `constsBound_instType`).  Everything else is `acvalWith_ne` at the
 two leaves the law mentions (the former and the capability
 constructor), each `≠` the fresh name because `EtaFamilyStored`
@@ -56,7 +56,7 @@ theorem constsBound_instType {env : Env} (hwf : ConLeche.EnvWF env)
     ConstsBound env
       (c.toConstantVal.type.instantiateLevelParams
         c.toConstantVal.levelParams us) := by
-  obtain ⟨-, -, hty, -⟩ := hwf c hc
+  obtain ⟨-, -, hty, -⟩ := hwf.consts c hc
   refine constsBound_of_constsResolve _ ?_
   rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
   exact hty
@@ -122,7 +122,6 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
     (hprev : CapsOk mp.base2)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
-    (hntc : ConsCrossEnv env c₀)
     (hnotind : ∀ cv caps, c₀ ≠ .indInfo cv caps)
     (hnotctor : ∀ cv np nf, c₀ ≠ .ctorInfo cv np nf)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
@@ -137,8 +136,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
       hprev.1 T cvT caps hfE hcape hres hfam₀ φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_, ?_⟩
     · rw [hac]
-      exact denote_cons_mono hfresh
-        ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
+      exact denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x hlents hfit hmem
@@ -150,8 +148,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
         (fun _ _ _ => rfl)
       · rwa [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnC hh.symm)] at hf₂
       · rw [hac]
-        exact denote_cons_mono hfresh
-          ((hntc.typeOf hf).instantiateLevelParams _ _) _ 0
+        exact denote_cons_mono hfresh _ 0
           (constsBound_instType mp.base2.wf
             (ConLeche.Env.find?_mem hf) us) hTCa
   · -- the unit-like half: no fabricated spine, one leaf to move
@@ -170,8 +167,7 @@ theorem capsOk_cons_fresh (mp : EnvModelM V μ env)
       hprev.2 T cvT caps hfE hcapu hres φ' us hlen
     refine ⟨TVa, ?_, hokTVa, ?_⟩
     · rw [hac]
-      exact denote_cons_mono hfresh
-        ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
+      exact denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hfE) us) hTVa
     · intro ρ ts rest x y hlents hfit hmx hmy

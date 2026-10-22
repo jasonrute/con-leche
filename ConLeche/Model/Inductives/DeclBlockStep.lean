@@ -274,19 +274,6 @@ theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
   obtain ⟨mpC₀, hbC, hlC, hcovC⟩ := lfpCover_append (ex := []) (ex' := cvTas.map (·.name)) mp mpC₀'
     (new := (ctorsAs.flatten.map fun cA => ConstantInfo.ctorInfo cA.1 p₁.nP cA.2).reverse ++ newI)
     (by rw [consBlockCtors_consts, henv₁, List.append_assoc]; rfl)
-    (fun n ci hf => by
-      have hfr : ∀ c ∈ (ctorsAs.flatten.map fun cA => ConstantInfo.ctorInfo cA.1 p₁.nP cA.2).reverse
-          ++ newI, env.find? c.name = none := by
-        intro c hc
-        rcases List.mem_append.mp hc with hc | hc
-        · obtain ⟨m, cA, hm, hcA, rfl⟩ := hnewC c hc
-          obtain ⟨j, hj⟩ := List.getElem?_of_mem hcA
-          exact consBlockInds_find?_none (hcons ▸ hfreshC m j cA hj)
-        · obtain ⟨cv, hcv, j, rfl⟩ := hnewIall c hc
-          exact hmemCv cv hcv
-      show List.find? _ _ = _
-      rw [consBlockCtors_consts, henv₁, ← List.append_assoc]
-      exact find?_append_of_fresh hfr hf)
     (fun c hc tbl h => by
       rcases List.mem_append.mp hc with hc | hc
       · obtain ⟨m, cA, -, -, rfl⟩ := hnewC c hc; exact nomatch h
@@ -733,7 +720,7 @@ theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
     (find? := (ConLeche.consBlockCtors p₁.nP ctorsAs env₁).find?)
     (q := (p₀.complete p₁).toBlockShape) 0 outR
     (ConLeche.consBlockCtors p₁.nP ctorsAs env₁)
-  obtain ⟨mpR, hbR, -, hcovR⟩ := lfpCover_append (ex := []) (ex' := []) mpC mpR₀ hnewR hfindMono
+  obtain ⟨mpR, hbR, -, hcovR⟩ := lfpCover_append (ex := []) (ex' := []) mpC mpR₀ hnewR
     (fun c hc tbl h => by obtain ⟨r, -, mI, rP, rules, rfl⟩ := hnewRall c hc; exact nomatch h)
     hag (fun _ h => h) (fun _ h => Or.inl h)
     (fun c hc cv caps h => by obtain ⟨r, -, mI, rP, rules, rfl⟩ := hnewRall c hc; exact nomatch h)

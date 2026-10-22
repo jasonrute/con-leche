@@ -46,14 +46,14 @@ theorem noProjEnv_of_fresh (hwf : ConLeche.EnvWF env) {T : Name}
     ConLeche.Expr.noProjAt_of_constsResolve hT _
       ((hwf _ hc).2.2.2.2.1 cv v hint rfl).2.2.1
   rule cv mI rP rules hc r hr := by
-    obtain ⟨-, -, -, -, -, hrec, -, -⟩ := hwf _ hc
+    obtain ⟨-, -, -, -, -, hrec, -⟩ := hwf _ hc
     obtain ⟨-, -, hres, -, hnest⟩ := hrec cv mI rP rules rfl r hr
     refine ⟨ConLeche.Expr.noProjAt_of_constsResolve hT _ hres, ?_⟩
     intro lvls pins hn pin hp
     obtain ⟨-, -, hpins, -⟩ := hnest lvls pins hn
     exact ConLeche.Expr.noProjAt_of_constsResolve hT _ (hpins pin hp).2.2.1
   table tbl hc j hj := by
-    obtain ⟨-, -, -, -, -, -, htbl, -⟩ := hwf _ hc
+    obtain ⟨-, -, -, -, -, -, -⟩ := hwf _ hc
     obtain ⟨hsize, hb⟩ := htbl tbl rfl
     have hlt : j < tbl.bodies.size := by rw [hsize]; exact hj
     have := hb j (tbl.bodies[j]'hlt) (Array.getElem?_eq_getElem hlt)
@@ -167,15 +167,14 @@ theorem declStep_preserves_of_tower_cons (mp : EnvModelM V μ env)
       (ne_of_notReserved hnres reserved_natName)
       (ne_of_notReserved hnres reserved_natZeroName)
       (ne_of_notReserved hnres reserved_natSuccName) _ rfl φ
-  · exact fun φ => natOps_cons_fresh mp (mp.nat_ops φ) hfresh
-      (hntc := hh.projTower) (Or.inl fun _ _ _ h => nomatch h) _ rfl
+  · exact fun φ => natOps_cons_fresh mp (mp.nat_ops φ) hfresh (Or.inl fun _ _ _ h => nomatch h) _ rfl
   · exact fun φ => divMod_cons_fresh (mp.div_mod φ) hfresh
       (Or.inl fun _ _ _ h => nomatch h) _ rfl
   · exact eqLaw_cons_fresh mp.eq_law
       (fun h => ne_of_notReserved hnres reserved_eqName h.symm) _ rfl
-  · exact capsOk_cons_fresh mp mp.caps_ok hfresh hh.projTower
+  · exact capsOk_cons_fresh mp mp.caps_ok hfresh
       (fun _ _ h => nomatch h) (fun _ _ _ h => nomatch h) _ rfl
-  · exact fun φ => recRules_cons_fresh mp hfresh hh.projTower
+  · exact fun φ => recRules_cons_fresh mp hfresh
       (fun _ _ _ _ h => nomatch h) _ rfl φ
   · exact reduceOps_cons_fresh mp.reduce_ops hfresh
       (Or.inl fun _ h => nomatch h) _ rfl

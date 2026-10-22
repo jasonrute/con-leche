@@ -123,9 +123,6 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
     (hrec : ∀ m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩,
       m₂.acval = acvalWith mp.base2.acval c₀.name A →
       ∀ φ : Name → Nat, RecRules m₂ φ)
-    -- the head is not a projection table (those are discharged by
-    -- their own step)
-    (hntc : ∀ entry, c₀ ≠ .projInfo entry)
     (hind : IndStrictHead (V := V) (acvalWith mp.base2.acval c₀.name A)
       ⟨c₀ :: env.consts, env.tables⟩ c₀ := by
       intro _ _ h; first | exact nomatch h | exact ConstantInfo.noConfusion h) :
@@ -143,8 +140,7 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
       (ne_of_notReserved hnres reserved_natName)
       (ne_of_notReserved hnres reserved_natZeroName)
       (ne_of_notReserved hnres reserved_natSuccName) _ rfl φ
-  · exact fun φ => natOps_cons_fresh mp (mp.nat_ops φ) hfresh
-      (hntc := hh.projTower) (Or.inl fun cv v hint => hnotdefn cv v hint) _ rfl
+  · exact fun φ => natOps_cons_fresh mp (mp.nat_ops φ) hfresh (Or.inl fun cv v hint => hnotdefn cv v hint) _ rfl
   · exact fun φ => divMod_cons_fresh (mp.div_mod φ) hfresh
       (Or.inl fun cv v hint => hnotdefn cv v hint) _ rfl
   · -- `eq_law`: `Eq` is reserved, so it is not this cons
@@ -156,7 +152,7 @@ theorem declStep_preserves_of_ind_cons (mp : EnvModelM V μ env)
       (Or.inl hnotax) _ rfl
   · -- `tower_ok` (task #175 wiring W5): an ind-tier cons is never a
     -- tower entry (`hh.projTower`)
-    exact fun φ => towerOk_cons_fresh mp hfresh hh.projTower hntc _ rfl φ
+    exact fun φ => towerOk_cons_fresh mp hfresh _ rfl φ
 
 /-- **The P step at a block *member* cons** — `declStep_preserves_of_ind_cons`
 with `rec_rules` discharged too.  A member is an `indInfo` or a
@@ -196,16 +192,14 @@ theorem declStep_preserves_of_ind_member_cons (mp : EnvModelM V μ env)
       mp'.base2.acval = acvalWith mp.base2.acval c₀.name A := by
   refine declStep_preserves_of_ind_cons mp hfresh hnres ?_ ?_ hh
     hAparams hAok htyReads htyOk hmemNew
-    hcaps ?_ ?_ (hind := hind)
+    hcaps ?_ (hind := hind)
   · rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
       intro _ _ _ h <;> exact nomatch h
   · rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
       intro _ h <;> exact nomatch h
-  · refine fun m₂ hac φ => recRules_cons_fresh mp hfresh hh.projTower ?_ m₂ hac φ
+  · refine fun m₂ hac φ => recRules_cons_fresh mp hfresh ?_ m₂ hac φ
     rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
       intro _ _ _ _ h <;> exact nomatch h
-  · rcases hknd with ⟨cv, caps, rfl⟩ | ⟨cv, nP, nF, rfl⟩ <;>
-      intro _ h <;> exact nomatch h
 
 /-- **The P step at a *recursor* cons** — the block's recursors, stored
 as `recInfo`.  Only `caps_ok` and `rec_rules` stay open; both are the
@@ -243,6 +237,6 @@ theorem declStep_preserves_of_ind_rec_cons (mp : EnvModelM V μ env)
   exact declStep_preserves_of_ind_cons mp hfresh hnres
     (fun _ _ _ h => nomatch h)
     (fun _ h => nomatch h) hh hAparams hAok
-    htyReads htyOk hmemNew hcaps hrec (fun _ h => nomatch h)
+    htyReads htyOk hmemNew hcaps hrec
 
 end ConLeche.Model

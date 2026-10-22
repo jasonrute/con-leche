@@ -86,8 +86,7 @@ theorem extendFalse (mp : EnvModelM V μ env)
       (fun ψ t hp => by
         rw [show ConLeche.Verify.pinnedStructT falseA.name ψ
           = some (Term.const .empty [0]) from rfl] at hp
-        rw [← Option.some.inj hp])
-      (fun _ h => nomatch h) (fun _ _ _ _ h => nomatch h))
+        rw [← Option.some.inj hp]) (fun _ _ _ _ h => nomatch h))
     (fun _ _ _ => rfl)
     (fun _ _ => trivial)
     (fun ψ => ⟨_, denote_falseA_type ψ⟩) ?_ ?_
@@ -165,7 +164,6 @@ theorem extendFalseRec (mp : EnvModelM V μ env)
         rw [show ConLeche.Verify.pinnedStructT falseRecA.name ψ
           = some (Term.const .emptyRec [0, ψ uN]) from rfl] at hp
         rw [← Option.some.inj hp])
-      (fun _ h => nomatch h)
       (fun _ _ _ _ h => by injection h with _ _ _ h4
                            intro r hr; rw [← h4] at hr; exact nomatch hr))
     ?_
@@ -204,7 +202,6 @@ theorem declBasisPB_falseK {env₂ : Env} (mp : EnvModelM V μ env)
   have hwf1 : EnvWF ⟨falseA :: env.consts, env.tables⟩ :=
     EnvWF.cons mp.base2.wf ⟨rfl, rfl, rfl, rfl,
       (fun _ _ _ heq => nomatch heq), (fun _ _ _ _ heq => nomatch heq),
-      (fun _ heq => nomatch heq),
       (by first
         | (refine ConLeche.IndCapsWF.of_caps ?_ ?_ <;> intro h <;>
             first | exact absurd h (by decide) | rfl)
@@ -222,7 +219,6 @@ theorem declBasisPB_falseK {env₂ : Env} (mp : EnvModelM V μ env)
         injection heq with _ _ _ h4
         subst h4
         intro r hr; exact nomatch hr),
-      (fun _ heq => nomatch heq),
       (by first
         | (refine ConLeche.IndCapsWF.of_caps ?_ ?_ <;> intro h <;>
             first | exact absurd h (by decide) | rfl)

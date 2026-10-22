@@ -26,14 +26,14 @@ sit in *premise* position, so the transfer they need is contravariant:
 * `TVa`/`TVja` are ∀-bound premises, so instead of moving the given
   extension reading down, the proof produces the **prefix** reading
   from `EnvModelM.constType`, moves *that* forward
-  (`denote_cons_fresh_mono`), and identifies the two by determinism —
+  (`denote_cons_mono`), and identifies the two by determinism —
   the `type_reads`/`type_wellDenotedTy` idiom `declStep_preserves_of_cons` already uses
   three times;
 * the `.nested` clause is itself a premise, so proving the prefix form
   of it *consumes* the extension form: a prefix pin reading is moved
   **forward** and fed to the hypothesis in hand.
 
-So the whole preservation runs on `denote_cons_fresh_mono`, the only
+So the whole preservation runs on `denote_cons_mono`, the only
 crossing the campaign has ever shown to hold, and no literal-tier
 premise appears — matching what the literal tier's seal established
 for the harvests.
@@ -102,7 +102,6 @@ fresh one (`iotaCtorNeverProp_cons_of_isSome`). -/
 theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
-    (hntc : ConsCrossEnv env c₀)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) {n : Name} {cv : ConstantVal} {mI rP : Nat}
@@ -121,12 +120,11 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
     mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfE)
   obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
   intro us hlen TVa hTVa
-  obtain ⟨TVa', hTVa', -, -⟩ := mp.constType 0 n _ us hfE rfl (by exact hlen)
+  obtain ⟨TVa', hTVa', -, -⟩ := mp.constType 0 n _ us hfE (by exact hlen)
   obtain rfl : TVa' = TVa := by
     refine Option.some.inj (Eq.trans ?_ hTVa)
     rw [hac]
-    exact (denote_cons_mono hfresh
-      ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
+    exact (denote_cons_mono hfresh _ 0
       (constsBound_instType mp.base2.wf
         (ConLeche.Env.find?_mem hfE) us) hTVa').symm
   have hpinCB : ∀ lvls pins, RecRule.fire rl = .nested lvls pins → ∀ i : Nat,
@@ -149,9 +147,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
     obtain rfl : Ra' = Ra := by
       refine Option.some.inj (Eq.trans ?_ hRa)
       rw [hac]
-      exact (denote_cons_mono hfresh
-        ((hntc.ruleRhs (ConLeche.Env.find?_mem hfE) hmem).instantiateLevelParams
-          _ _) _ 0
+      exact (denote_cons_mono hfresh _ 0
         (constsBound_of_constsResolve _ (by
           rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
           exact hRres)) hRa0').symm
@@ -172,12 +168,11 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
           (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja := by
       intro usj husj TVja hTVja
       obtain ⟨TVja', hTVja', -, -⟩ :=
-        mp.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact husj)
+        mp.constType 0 (RecRule.ctor rl) _ usj hfcjE (by exact husj)
       obtain rfl : TVja' = TVja := by
         refine Option.some.inj (Eq.trans ?_ hTVja)
         rw [hac]
-        exact (denote_cons_mono hfresh
-          ((hntc.typeOf hfcjE).instantiateLevelParams _ _) _ 0
+        exact (denote_cons_mono hfresh _ 0
           (constsBound_instType mp.base2.wf
             (ConLeche.Env.find?_mem hfcjE) usj) hTVja').symm
       exact hTVja'
@@ -188,8 +183,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
           (cvj.type.instantiateLevelParams cvj.levelParams usj) = some TVja := by
       intro usj TVja hTVja
       rw [hac]
-      exact denote_cons_mono hfresh
-        ((hntc.typeOf hfcjE).instantiateLevelParams _ _) _ 0
+      exact denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hfcjE) usj) hTVja
     -- (S)/(T)'s `iotaCtorNeverProp` guard is the prefix's
@@ -197,7 +191,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
         ConLeche.iotaCtorNeverProp (ConLeche.Env.find? ⟨c₀ :: env.consts, env.tables⟩) cvj lvs
           = ConLeche.iotaCtorNeverProp env.find? cvj lvs := by
       intro lvs
-      obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
+      obtain ⟨-, -, hresolve, -, -, -, -⟩ :=
         mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfcjE)
       dsimp only [ConLeche.ConstantInfo.toConstantVal] at hresolve
       have hTiso : ∀ T us', cvj.type.piResult.getAppFn = .const T us' →
@@ -241,9 +235,7 @@ theorem recRuleExtra_cons_prefix (mp : EnvModelM V μ env)
         refine hnested0 lvls pins hfr' (by rw [hac, acvalWith_ne hnC]; exact hpt) i hi vpa ?_
           hney hnex
         rw [hac]
-        exact denote_cons_mono hfresh
-          (((hntc.rulePinD (ConLeche.Env.find?_mem hfE) hmem hfr'
-            i).instantiateLevelParams _ _).openRev 0 rP) _ rP
+        exact denote_cons_mono hfresh _ rP
           (hpinCB lvls pins hfr' i) hvpa
       rw [hac, acvalWith_ne hnC] at hfitR hplain0 hpin0 ⊢
       exact hU ρ xs ys restR restC hxl hyl hfitR hfitC hxwd hywd hplain0 hnested' hpin0
@@ -266,7 +258,6 @@ premise is `rules = []` rather than "not a recursor". -/
 theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
-    (hntc : ConsCrossEnv env c₀)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) {n : Name} {cv : ConstantVal} {mI rP : Nat}
@@ -276,16 +267,14 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     RecRuleLaw m₂ φ n cv mI rP rl := by
   obtain ⟨hrPle, hlaw0, hextra⟩ := mp.rec_rules φ n cv mI rP rules hfE rl hmem
   refine ⟨hrPle, fun us hlen => ?_,
-    recRuleExtra_cons_prefix mp hfresh hntc m₂ hac φ hnN hfE hmem⟩
+    recRuleExtra_cons_prefix mp hfresh m₂ hac φ hnN hfE hmem⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
     mp.base2.wf.consts _ (ConLeche.Env.find?_mem hfE)
   obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
   refine ⟨Ra, ?_, hokRa, ?_, ?_⟩
   · rw [hac]
-    exact denote_cons_mono hfresh
-      ((hntc.ruleRhs (ConLeche.Env.find?_mem hfE) hmem).instantiateLevelParams
-        _ _) _ 0
+    exact denote_cons_mono hfresh _ 0
       (constsBound_of_constsResolve _ (by
         rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
         exact hRres)) hRa0
@@ -304,9 +293,7 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
         rfl
     refine ⟨vpa, ?_, ?_⟩
     · rw [hac]
-      exact denote_cons_mono hfresh
-        (((hntc.rulePinD (ConLeche.Env.find?_mem hfE) hmem hn
-          i).instantiateLevelParams _ _).openRev 0 rP) _ rP
+      exact denote_cons_mono hfresh _ rP
         (constsBound_openRev (constsBound_of_constsResolve _ (by
           rw [ConLeche.Expr.constsResolve_instantiateLevelParams]
           exact hpinCR)) 0 rP) hvpa
@@ -315,12 +302,11 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
       -- as the inner block's `TVa` does below
       intro ρ zs TVa restR hzl hzok hTVa hfit
       obtain ⟨TVa', hTVa', -, -⟩ :=
-        mp.constType 0 n _ us hfE rfl (by exact hlen)
+        mp.constType 0 n _ us hfE (by exact hlen)
       obtain rfl : TVa' = TVa := by
         refine Option.some.inj (Eq.trans ?_ hTVa)
         rw [hac]
-        exact (denote_cons_mono hfresh
-          ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
+        exact (denote_cons_mono hfresh _ 0
           (constsBound_instType mp.base2.wf
             (ConLeche.Env.find?_mem hfE) us) hTVa').symm
       exact hok ρ zs TVa' restR hzl hzok hTVa' hfit
@@ -341,21 +327,19 @@ theorem recRuleLaw_cons_prefix (mp : EnvModelM V μ env)
     -- the two stored types: produced at the prefix, moved forward,
     -- identified with the given extension readings by determinism
     obtain ⟨TVa', hTVa', -, -⟩ :=
-      mp.constType 0 n _ us hfE rfl (by exact hlen)
+      mp.constType 0 n _ us hfE (by exact hlen)
     obtain rfl : TVa' = TVa := by
       refine Option.some.inj (Eq.trans ?_ hTVa)
       rw [hac]
-      exact (denote_cons_mono hfresh
-        ((hntc.typeOf hfE).instantiateLevelParams _ _) _ 0
+      exact (denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hfE) us) hTVa').symm
     obtain ⟨TVja', hTVja', -, -⟩ :=
-      mp.constType 0 (RecRule.ctor rl) _ usj hfcjE rfl (by exact hujl)
+      mp.constType 0 (RecRule.ctor rl) _ usj hfcjE (by exact hujl)
     obtain rfl : TVja' = TVja := by
       refine Option.some.inj (Eq.trans ?_ hTVja)
       rw [hac]
-      exact (denote_cons_mono hfresh
-        ((hntc.typeOf hfcjE).instantiateLevelParams _ _) _ 0
+      exact (denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hfcjE) usj) hTVja').symm
     -- the two leaves the conclusion mentions are the prefix's
@@ -370,7 +354,6 @@ row, the freshness supplying the disequality. -/
 theorem recRules_cons_fresh (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
-    (hntc : ConsCrossEnv env c₀)
     (hnotrec : ∀ cv mI rP rules, c₀ = .recInfo cv mI rP rules →
       rules = [])
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
@@ -388,7 +371,7 @@ theorem recRules_cons_fresh (mp : EnvModelM V μ env)
       (Option.some.inj ((ConLeche.Env.find?_cons_self c₀ env).symm.trans hf))
     rw [hrl] at hmem
     exact nomatch hmem
-  exact recRuleLaw_cons_prefix mp hfresh hntc m₂ hac φ hnN
+  exact recRuleLaw_cons_prefix mp hfresh m₂ hac φ hnN
     (by rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnN hh.symm)] at hf
         exact hf) hmem
 
@@ -419,7 +402,6 @@ theorem recRules_cons_rec (mp : EnvModelM V μ env)
     subst h1; subst h2; subst h3; subst h4
     exact hnew rl hmem
   · exact recRuleLaw_cons_prefix mp hfresh
-      (fun _ heq => by rw [hkind] at heq; exact nomatch heq)
       m₂ hac φ hnN
       (by rw [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnN hh.symm)] at hf
           exact hf) hmem
@@ -431,7 +413,7 @@ entries; a cons that is not itself a tower entry adds none, and every
 stored row transports exactly as `recRuleLaw_cons_prefix`'s: the
 lookups the law reads (the entry, the former, the constructor) are
 prefix lookups, the two readings it carries (`Ta`, `TCa`) move
-**forward** by `denote_cons_fresh_mono`, and the two leaves it
+**forward** by `denote_cons_mono`, and the two leaves it
 mentions (`acval T`, `acval entry.ctor`) are the prefix's by
 `acvalWith_ne` — both names are stored, so neither is the fresh one.
 The semantic clauses are then the prefix's verbatim. -/
@@ -443,7 +425,6 @@ laws read are the prefix's. -/
 theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
-    (hcross : ConsCrossEnv env c₀)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) {T : Name} {i : Nat} {entry : ProjEntry}
@@ -467,15 +448,9 @@ theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
   · obtain ⟨⟨Ta, hTa, hA⟩, ⟨TCa, hTCa, hB⟩⟩ := hlaw us hus
     refine ⟨⟨Ta, ?_, ?_⟩, ⟨TCa, ?_, ?_⟩⟩
     · -- the body telescope's reading crosses (task #175 S1): the
-      -- table is a prefix lookup, its bodies resolve (`EnvWF`) and
-      -- mention none of the head's slots
+      -- table is a prefix lookup, its bodies resolve (`EnvWF`)
       rw [hac]
-      refine denote_cons_mono hfresh ?_ _ 0 ?_ hTa
-      · intro tbl' heq' j
-        subst hentry
-        exact Expr.NoProjAt.projTele _ _ _ _
-          (Expr.NoProjAt.instantiateLevelParams _ _ _
-            ((hcross.body hfP0 hi) tbl' heq' j))
+      refine denote_cons_mono hfresh _ 0 ?_ hTa
       · refine constsBound_of_constsResolve _ ?_
         rw [ConLeche.projTele_constsResolve, ConLeche.Expr.constsResolve_instantiateLevelParams]
         exact (ConLeche.projEntry_body_wf mp.base2.wf hfP).2.2.1
@@ -485,8 +460,7 @@ theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
     · -- the constructor type's reading crosses (task #175 W6): a
       -- prefix lookup's closed type
       rw [hac]
-      exact denote_cons_mono hfresh
-        ((hcross.typeOf hfC).instantiateLevelParams _ _) _ 0
+      exact denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hfC) us) hTCa
     · intro hg ρ ys rest hlen hok hfit
@@ -504,8 +478,7 @@ theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
       (fun cvC nPc nFc hf₂ => ?_) (fun cvC nPc nFc TCa hf hTCa => ?_)
       (by rw [hac, acvalWith_ne hnT]) (fun _ _ _ => rfl)⟩
     · rw [hac]
-      exact denote_cons_mono hfresh
-        ((hcross.typeOf hfT'').instantiateLevelParams _ _) _ 0
+      exact denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hfT'') us) hTVa
     · intro ρ ts rest x hlen hfit hmem
@@ -514,55 +487,21 @@ theorem towerEntryLaw_cons_prefix (mp : EnvModelM V μ env)
       exact hlaw' ρ ts rest x hlen hfit hmem
     · rwa [ConLeche.Env.find?_cons, ite_eq_right (fun hh => hnC hh.symm)] at hf₂
     · rw [hac]
-      exact denote_cons_mono hfresh
-        ((hcross.typeOf hf).instantiateLevelParams _ _) _ 0
+      exact denote_cons_mono hfresh _ 0
         (constsBound_instType mp.base2.wf
           (ConLeche.Env.find?_mem hf) us) hTCa
 
-/-- **`TowerOk` at a fresh non-table cons**: every stored entry is a
-prefix entry, and its law crosses. -/
+/-- **`TowerOk` at a fresh cons**: every stored entry is a prefix entry
+(a constant's install adds no table), and its law crosses. -/
 theorem towerOk_cons_fresh (mp : EnvModelM V μ env)
     {c₀ : ConstantInfo} {A : (Name → Nat) → Term}
     (hfresh : env.find? c₀.name = none)
-    (hcross : ConsCrossEnv env c₀)
-    (hntc : ∀ tbl, c₀ ≠ .projInfo tbl)
     (m₂ : EnvModel V ⟨c₀ :: env.consts, env.tables⟩)
     (hac : m₂.acval = acvalWith mp.base2.acval c₀.name A)
     (φ : Name → Nat) : TowerOk m₂ φ := by
   intro T i entry hf
-  -- the entry is a prefix entry: the head is not a table
-  have hfP : env.findProj? T i = some entry := by
-    obtain ⟨tbl, hf3, hi, rfl⟩ := ConLeche.Env.findProj?_some hf
-    rw [ConLeche.Env.find?_cons] at hf3
-    split at hf3
-    · exact absurd (Option.some.inj hf3) (hntc tbl)
-    · exact ConLeche.Env.findProj?_of_table hf3 hi
-  exact towerEntryLaw_cons_prefix mp hfresh hcross m₂ hac φ hfP
-
-/-- **`TowerOk` at a table cons** (task #175 W4c, module 4;
-S1: one table per structure): the prefix entries' laws cross, and the
-head's laws — one per field — are the install's own. -/
-theorem towerOk_cons_tower (mp : EnvModelM V μ env)
-    {tbl₀ : ProjTable} {A : (Name → Nat) → Term}
-    (hfresh : env.find? (ConstantInfo.projInfo tbl₀).name = none)
-    (hcross : ConsCrossEnv env (.projInfo tbl₀))
-    (m₂ : EnvModel V ⟨.projInfo tbl₀ :: env.consts, env.tables⟩)
-    (hac : m₂.acval = acvalWith mp.base2.acval
-      (ConstantInfo.projInfo tbl₀).name A)
-    (hlaw : ∀ (φ : Name → Nat) (i : Nat), i < tbl₀.numFields →
-      TowerEntryLaw m₂ φ tbl₀.structName i (tbl₀.entry i))
-    (φ : Name → Nat) : TowerOk m₂ φ := by
-  intro T i entry hf
-  obtain ⟨tbl, hf3, hi, rfl⟩ := ConLeche.Env.findProj?_some hf
-  rw [ConLeche.Env.find?_cons] at hf3
-  split at hf3
-  · next hn =>
-    obtain rfl : tbl₀ = tbl :=
-      ConstantInfo.projInfo.inj (Option.some.inj hf3)
-    have hn' : ConLeche.projTableName tbl₀.structName = ConLeche.projTableName T := hn
-    obtain rfl := ConLeche.projTableName_inj hn'
-    exact hlaw φ i hi
-  · exact towerEntryLaw_cons_prefix mp hfresh hcross m₂ hac φ
-      (ConLeche.Env.findProj?_of_table hf3 hi)
+  -- the entry is a prefix entry: a constant's install adds no table
+  rw [mp.base2.wf.findProj?_cons hfresh] at hf
+  exact towerEntryLaw_cons_prefix mp hfresh m₂ hac φ hf
 
 end ConLeche.Model
