@@ -224,7 +224,7 @@ theorem tgtRecCtor_seam_of_find {envC : Env} {mpC : EnvModelM V μ envC}
   intro j r hr i cA hcA
   have hfind := hfind0 j r hr i cA hcA
   have hmem := List.mem_of_find?_eq_some hfind
-  have hwfC := mpC.base2.wf _ hmem
+  have hwfC := mpC.base2.wf.consts _ hmem
   have hrd : (tgtRs out).getD j default = r := by rw [List.getD_eq_getElem?_getD, hr]; rfl
   have hsel : (((tgtRs out).getD j default).2.2.2.getD i default) = cA := by
     rw [hrd, List.getD_eq_getElem?_getD, hcA]; rfl

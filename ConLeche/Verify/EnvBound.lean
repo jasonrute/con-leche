@@ -124,6 +124,10 @@ stay: a table is visible exactly where its structure is
 def Env.prefixTo (env : Env) (k : Nat) : Env :=
   ⟨env.consts.drop (env.consts.length - k), env.tables⟩
 
+/-- The prefix keeps the tables. -/
+@[simp] theorem Env.prefixTo_tables (env : Env) (k : Nat) :
+    (env.prefixTo k).tables = env.tables := by rfl
+
 /-- The prefix at the length of a suffix environment has that
 environment's constants (task #253: the environment a declaration was
 installed at, read off the final one). -/

@@ -371,7 +371,8 @@ walks through before it reads a head. -/
 
 /-- **The proof reader's answer survives instantiating a bound
 variable**, at the same depth (its heads are never that variable). -/
-theorem proofPW_instantiate1 (find? : Name → Option ConstantInfo) {v : Expr} :
+theorem proofPW_instantiate1 (find? : Name → Option ConstantInfo)
+    (findTable? : Name → Option ProjTable) {v : Expr} :
     ∀ (b : Expr) (k : Nat) {pw : PropWhen}, proofPW find? findTable? b = some pw →
       proofPW find? findTable? (b.instantiate1 v k) = some pw ∧
         (b.instantiate1 v k).proofDepth = b.proofDepth := by

@@ -496,7 +496,7 @@ theorem genRecCtx_nodes (hμ : μ.isVerified = true) {F : Nat} {block : List Con
     have h0' : cvTasR[0]? = some cvTa0 := by
       rw [List.head?_eq_getElem?] at h0; exact h0
     obtain ⟨hf, -⟩ := hcore.1 0 cvTa0 h0'
-    exact (mpC.base2.wf _ (List.mem_of_find?_eq_some hf)).1
+    exact (mpC.base2.wf.consts _ (List.mem_of_find?_eq_some hf)).1
   have hcl2 : ∀ (c : Nat) (cs : List (ConstantVal × Nat)), ctorsAsR[c]? = some cs →
       ∀ (j : Nat) (cA : ConstantVal × Nat), cs[j]? = some cA →
       (dR.ctorsM c)[j]? = some cA ∧
@@ -507,7 +507,7 @@ theorem genRecCtx_nodes (hμ : μ.isVerified = true) {F : Nat} {block : List Con
     obtain rfl := Option.some.inj hcs
     have hck : c < dR.k := hN.2.2 ▸ hN.2.1 c j cA hcA
     obtain ⟨hf, -⟩ := hcore.2.2 c hck j cA hcA
-    have hw := mpC.base2.wf _ (List.mem_of_find?_eq_some hf)
+    have hw := mpC.base2.wf.consts _ (List.mem_of_find?_eq_some hf)
     exact ⟨hcA, hw.1, hw.2.2.2.1⟩
   have hcl : ∀ (c : Nat) (cs : List (ConstantVal × Nat)), ctorsAsR[c]? = some cs →
       ∀ (j : Nat) (cA : ConstantVal × Nat), cs[j]? = some cA → cA.1.type.hasFvar = false :=

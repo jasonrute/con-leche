@@ -335,7 +335,7 @@ theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
     have hck : c < (blockDataOf V p₁ ctorsAs pk uOf ppsOf).k := by
       rw [← hN.2.2]; exact hN.2.1 c j cA hj
     have hf := (hcoreC.2.2 c hck j cA hj).1
-    have hw := mpC₀.base2.wf _ (List.mem_of_find?_eq_some hf)
+    have hw := mpC₀.base2.wf.consts _ (List.mem_of_find?_eq_some hf)
     exact ⟨hw.1, hw.2.2.2.1⟩
   have hMC := blockModelAt_of_records hN hS.toBlockCtorsStage hcoreC rfl hk0
     (fun _ _ => rfl) (fun _ _ _ _ => rfl)
@@ -401,7 +401,7 @@ theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
         have hck : c < (blockDataOf V p₁ ctorsAs pk uOf ppsOf).k := by
           rw [← hN.2.2]; exact hN.2.1 c j cA hj
         have hf := (hcoreC.2.2 c hck j cA hj).1
-        exact (mpC₀.base2.wf _ (List.mem_of_find?_eq_some hf)).1)
+        exact (mpC₀.base2.wf.consts _ (List.mem_of_find?_eq_some hf)).1)
       (canonOcc_of_positivity hPos rfl rfl rfl
         (fun c hc => hctorsAs c (by rw [hlenCtorsAs]; exact hc)) hlpsA)
       (fun c hc j cA hj ψ ρ hsat =>

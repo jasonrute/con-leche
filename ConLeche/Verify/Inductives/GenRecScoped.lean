@@ -457,8 +457,8 @@ theorem genRun_Ms₀
     · have hc : NestCtxOk (⟨[], [], 0, [], [], .zero, (mkFEnv envC).find?⟩ : NestCtx) ∧
           NestCtxB (⟨[], [], 0, [], [], .zero, (mkFEnv envC).find?⟩ : NestCtx) := by
         rw [mkFEnv_find?_fun]
-        exact ⟨fun _ ci hf => (henvC ci (List.mem_of_find?_eq_some hf)).1,
-          fun _ ci hf => (henvC ci (List.mem_of_find?_eq_some hf)).2.2.2.1⟩
+        exact ⟨fun _ ci hf => (henvC.consts ci (List.mem_of_find?_eq_some hf)).1,
+          fun _ ci hf => (henvC.consts ci (List.mem_of_find?_eq_some hf)).2.2.2.1⟩
       have h0 := nestContainer_scb hc.1 hc.2 hctors cA hcA
       simp only [targetCtorAt]
       refine ScB.of_closed ?_ ?_ 0

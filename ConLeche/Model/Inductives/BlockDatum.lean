@@ -730,7 +730,7 @@ theorem blockTablesStage_of (hμ : μ.isVerified = true) {F : Nat} {env envI : E
   have hTasI : ∀ cvT ∈ cvTas, cvT.type.hasFvar = false := by
     intro cvT hmem
     obtain ⟨t, ht⟩ := List.getElem?_of_mem hmem
-    exact (mpD.base2.wf _ (List.mem_of_find?_eq_some (hfindD t cvT ht).1)).1
+    exact (mpD.base2.wf.consts _ (List.mem_of_find?_eq_some (hfindD t cvT ht).1)).1
   have hgetCA : ∀ (c j : Nat) (cA : ConstantVal × Nat), (ctorsAs.getD c [])[j]? = some cA →
       (ctorsAs.getD c []).getD j default = cA := fun c j cA hj => by
     rw [List.getD_eq_getElem?_getD, hj]; rfl

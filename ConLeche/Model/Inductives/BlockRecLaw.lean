@@ -141,7 +141,7 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
     exact denote_consBlockRecsR_mono hfr hpsh hag ψ d e hcb h
   obtain ⟨-, hlaw0, hextra⟩ := mpC.rec_rules φ n cv mI rP rules hfE rl hmem
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
-    mpC.base2.wf _ (ConLeche.Env.find?_mem hfE)
+    mpC.base2.wf.consts _ (ConLeche.Env.find?_mem hfE)
   obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
   intro us hlen TVa hTVa
   obtain ⟨TVa', hTVa', -, -⟩ := mpC.constType 0 n _ us hfE rfl (by exact hlen)
@@ -204,7 +204,7 @@ theorem recRuleExtra_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRul
           = ConLeche.iotaCtorNeverProp envC.find? cvj lvs := by
       intro lvs
       obtain ⟨-, -, hresolve, -, -, -, -, -⟩ :=
-        mpC.base2.wf _ (ConLeche.Env.find?_mem hfcjE)
+        mpC.base2.wf.consts _ (ConLeche.Env.find?_mem hfcjE)
       dsimp only [ConLeche.ConstantInfo.toConstantVal] at hresolve
       have hTiso : ∀ T us', cvj.type.piResult.getAppFn = .const T us' →
           (envC.find? T).isSome = true :=
@@ -282,7 +282,7 @@ theorem recRuleLaw_consBlockRecsR_prefix {R : Nat → RecDatum → List RecRule}
     recRuleExtra_consBlockRecsR_prefix mpC hfr hpsh hag m₃ hac φ hfE hmem⟩
   obtain ⟨Ra, hRa0, hokRa, hpinsOk, hlaw⟩ := hlaw0 us hlen
   obtain ⟨-, -, -, -, -, hrec', -⟩ :=
-    mpC.base2.wf _ (ConLeche.Env.find?_mem hfE)
+    mpC.base2.wf.consts _ (ConLeche.Env.find?_mem hfE)
   obtain ⟨-, -, hRres, -, hnest⟩ := hrec' cv mI rP rules rfl rl hmem
   -- a rule pin's subject resolves at the constructors' environment
   have hpinCB : ∀ (lvls : List Level) (pins : List Expr),

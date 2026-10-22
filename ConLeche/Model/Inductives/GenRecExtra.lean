@@ -102,7 +102,7 @@ theorem lfpW_congr {envC : Env} (mpC : EnvModelM V μ envC) {D : LfpDatum V}
     injection hf' with h'; injection h' with h1 h2; exact ⟨h1, h2⟩
   obtain ⟨ab₁, h₁, -⟩ := hab ψ₁
   obtain ⟨ab₂, h₂, -⟩ := hab ψ₂
-  have hwf := mpC.base2.wf _ (ConLeche.Env.find?_mem hf)
+  have hwf := mpC.base2.wf.consts _ (ConLeche.Env.find?_mem hf)
   rw [denote_params_ext mpC.base2 hag 0 cv.type hwf.2.1, h₂] at h₁
   have h := (mkPisAV_sort_inj (Option.some.inj h₁)).2
   exact h.symm

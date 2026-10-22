@@ -209,7 +209,7 @@ theorem Infer.fvar_sound {g : Grade} {d idx : Nat} {ty : Expr} (h : idx < d) :
 /-- A constant: `ConstType`. -/
 theorem Infer.const_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
     {n : Name} {us : List Level} {ci : ConLeche.ConstantInfo}
-    (hf : env.find? n = some ci) (htower : ci.isTowerEntry = false)
+    (hf : env.find? n = some ci)
     (hus : us.length = ci.toConstantVal.levelParams.length) :
     InferSem m φ g d (.const n us)
       (ci.toConstantVal.type.instantiateLevelParams ci.toConstantVal.levelParams us) := by
@@ -221,7 +221,7 @@ theorem Infer.const_sound (hin : RulesInputs V m φ) {g : Grade} {d : Nat}
   obtain rfl : ea = m.acval n
       (Level.substFn φ ci.toConstantVal.levelParams us) :=
     (Option.some.inj hea).symm
-  obtain ⟨ta, hta, hok, hmem⟩ := hin.const_ty d n ci us hf htower hus
+  obtain ⟨ta, hta, hok, hmem⟩ := hin.const_ty d n ci us hf hus
   obtain ⟨htc, -, -, htb, -⟩ := m.wf.consts _ (Env.find?_mem hf)
   have hnf : (ci.toConstantVal.type.instantiateLevelParams
       ci.toConstantVal.levelParams us).hasFvar = false := by

@@ -223,8 +223,7 @@ theorem restrictTo_findTable?_of_extends {feFinal : FEnv} {env : Env}
   rw [hf]
   split
   · next hT =>
-    show (feFinal.env.tables).find? _ = _
-    rw [hextT, List.find?_append]
+    rw [Env.prefixTo_tables, hextT, List.find?_append]
     have : newQ.find? (·.structName == T) = none := by
       rw [List.find?_eq_none]
       intro t ht hq

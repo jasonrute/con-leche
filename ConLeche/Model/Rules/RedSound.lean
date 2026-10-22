@@ -131,42 +131,18 @@ theorem Red.projArg_sound {d : Nat} {sn : Name}
     fun l hl => by simpa [Expr.fvarLeaves] using hl
   have hLe : Expr.LeavesBounded e := fun l hl => hLb l (hsube l hl)
   have hCe : CtxOkS m φ d Δa e := hC.of_subset hsube
-  obtain ⟨vp, hvp, hrd⟩ := denote_proj_inv hea
+  obtain ⟨vp, entry, hvp, hfe, rfl⟩ := denote_proj_inv hea
   obtain ⟨⟨hw', hb', hL'⟩, hsub, vp', hvp', hs⟩ := he ⟨hws, hb, hLe⟩ hCe hvp
   refine ⟨⟨by simp only [Expr.WScoped]; exact hw',
       by simp only [Expr.looseBVarsBounded]; exact hb',
       fun l hl => hL' l (by simpa [Expr.fvarLeaves] using hl)⟩,
     fun l hl => hsube l (hsub l (by simpa [Expr.fvarLeaves] using hl)), ?_⟩
-  rcases hrd with ⟨entry, hfe, rfl⟩ | ⟨hnt, hdec⟩
-  · refine ⟨projNV (i + 1) vp', ?_, fun σ hσ hL hg hne => ?_⟩
-    · rw [denote, hvp', hfe]; rfl
-    have hnv : interp V σ vp ≠ pt := by
-      intro h; apply hne; rw [projNV_interp, h, ConLeche.SetTheory.Tower.projS_pt]
-    obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) (ProjAV.hoistV hg) hnv
-    exact ⟨ProjAV.congrV heq hg' hg, ProjAV.interp_congr heq⟩
-  · obtain ⟨x', hx'⟩ :=
-      Term.projPair?_exists_of_lt (Term.lt_of_projPair? hdec) vp'
-    have hred : denote m.acval env φ d (.proj sn i e') = some x' := by
-      rw [denote, hvp', hnt]; exact hx'
-    rcases Term.projPair?_cases₂ hdec hx' with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-    · refine ⟨.fst vp', hred, fun σ hσ hL hg hne => ?_⟩
-      have hnv : interp V σ vp ≠ pt := by
-        intro h; apply hne; rw [interp_fst, h, sfst_pt]
-      obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) hg.fst_arg hnv
-      refine ⟨?_, by rw [interp_fst, interp_fst, heq]⟩
-      have h1 := hg
-      rw [WellDenoted_fst] at h1 ⊢
-      obtain ⟨-, u, v, A, Bf, hsig, hA, hfib⟩ := h1
-      exact ⟨hg', u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
-    · refine ⟨.snd vp', hred, fun σ hσ hL hg hne => ?_⟩
-      have hnv : interp V σ vp ≠ pt := by
-        intro h; apply hne; rw [interp_snd, h, ssnd_pt]
-      obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) hg.snd_arg hnv
-      refine ⟨?_, by rw [interp_snd, interp_snd, heq]⟩
-      have h1 := hg
-      rw [WellDenoted_snd] at h1 ⊢
-      obtain ⟨-, u, v, A, Bf, hsig, hA, hfib⟩ := h1
-      exact ⟨hg', u, v, A, Bf, heq ▸ hsig, hA, hfib⟩
+  refine ⟨projNV (i + 1) vp', ?_, fun σ hσ hL hg hne => ?_⟩
+  · rw [denote, hvp', hfe]; rfl
+  have hnv : interp V σ vp ≠ pt := by
+    intro h; apply hne; rw [projNV_interp, h, ConLeche.SetTheory.Tower.projS_pt]
+  obtain ⟨hg', heq⟩ := hs σ hσ (hL.of_subset hsube) (ProjAV.hoistV hg) hnv
+  exact ⟨ProjAV.congrV heq hg' hg, ProjAV.interp_congr heq⟩
 
 /-! ## β -/
 
@@ -513,7 +489,7 @@ theorem Red.proj_sound (hin : RulesInputs V m φ) {d : Nat} {sn : Name} {i : Nat
     ⟨hC.1, fun l hl => by
       rw [ConLeche.Expr.fvarLeaves_eq_nil_of_not_hasFvar hnfC] at hl
       exact nomatch hl⟩
-  obtain ⟨TCa', hTCa', hokTCa, hmemC0⟩ := hin.const_ty 0 entry.ctor _ us hfC rfl
+  obtain ⟨TCa', hTCa', hokTCa, hmemC0⟩ := hin.const_ty 0 entry.ctor _ us hfC
     (by show us.length = cvC₀.levelParams.length; rw [hlpsC]; exact hus)
   obtain rfl : TCa = TCa' := Option.some.inj (hTCa.symm.trans hTCa')
   -- the ∀-chain, off the head data's arity pin
