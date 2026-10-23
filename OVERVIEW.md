@@ -365,7 +365,7 @@ Read from the outside in:
    (the installer checks, per constant it pushes, that the predicted slot
    holds that very constant, and hands that verdict over with its
    result), so a worker's install is the serial step
-   ([theorem `installStep_commit` in `ConLeche/Verify/Cached/ViewCongr.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/ViewCongr.lean#L1389-L1395)):
+   ([theorem `installStep_commit` in `ConLeche/Verify/Cached/ViewCongr.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Verify/Cached/ViewCongr.lean#L1405-L1411)):
    every install stage reads its index through the lookups alone (the
    constants' and the projection tables') and writes it by pushes
    alone, so at two indices with the same lookups it pushes the same
@@ -1130,10 +1130,13 @@ instead of trusting the operation's name.
   each with its pinned *certificate theorems* — `Nat.ble`-guarded
   characterisations of the operation whose proof terms were produced
   by Lean itself at pin-generation time. The install tries the pins in
-  order and uses the first whose copy is definitionally equal to the
-  stream's definition and whose certificates check, as theorem
-  declarations, without installing them; a stream matching none of
-  them declines
+  order and uses the first whose pinned types of `Decidable.rec` and
+  `Decidable.casesOn` (the constants the certificates use whose types
+  differ between the supported toolchains) are definitionally equal to
+  the stream's, whose copy is definitionally equal to the stream's
+  definition, and whose certificates check, as theorem declarations,
+  without installing them; each step is a yes-or-no comparison, so
+  no error is caught, and a stream matching none of them declines
   ([the pin module `ConLeche/Kernel/NatOpPins.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/NatOpPins.lean#L1-L16),
   [the certificate library `ConLeche/PinGen/Certs.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/PinGen/Certs.lean#L7-L18)).
   The pins are committed per toolchain under `pins/`, each generated
