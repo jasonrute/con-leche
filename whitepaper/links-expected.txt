@@ -2660,24 +2660,24 @@
    604      v.lparamsIn ci.lparams = true) ∧
    605    ci.type.lparamsIn ci.lparams = true
 
-== ConLeche/Kernel/CheckerBase.lean#L126-L142
-   126  def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m Unit := do
-   127    if (env.find? cv.name).isSome then
-   128      throw (.invalid s!"duplicate declaration {cv.name}")
-   129    if reservedBasisNames.contains cv.name then
-   130      throw (.invalid s!"reserved basis name {cv.name}")
-   131    unless Name.nodup cv.levelParams do
-   132      throw (.invalid s!"duplicate universe parameters in {cv.name}")
-   133    unless cv.type.looseBVarsBounded 0 do
-   134      throw (.invalid s!"loose bound variable in type of {cv.name}")
-   135    if cv.type.hasFvar then
-   136      throw (.invalid s!"unexpected free variable in type of {cv.name}")
-   137    unless cv.type.allLevelParamsDefined cv.levelParams do
-   138      throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
-   139    unless cv.type.constsResolve env do
-   140      throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" cv.type)
-   141    let stype ← ops.inferType env 0 cv.type
-   142    let _u ← ops.ensureSort env 0 stype
+== ConLeche/Kernel/CheckerBase.lean#L105-L121
+   105  def checkConstantVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal) : m Unit := do
+   106    if (env.find? cv.name).isSome then
+   107      throw (.invalid s!"duplicate declaration {cv.name}")
+   108    if reservedBasisNames.contains cv.name then
+   109      throw (.invalid s!"reserved basis name {cv.name}")
+   110    unless Name.nodup cv.levelParams do
+   111      throw (.invalid s!"duplicate universe parameters in {cv.name}")
+   112    unless cv.type.looseBVarsBounded 0 do
+   113      throw (.invalid s!"loose bound variable in type of {cv.name}")
+   114    if cv.type.hasFvar then
+   115      throw (.invalid s!"unexpected free variable in type of {cv.name}")
+   116    unless cv.type.allLevelParamsDefined cv.levelParams do
+   117      throw (.invalid s!"undeclared universe parameter in type of {cv.name}")
+   118    unless cv.type.constsResolve env do
+   119      throw (unresolvedConstsErrorL (strLitSupported env) s!"type of {cv.name}" cv.type)
+   120    let stype ← ops.inferType env 0 cv.type
+   121    let _u ← ops.ensureSort env 0 stype
 
 == ConLeche/Kernel/Checker.lean#L34-L47
     34  def checkDefnVal (ops : CheckerOps m) (env : Env) (cv : ConstantVal)
@@ -6285,15 +6285,15 @@
     10  see `pins/README.md` — one **pin variant** `natOpPinSet_v<i> :
     11  NatOpPinSet` (`ConLeche/Kernel/NatOpPinSet.lean`): per pin-certified
     12  operation (`Nat.div`, `Nat.mod`, …) that toolchain's pinned defining
-    13  expression and certificate proof blobs, as constants
+    13  expression, certificate proof blobs and type pins, as constants
     14  `nat…DeclPin_v<i> : Expr` / `nat…CertProofs_v<i> : List Expr`.  The
     15  variants are listed in `natOpPinSets` in the order below.  That list is
     16  what the shipped binary hands the fold as its PIN-LIST PARAMETER (task
     17  #304), and the order is the order the install gate tries them in
     18  (`checkDivModPinLoop`, `ConLeche/Kernel/Checker.lean`): the first
-    19  whose guards pass, whose pin is definitionally equal to the stream's
-    20  stored value and whose certificates check enables the operation's fast
-    21  path.  The hand-pinned certificate *statements* the proofs are checked against
+    19  whose guards pass, whose type pins (task #364) and pin are
+    20  definitionally equal to the stream's stored types and value, and whose
+    21  certificates check enables the operation's fast path.  The hand-pinned certificate *statements* the proofs are checked against
 
 == ConLeche/Model/NatEqs.lean#L1078-L1082
   1078  theorem natOps_install (mp : EnvModelM V μ env) {φ : Name → Nat}

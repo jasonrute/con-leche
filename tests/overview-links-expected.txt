@@ -175,14 +175,14 @@
    757          (Σ' (p' : Nat × FEnv × Array PendingCheck),
    758            PLift (InstallRun mode natOpPinSets ds.toList p₀ p')))
 
-== ConLeche/Verify/Cached/ViewCongr.lean#L1389-L1395
-  1389  theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {i : Nat}
-  1390      {fe : FEnv} {pend : Array PendingCheck} {pd : Declaration} {L : List ConstantInfo}
-  1391      {Q : List ProjTable} {vg? : Option ValueGroup} (hag : ViewAgrees B S fe) (hidx : IdxBelow fe)
-  1392      (hand : andPinOk pd = true)
-  1393      (h : installStep mode pins (workerView B S fe.visibleBelow) pd = .ok (L, Q, vg?)) :
-  1394      installDeclStep mode pins (i, fe, pend) pd =
-  1395        .ok (i + 1, FEnv.pushDelta L Q fe, pushPending pend i fe.visibleBelow vg?) := by
+== ConLeche/Verify/Cached/ViewCongr.lean#L1405-L1411
+  1405  theorem installStep_commit {pins : List NatOpPinSet} {B : BaseIdx} {S : Slots} {i : Nat}
+  1406      {fe : FEnv} {pend : Array PendingCheck} {pd : Declaration} {L : List ConstantInfo}
+  1407      {Q : List ProjTable} {vg? : Option ValueGroup} (hag : ViewAgrees B S fe) (hidx : IdxBelow fe)
+  1408      (hand : andPinOk pd = true)
+  1409      (h : installStep mode pins (workerView B S fe.visibleBelow) pd = .ok (L, Q, vg?)) :
+  1410      installDeclStep mode pins (i, fe, pend) pd =
+  1411        .ok (i + 1, FEnv.pushDelta L Q fe, pushPending pend i fe.visibleBelow vg?) := by
 
 == ConLeche/Cached/Installed.lean#L356-L358
    356  def checkRecord {pins : List NatOpPinSet} {ds : List Declaration}
@@ -1047,7 +1047,7 @@
     10  see `pins/README.md` — one **pin variant** `natOpPinSet_v<i> :
     11  NatOpPinSet` (`ConLeche/Kernel/NatOpPinSet.lean`): per pin-certified
     12  operation (`Nat.div`, `Nat.mod`, …) that toolchain's pinned defining
-    13  expression and certificate proof blobs, as constants
+    13  expression, certificate proof blobs and type pins, as constants
     14  `nat…DeclPin_v<i> : Expr` / `nat…CertProofs_v<i> : List Expr`.  The
     15  variants are listed in `natOpPinSets` in the order below.  That list is
     16  what the shipped binary hands the fold as its PIN-LIST PARAMETER (task
