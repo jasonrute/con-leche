@@ -2,7 +2,6 @@ module
 
 public import ConLeche.Verify.Fueled
 public import ConLeche.Kernel.CheckDecl
-import ConLeche.Verify.Extend.Inversions
 
 public section
 
