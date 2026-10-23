@@ -3004,3 +3004,20 @@
 # `ConLeche/Driver/Run.lean`), not a REJECT (exit 1 is reserved for a
 # well-formed stream whose declaration is invalid).
 3 binder_pw_field.ndjson
+# natop_typepin_foreign (task #364): a pin variant whose certificates
+# would be ill-typed against the stream.  The stream is the v4.35.0
+# `Init` cone of `Nat.gcd`, `Nat.ble`, `Nat.mod`, `Bool` and every
+# constant the v4.33.0 dump's `Nat.gcd` pin and certificates mention
+# (`leanexport Init -- …`), with the record of `Decidable.falseTrueCases`
+# deleted (nothing in the stream refers to it).  So the
+# repository toolchain's own variant (nightly-2026-09-10) fails its
+# ground guard ("pin or certificate ground constants absent"), and the
+# v4.33.0 and v4.34.0-rc2 variants pass theirs: every name their
+# certificates mention resolves, but those certificates eliminate the
+# old two-constructor `Decidable` and this stream's is the structure.
+# Their type pin of `Decidable.casesOn` is not definitionally equal to
+# the stored type, so each fails by a boolean `false` before its
+# certificates are inferred (before the type pins, inferring them threw
+# "application type mismatch" and the variant-fallback combinator
+# caught it).  No variant matches: DECLINE, today and as the target.
+2 natop_typepin_foreign.ndjson
