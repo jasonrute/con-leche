@@ -210,9 +210,13 @@ theorem divModCertGuardF_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.f
     divModCertGuardF fe₁ c annVal hyps eqE proof = divModCertGuardF fe₂ c annVal hyps eqE proof := by
   simp only [divModCertGuardF, constsResolveF_congr hfe]
 
+theorem typePinStoredF_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?) (n : Name) :
+    typePinStoredF fe₁ n = typePinStoredF fe₂ n := by
+  simp only [typePinStoredF, hfe]
+
 theorem divModPinGuardF_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?)
     (ps : NatOpPinSet) (c : Name) : divModPinGuardF ps fe₁ c = divModPinGuardF ps fe₂ c := by
-  simp only [divModPinGuardF, constsResolveF_congr hfe]
+  simp only [divModPinGuardF, constsResolveF_congr hfe, hfe, typePinStoredF_congr hfe]
 
 theorem divModCertsGuardF_congr {fe₁ fe₂ : FEnv} (hfe : fe₁.find? = fe₂.find?)
     (ps : NatOpPinSet) (c : Name) (annVal : Expr) :
@@ -251,11 +255,23 @@ theorem checkDivModCertsF_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
   | _ :: _, [] => rfl
 
 omit [MonadExceptOf CheckError m] in
+theorem checkTypePinsF_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
+    (hfe : fe₁.find? = fe₂.find?) :
+    ∀ (tps : List (Name × Expr)), checkTypePinsF ops fe₁ tps = checkTypePinsF ops fe₂ tps
+  | [] => rfl
+  | p :: rest => by
+    have ih := checkTypePinsF_congr h hfe rest
+    unfold checkTypePinsF
+    simp only [h.isDefEq fe₁.env, h.isDefEq fe₂.env, typePinStoredF_congr hfe]
+    rw [ih]
+
+omit [MonadExceptOf CheckError m] in
 theorem checkDivModPinAtF_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
     (hfe : fe₁.find? = fe₂.find?) (c : Name) (value' : Expr) (ps : NatOpPinSet) :
     checkDivModPinAtF ops fe₁ c value' ps = checkDivModPinAtF ops fe₂ c value' ps := by
   unfold checkDivModPinAtF
-  simp only [h.isDefEq fe₁.env, h.isDefEq fe₂.env, checkDivModCertsF_congr h hfe]
+  simp only [h.isDefEq fe₁.env, h.isDefEq fe₂.env, checkDivModCertsF_congr h hfe,
+    checkTypePinsF_congr h hfe]
 
 theorem checkDivModPinLoopF_congr (h : EnvFree ops) {fe₁ fe₂ : FEnv}
     (hfe : fe₁.find? = fe₂.find?) (c : Name) (value' : Expr) :

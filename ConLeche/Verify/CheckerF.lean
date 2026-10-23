@@ -115,9 +115,15 @@ theorem divModCertGuardF_eq (env : Env) (c : Name) (annVal : Expr)
       = divModCertGuard env c annVal hyps eqE proof := by
   simp only [divModCertGuardF, divModCertGuard, constsResolveF_eq] <;> rfl
 
+theorem typePinStoredF_eq (env : Env) (n : Name) :
+    typePinStoredF (mkFEnv env) n = typePinStored env n := by
+  simp only [typePinStoredF, typePinStored, mkFEnv_find?]
+  cases env.find? n <;> rfl
+
 theorem divModPinGuardF_eq (ps : NatOpPinSet) (env : Env) (c : Name) :
     divModPinGuardF ps (mkFEnv env) c = divModPinGuard ps env c := by
-  simp only [divModPinGuardF, divModPinGuard, constsResolveF_eq] <;> rfl
+  simp only [divModPinGuardF, divModPinGuard, constsResolveF_eq, mkFEnv_find?,
+    typePinStoredF_eq] <;> rfl
 
 theorem divModCertsGuardF_eq (ps : NatOpPinSet) (env : Env) (c : Name)
     (annVal : Expr) :
@@ -210,12 +216,21 @@ theorem checkDivModCertsF_eq (ops : CheckerOps m) (env : Env) (c : Name)
       mkFEnv_env, checkDivModCertsF_eq ops env c annVal srest prest]
 
 omit [MonadExceptOf CheckError m] in
+theorem checkTypePinsF_eq (ops : CheckerOps m) (env : Env) :
+    ∀ (tps : List (Name × Expr)),
+      checkTypePinsF ops (mkFEnv env) tps = checkTypePins ops env tps
+  | [] => rfl
+  | p :: rest => by
+    simp only [checkTypePinsF, checkTypePins, mkFEnv_env, typePinStoredF_eq,
+      checkTypePinsF_eq ops env rest]
+
+omit [MonadExceptOf CheckError m] in
 theorem checkDivModPinAtF_eq (ops : CheckerOps m) (env : Env) (c : Name)
     (value' : Expr) (ps : NatOpPinSet) :
     checkDivModPinAtF ops (mkFEnv env) c value' ps
       = checkDivModPinAt ops env c value' ps := by
   simp only [checkDivModPinAtF, checkDivModPinAt, mkFEnv_env,
-    checkDivModCertsF_eq]
+    checkDivModCertsF_eq, checkTypePinsF_eq]
 
 theorem checkDivModPinLoopF_eq (ops : CheckerOps m) (env : Env) (c : Name)
     (value' : Expr) :
