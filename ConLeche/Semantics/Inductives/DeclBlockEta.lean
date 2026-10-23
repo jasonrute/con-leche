@@ -206,7 +206,7 @@ theorem checkSumCtors_names {mode : CheckMode} {env₀ env : Env} {T : Name} {lp
     obtain ⟨hnF, _, -, hrun⟩ := hall j (cs[j]'(hlen ▸ hj)) (ctorsA[j])
       (List.getElem?_eq_getElem _) (List.getElem?_eq_getElem hj)
     obtain ⟨⟨heq, hccv⟩, -, -⟩ := ConLeche.checkSumCtor_shape hrun
-    obtain ⟨hfC, -, -, -, -, -, -, -, -, -, -, -⟩ :=
+    obtain ⟨hfC, -, -, -, -, -, -, -, -, -, -⟩ :=
       ConLeche.checkConstantVal_inv hccv
     have hn : ctorsA[j].1.name = (cs[j]'(hlen ▸ hj)).1.name := by rw [heq]
     exact ⟨hn, hnF, by rw [hn]; exact hfC⟩
@@ -264,7 +264,7 @@ theorem checkBlockInds_fresh {mode : CheckMode} {env envI : Env} {p : BlockParts
       env.find? cv.name = none := by
     intro ms cv s hh
     obtain ⟨cvT, -, -, heq, hcv, -⟩ := ConLeche.checkBlockTele_shape hh
-    obtain ⟨hf, -, -, -, -, -, -, -, -, -, -, -⟩ := ConLeche.checkConstantVal_inv hcv
+    obtain ⟨hf, -, -, -, -, -, -, -, -, -, -⟩ := ConLeche.checkConstantVal_inv hcv
     rw [heq]; exact hf
   intro cv hcv
   rcases List.mem_cons.mp hcv with rfl | hcv'

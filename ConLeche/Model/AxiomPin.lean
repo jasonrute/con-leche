@@ -81,7 +81,7 @@ theorem axiomTrustCompiler (hμ : μ.isVerified = true)
     CoverStep mp
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts, env.tables⟩ := by
   have hcv' := hcv
-  obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
+  obtain ⟨hfind, hnres, hnd, hlbt, hitf, hann, htp, htr,
     -⟩ := hcv'
   obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=
@@ -162,7 +162,7 @@ theorem axiomStd (hμ : μ.isVerified = true)
     CoverStep mp
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts, env.tables⟩ := by
   have hcv' := hcv
-  obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
+  obtain ⟨hfind, hnres, hnd, hlbt, hitf, hann, htp, htr,
     -⟩ := hcv'
   obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=

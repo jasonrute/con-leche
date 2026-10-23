@@ -45,7 +45,7 @@ $
 declared with level parameters $arrow(p)$ is taken at the levels
 $arrow(ell)$, replaces the parameters in sorts and in the level lists
 of constants
-(#src("ConLeche/Kernel/Level.lean", 224, 237)[as in con-leche]).
+(#src("ConLeche/Kernel/Level.lean", 218, 231)[as in con-leche]).
 
 *The rules for constants.* A constant
 #src("whitepaper/Fragment/Rules.lean", 749, 753)[has its declared type] at the
@@ -78,7 +78,7 @@ head rule of @sec:rules, an applied definition unfolds at its head.
 *What a definition must satisfy.* Before the checker stores a
 definition $c$ with parameters $arrow(p)$, type $T$ and value $v$, it
 #src("whitepaper/Fragment/Decl.lean", 591, 605)[checks four things]
-(in con-leche: #src("ConLeche/Kernel/CheckerBase.lean", 126, 144)[the common checks]
+(in con-leche: #src("ConLeche/Kernel/CheckerBase.lean", 126, 142)[the common checks]
 and #src("ConLeche/Kernel/Checker.lean", 34, 47)[the value check]):
 
 - the name $c$ is fresh;

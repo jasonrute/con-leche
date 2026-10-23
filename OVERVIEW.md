@@ -264,7 +264,7 @@ constructors are stored as declared, but they are installed with their
 block and are left out with it.
 
 `checkDecls`
-([function `checkDecls` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L443-L448))
+([function `checkDecls` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L441-L446))
 installs every declaration of `ds` first — a definition, theorem or
 opaque guarded and pushed with its check recorded, everything else
 checked in full as it is installed — and then checks every recorded
@@ -340,7 +340,7 @@ Read from the outside in:
    semantic layer the main corollary's line lemmas are about. The install loop
    ([function `installLoop` in `ConLeche/Driver/ParInstall.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Driver/ParInstall.lean#L155))
    takes every record, each from a fresh memo state, through the install step
-   ([function `installStepC` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L140-L143)):
+   ([function `installStepC` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L138-L141)):
    a definition or opaque is guarded and pushed with its check
    *recorded* — the header and value and the number of
    constants installed before it — a theorem is installed by its
@@ -376,7 +376,7 @@ Read from the outside in:
    against the *prefix* of the installed index it was installed at — an
    `O(1)` view whose lookup hides everything installed later — from a
    fresh memo state. A record's check is its own evidence
-   ([definition `checkRecord` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L358-L360)):
+   ([definition `checkRecord` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L356-L358)):
    the fact that the record is checked, or its error tagged with the
    record's position in the stream. The installed environment — read-only from the
    boundary on — is marked persistent once, so that no check pays
@@ -388,7 +388,7 @@ Read from the outside in:
    ([function `checkPool` in `ConLeche/Driver/CheckPool.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Driver/CheckPool.lean#L213))
    claims records one at a time off a shared counter, and the results,
    merged by record index, are walked in record order
-   ([definition `collectChecks` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L392-L396))
+   ([definition `collectChecks` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L390-L394))
    — the walk stops at the first failing record in fold order, so the
    pool's verdict is the sequential walk's, and what it assembles is
    the same fact about every record. Either way what comes out is a
@@ -400,18 +400,18 @@ Read from the outside in:
    ([function `checkDeclsIO` in `ConLeche/Driver/Run.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Driver/Run.lean#L107-L110))
    turns the fully checked environment into its environment with the
    proof that `checkDecls` returns it
-   ([theorem `fullyChecked_checkDecls` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L525-L527)).
+   ([theorem `fullyChecked_checkDecls` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L523-L525)).
 2. **The fully checked environment**
-   ([structure `InstalledEnv` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L246-L250))
+   ([structure `InstalledEnv` in `ConLeche/Cached/Installed.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L244-L248))
    is stated over the executable steps: the installed environment is
    the accepting install run
-   ([inductive `InstallRun` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L202-L210)),
+   ([inductive `InstallRun` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L200-L208)),
    and a record is checked when its check at the prefix view succeeded
-   ([definition `GroupChecked` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L278-L282)).
+   ([definition `GroupChecked` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L276-L280)).
    The records' checks are independent of one another, which is what
    lets a later loop hand them to workers. An accept of `checkDecls`
    is exactly such an environment, and conversely
-   ([theorem `checkDecls_fullyChecked` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L536-L537)),
+   ([theorem `checkDecls_fullyChecked` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/Cached/Installed.lean#L534-L535)),
    which is how the theorem about the fold is read off the argument
    of step 3.
 3. **The cached checker** (`ConLeche/Cached/*`) is the implementation
@@ -863,7 +863,7 @@ same way as a container, as the outermost level of the nesting
 and the check starts from every class, so every class a recursor
 eliminates is an instantiation it has visited — including one that
 weak head normal form erases from every field
-([function `classSeeds` in `ConLeche/Kernel/Inductives/GenRec.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L485)).
+([function `classSeeds` in `ConLeche/Kernel/Inductives/GenRec.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L483)).
 Nothing is stated or cached about a container in its parameter. The
 normal forms the check records are the fields the model reads
 ([function `checkBlockPositivity` in `ConLeche/Kernel/Inductives/BlockInstall.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/BlockInstall.lean#L289)).
@@ -876,7 +876,7 @@ declared fields, each inductive hypothesis over its field's normal
 form. Each generated type must be definitionally equal to the stream's
 recursor type; the stream's rules are never read, and the generated
 recursors are the ones installed
-([function `genRecCheck` in `ConLeche/Kernel/Inductives/GenRec.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L539)).
+([function `genRecCheck` in `ConLeche/Kernel/Inductives/GenRec.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L537)).
 The rules of a recursor for an outside class fire at the instantiation
 read off its type
 ([function `tgtStoredRules` in `ConLeche/Kernel/Inductives/RecCheck.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/RecCheck.lean#L607-L608)).
@@ -1071,9 +1071,9 @@ steps 1–5 are
 the constructor check of step 3 is
 [function `checkSumCtor` in `ConLeche/Kernel/Inductives/SumInstall.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/SumInstall.lean#L114),
 step 4 is
-[function `checkBlockClasses` in `ConLeche/Kernel/Inductives/GenRec.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L509),
+[function `checkBlockClasses` in `ConLeche/Kernel/Inductives/GenRec.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L507),
 with a class's parameters moved in
-[function `classKeyOf`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L495);
+[function `classKeyOf`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L493);
 `POS` is
 [function `nestPos` in `ConLeche/Kernel/Inductives/Positivity.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/Positivity.lean#L1453),
 its hole lookup
@@ -1094,9 +1094,9 @@ the generated type and rule in
 and
 [function `classGenRule`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L188),
 and their checks in
-[function `classRecTyOk`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L387)
+[function `classRecTyOk`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L385)
 and
-[function `classRuleOk`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L419).
+[function `classRuleOk`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Inductives/GenRec.lean#L417).
 
 ## 6. The Nat operations
 

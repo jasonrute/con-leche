@@ -43,10 +43,10 @@ theorem constantValRun_of {env : Env} {μ : CheckMode} {F : Nat}
     (h : checkConstantVal (fueledOps μ F) env cv = .ok ()) :
     cv.type.hasFvar = false ∧ cv.type.looseBVarsBounded 0 = true ∧
       ConstantValRun μ F env cv cv.type := by
-  obtain ⟨hfind, hres, hpsh, hnd, hlbt, hitf, stype, u, htp,
+  obtain ⟨hfind, hres, hnd, hlbt, hitf, stype, u, htp,
     htr, hst, hsort⟩ := checkConstantVal_inv h
   exact ⟨hitf, hlbt,
-    Option.isNone_iff_eq_none.mpr hfind, hres, hpsh, hnd, hlbt, hitf,
+    Option.isNone_iff_eq_none.mpr hfind, hres, hnd, hlbt, hitf,
     rfl, htp, htr, ⟨stype, u, hst, hsort⟩⟩
 
 /-- **The value front door, run half.**  The premises *are*

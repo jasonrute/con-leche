@@ -214,7 +214,7 @@ theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
     intro m hm cA hcA
     obtain ⟨cvTa, hcv⟩ := hcvOfK m hm
     obtain ⟨j, hj⟩ := List.getElem?_of_mem hcA
-    obtain ⟨c, sorts, -, -, -, -, -, -, -, -, -, -, -, hCtor⟩ := (hfacts m cvTa hm hcv).2 j cA hj
+    obtain ⟨c, sorts, -, -, -, -, -, -, -, -, -, -, hCtor⟩ := (hfacts m cvTa hm hcv).2 j cA hj
     obtain ⟨-, ⟨cbs, es, hs, -⟩, -⟩ := ConLeche.checkSumCtor_shape hCtor
     exact ⟨cbs, _, List.map Level.param (p₀.complete p₁).lps, hs, by
       rw [getAppFn_mkAppN_const, hN.1 m cvTa hcv]⟩
@@ -228,7 +228,7 @@ theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
     intro m hm cA hcA
     obtain ⟨cvTa, hcv⟩ := hcvOfK m hm
     obtain ⟨j, hj⟩ := List.getElem?_of_mem hcA
-    obtain ⟨c, sorts, -, -, -, hlpsA, -, -, -, -, -, -, -, hCtor⟩ :=
+    obtain ⟨c, sorts, -, -, -, hlpsA, -, -, -, -, -, -, hCtor⟩ :=
       (hfacts m cvTa hm hcv).2 j cA hj
     obtain ⟨-, ⟨cbs, es, hs, hes⟩, -⟩ := ConLeche.checkSumCtor_shape hCtor
     refine ⟨cbs, ConLeche.structPsAt cA.2 p₁.nP ++ es, ?_, fun ψ => ?_⟩

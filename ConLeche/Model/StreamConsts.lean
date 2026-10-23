@@ -144,7 +144,7 @@ theorem checkDecl_declares {μ : CheckMode} {env env₂ : Env} {F : Nat}
     obtain rfl : cv = cv₀ := hcv
     simp only [ConLeche.Semantics.DeclRun, ConLeche.Semantics.DeclDefnRun] at hrun
     obtain ⟨type', value', hcvr, -, henv₂, -, -⟩ := hrun
-    obtain ⟨-, -, -, -, -, -, hann, -, -, -⟩ := hcvr
+    obtain ⟨-, -, -, -, -, hann, -, -, -⟩ := hcvr
     refine ⟨.defnInfo ⟨cv.name, cv.levelParams, type'⟩ value' hint, ?_, rfl, rfl, ?_⟩
     · rw [henv₂]; exact List.mem_cons_self
     · exact hann
@@ -152,7 +152,7 @@ theorem checkDecl_declares {μ : CheckMode} {env env₂ : Env} {F : Nat}
     obtain rfl : cv = cv₀ := hcv
     simp only [ConLeche.Semantics.DeclRun, ConLeche.Semantics.DeclThmRun] at hrun
     obtain ⟨type', value', hcvr, -, -, henv₂⟩ := hrun
-    obtain ⟨-, -, -, -, -, -, hann, -, -, -⟩ := hcvr
+    obtain ⟨-, -, -, -, -, hann, -, -, -⟩ := hcvr
     refine ⟨.thmInfo ⟨cv.name, cv.levelParams, type'⟩, ?_, rfl, rfl, ?_⟩
     · rw [henv₂]; exact List.mem_cons_self
     · exact hann
@@ -160,7 +160,7 @@ theorem checkDecl_declares {μ : CheckMode} {env env₂ : Env} {F : Nat}
     obtain rfl : cv = cv₀ := hcv
     simp only [ConLeche.Semantics.DeclRun, ConLeche.Semantics.DeclOpaqueRun] at hrun
     obtain ⟨type', value', hcvr, -, henv₂, -⟩ := hrun
-    obtain ⟨-, -, -, -, -, -, hann, -, -, -⟩ := hcvr
+    obtain ⟨-, -, -, -, -, hann, -, -, -⟩ := hcvr
     refine ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩, ?_, rfl, rfl, ?_⟩
     · rw [henv₂]; exact List.mem_cons_self
     · exact hann
@@ -171,7 +171,7 @@ theorem checkDecl_declares {μ : CheckMode} {env env₂ : Env} {F : Nat}
     rcases hrun with ⟨hq, -⟩ | hrun
     · exact absurd hq hqs
     obtain ⟨type', hcvr, hdisj⟩ := hrun
-    obtain ⟨-, -, -, -, -, -, hann, -, -, -⟩ := hcvr
+    obtain ⟨-, -, -, -, -, hann, -, -, -⟩ := hcvr
     have henv₂ : env₂ = ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts, env.tables⟩ := by
       rcases hdisj with ⟨-, he⟩ | ⟨-, -, he⟩ | ⟨-, -, he⟩ |
         ⟨-, -, -, -, -, -, htol', -⟩

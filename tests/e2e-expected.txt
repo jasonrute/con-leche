@@ -2969,6 +2969,13 @@
 # (duplicate declaration, exit 1).  Official accepts; accept is the
 # target verdict and today's.
 0 projtable_name_free.ndjson
+# proj_name_free.ndjson (task #363): the same stream with the definition
+# named `PropPair.proj.0`.  Until #363 the front door refused every
+# `….proj.<n>` name as a "reserved projection name" (exit 1), a leftover
+# of the time projection entries were filed under `(T.proj).i`; nothing
+# is filed under any name shape now.  Official accepts; accept is the
+# target verdict and today's.
+0 proj_name_free.ndjson
 # --- the let ζ-fold (task #348; the mechanism of the openai/math
 # SquareDifference blow-up, `source_ordered_contraction`): a `let`
 # bound to a closed Nat that is expensive to head-normalise (`bits 14 0`,

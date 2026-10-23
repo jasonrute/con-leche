@@ -213,12 +213,6 @@ def Name.nodup : List Name → Bool
   | [] => true
   | n :: ns => !ns.contains n && Name.nodup ns
 
-/-- Is this shaped like a projection function's name (`(T.proj).i`)?
-The front door refuses the shape. -/
-def Name.isProjFnShape : Name → Bool
-  | .num (.str _ "proj") _ => true
-  | _ => false
-
 /-- Substitute level parameters throughout an expression (sorts and
 constant level arguments). -/
 def Expr.instantiateLevelParams (ks : List Name) (us : List Level) : Expr → Expr

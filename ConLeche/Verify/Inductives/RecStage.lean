@@ -280,8 +280,7 @@ two name guards. -/
 theorem recStage_cvFacts (h : RecStageG mode F env p cvTas rs) :
     ∀ r ∈ rs,
       env.find? r.1.name = none ∧
-      reservedBasisNames.contains r.1.name = false ∧
-      r.1.name.isProjFnShape = false := by
+      reservedBasisNames.contains r.1.name = false := by
   obtain ⟨-, hlenR, hall⟩ := recStageG_recNames h
   intro r hr
   obtain ⟨i, hi⟩ := List.getElem?_of_mem hr
@@ -291,8 +290,7 @@ theorem recStage_cvFacts (h : RecStageG mode F env p cvTas rs) :
   obtain ⟨rc, r', hrc, hr', hname, ⟨cv0, hn0, -, hcv⟩, -, -⟩ := hall i hil
   obtain rfl := Option.some.inj (hi.symm.trans hr')
   have hname' : r.1.name = cv0.name := by rw [hname, hn0]
-  refine ⟨by rw [hname']; exact hcv.fresh, by rw [hname']; exact hcv.unreserved,
-    by rw [hname']; exact hcv.notProjShape⟩
+  refine ⟨by rw [hname']; exact hcv.fresh, by rw [hname']; exact hcv.unreserved⟩
 
 end Base
 

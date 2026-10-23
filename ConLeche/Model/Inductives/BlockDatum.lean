@@ -211,7 +211,6 @@ theorem blockCtorFacts_of {envI : Env} {q : BlockShape} {F : Nat} {cvTa : Consta
         (q.members.getD m default).ctors[j]? = some c ∧
         cA.1.name = c.1.name ∧ cA.2 = c.2 ∧ cA.1.levelParams = q.lps ∧
         envI.find? cA.1.name = none ∧ cA.1.type.constsResolve envI = true ∧
-        cA.1.name.isProjFnShape = false ∧
         ConLeche.reservedBasisNames.contains cA.1.name = false ∧
         sortss[j]? = some sorts ∧
         (cA.1.type.stripPis (q.nP + cA.2)).isSome = true ∧
@@ -226,12 +225,12 @@ theorem blockCtorFacts_of {envI : Env} {q : BlockShape} {F : Nat} {cvTa : Consta
   obtain ⟨hnF, sorts, hsj, hCtor⟩ :=
     hall j ((q.members.getD m default).ctors[j]) cA (List.getElem?_eq_getElem hjl) hj
   obtain ⟨⟨heq, hccvC⟩, ⟨cbs, es, hstrip, -⟩, -⟩ := ConLeche.checkSumCtor_shape hCtor
-  obtain ⟨hfindC, -, hpshapeC, -, -, hfvC, stype, -, -, htrC, hstC, -⟩ :=
+  obtain ⟨hfindC, -, -, -, hfvC, stype, -, -, htrC, hstC, -⟩ :=
     ConLeche.checkConstantVal_inv hccvC
   have hmem : (q.members.getD m default).ctors[j] ∈ (q.members.getD m default).ctors :=
     List.getElem_mem hjl
   refine ⟨_, sorts, List.getElem?_eq_getElem hjl, by rw [heq], hnF, ?_, ?_, ?_,
-    by rw [heq]; exact hpshapeC, ?_, hsj, ?_, ⟨?_, stype, ?_⟩,
+    ?_, hsj, ?_, ⟨?_, stype, ?_⟩,
     by rw [hnF]; exact hCtor⟩
   · rw [heq]; exact (hClps _ hmem).1
   · show Env.find? _ cA.1.name = none
@@ -482,7 +481,6 @@ theorem blockTablesStage_of (hμ : μ.isVerified = true) {F : Nat} {env envI : E
           (q.members.getD m default).ctors[j]? = some c ∧
           cA.1.name = c.1.name ∧ cA.2 = c.2 ∧ cA.1.levelParams = q.lps ∧
           envI.find? cA.1.name = none ∧ cA.1.type.constsResolve envI = true ∧
-          cA.1.name.isProjFnShape = false ∧
           ConLeche.reservedBasisNames.contains cA.1.name = false ∧
           (sortsss.getD m [])[j]? = some sorts ∧
           (cA.1.type.stripPis (q.nP + cA.2)).isSome = true ∧
@@ -544,7 +542,7 @@ theorem blockTablesStage_of (hμ : μ.isVerified = true) {F : Nat} {env envI : E
       obtain ⟨pk, hpk⟩ := blockCtorFunsAt hμ mp' hcv hF.nameOf hF.lpsOf
         hF.stripOf hfind
         (fun j cA hj => by
-          obtain ⟨c, sorts, -, -, -, -, -, -, -, -, -, -, -, hCtor⟩ :=
+          obtain ⟨c, sorts, -, -, -, -, -, -, -, -, -, -, hCtor⟩ :=
             (hfacts m cvTa hm hcv).2 j cA hj
           exact ⟨c, sorts, hCtor⟩)
       exact ⟨pk, fun _ => hpk⟩
@@ -693,7 +691,7 @@ theorem blockTablesStage_of (hμ : μ.isVerified = true) {F : Nat} {env envI : E
     intro c j cA hj
     have hck := hctorLt c j cA hj
     obtain ⟨cvTa, hcv⟩ := hcvOf c hck
-    obtain ⟨c', sorts, -, -, -, -, -, -, -, -, -, -, -, hCtor⟩ := (hfacts c cvTa hck hcv).2 j cA hj
+    obtain ⟨c', sorts, -, -, -, -, -, -, -, -, -, -, hCtor⟩ := (hfacts c cvTa hck hcv).2 j cA hj
     obtain ⟨hf, -, -, hb⟩ := ConLeche.direct_sum_ctor_typeWF hCtor
     exact ⟨hf, hb⟩
   have hlpsZ : ∀ (c j : Nat) (cA : ConstantVal × Nat), (dZ.ctorsM c)[j]? = some cA →
@@ -1135,7 +1133,7 @@ theorem blockTablesStage_of (hμ : μ.isVerified = true) {F : Nat} {env envI : E
               (idxValsAt ρ ((pk m).esF j ψ) bs))) := by
     intro m hm j cA hj
     obtain ⟨cvTa, hcv⟩ := hcvOf m hm
-    obtain ⟨c, sorts, -, -, -, -, -, -, -, -, -, -, -, hCtor⟩ := (hfacts m cvTa hm hcv).2 j cA hj
+    obtain ⟨c, sorts, -, -, -, -, -, -, -, -, -, -, hCtor⟩ := (hfacts m cvTa hm hcv).2 j cA hj
     have hTname : cvTa.name = q.memberNames.getD m .anonymous := hF.nameOf m cvTa hcv
     have hfT : envI.find? (q.memberNames.getD m .anonymous)
         = some (.indInfo cvTa (ConLeche.blockCapsAt q m isRec)) := by
@@ -1436,7 +1434,7 @@ theorem blockTablesStage_of (hμ : μ.isVerified = true) {F : Nat} {env envI : E
               ∈ˢ (univ ((sorts.getD i .zero).eval ψ) : V) := by
     intro m hm j cA hj
     obtain ⟨cvTa, hcv⟩ := hcvOf m hm
-    obtain ⟨c, sorts, -, -, -, -, -, -, -, -, hsj, -, -, hCtor⟩ := (hfacts m cvTa hm hcv).2 j cA hj
+    obtain ⟨c, sorts, -, -, -, -, -, -, -, hsj, -, -, hCtor⟩ := (hfacts m cvTa hm hcv).2 j cA hj
     have hTname : cvTa.name = q.memberNames.getD m .anonymous := hF.nameOf m cvTa hcv
     have hfT : envI.find? (q.memberNames.getD m .anonymous)
         = some (.indInfo cvTa (ConLeche.blockCapsAt q m isRec)) := by
@@ -1548,7 +1546,7 @@ theorem blockTablesStage_of (hμ : μ.isVerified = true) {F : Nat} {env envI : E
       have hcs' : ctorsAs.getD m [] = [cA] := hcs
       have hcA : (ctorsAs.getD m [])[0]? = some cA := by rw [hcs']; rfl
       obtain ⟨cvTa, hcv⟩ := hcvOf m hm
-      obtain ⟨-, -, -, -, -, -, -, -, -, -, -, hstrip, -⟩ := (hfacts m cvTa hm hcv).2 0 cA hcA
+      obtain ⟨-, -, -, -, -, -, -, -, -, -, hstrip, -⟩ := (hfacts m cvTa hm hcv).2 0 cA hcA
       exact hstrip
     · -- resT
       intro m hm
@@ -1567,7 +1565,7 @@ theorem blockTablesStage_of (hμ : μ.isVerified = true) {F : Nat} {env envI : E
       have hcs' : ctorsAs.getD m [] = [cA] := hcs
       have hcA : (ctorsAs.getD m [])[0]? = some cA := by rw [hcs']; rfl
       obtain ⟨cvTa, hcv⟩ := hcvOf m hm
-      obtain ⟨-, -, -, -, -, -, -, -, -, hres, -⟩ := (hfacts m cvTa hm hcv).2 0 cA hcA
+      obtain ⟨-, -, -, -, -, -, -, -, hres, -⟩ := (hfacts m cvTa hm hcv).2 0 cA hcA
       exact hres
     · -- leqF
       intro m cA hm hcs i hi hnp

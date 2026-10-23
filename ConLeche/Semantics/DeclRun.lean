@@ -59,7 +59,6 @@ def ConstantValRun (μ : CheckMode) (F : Nat) (env : Env)
     (cv : ConstantVal) (type' : Expr) : Prop :=
   (env.find? cv.name).isNone = true ∧
   reservedBasisNames.contains cv.name = false ∧
-  cv.name.isProjFnShape = false ∧
   Name.nodup cv.levelParams = true ∧
   cv.type.looseBVarsBounded 0 = true ∧
   cv.type.hasFvar = false ∧

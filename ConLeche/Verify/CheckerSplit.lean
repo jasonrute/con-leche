@@ -31,7 +31,6 @@ theorem installHeader_inv {cv : ConstantVal}
     (h : installHeader (m := CheckM) env cv = .ok ()) :
     env.find? cv.name = none ∧
     reservedBasisNames.contains cv.name = false ∧
-    cv.name.isProjFnShape = false ∧
     Name.nodup cv.levelParams = true ∧
     cv.type.looseBVarsBounded 0 = true ∧
     cv.type.hasFvar = false ∧
@@ -47,13 +46,6 @@ theorem installHeader_inv {cv : ConstantVal}
     rw [ite_eq_left hres] at h
     exact nomatch h
   simp only [hres] at h
-  by_cases hpshape : cv.name.isProjFnShape = true
-  case pos =>
-    rw [ite_eq_left hpshape] at h
-    exact nomatch h
-  rw [ite_eq_right hpshape] at h
-  have hpshapeF : cv.name.isProjFnShape = false := by
-    revert hpshape; cases cv.name.isProjFnShape <;> simp
   by_cases hnd : Name.nodup cv.levelParams = true
   case neg => simp [hnd] at h
   simp only [hnd] at h
@@ -73,7 +65,7 @@ theorem installHeader_inv {cv : ConstantVal}
   have hfind0 : env.find? cv.name = none := by
     revert hfind
     cases env.find? cv.name <;> simp
-  exact ⟨hfind0, by simpa using hres, hpshapeF, hnd, hlb,
+  exact ⟨hfind0, by simpa using hres, hnd, hlb,
     by simpa using hif, htp, htr⟩
 
 theorem installValueGuards_inv {cv : ConstantVal} {value : Expr}
@@ -180,7 +172,6 @@ theorem checkValueGroup_inv {vg : ValueGroup}
 theorem checkConstantVal_of_facts {cv : ConstantVal} {stype : Expr} {u : Level}
     (hfind : env.find? cv.name = none)
     (hres : reservedBasisNames.contains cv.name = false)
-    (hshape : cv.name.isProjFnShape = false)
     (hnd : Name.nodup cv.levelParams = true)
     (hlb : cv.type.looseBVarsBounded 0 = true)
     (hif : cv.type.hasFvar = false)
@@ -191,7 +182,7 @@ theorem checkConstantVal_of_facts {cv : ConstantVal} {stype : Expr} {u : Level}
     checkConstantVal (fueledOps μ F) env cv = .ok () := by
   simp only [checkConstantVal, fueledOps_inferType,
     fueledOps_ensureSort, Bind.bind, Except.bind, Pure.pure, Except.pure, hfind, hres,
-    hshape, hnd, hlb, hif, htp, htr, hst, hsort, Option.isSome_none,
+    hnd, hlb, hif, htp, htr, hst, hsort, Option.isSome_none,
     Bool.false_eq_true, ↓reduceIte]
 
 theorem checkDefnVal_of_facts {cv : ConstantVal} {value vtype : Expr}
@@ -245,7 +236,7 @@ theorem checkDecl_of_split_defn {cv : ConstantVal} {value : Expr}
     (hC : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
     checkDecl μ (fueledOps μ F) pins env (.defnDecl cv value hint)
       = .ok ⟨.defnInfo vg.cv vg.jv hint :: env.consts, env.tables⟩ := by
-  obtain ⟨hfind, hres, hshape, hnd, hlb, hif, htp, htr⟩ :=
+  obtain ⟨hfind, hres, hnd, hlb, hif, htp, htr⟩ :=
     installHeader_inv hI
   rw [hcvA] at hV
   obtain ⟨hlbv, hivf, hvp, hvr⟩ := installValueGuards_inv hV
@@ -253,7 +244,7 @@ theorem checkDecl_of_split_defn {cv : ConstantVal} {value : Expr}
   obtain ⟨h1, h2⟩ := Bool.or_eq_false_iff.mp hnat
   rw [hcvA] at hst hde ⊢
   rw [hvgjv] at hvt ⊢
-  have hcc := checkConstantVal_of_facts hfind hres hshape hnd hlb hif htp htr hst hsort
+  have hcc := checkConstantVal_of_facts hfind hres hnd hlb hif htp htr hst hsort
   have hdv := checkDefnVal_of_facts (cv := cv) (hint := hint)
     hlbv hivf hvp hvr hvt hde
   simp only [checkDecl, Bind.bind, Except.bind, Pure.pure, Except.pure, hcc, hdv, h1, h2,
@@ -269,7 +260,7 @@ theorem checkDecl_of_split_thm {cv : ConstantVal} {value : Expr} {vg : ValueGrou
     (hC : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
     checkDecl μ (fueledOps μ F) pins env (.thmDecl cv value)
       = .ok ⟨.thmInfo vg.cv :: env.consts, env.tables⟩ := by
-  obtain ⟨hfind, hres, hshape, hnd, hlb, hif, htp, htr⟩ :=
+  obtain ⟨hfind, hres, hnd, hlb, hif, htp, htr⟩ :=
     installHeader_inv hI
   obtain ⟨stype, u, hst, hsort, hthm, hiv, vtype, hvt, hde⟩ := checkValueGroup_inv hC
   have hV := hiv hk
@@ -277,7 +268,7 @@ theorem checkDecl_of_split_thm {cv : ConstantVal} {value : Expr} {vg : ValueGrou
   obtain ⟨hlbv, hivf, hvp, hvr⟩ := installValueGuards_inv hV
   rw [hcvA] at hst hde ⊢
   rw [hvgjv] at hvt
-  have hcc := checkConstantVal_of_facts hfind hres hshape hnd hlb hif htp htr hst hsort
+  have hcc := checkConstantVal_of_facts hfind hres hnd hlb hif htp htr hst hsort
   have htv := checkThmVal_of_facts (cv := cv) hst hsort (hthm hk)
     hlbv hivf hvp hvr hvt hde
   simp only [checkDecl, Bind.bind, Except.bind, hcc, htv]
@@ -292,14 +283,14 @@ theorem checkDecl_of_split_opaque {cv : ConstantVal} {value : Expr} {vg : ValueG
     (hC : checkValueGroup (fueledOps μ F) env vg = .ok ()) :
     checkDecl μ (fueledOps μ F) pins env (.opaqueDecl cv value)
       = .ok ⟨.axiomInfo vg.cv :: env.consts, env.tables⟩ := by
-  obtain ⟨hfind, hres, hshape, hnd, hlb, hif, htp, htr⟩ :=
+  obtain ⟨hfind, hres, hnd, hlb, hif, htp, htr⟩ :=
     installHeader_inv hI
   rw [hcvA] at hV
   obtain ⟨hlbv, hivf, hvp, hvr⟩ := installValueGuards_inv hV
   obtain ⟨stype, u, hst, hsort, -, -, vtype, hvt, hde⟩ := checkValueGroup_inv hC
   rw [hcvA] at hst hde ⊢
   rw [hvgjv] at hvt
-  have hcc := checkConstantVal_of_facts hfind hres hshape hnd hlb hif htp htr hst hsort
+  have hcc := checkConstantVal_of_facts hfind hres hnd hlb hif htp htr hst hsort
   have hov := checkOpaqueVal_of_facts (cv := cv)
     hlbv hivf hvp hvr hvt hde
   simp only [checkDecl, Bind.bind, Except.bind, Pure.pure, Except.pure, hcc, hov, hred,

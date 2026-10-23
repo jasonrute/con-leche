@@ -106695,3 +106695,24 @@ The table lookup is one hash probe behind the constant lookup it is
 gated by; no stream moved beyond a tenth of a percent but two of the
 sub-0.3 G ones, whose ±2 M instructions are the environment's shape,
 not the lookup.
+
+## TASK #363 — no reserved projection-name shape (2026-10-23, agent/363-projname)
+
+`Name.isProjFnShape` made the front door refuse every constant named
+`….proj.<n>` ("reserved projection name", exit 1).  It was a leftover of
+task #18, when projection entries were filed under `(T.proj).i`; since
+#362 tables are their own environment component and nothing is filed
+under any name shape.  The maintainer: no trace of `.proj.` or
+`.projTable.` names in the code.  The predicate and its six checks
+(`checkConstantVal` pure and cached, the split checker, `DeclCheck`,
+`GenRec.classConstOk`, `Installed`) are gone, and with them the
+`isProjFnShape = false` conjunct of every check-inversion lemma
+(`Verify/CheckerSplit`, `Verify/Extend/Inversions`,
+`Verify/Inductives/{GenRecRun,BlockRecRun,RecStage}`,
+`Semantics/DeclRun`), the `notProjShape` field, and the matching
+component of every positional destructuring in Model/Verify/Semantics
+(about 30 files, mechanical).
+
+One verdict change, as official: a constant named `T.proj.<n>` is an
+ordinary name.  New fixture `proj_name_free` (the #362 fixture's stream
+with the definition named `PropPair.proj.0`; before: reject, now accept).

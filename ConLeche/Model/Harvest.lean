@@ -145,7 +145,7 @@ theorem harvestDefn (hμ : μ.isVerified = true)
     (hR : DeclDefnRun μ F env cv value hint env₂) :
     CoverStep mp env₂ := by
   obtain ⟨type', value', hcv, hvfr, rfl, hnatc, hdmc⟩ := hR
-  obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
+  obtain ⟨hfind, hnres, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨hvlb, hvhf, hannv, hvp, hvr, ⟨vtype, hvrun, hvde⟩⟩ := hvfr
   obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
@@ -522,7 +522,7 @@ theorem harvestThm (hμ : μ.isVerified = true)
     (hR : DeclThmRun μ F env cv value env₂) :
     CoverStep mp env₂ := by
   obtain ⟨type', value', hcv, -, hvfr, rfl⟩ := hR
-  obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
+  obtain ⟨hfind, hnres, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨hvlb, hvhf, hannv, hvp, hvr, ⟨vtype, hvrun, hvde⟩⟩ := hvfr
   obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
@@ -793,7 +793,7 @@ theorem harvestAxiom (hμ : μ.isVerified = true)
     (hnotreduce : cv.name ∉ ConLeche.reduceOpNames) :
     CoverStep mp
       ⟨.axiomInfo ⟨cv.name, cv.levelParams, type'⟩ :: env.consts, env.tables⟩ := by
-  obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
+  obtain ⟨hfind, hnres, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt
   have hfresh : env.find? cv.name = none :=
@@ -953,7 +953,7 @@ theorem harvestOpaque (hμ : μ.isVerified = true)
     (hR : DeclOpaqueRun μ F env cv value env₂) :
     CoverStep mp env₂ := by
   obtain ⟨type', value', hcv, hvfr, rfl, hred⟩ := hR
-  obtain ⟨hfind, hnres, hpshape, hnd, hlbt, hitf, hann, htp, htr,
+  obtain ⟨hfind, hnres, hnd, hlbt, hitf, hann, htp, htr,
     hrunT⟩ := hcv
   obtain ⟨hvlb, hvhf, hannv, hvp, hvr, ⟨vtype, hvrun, hvde⟩⟩ := hvfr
   obtain ⟨htf', hbt'⟩ := stored_syntax hann hitf hlbt

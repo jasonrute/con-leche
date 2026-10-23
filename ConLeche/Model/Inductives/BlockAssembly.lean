@@ -223,7 +223,7 @@ theorem blockFormerFacts_of (hμ : μ.isVerified = true) {F : Nat} {env envI : E
     intro m cvTa hm
     obtain ⟨ms, hms, hrun⟩ := hpair m cvTa hm
     obtain ⟨cvT, hn, hl, heq, hccv, bs, hst⟩ := ConLeche.checkBlockTele_shape hrun
-    obtain ⟨hfind, hnres, -, -, hlbt, hitf, -, -, hlpd, htr, -, -⟩ :=
+    obtain ⟨hfind, hnres, -, hlbt, hitf, -, -, hlpd, htr, -, -⟩ :=
       ConLeche.checkConstantVal_inv hccv
     rw [← heq] at hfind hnres hlbt hitf hlpd htr hn hl
     have htf' := hitf

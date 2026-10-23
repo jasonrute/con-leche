@@ -287,7 +287,7 @@ are what follows its own parameters.
 
 *Large elimination.* A nested block may eliminate into every sort only
 if #src("ConLeche/Kernel/Inductives/BlockRec.lean", 82, 84)[its sort is never zero]
-(#src("ConLeche/Kernel/Inductives/GenRec.lean", 548, 552)[where the checker enforces it]),
+(#src("ConLeche/Kernel/Inductives/GenRec.lean", 546, 550)[where the checker enforces it]),
 as in the official kernel. A nested proposition eliminates only into
 $sans("Prop")$, and the subsingleton criterion is never asked of a
 nested block.
@@ -302,7 +302,7 @@ nested block.
   #src("ConLeche/Kernel/Inductives/Positivity.lean", 1645, 1653)[Every class other than the type being defined is walked]
   as a container met at the root, so every class is an instantiation
   the walk visited. A field landing at a class for which the stream
-  gives #src("ConLeche/Kernel/Inductives/GenRec.lean", 442, 445)[no recursor]
+  gives #src("ConLeche/Kernel/Inductives/GenRec.lean", 440, 443)[no recursor]
   is rejected. One class may be visited at several places. In
   #src("tests/e2e/src/corner_nestind_f13_listrose.lean", 12, 15)[a block with a field of type $List thick (sans("RL") thick sans("TL"))$],
   with $sans("RL") thick alpha$ a rose tree over lists, that
