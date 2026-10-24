@@ -13,6 +13,9 @@
 == ConLeche/Driver/Run.lean#L34
     34  def ConLeche.CheckError.exitCode : CheckError → UInt32
 
+== ConLeche/Kernel/Name.lean#L207
+   207  def render (n : Name) : String :=
+
 == ConLeche/MainTheorem.lean#L96-L99
     96  theorem model_exists (V : Type w) [SetTheory V]
     97      (pins : List NatOpPinSet) (ds : Array Declaration) (env : Env)
