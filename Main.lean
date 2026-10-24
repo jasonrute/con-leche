@@ -60,7 +60,7 @@ def progressStride (v : String) : Except String Nat :=
       (a decimal numeral); omit the flag for no heartbeat"
   | some n => .ok n
   | none => .error s!"--progress takes a declaration stride \
-      (a decimal numeral of at least 1), got {repr v}"
+      (a decimal numeral of at least 1), got {Display.str v}"
 
 /-- The worker count, read off the `--jobs=<n>` flag: a decimal numeral
 of at least 1 (`1` is the sequential lane — one worker, no shared
@@ -85,7 +85,7 @@ def jobsCount (v : String) : Except String Nat :=
       (a decimal numeral); omit the flag for one worker per hardware thread"
   | some n => .ok n
   | none => .error s!"--jobs takes a worker count \
-      (a decimal numeral of at least 1), got {repr v}"
+      (a decimal numeral of at least 1), got {Display.str v}"
 
 
 def usage : String := String.intercalate "\n" [
@@ -354,7 +354,7 @@ def parseArgs : List String → Args → Args
       { a with bad := some "--jobs takes a worker count: --jobs=<n>; omit the \
           flag for one worker per hardware thread" }
     else if s.startsWith "-" then
-      { a with bad := some s!"unknown option {s}" }
+      { a with bad := some s!"unknown option {Display.str s}" }
     else parseArgs rest { a with files := a.files.push s }
 
 /-- The argument parse and dispatch — everything `main` below does, up
