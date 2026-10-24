@@ -106826,3 +106826,88 @@ Lean +351 −255 (Kernel/Cached +136 −86, PinGen +94 −21, Verify +121
 −148, of which `BridgeCS1` +50 −85); docs, expectations, whitepaper
 links +70 −40.  `BridgeDecl` lost its `Extend.Inversions` import (only
 `fueledOps_orElse` used it; shake criterion at the noise floor).
+
+## TASK #365 — one escaping display rendering for input names and strings (2026-10-24, agent/365-safe-render)
+
+**The problem.**  The checker printed strings from the input verbatim on
+stderr.  The JSON decoder turns `\u001b`, `\n`, `\r` into raw control
+characters, and `Name.toString` joined the components with `.` as they
+were, so a crafted stream could paint a fake green `accepted` line
+through the `safety` field of a definition (`definition with safety
+'{s}'`), rewrite the `--progress` line through a name containing
+`ESC[2K\r`, send OSC sequences to the terminal, or start a GitHub
+Actions workflow command (`::error::`, `::add-mask::`,
+`::stop-commands::`) after a newline.  Without control bytes, bidi
+overrides and zero-width characters still made a name display as
+another, and a component containing `.` printed like two components.
+
+**The fix, at the source** (maintainer: no filter over stderr in the
+driver).  `ToString Name` is `Name.render` (`ConLeche/Kernel/Name.lean`),
+the one display rendering of a name:
+
+* a string component that is identifier-shaped (Lean's own
+  `Lean.Name.escapePart` rule: nonempty, `isIdFirst` then `isIdRest`)
+  prints bare: `Nat.add_comm`, `α₁.ℕ.x'`;
+* any other component is wrapped in `«…»`: the empty one, one with a
+  `.` (`«a.b»`), one that looks like a numeral (`x.«3»`), one that
+  spells `[anonymous]`;
+* inside `«…»`, `\` is written `\\`, and `»` and every *unsafe*
+  character as `\u{XXXX}` (upper-case hex, at least four digits).
+  Unsafe (`Display.unsafeChar`) is Unicode's Cc and Cf (15.1), Zl, Zp
+  and Zs except U+0020: the C0/C1 controls and DEL, the bidi
+  embeddings/overrides/isolates/marks (U+202A–202E, U+2066–2069,
+  U+200E/200F, U+061C), U+200B–200D, U+2060, U+FEFF, the tag
+  characters, and the non-ASCII spaces;
+* numeric components print as decimals, the anonymous name as
+  `[anonymous]`;
+* the whole is capped at 512 characters; past the cap,
+  `…[N more characters]` with `N` the name's own characters not shown.
+
+Lean gives up escaping a whole name when a component contains `»`; we
+escape that `»` instead, so the rendering stays unambiguous.  Lean also
+leaves macro-scoped and inaccessible names unescaped; we do not
+special-case them (a component `_@` prints `«_@»`), because the safety
+property must hold for every name.  The rendering is not meant to
+round-trip through Lean's parser (Lean has no `\u{…}` inside `«…»`).
+
+`Display.str` renders a raw string field the same way between `"`…`"`
+(with `"` as `\u{0022}`), capped likewise.
+
+**Print sites changed.**  `ExportC.lean`: `definition with safety {…}`
+and `unknown quotient kind {…}` (both were `'{s}'`, now `Display.str`).
+`TrustAxioms.lean`: `nativeAxiomTactic?` returns the `_native` tactic
+component rendered (it is input; `decide +native` unchanged).
+`Main.lean`: the CLI echoes (`unknown option`, the `--progress=`/
+`--jobs=` value, formerly `repr`) through `Display.str`.  Every other
+interpolation of input goes through `ToString Name` (declaration,
+constructor, recursor and constant names in errors, the `--progress`
+and `stats:` labels).  Audit: level parameter names, string literals,
+JSON keys and binder names are never printed; scan errors are static
+tags; `{file}` in `con-leche: {file}:{line}: …` and IO errors are the
+caller's own command line, left as they are.  No proof or logic uses
+the string form of a `ConLeche.Name` (the `toString` uses in `PinGen`
+are of `Lean.Name`, at elaboration time).
+
+**Tests.**  `tests/ConLecheTests/DisplayTests.lean`: ESC, newline, CR,
+DEL, a C1 control, U+202E, U+200B and the other invisibles, a NBSP, a
+tag character, `.`, `«`, `»`, `\`, the empty component, numeric vs
+numeral-looking components, `[anonymous]`, ordinary Unicode names
+unchanged, `\n::error::`, the cap, `Display.str`, and
+`nonStdAxiomMsg` with a hostile tactic component.  Fixtures
+`render_name_axiom` (exit 2: the hostile name in a `_native` axiom, so
+the decline names it and its tactic), `render_name_progress` (exit 0:
+an accepted def with a hostile name, printed by `--progress`) and
+`render_safety` (exit 2: the `safety` field of the report).  The
+display gate in `tests/arena.sh` runs the three with `--progress=1`
+and fails on a raw C0/C1 control, DEL, bidi or zero-width character,
+BOM, a line starting with `::`, or a missing `\u{001B}`; on master's
+binary it fires on all three.
+
+**Measurements** (instructions:u, `--verified --jobs=1`, one run each;
+before = master 24980d94f): rendering only runs when a message is
+printed.
+
+| stream | before | after | Δ |
+|---|---|---|---|
+| init-full (v4.33.0) | 378.880 G | 378.913 G | +0.009 % |
+| grind-ring-5 (v4.29.1) | 15.1307 G | 15.1342 G | +0.02 % |

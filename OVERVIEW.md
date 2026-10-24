@@ -117,6 +117,22 @@ environment together with the proof that `checkDecls` — the function
 the theorem is about — returns it (see §2), so a run with the flag is
 covered exactly as a run without it, and so is a run on the pool.
 
+Every name and raw string these messages print comes from the input,
+so it is printed through one rendering
+([`Name.render` in `ConLeche/Kernel/Name.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/Kernel/Name.lean#L207)).
+A name component that is an identifier prints bare, as in Lean
+(`Nat.add_comm`, `α₁.ℕ`); any other is wrapped in `«…»` (`x.«3»`,
+`«a.b»`), with `\` doubled and with `»` and every control, format and
+separator character other than the ASCII space (ESC, newline, the bidi
+overrides, the zero-width characters) written as `\u{XXXX}`:
+`«evil\u{001B}[31m\u{000A}::error::x»`. Numeric components print as
+decimals and the anonymous name as `[anonymous]`. A raw string field
+(a `safety` value, a quotient kind) prints the same way between
+`"`…`"`, and a rendering longer than 512 characters ends in
+`…[N more characters]`. No input can move the cursor, recolour the
+terminal or start a line of the output, such as a GitHub Actions
+`::error::` command.
+
 ## 1. What is proved
 
 The statement is two theorems: one about the declaration fold
@@ -1372,7 +1388,10 @@ challenge module builds with its `sorry` warnings and nothing else,
 and every statement it makes is token-identical to the solution's),
 the arena tutorial tests, the end-to-end fixtures and the legacy
 binder-field fixtures with
-pinned verdicts, and the trusted-mode sweep. `lake test` builds the test library with the axiom pins. CI runs
+pinned verdicts, the display gate (three fixtures whose names and
+`safety` field carry control sequences, run with `--progress=1`; no
+raw control, bidi or zero-width character and no line starting with
+`::` may reach the output), and the trusted-mode sweep. `lake test` builds the test library with the axiom pins. CI runs
 both.
 
 The links in this document are part of the battery: `tests/overview-links.sh`

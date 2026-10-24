@@ -52,6 +52,17 @@
 # tactic.  Target: decline (con-leche does not model such axioms).
 2 native_decide_axiom.ndjson
 2 decide_native_axiom.ndjson
+# render_name_axiom, render_name_progress, render_safety (task #365):
+# hand-written streams whose names and `safety` field carry ESC
+# sequences, newlines followed by `::error::`/`::add-mask::`, bidi
+# overrides and zero-width characters.  The verdicts are the ordinary
+# ones (a non-standard `_native` axiom declines, a plain def accepts, a
+# non-`safe` safety declines); the display gate in tests/arena.sh runs
+# them with `--progress=1` and checks that the output carries none of
+# those characters raw.
+2 render_name_axiom.ndjson
+0 render_name_progress.ndjson
+2 render_safety.ndjson
 # The decline is AT THE USE, not at the end of the run (task #292, user
 # ruling: the fold owns sorryAx; the parser's taint pre-scan is gone).
 # The midstream twin puts a checkable declaration after the use — the
