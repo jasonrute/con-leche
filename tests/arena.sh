@@ -420,6 +420,35 @@ ioerr_case "a directory, --jobs=1" 3 --jobs=1 tests/e2e
 ioerr_case "a directory, --jobs=4" 3 --jobs=4 tests/e2e
 echo "io-exception gate: $ioerr_ok/$ioerr_total as expected"
 
+# THE DISPLAY GATE (task #365).  Names and raw strings from the input
+# are printed through one rendering (`Name.render`, `Display.str`,
+# ConLeche/Kernel/Name.lean) that escapes control, format and separator
+# characters, so a stream cannot paint the terminal or start a CI log
+# line (`::error::`, `::add-mask::`).  The three render_* fixtures carry
+# such names and a such `safety` field; every line of their output,
+# progress and statistics included, must be free of C0/C1 controls,
+# DEL, the bidi controls, the zero-width characters and the BOM, must
+# not start with `::`, and must show the ESC as its escape.
+display_ok=0
+display_total=0
+display_case() { # <fixture>
+  display_total=$((display_total+1))
+  local out="$TMPDIR/con-leche-display-$1.out"
+  timeout 60 "$BIN" --progress=1 "tests/e2e/$1" >"$out" 2>&1
+  if LC_ALL=C grep -qP '[\x00-\x09\x0b-\x1f\x7f]|\xc2[\x80-\x9f]|\xe2\x80[\x8b-\x8f\xa8-\xae]|\xe2\x81[\xa0-\xa4\xa6-\xa9]|\xef\xbb\xbf|\xd8\x9c|^::' "$out"; then
+    echo "DISPLAY FAIL $1: raw control/format character or a '::' line in the output"; fail=1
+  elif ! grep -qF '\u{001B}' "$out"; then
+    echo "DISPLAY FAIL $1: the ESC's escape \\u{001B} is missing from the output"; fail=1
+  else
+    display_ok=$((display_ok+1))
+  fi
+  rm -f "$out"
+}
+display_case render_name_axiom.ndjson
+display_case render_name_progress.ndjson
+display_case render_safety.ndjson
+echo "display gate: $display_ok/$display_total as expected"
+
 # THE BUILT-IN PRELUDE'S COUNT INVARIANT (task #191; the arithmetic is
 # task #293's).  Every run installs the prelude's declarations first —
 # the stream's OWN record wherever the stream has one, a synthesised
