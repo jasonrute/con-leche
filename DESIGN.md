@@ -106911,3 +106911,191 @@ printed.
 |---|---|---|---|
 | init-full (v4.33.0) | 378.880 G | 378.913 G | +0.009 % |
 | grind-ring-5 (v4.29.1) | 15.1307 G | 15.1342 G | +0.02 % |
+
+## TASK #366 — spike: primitively recursive definitions as recursors (2026-10-26, agent/spike-primrec)
+
+**Not pursued** (maintainer ruling, 2026-10-27: the gain does not
+justify a proof campaign, given the regressions on shared-subterm,
+args-before-unfold and discarded-argument).  The code stays on branch
+`agent/spike-primrec`; only this record is on master.  **A measurement
+spike.**  After lean4#10549 (the official
+kernel treating a definition `f := fun xs => T.rec …` as a recursor of
+its own).  The implementation is the cached checker's only, behind a
+run-time switch (`CONLECHE_PRIMREC`); the pure core, the rules tier and
+the model are untouched, and the proofs on the binary's import path
+that the change breaks are `sorry` (4 theorems in
+`Verify/Cached/KnotCongr.lean`, the 4 start-of-install proof arguments
+in `Driver/{Run,ParInstall}.lean`).  `lake build` of the full default
+targets was not attempted.
+
+**Recognition** (`Kernel/PrimRec.lean`, run in `FEnv.push` per
+definition).  The value's λ-binders are peeled; a recursor short of its
+major is η-expanded (fresh binders), arguments beyond the major are
+η-contracted where they are trailing binders.  Eligible: the head is a
+stored recursor applied to at least its telescope, all its rules
+`.plain`, not K, and none case 3 of the ι split at the instantiated
+levels (`iotaCase3 = false`), so a fire needs no certificate beyond the
+underlying ι step's.  The indices, the major and the extra arguments
+are arbitrary terms over the binders (lean4#10549 needs the major to be
+the last binder): `addConst_k p k := Bool.rec … (Int.beq' k 0)` is
+eligible.  Per rule, the derived rhs is `fun xs ys => headBeta (rhs_c
+ps ys) extras` — the minor substituted and β-reduced at install.
+**Folding:** where indices, major and extras are distinct binders not
+occurring in the prefix, every `T.rec.{ls} ps j t r⃗` in the derived rhs
+(an induction hypothesis) becomes `f xs[is := j, maj := t, extras :=
+r⃗]`, which δβ-reduces to it.  On grind-ring-5 44 definitions are
+recognised (the `T.casesOn`, `T.brecOn.go`, `Bool.and'`,
+`Ordering.then'`, `Int.beq'`, `Poly.beq'`, `Mon.beq'`, `Expr.denote`,
+the `_k` functions' first step); rejected by design: K (`Eq.casesOn`)
+and case 3 (`And.casesOn`, `Acc.recOn`, …).
+
+**Fire** (`primRecI`, `Cached/CoreC.lean`): `f b⃗ rest` with the major
+`maj[b⃗]` prepared by `prepareMajorI` with the underlying recursor's
+name and rules (so the K/η/`And` rescues run as for ι), a constructor
+with a derived rule: the rhs at `b⃗` and the fields, `rest` applied.
+Two placements, selectable: **mode 1** in `whnfCore` (an ι step, as
+lean4#10549: it fires in definitional equality's cheap head
+normalisation too), **mode 2** in place of δ (the whnf loop's δ step and
+the six lazy-delta unfoldings: the lazy-delta decisions are unchanged,
+only the unfolding's result differs).  `+100`: no folding.
+
+**Measurements** (instructions:u, one run each, `--verified`; Δ against
+mode 0 of the same binary, which carries +0.4 % (grind-ring-5) / +0.8 %
+(init-full) of plumbing against master 0d2f467bb).  Every stream keeps
+its verdict in every mode: `tests/arena.sh` in modes 1 and 2 gives e2e
+496/496 as expected, arena tutorial 90/92 (as on master), no trusted,
+`--jobs=1` or `--jobs=4` divergence; its build gates fail, as they must
+on a branch with `sorry` and `dbgTrace`.
+
+| stream | mode 0 | mode 1 (whnfCore) | mode 2 (δ) | no fold (101) |
+|---|---|---|---|---|
+| init-full | 396.545 G | −3.0 % | −0.4 % | +0.2 % |
+| grind-ring-5 | 16.028 G | −3.0 % | −3.5 % | +0.2 % |
+| app-lam | 22.513 G | −0.1 % | −0.0 % | — |
+| args-before-unfold | 0.118 G | +36.7 % | −5.9 % | — |
+| beta-ladder | 4.956 G | +0.1 % | −0.1 % | — |
+| church-numerals | 0.335 G | −0.0 % | −0.4 % | — |
+| discarded-argument-match | 0.238 G | −4.9 % | +32.1 % | — |
+| discarded-argument | 0.104 G | +20.1 % | +105.0 % | — |
+| folded-constant-first | 0.152 G | −28.7 % | −25.0 % | — |
+| folded-constant-last | 0.143 G | −23.9 % | −20.0 % | — |
+| identical-nesting | 0.055 G | +8.6 % | −1.3 % | — |
+| irrelevance-before-evaluation | 0.064 G | −10.2 % | −8.6 % | — |
+| let-ladder | 2.678 G | −0.1 % | +0.1 % | — |
+| repeated-subproblem | 0.059 G | +1.8 % | +10.9 % | — |
+| shared-subterm | 0.254 G | +297.8 % | +307.5 % | — |
+| shift-cascade | 0.103 G | +4.3 % | +1.3 % | — |
+| unroll-versus-evaluate | 0.086 G | +26.5 % | −6.6 % | — |
+| ac_mul | 3.566 G | −0.6 % | −0.3 % | +0.8 % |
+| ac_nat | 3.637 G | +0.1 % | +0.1 % | +0.8 % |
+| dec_brecOn | 1.142 G | +11.8 % | +14.3 % | −7.3 % |
+| dec_rec | 0.771 G | −5.3 % | −2.8 % | −8.3 % |
+| linarith_int | 6.130 G | −1.0 % | −0.9 % | +0.9 % |
+| omega_vars | 5.165 G | −0.8 % | −1.0 % | +0.2 % |
+| ring_binom | 8.117 G | −0.4 % | −0.0 % | +2.5 % |
+| ring_char256 | 9.398 G | −1.3 % | −0.8 % | +1.3 % |
+| ring_hyp | 8.113 G | −0.4 % | −0.1 % | +2.5 % |
+| ring_pow4 | 8.919 G | −2.2 % | −1.4 % | +0.6 % |
+| ring_pow6 | 13.851 G | −8.4 % | −5.2 % | −6.3 % |
+| simparith | 3.620 G | −0.4 % | −0.2 % | +0.8 % |
+
+(The arena perf streams and twelve local reflection cases — grind ring/linarith/AC, `omega`, `simp +arith`,
+`decide +kernel` over `Nat.rec`/`List.rec` definitions and their
+structural-recursion contrast, not committed.  The grind and
+`omega` cases are dominated by the ~2000-declaration install floor.)
+
+**Findings.**
+
+1. *The gain is small in this checker.*  Its δ is already cheap: the
+   value is read through the `(name, levels)` cache and β is one bulk
+   substitution, so a fire saves an unfolding and a β step that cost
+   little.  The win is in the *shape* of the reducts: folded hypotheses
+   (`f xs t` instead of `T.rec ps' M' ms' t`) make smaller terms and
+   cheaper comparisons — without folding the effect is +0.2 % on
+   init-full and grind-ring-5.  ring_pow6 (−8.4 %) and the
+   folded-constant streams (−24 to −29 %) are the largest gains.
+2. *Mode 1 changes conversion strategy, as lean4#10549 does.*  Firing in
+   `whnfCore` reduces `f xs (c …)` before lazy delta can compare two
+   applications of `f` argument by argument: args-before-unfold +37 %,
+   unroll-versus-evaluate +27 %, discarded-argument +20 %.  It is also
+   the larger win on init-full (−3.0 % against −0.4 %).
+3. *Mode 2 keeps the lazy-delta decisions but not the reducts' kind.*  A
+   folded hypothesis is a δ-redex (`f …`) where the official kernel's is
+   an ι-redex (`T.rec … t`, reduced by `whnfCore`): discarded-argument
+   +105 %, discarded-argument-match +32 %, repeated-subproblem +11 %.
+   Neither placement is behaviour-preserving: mode 1 changes the
+   original occurrences, mode 2 the hypothesis occurrences.  The
+   faithful placement is a third one, not built: install for `f` an
+   auxiliary *recursor* `f.prec` (a synthetic `recInfo`, its rules the
+   derived ones, hypotheses folded to `f.prec xs`) and unfold `f xs` to
+   `f.prec xs`.  Then `f` is δ-unfolded exactly where it is today and
+   the hypotheses are ι-redexes exactly where the official kernel's
+   are; only the prefix is shorter.
+4. *shared-subterm ×4 in both modes* (0.25 G → 1.0 G; ×3.7 without
+   folding): `perfect`, `ldepth`, `ldepth2` each fire 1001 times, as
+   often as the recursor fires on master, but the derived rules build
+   the numerals `S^k O` in another order, so equal numerals are
+   pointer-distinct, and the β memo (`instListM`'s `(body, args, d)`
+   key) compares argument lists structurally: a length-`k` chain at
+   every level, quadratic.  A weakness of the structurally keyed memo
+   that the new order exposes, not of the rule itself.
+5. *Folding `brecOn.go` hurts*: dec_brecOn +12 % folded, −7 % unfolded;
+   dec_rec −5 % folded, −8 % unfolded.  The course-of-values tuple is
+   built either way; folded, its components are `F.brecOn.go` δ/ι-redexes
+   compared lazily.
+6. *Recognition cost*: +0.8 % on grind-ring-5 (mode 3: analysis, no fire).
+
+**What a landing needs** (not started; rulings first).  A `Red` rule
+for the fire, sound because a reduction is a denotation identity:
+`⟦f⟧ = ⟦λ xs. T.rec ps M ms⟧` (δ), ι's own case-2 argument for the
+constructor, and for the fold `⟦T.rec ps M ms⟧ = ⟦f xs⟧` under the
+substitution lemma (`Red` itself has no backward δ, and the fold is
+exactly one).  The derived rules are a pure function of the
+definition and the recursor (`PrimRec.analyze`); either that function
+is proved correct (instantiate/lift/headBeta/fold lemmas), or each
+rule is certified at install by the checker's own conversion, as the
+boost spikes' equations are.  Then the pure twin in `Core.lean`, the
+`Env`/`FEnv` data and its laws, the run ⇒ derivation bridge and the
+cached simulation proofs (the FEnv congruence lemmas of
+`KnotCongr.lean` are false once behaviour reads `primTbl`, so the
+table must be part of what they compare).
+
+**Round 2 (2026-10-27).**  *The test's own cost* (full stream minus the
+stream with the test module's declarations dropped, `--jobs=1`):
+
+| test | its share | mode 1 | mode 2 | no fold |
+|---|---|---|---|---|
+| grind-ring-5 | 7.14 G of 15.29 G | −5.4 % | −7.8 % | −2.0 % |
+| ring_pow6 | 5.89 G of 13.13 G | −20.0 % | −12.3 % | −18.9 % |
+| ring_pow4 | 0.93 G of 8.18 G | −19.4 % | −13.7 % | −17.0 % |
+| dec_rec | 0.66 G | −6.6 % | −3.8 % | −10.1 % |
+| dec_brecOn | 1.03 G | +12.6 % | +15.5 % | −8.7 % |
+
+*ι by recursor* (grind-ring-5, mode 0): 197 k fires, 193 k with a
+prefix free of variables — the fuel loops (`Nat.rec … hugeFuel`) and the
+`Poly.rec`/`Mon.rec`/`Bool.rec` inside them, which no definition
+recognition reaches.  Two attempts at them:
+
+* *A per-declaration memo of prefix-specialised rules* (prefix node ↦
+  rule with the minors substituted, β-reduced, hypotheses sharing the
+  node): 6018 hits against 3086 misses on dec_rec, but most prefixes
+  are fresh (their minors mention an outer hypothesis or accumulator),
+  and each miss walks the large minors: dec_rec 0.66 G → 144 G,
+  grind-ring-5's proof 7.1 G → 307 G.  Dropped.
+* *lean4#10549's rule shape* (`fun ps self fields => …`, the redex's own
+  prefix node passed as `self`, mode 1000): grind-ring-5 +1.3 %,
+  ring_pow6 +0.6 %, dec_rec −2.2 %.  Nothing: the minors are already
+  pointer-shared through substitution here and the rebuilt prefix spine
+  is short.
+
+*Where the proof's time goes* (grind-ring-5, frame-pointer build,
+instructions:u samples in the check of `_proof_1_1`): one evaluation,
+`iotaRecI → prepareMajorI → whnf` recursing; β substitution
+(`betaPeelI → instListM → instantiateListXP`) 34 % inclusive; the
+declaration's teardown (`checkLoop` freeing its memos) 7 %;
+`reduceNatI` 7.6 %; `FEnv.find?` 4.9 %; `iotaArityOk` 4.3 %;
+allocation and freeing 45 % in all.  The copying a rule shape can avoid
+is the minors of a δ-unfolded definition (what folding removes); the
+fuel loops copy inner minors that are open in the hypothesis at every
+step, which is substitution's cost, not the rule's (the task #306/#307
+finding, from the other side).
