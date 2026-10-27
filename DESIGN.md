@@ -107099,3 +107099,69 @@ is the minors of a δ-unfolded definition (what folding removes); the
 fuel loops copy inner minors that are open in the hypothesis at every
 step, which is substitution's cost, not the rule's (the task #306/#307
 finding, from the other side).
+
+## TASK #367 — spike: boosted functions, native evaluation justified by a generated `Red` derivation (2026-10-26/27, agent/spike-boost-red)
+
+**Parked** (maintainer, 2026-10-27: good enough as a pilot).  The code
+stays on the branches; only this record is on master.
+
+**The idea.**  The maintainer names Lean functions at build time
+(`#boost F`).  When whnf meets a boosted constant applied to ground
+arguments, the checker returns the natively compiled `F`'s result
+instead of reducing the kernel term.  No change to the trusted base, no
+new model obligation: the step is *admissible* — a generated theorem
+`F.boost_rel` shows that a `Red` derivation from the application to the
+encoded result exists, under an install gate that the stored closure is
+syntactically the pinned one.  Extra reduction beyond the official
+kernel is acceptable (as for the `Nat.gcd` fast path).  The motivation
+is checking `bv_decide`'s `_native.bv_decide` axioms
+(`verifyBVExpr E C = true`) by running Std's checker.
+
+**Three designs were tried.**
+* *Equational* (`agent/spike-boost`): equations from Lean's `F.eq_k`,
+  certified by defeq at install, a first-order fragment, a new rule
+  `Red.boost` whose soundness stayed open (`sorry`); the whnf hook and
+  demo (`tri 100000 = … := rfl`: master 21.4 G, hook 0.59 G
+  instructions:u, `iter 2 10⁶` where official times out).
+* *Logical relation on the set model* (`agent/spike-boost-lr`): `tri`
+  proved, but ~60 % of the proof re-derives set memberships, and the
+  relation must be parametricity-style at `Sort`.
+* *Logical relation on `Red`* (`agent/spike-boost-red`, tip
+  `b53c9effd`; the recommended design).  `Red` is syntactic and already
+  sound, so memberships vanish and types are inert.  The final form is a
+  **rigid parametricity translation** of the shallow kernel term, by
+  structural recursion, no search: a type becomes a relation
+  `Expr → A → Prop` (at `Sort`, a relation carried as data, closed under
+  backward `Red`); a variable relates to the deep variable at the same
+  binder position; one lemma per constant instance (definitions by δ
+  and their body; inductives' relations through their recursor;
+  recursors by the shallow recursor's own induction plus deep ι).  Two
+  rules were added to `Red`, both proved sound: `Red.accRec` (`Acc.rec`
+  fires on a fabricated `Acc.intro x (fun y hy => Acc.inv h hy)`
+  without reducing the proof; well-founded recursion, including
+  `WellFounded.Nat.fix` and lexicographic `ack`) and `Red.kRec` (a K-like
+  recursor fires without reducing its major: `Eq.rec`, casts).  Neither
+  is used by the checker's whnf.  13 test functions (structural,
+  well-founded, `List`/structure arguments, callee reuse) need only
+  `#boost F`.
+
+**Scale.**  The generated proof grows linearly (~1 500 nodes,
+~0.48 G instructions:u of elaboration per constant; 1.19 lemma
+instances per constant).  Of `verifyBVExpr`'s 1 629-constant data
+closure, all 788 opaque-free constants are translated.
+
+**The stop.**  537 constants depend on `opaque`s — `System.Platform.getNumBits`
+(every `HashMap` operation), `mixHash` (derived `Hashable`), the
+`partial def` loops of the LRAT parser (`Parsec.manyCore`), and
+`String.Internal.*` — so `verifyBVExpr E C` has no value in the logic
+and no reduction-based method can reach it.  Ways forward, not taken:
+an opaque-free checker closure in Std (fuel or well-founded parser, a
+map without `USize` hashing); or a model that interprets pinned
+opaques by their native implementations (semantic relation at those
+leaves only).
+
+**Not covered by the translation:** nested and mutual inductives,
+universe-valued type arguments, quotients, polymorphic `F`.  Not wired:
+the install gate's capability bit and invariant and the bridge case for
+the hook (estimated 0.7–1.2 k lines; no model work).  Reports:
+`_tmp/spike-boost*-report.md` (not committed).
