@@ -419,7 +419,7 @@ theorem piV_mem_univ {u v : Nat} {A : V} {B : V → V}
       have h0 : piR 0 A B ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact piR_zero_mem_univZero
       exact univ_mono (Nat.zero_le _) _ h0
     · rw [piR_pos hp]
-      exact mem_univ_of_tg_strict ((tg_isTGUniverse hw).piSet_mem
+      exact mem_univ_of_tg_strict ((tg_isUniverse hw).piSet_mem
         (tg_mono (Nat.le_max_left u v) A (mem_tg_of_mem_univ hA))
         (fun x hx => tg_mono (Nat.le_max_right u v) _ (mem_tg_of_mem_univ (hB x hx))))
         strict_piSet

@@ -14,7 +14,7 @@ Infinity is derived from the universe chain + Replacement: an
 separated out of one as the members of *every* inductive set.
 Leastness is then definitional.  The inductive universe used is
 `univChain 1`: it is inhabited by `univChain 0` (note `univChain 0`
-itself need not be — the empty set satisfies `IsTGUniverse`
+itself need not be — the empty set satisfies `IsUniverse`
 vacuously).
 
 `vnat : Nat → V` names the members of `ω` from the meta-level; every
@@ -49,13 +49,13 @@ def Inductive (I : V) : Prop :=
   (empty : V) ∈ˢ I ∧ ∀ n, n ∈ˢ I → vsucc n ∈ˢ I
 
 /-- An inhabited Grothendieck universe is an inductive set. -/
-theorem _root_.ConLeche.IsTGUniverse.inductive_self {U y : V}
-    (hU : IsTGUniverse (Mem (V := V)) U) (hy : y ∈ˢ U) : Inductive U :=
+theorem _root_.ConLeche.IsUniverse.inductive_self {U y : V}
+    (hU : IsUniverse (Mem (V := V)) U) (hy : y ∈ˢ U) : Inductive U :=
   ⟨hU.empty_mem hy, fun _n hn =>
     hU.binUnion_mem hy hn (hU.sing_mem hy hn)⟩
 
 theorem univChain_one_inductive : Inductive (univChain 1 : V) :=
-  (univChain_tg 1).inductive_self (univChain_mem 0)
+  (univChain_univ 1).inductive_self (univChain_mem 0)
 
 /-- The finite ordinals: the members of every inductive set, separated
 from the inductive universe `univChain 1`. -/
@@ -122,8 +122,8 @@ theorem omega_subset_univChain_one : (omega : V) ⊆ˢ univChain 1 := sep_subset
 
 /-- `ω` is a member of any universe having the inductive universe
 `univChain 1` as a member. -/
-theorem _root_.ConLeche.IsTGUniverse.omega_mem {U : V}
-    (hU : IsTGUniverse (Mem (V := V)) U) (h1 : (univChain 1 : V) ∈ˢ U) :
+theorem _root_.ConLeche.IsUniverse.omega_mem {U : V}
+    (hU : IsUniverse (Mem (V := V)) U) (h1 : (univChain 1 : V) ∈ˢ U) :
     (omega : V) ∈ˢ U :=
   hU.mem_of_subset_mem h1 omega_subset_univChain_one
 

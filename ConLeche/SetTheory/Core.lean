@@ -3,7 +3,7 @@ module
 @[expose] public section
 
 /-!
-# The axiomatic core: ZF⁻ plus an ω-chain of Grothendieck universes
+# The axiomatic core: first-order ZF⁻ plus an ω-chain of Grothendieck universes
 
 The `SetTheory` class below is the *entire* axiomatic interface of the
 consistency proof; every operator and law the model construction uses
@@ -12,12 +12,18 @@ consistency proof; every operator and law the model construction uses
 
 The set-theoretic axioms are **extensionality, pairing, union, power
 set, regularity, the replacement scheme, and an ω-chain of
-Grothendieck universes** `univChain 0 ∈ univChain 1 ∈ …` —
-universehood stated as the matrix of Tarski's Axiom A (A. Tarski,
-*Über unerreichbare Kardinalzahlen*, Fund. Math. 30 (1938), 68–89)
-strengthened with a transitivity clause, i.e. as Grothendieck
-universes (SGA 4, Exp. I, Appendix).  Infinity and choice are
-derivable and therefore absent.
+Grothendieck universes** `univChain 0 ∈ univChain 1 ∈ …`.  Every
+axiom is a FIRST-ORDER statement over the membership relation: the
+replacement scheme is encoded the standard way, as a scheme over
+Prop-valued functional relations (`∀ a p, (∀ x ∈ a, ∃ y, p x y ∧ ∀ y', p x y' → y' = y) →
+∃ b, ∀ y, y ∈ b ↔ ∃ x ∈ a ∧ p x y`, one instance per
+meta-level relation `p : V → V → Prop` — exactly how Mathlib's
+`ZFSet` carries it under `Classical.allZFSetDefinable`), and a
+Grothendieck universe is given by its five first-order closure clauses
+(`IsUniverse`): transitivity, subsets of members are members, power
+sets stay inside, unions of members stay inside, and fibre-wise
+replacement closure.  Infinity and separation are derivable and
+therefore absent.
 
 This calibrates the axiomatic strength to exactly what the checker
 consumes — the ω-indexed tower `univ 0, univ 1, univ 2, …` — and to
@@ -33,20 +39,27 @@ universe above *every* set, a proper class of inaccessibles; cf. the
 Mizar axiomatics, A. Trybulec, *Tarski Grothendieck Set Theory*,
 Formalized Mathematics 1(1), 1990).
 
-Deliberate deviations from a first-order presentation:
+Deliberate deviations from a textbook first-order presentation:
 
-* **Replacement** is a Lean-level scheme: the image operator takes an
-  arbitrary function `V → V`.  This is the usual strengthening when the
-  ambient logic can quantify over class functions; `V_κ` for `κ`
-  inaccessible still satisfies it.
-* **Choice is not a field.**  A first-order axiomatization must assert
-  choice; here the ambient logic is Lean with `Classical.choice`, and
-  every set-level form of choice over `V` (the global selector
-  `schoice`, and the Jech-form choice-function statement, *Set Theory*,
-  §5) is a *theorem* — replacement applied to a classically chosen
-  selector.  See `ConLeche/SetTheory/Derive/Choice.lean`.  Asserting it
-  here would add redundant axiomatic content; global choice is supplied
-  by the meta-logic, not by this class.
+* **Replacement is a scheme over meta-level relations.**  A
+  first-order theory states one replacement axiom per *formula*;
+  quantifying over `p : V → V → Prop` at the meta-level is the same
+  scheme (Lean's `Prop` plays the role of the formula universe), and
+  it is the form the bridge to Mathlib's `ZFSet` instantiates
+  (`Classical.allZFSetDefinable`).  The previous formulation took an
+  arbitrary function `V → V` as the image operator — a
+  *second-order* strengthening (a class function, not a relation);
+  the image of a set under a function is now *derived* from the
+  scheme (`Derive/Sep.lean`).
+* **Choice is not a field.**  A first-order axiomatization of ZFC
+  must assert choice; here the ambient logic is Lean with
+  `Classical.choice`, and every set-level form of choice over `V`
+  (the global selector `schoice`, and the Jech-form choice-function
+  statement, *Set Theory*, §5) is a *theorem* — replacement applied
+  to a classically chosen selector.  See
+  `ConLeche/SetTheory/Derive/Choice.lean`.  Asserting it here would
+  add redundant axiomatic content; global choice is supplied by the
+  meta-logic, not by this class.
 * **No `nonempty` field.**  First-order logic's nonempty domain is
   implied: `univChain` already exhibits elements of `V`.
 
@@ -59,42 +72,42 @@ namespace ConLeche
 
 universe u
 
-/-- `y` and `u` are equinumerous: some (meta-level) function restricts to
-a bijection from the members of `y` onto the members of `u`.  This is the
-notion Tarski's Axiom A is stated with; using a Lean-level function keeps
-ordered pairs out of the core (a first-order presentation instead
-describes set-level bijections by formulas).  For the intended models this is
-equivalent: a set-level bijection yields a meta-level one by choice, and
-the axiom's disjunction is only ever *used* by refuting this side via a
-diagonal argument (`Derive/Universe.lean`). -/
-def Equinumerous {V : Type u} (mem : V → V → Prop) (y u : V) : Prop :=
-  ∃ f : V → V,
-    (∀ z, mem z y → mem (f z) u) ∧
-    (∀ z z', mem z y → mem z' y → f z = f z' → z = z') ∧
-    (∀ w, mem w u → ∃ z, mem z y ∧ f z = w)
+/-- A Grothendieck universe, as five first-order closure clauses (SGA 4,
+Exp. I, Appendix): a transitive set closed under subsets of members,
+power sets of members, unions of members, and fibre-wise replacement.
+The five clauses, in order:
 
-/-- The matrix of Tarski's Axiom A (Tarski 1938), strengthened with the
-transitivity clause: `u` is a Grothendieck universe (SGA 4, Exp. I,
-Appendix).  The four clauses, in order:
-
-1. *transitivity*: members of members are members — the clause that
-   distinguishes a Grothendieck universe from a bare Tarski one, and
-   what makes the empty set fall out of regularity;
+1. *transitivity*: members of members are members;
 2. *subsets of members are members*;
 3. *power sets stay inside*: some member contains all subsets of a
    member (with clause 2 this makes `power y` itself a member);
-4. *inaccessibility*: a subset of `u` is equinumerous with `u` or a
-   member.  Dropping the equinumerosity disjunct is **inconsistent**
-   (`u ⊆ u` would force `u ∈ u`, against regularity). -/
-def IsTGUniverse {V : Type u} (mem : V → V → Prop) (u : V) : Prop :=
+4. *unions stay inside*: the union of a member's members has a member
+   containing exactly them (with clause 2 this makes `sUnion s`
+   itself a member);
+5. *fibre-wise replacement*: the image of a member under a
+   relation functional on it, with all values in `u`, is contained in
+   a member.
+
+The fibre-wise form of clause 5 (functional on each member, with the
+witnessed values in `u`) is what the intended models satisfy: unrestricted relativized
+replacement is *false* for `V_κ` in the meta-theory (the image of
+`V_κ` under `x ↦ {V_κ}` is not a member of `V_κ`), while the
+fibre-wise form holds because an image inside `V_κ` of a member has
+cardinality below κ (the bridge, `isUniverse_vonNeumann`).  It is
+also exactly what the derivation needs: the closure laws of
+`Derive/Universe.lean` are all instances of it. -/
+def IsUniverse {V : Type u} (mem : V → V → Prop) (u : V) : Prop :=
   (∀ y z, mem y u → mem z y → mem z u) ∧
   (∀ y z, mem y u → (∀ w, mem w z → mem w y) → mem z u) ∧
   (∀ y, mem y u → ∃ p, mem p u ∧ ∀ z, (∀ w, mem w z → mem w y) → mem z p) ∧
-  (∀ y, (∀ w, mem w y → mem w u) → Equinumerous mem y u ∨ mem y u)
+  (∀ s, mem s u → ∃ q, mem q u ∧ ∀ z, mem z q ↔ ∃ w, mem w s ∧ mem z w) ∧
+  (∀ a, mem a u → ∀ p : V → V → Prop,
+    (∀ x, mem x a → ∃ y, mem y u ∧ p x y ∧ ∀ y', p x y' → y' = y) →
+    ∃ b, mem b u ∧ ∀ y, mem y b ↔ ∃ x, mem x a ∧ p x y)
 
 /-- A model of set theory of exactly the strength the checker needs:
 membership, the six ZF⁻ axioms (extensionality, pairing, union, power
-set, regularity, Lean-level replacement), and an ω-chain of
+set, regularity, the first-order replacement scheme), and an ω-chain of
 Grothendieck universes.  Infinity is derivable; choice is inherited
 from the meta-logic (`Classical.choice`); see the module docstring. -/
 class SetTheory (V : Type u) where
@@ -116,11 +129,14 @@ class SetTheory (V : Type u) where
   mem_power : ∀ {z x : V}, Mem z (power x) ↔ ∀ w, Mem w z → Mem w x
   /-- Regularity: every nonempty set has an `∈`-minimal member. -/
   regularity : ∀ x : V, (∃ y, Mem y x) → ∃ y, Mem y x ∧ ¬ ∃ z, Mem z y ∧ Mem z x
-  /-- Replacement, as a Lean-level scheme: the image of a set under an
-  arbitrary function `V → V`. -/
-  image : (V → V) → V → V
-  /-- Characterization of the replacement image. -/
-  mem_image : ∀ {f : V → V} {a z : V}, Mem z (image f a) ↔ ∃ w, Mem w a ∧ z = f w
+  /-- **Replacement, the first-order scheme**: the image of a set
+  under a functional relation `p`, as a relation, is a set.  One
+  instance per meta-level relation — the standard encoding of the
+  scheme (Mathlib's `ZFSet` carries it the same way, under
+  `Classical.allZFSetDefinable`). -/
+  repl : ∀ a : V, ∀ p : V → V → Prop,
+    (∀ x, Mem x a → ∃ y, p x y ∧ ∀ y', p x y' → y' = y) →
+    ∃ b : V, ∀ y, Mem y b ↔ ∃ x, Mem x a ∧ p x y
   /-- An ω-chain of Grothendieck universes: the sets interpreting the
   universe tower (Carneiro's ω-many inaccessibles, op. cit.;
   intended model `V_{κ n}`). -/
@@ -128,9 +144,8 @@ class SetTheory (V : Type u) where
   /-- The chain increases strictly: each universe is a member of the
   next. -/
   univChain_mem : ∀ n : Nat, Mem (univChain n) (univChain (n + 1))
-  /-- Each chain member is a Grothendieck universe (Tarski's Axiom A
-  matrix with transitivity, `IsTGUniverse`). -/
-  univChain_tg : ∀ n : Nat, IsTGUniverse Mem (univChain n)
+  /-- Each chain member is a Grothendieck universe (`IsUniverse`). -/
+  univChain_univ : ∀ n : Nat, IsUniverse Mem (univChain n)
 
 namespace SetTheory
 

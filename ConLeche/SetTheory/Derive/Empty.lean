@@ -7,7 +7,7 @@ public import ConLeche.SetTheory.Core
 /-!
 # The empty set, derived
 
-The transitivity clause in `IsTGUniverse` makes this cheap —
+The transitivity clause in `IsUniverse` makes this cheap —
 `univChain 1` is inhabited (by `univChain 0`) and transitive, so
 regularity's `∈`-minimal member of it has no members at all.
 
@@ -22,7 +22,7 @@ universe u
 variable {V : Type u} [SetTheory V]
 
 theorem empty_exists : ∃ e : V, ∀ z, ¬ z ∈ˢ e := by
-  obtain ⟨htrans, -, -, -⟩ := univChain_tg (V := V) 1
+  obtain ⟨htrans, -, -, -, -⟩ := univChain_univ (V := V) 1
   obtain ⟨y, hy, hmin⟩ :=
     regularity (univChain (V := V) 1) ⟨univChain 0, univChain_mem 0⟩
   exact ⟨y, fun z hz => hmin ⟨z, hz, htrans y z hy hz⟩⟩

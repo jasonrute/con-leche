@@ -11,10 +11,13 @@ Mario Carneiro's lean4lean-model (`Lean4LeanModel/Consistency.lean`,
 Lean's type theory relative to one hypothesis, `OmegaInaccessibles`:
 *there are `ω` inaccessible cardinals — a strictly increasing
 `ℕ`-indexed sequence of them, one to interpret each Lean universe*.
-ConLeche's consistency proof is parametric in the `ConLeche.SetTheory` class
-(`ConLeche/SetTheory/Core.lean`): ZF⁻ plus an ω-chain of Grothendieck
-universes stated in Tarski's form (`ConLeche.IsTGUniverse`).  This module
-proves, in Lean, that his hypothesis implies ours:
+ConLeche's consistency proof is parametric in the `ConLeche.SetTheory`
+class (`ConLeche/SetTheory/Core.lean`): first-order ZF⁻ (extensionality,
+pairing, union, power set, regularity, the first-order replacement
+scheme as a meta-level scheme over relations) plus an ω-chain of
+Grothendieck universes (`ConLeche.IsUniverse`, five first-order closure
+clauses).  This module proves, in Lean, that his hypothesis implies
+ours:
 
 * `OmegaInaccessibles` is transcribed **verbatim** from his file (same
   Mathlib notions — `Cardinal.IsInaccessible`, `StrictMono`; his file is
@@ -24,17 +27,15 @@ proves, in Lean, that his hypothesis implies ours:
   Mathlib's `ZFSet.{u}` for any strictly increasing sequence of
   inaccessibles `κ`, with `univChain n := V_ (κ n).ord` (Mathlib's
   von Neumann hierarchy).  The ZF⁻ fields are Mathlib's; the work is
-  `isTGUniverse_vonNeumann`: `V_ κ` for `κ` inaccessible is a
-  Grothendieck universe in Tarski's form.
+  `isUniverse_vonNeumann`: `V_ κ` for `κ` inaccessible satisfies the
+  five closure clauses.  Clause 5 (fibre-wise replacement) is where
+  inaccessibility enters: the image of a member of `V_ κ.ord` under a
+  functional relation with values in `V_ κ.ord` is a subset of
+  `V_ κ.ord` of cardinality `< κ` (it is an image of a member, and
+  `card (V_ (rank a)) = preBeth (rank a) < κ` by strong limitness), so
+  by **regularity** (`rank_lt_ord_of_card_lt`) it is a member.
 * `carneiro_implies_conleche : OmegaInaccessibles.{u} →
   Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V)`.
-
-The proof of Tarski's cardinality clause (a subset of `V_ κ` is a member
-or equinumerous with it) is where inaccessibility enters: a subset `y`
-of `V_ κ` has rank `≤ κ`; if `< κ` it is a member; otherwise its rank
-is cofinal in `κ`, so by **regularity** `|y| ≥ κ`, and since
-`|V_ κ| = ℶ_κ = κ` by **strong limitness** (`card_vonNeumann_ord`),
-`|y| = |V_ κ|`.
 
 Nothing here is imported by the ConLeche libraries: this is a separate Lake
 package so that ConLeche never acquires a Mathlib dependency.  The closing
@@ -50,7 +51,7 @@ namespace ConLecheBridge
 
 /-- **Carneiro's hypothesis**, transcribed verbatim from
 `Lean4LeanModel/Consistency.lean` (lean4lean-model, pinned in
-`_tmp/lean4lean-model`; Mathlib `v4.30.0` there, `v4.33.0` here — the
+`_tmp/lean4lean-model`; Mathlib `v4.30.0` there, `v4.35.0` here — the
 definition of `Cardinal.IsInaccessible` is the same structure in both):
 
 > There are `ω` inaccessible cardinals: a strictly increasing
@@ -63,7 +64,8 @@ His consistency theorem is
 def OmegaInaccessibles : Prop :=
   ∃ κ : ℕ → Cardinal.{u}, StrictMono κ ∧ ∀ n, (κ n).IsInaccessible
 
-/-! ### `V_ κ` is a Grothendieck universe in Tarski's form, for `κ` inaccessible -/
+/-! ### `V_ κ` is a Grothendieck universe (the five first-order closure
+clauses) for `κ` inaccessible -/
 
 variable {κ : Cardinal.{u}}
 
@@ -92,7 +94,7 @@ theorem preBeth_lt_of_lt_ord (hκ : κ.IsInaccessible) :
   | add_one a ih =>
     intro h
     rw [preBeth_add_one]
-    exact hκ.isStrongLimit.isStrongPrelimit (ih ((lt_add_one a).trans h))
+    exact hκ.isStrongPrelimit (ih ((lt_add_one a).trans h))
   | limit a ha ih =>
     intro h
     rw [preBeth_limit ha.isSuccPrelimit]
@@ -100,46 +102,19 @@ theorem preBeth_lt_of_lt_ord (hκ : κ.IsInaccessible) :
     rw [hκ.isRegular.lift.cof_ord, mk_Iio_ordinal, lift_lift, lift_lt]
     exact lt_ord.mp h
 
-/-- `|V_ κ| = κ` for `κ` inaccessible. -/
-theorem card_vonNeumann_ord (hκ : κ.IsInaccessible) : card (V_ κ.ord) = κ := by
-  rw [card_vonNeumann]
-  refine le_antisymm ?_ (le_preBeth_ord κ)
-  rw [preBeth_limit (isSuccLimit_ord hκ.aleph0_lt.le).isSuccPrelimit]
-  exact ciSup_le' fun b => (preBeth_lt_of_lt_ord hκ b.2).le
+/-- The cardinality of a member of `V_ κ.ord` is below an inaccessible `κ`. -/
+theorem card_lt_of_mem_vonNeumann (hκ : κ.IsInaccessible) {a : ZFSet.{u}}
+    (ha : a ∈ V_ κ.ord) : a.card < κ := by
+  have h1 : a.card ≤ (V_ (rank a)).card := card_mono (subset_vonNeumann_self a)
+  rw [card_vonNeumann] at h1
+  exact h1.trans_lt (preBeth_lt_of_lt_ord hκ (mem_vonNeumann.mp ha))
 
-/-- A subset of `V_ κ` that is not a member has the cardinality of
-`V_ κ`. -/
-theorem card_eq_of_not_rank_lt (hκ : κ.IsInaccessible) {y : ZFSet.{u}}
-    (hy : y ⊆ V_ κ.ord) (hr : ¬ y.rank < κ.ord) : card y = card (V_ κ.ord) := by
-  refine le_antisymm (card_mono hy) ?_
-  rw [card_vonNeumann_ord hκ]
-  exact not_lt.mp fun h => hr (rank_lt_ord_of_card_lt hκ.isRegular hy h)
-
-/-- Equal cardinality gives ConLeche's meta-level equinumerosity: a global
-function `ZFSet → ZFSet` that restricts to a bijection. -/
-theorem equinumerous_of_card_eq {y s : ZFSet.{u}} (h : card y = card s) :
-    ConLeche.Equinumerous (· ∈ ·) y s := by
-  obtain ⟨e'⟩ := Cardinal.eq.mp h
-  let e : y ≃ s := (equivShrink _).trans (e'.trans (equivShrink _).symm)
-  classical
-  refine ⟨fun z => if hz : z ∈ y then (e ⟨z, hz⟩).1 else z, ?_, ?_, ?_⟩
-  · intro z hz
-    simp only [hz, ↓reduceDIte]
-    exact (e ⟨z, hz⟩).2
-  · intro z z' hz hz' hzz'
-    simp only [hz, hz', ↓reduceDIte] at hzz'
-    have := e.injective (Subtype.ext hzz')
-    exact congrArg Subtype.val this
-  · intro w hw
-    refine ⟨(e.symm ⟨w, hw⟩).1, (e.symm ⟨w, hw⟩).2, ?_⟩
-    simp only [(e.symm ⟨w, hw⟩).2, ↓reduceDIte, Subtype.coe_eta, Equiv.apply_symm_apply]
-
-/-- **`V_ κ` is a Grothendieck universe in Tarski's form** (ConLeche's
-`IsTGUniverse`) for every inaccessible `κ`. -/
-theorem isTGUniverse_vonNeumann (hκ : κ.IsInaccessible) :
-    ConLeche.IsTGUniverse (· ∈ ·) (V_ κ.ord) := by
+/-- **`V_ κ` is a Grothendieck universe** (ConLeche's five-clause
+`IsUniverse`) **for every inaccessible `κ`**. -/
+theorem isUniverse_vonNeumann (hκ : κ.IsInaccessible) :
+    ConLeche.IsUniverse (· ∈ ·) (V_ κ.ord) := by
   have hlim : IsSuccLimit κ.ord := isSuccLimit_ord hκ.aleph0_lt.le
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · -- transitivity
     intro y z (hy : y ∈ V_ κ.ord) (hz : z ∈ y)
     exact isTransitive_vonNeumann _ y hy hz
@@ -152,12 +127,40 @@ theorem isTGUniverse_vonNeumann (hκ : κ.IsInaccessible) :
     show powerset y ∈ V_ κ.ord
     rw [mem_vonNeumann, rank_powerset]
     exact hlim.succ_lt (mem_vonNeumann.mp hy)
-  · -- Tarski's clause: a subset is a member or equinumerous
-    intro y hy
-    have hy' : y ⊆ V_ κ.ord := fun w hw => hy w hw
-    by_cases hr : y.rank < κ.ord
-    · exact Or.inr (mem_vonNeumann.mpr hr)
-    · exact Or.inl (equinumerous_of_card_eq (card_eq_of_not_rank_lt hκ hy' hr))
+  · -- unions stay inside
+    intro s (hs : s ∈ V_ κ.ord)
+    refine ⟨⋃₀ s, ?_, fun z => mem_sUnion⟩
+    show ⋃₀ s ∈ V_ κ.ord
+    rw [mem_vonNeumann]
+    exact (rank_sUnion_le s).trans_lt (mem_vonNeumann.mp hs)
+  · -- fibre-wise replacement
+    intro a ha p hfun
+    classical
+    let f : ZFSet.{u} → ZFSet.{u} := fun z => if hz : z ∈ a then Classical.choose (hfun z hz) else ∅
+    have hf : ∀ z (hz : z ∈ a), f z = Classical.choose (hfun z hz) := fun z hz => dite_eq_left hz
+    have instDefinable : ZFSet.Definable 1 (fun s => f (s 0)) := Classical.allZFSetDefinable _
+    have : ZFSet.Definable 1 (fun s => f (s 0)) := instDefinable
+    clear instDefinable
+    refine ⟨ZFSet.image (fun z => f z) a, ?_, fun y => ?_⟩
+    · show ZFSet.image (fun z => f z) a ∈ V_ κ.ord
+      rw [mem_vonNeumann]
+      refine rank_lt_ord_of_card_lt hκ.isRegular ?_ ?_
+      · intro z hz
+        rw [ZFSet.mem_image] at hz
+        obtain ⟨w, hw, rfl⟩ := hz
+        rw [hf w hw]
+        exact (Classical.choose_spec (hfun w hw)).1
+      · refine (card_image_le (f := fun z => f z) (x := a)).trans_lt
+          (card_lt_of_mem_vonNeumann hκ ha)
+    · show y ∈ ZFSet.image (fun z => f z) a ↔ ∃ x, x ∈ a ∧ p x y
+      rw [ZFSet.mem_image]
+      constructor
+      · rintro ⟨z, hz, rfl⟩
+        exact ⟨z, hz, (hf z hz ▸ (Classical.choose_spec (hfun z hz)).2.1)⟩
+      · rintro ⟨x, hx, hxy⟩
+        refine ⟨x, hx, ?_⟩
+        rw [hf x hx]
+        exact ((Classical.choose_spec (hfun x hx)).2.2 y hxy).symm
 
 /-! ### The `ConLeche.SetTheory` instance on `ZFSet` -/
 
@@ -165,8 +168,10 @@ set_option warn.classDefReducibility false in
 /-- ConLeche's set theory on Mathlib's `ZFSet.{u}`, from any strictly
 increasing sequence of inaccessibles: the ZF⁻ fields are Mathlib's
 (`ZFSet.ext`, pairs, `⋃₀`, `powerset`, `mem_wf`, `image` under
-`Classical.allZFSetDefinable`), and `univChain n := V_ (κ n).ord`. -/
-noncomputable def setTheoryOfChain (κ : ℕ → Cardinal.{u}) (hmono : StrictMono κ)
+`Classical.allZFSetDefinable` — the first-order replacement scheme),
+and `univChain n := V_ (κ n).ord`. -/
+noncomputable def setTheoryOfChain (
+    κ : ℕ → Cardinal.{u}) (hmono : StrictMono κ)
     (hinacc : ∀ n, (κ n).IsInaccessible) : ConLeche.SetTheory ZFSet.{u} where
   Mem := (· ∈ ·)
   ext h := ZFSet.ext h
@@ -179,14 +184,26 @@ noncomputable def setTheoryOfChain (κ : ℕ → Cardinal.{u}) (hmono : StrictMo
   regularity x h := by
     obtain ⟨y, hy, hmin⟩ := mem_wf.has_min {y | y ∈ x} h
     exact ⟨y, hy, fun ⟨z, hzy, hzx⟩ => hmin z hzx hzy⟩
-  image f := @ZFSet.image f (Classical.allZFSetDefinable _)
-  mem_image := by
-    intro f a z
-    rw [@mem_image f (Classical.allZFSetDefinable _)]
-    exact exists_congr fun w => and_congr_right fun _ => eq_comm
+  repl a p hfun := by
+    classical
+    let f : ZFSet.{u} → ZFSet.{u} := fun z => if hz : z ∈ a then Classical.choose (hfun z hz) else ∅
+    have hf : ∀ z (hz : z ∈ a), f z = Classical.choose (hfun z hz) := fun z hz => dite_eq_left hz
+    have instDefinable : ZFSet.Definable 1 (fun s => f (s 0)) := Classical.allZFSetDefinable _
+    have : ZFSet.Definable 1 (fun s => f (s 0)) := instDefinable
+    clear instDefinable
+    refine ⟨ZFSet.image (fun z => f z) a, fun y => ?_⟩
+    show y ∈ ZFSet.image (fun z => f z) a ↔ ∃ x, x ∈ a ∧ p x y
+    rw [ZFSet.mem_image]
+    constructor
+    · rintro ⟨z, hz, rfl⟩
+      exact ⟨z, hz, (hf z hz ▸ (Classical.choose_spec (hfun z hz)).1)⟩
+    · rintro ⟨x, hx, hxy⟩
+      refine ⟨x, hx, ?_⟩
+      rw [hf x hx]
+      exact ((Classical.choose_spec (hfun x hx)).2 y hxy).symm
   univChain n := V_ (κ n).ord
   univChain_mem n := vonNeumann_mem_of_lt (ord_lt_ord.mpr (hmono (Nat.lt_succ_self n)))
-  univChain_tg n := isTGUniverse_vonNeumann (hinacc n)
+  univChain_univ n := isUniverse_vonNeumann (hinacc n)
 
 set_option warn.classDefReducibility false in
 /-- ConLeche's set theory on `ZFSet.{u}` under Carneiro's hypothesis. -/

@@ -34,6 +34,6 @@ theorem tg_mem_of_subset_mem {w : Nat} {y z : V} (hy : y ∈ˢ (tg w : V)) (hz :
   · rw [tg_zero] at hy ⊢
     rw [mem_univZero] at hy ⊢
     exact hz.trans hy
-  · exact (tg_isTGUniverse (Nat.pos_iff_ne_zero.mp hw)).mem_of_subset_mem hy hz
+  · exact (tg_isUniverse (Nat.pos_iff_ne_zero.mp hw)).mem_of_subset_mem hy hz
 
 end ConLeche.SetTheory

@@ -317,7 +317,7 @@ theorem strictU_dropClosed (w : Nat) : DropClosed (strictU w : V) := by
 of the axiomatic level, is one: a union of strict sets is strict. -/
 theorem strictU_famUnion_mem {w : Nat} (hw : w ≠ 0) {A : V} {F : V → V} (hA : A ∈ˢ (tg w : V))
     (hF : ∀ a, a ∈ˢ A → F a ∈ˢ (strictU w : V)) : sUnion (image F A) ∈ˢ (strictU w : V) := by
-  refine (mem_strictU_pos hw).mpr ⟨(tg_isTGUniverse hw).famUnion_mem hA fun a ha =>
+  refine (mem_strictU_pos hw).mpr ⟨(tg_isUniverse hw).famUnion_mem hA fun a ha =>
     ((mem_strictU_pos hw).mp (hF a ha)).1, fun he => ?_, fun hp => ?_⟩
   · have : (ptTag : V) ∈ˢ sUnion (image F A) := he ▸ ptTag_mem_pt
     obtain ⟨y, hy, hty⟩ := mem_sUnion.mp this

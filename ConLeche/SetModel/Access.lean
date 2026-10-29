@@ -82,7 +82,7 @@ theorem kpair_mem_accPaths {A a p : V} (ha : a ∈ˢ A) (hp : p ∈ˢ accPaths A
 
 theorem accPaths_mem {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
     accPaths A ∈ˢ (tg w : V) := by
-  have hU := tg_isTGUniverse (V := V) hw
+  have hU := tg_isUniverse (V := V) hw
   refine natUnion_mem_tg_pos hw fun n => ?_
   induction n with
   | zero => exact unitSet_mem_tg w
@@ -223,7 +223,7 @@ theorem limTup_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w
     InTupleSpace w k Is (limTup Is Φ A) := by
   intro m hm
   refine famOf_mem_famSpace fun i hi => ?_
-  exact strictU_famUnion_mem hw ((tg_isTGUniverse hw).power_mem (accPaths_mem hw hA)) fun c _ =>
+  exact strictU_famUnion_mem hw ((tg_isUniverse hw).power_mem (accPaths_mem hw hA)) fun c _ =>
     famSpace_app (stage_mem hw hA hmaps _ m hm) hi
 
 theorem mem_unionTup {F : V → Nat → V} {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :

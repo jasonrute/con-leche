@@ -43,7 +43,7 @@ theorem natUnion_mem_tg_pos {w : Nat} (hw : w ≠ 0) {f : Nat → V}
     (h : ∀ n, f n ∈ˢ (tg w : V)) : natUnion f ∈ˢ (tg w : V) := by
   obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
   unfold natUnion
-  refine (tg_isTGUniverse (Nat.succ_ne_zero w')).famUnion_mem (omega_mem_tg_succ w') ?_
+  refine (tg_isUniverse (Nat.succ_ne_zero w')).famUnion_mem (omega_mem_tg_succ w') ?_
   intro k hk
   obtain ⟨n, rfl, hfib⟩ := natFibre_of_mem f hk
   rw [hfib]
