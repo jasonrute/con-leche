@@ -207,7 +207,7 @@ theorem holds_cons_down {x : V} {ρ : Nat → V} {o : Occ V} (h0 : o.1 ≠ 0) :
 /-- A small function's domain and values are small. -/
 theorem small_of_mem_piSet {w : Nat} (hw : w ≠ 0) {D f : V} {F : V → V} (hf : f ∈ˢ piSet D F)
     (hfw : f ∈ˢ (tg w : V)) : D ∈ˢ (tg w : V) ∧ ∀ d, d ∈ˢ D → app f d ∈ˢ (tg w : V) := by
-  have hU := tg_isTGUniverse (V := V) hw
+  have hU := tg_isUniverse (V := V) hw
   have hpair : ∀ d, d ∈ˢ D → kpair d (app f d) ∈ˢ f := by
     intro d hd
     rw [← eq_graph_app_of_mem_piSet hf]
@@ -228,7 +228,7 @@ noncomputable def piBound (w : Nat) (D : Term) (Bb : (Nat → V) → V) (ρ : Na
 
 /-- The point is small. -/
 theorem SmallAt.pt (w : Nat) : SmallAt w (pt : V) := fun hw =>
-  (tg_isTGUniverse hw).transitive (unitSet_mem_tg w) pt_mem_unitSet
+  (tg_isUniverse hw).transitive (unitSet_mem_tg w) pt_mem_unitSet
 
 /-- **Π over a hole-free domain**: the support of a member over a small
 domain is the glued supports of its values, the body's items one binder
@@ -314,7 +314,7 @@ theorem SizeOn.pi {w : Nat} {R : FrameRel V} {D : Term} (hD : ConstOn R D)
   unfold piBound
   split
   · rename_i hDw
-    exact (tg_isTGUniverse hw).sigmaPairs_mem (hDw hw) fun d hd =>
+    exact (tg_isUniverse hw).sigmaPairs_mem (hDw hw) fun d hd =>
       hB (cons d ρ) (cons d ρ₀) ⟨d, ρ, ρ₀, rfl, rfl, hR, hd, hD ρ ρ₀ hR ▸ hd⟩ hw
   · exact empty_mem_tg w
 

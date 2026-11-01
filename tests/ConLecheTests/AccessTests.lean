@@ -58,15 +58,15 @@ variable (hw : w ≠ 0)
 include hw
 
 theorem pt_mem_tg : (pt : V) ∈ˢ (tg w : V) :=
-  (tg_isTGUniverse hw).transitive (unitSet_mem_tg w) pt_mem_unitSet
+  (tg_isUniverse hw).transitive (unitSet_mem_tg w) pt_mem_unitSet
 
 theorem nilV_mem : (kpair empty empty : V) ∈ˢ (tg w : V) :=
-  (tg_isTGUniverse hw).kpair_mem (empty_mem_tg w) (empty_mem_tg w) (empty_mem_tg w)
+  (tg_isUniverse hw).kpair_mem (empty_mem_tg w) (empty_mem_tg w) (empty_mem_tg w)
 
 theorem tag_image_mem {S : V} (hS : S ∈ˢ (tg w : V)) : image (kpair pt) S ∈ˢ (tg w : V) :=
-  (tg_isTGUniverse hw).image_mem hS fun _ hx =>
-    (tg_isTGUniverse hw).kpair_mem (empty_mem_tg w) (pt_mem_tg hw)
-      ((tg_isTGUniverse hw).transitive hS hx)
+  (tg_isUniverse hw).image_mem hS fun _ hx =>
+    (tg_isUniverse hw).kpair_mem (empty_mem_tg w) (pt_mem_tg hw)
+      ((tg_isUniverse hw).transitive hS hx)
 
 /-- A tagged image is strict: its members are pairs. -/
 theorem tag_image_mem_strictU {S : V} (hS : S ∈ˢ (tg w : V)) :
@@ -77,8 +77,8 @@ theorem tag_image_mem_strictU {S : V} (hS : S ∈ˢ (tg w : V)) :
 
 theorem nil_or_mem {S : V} (hS : S ∈ˢ (tg w : V)) :
     binUnion (sing (kpair empty empty)) (image (kpair pt) S) ∈ˢ (strictU w : V) :=
-  (mem_strictU_pos hw).mpr ⟨(tg_isTGUniverse hw).binUnion_mem (empty_mem_tg w)
-    ((tg_isTGUniverse hw).sing_mem (empty_mem_tg w) (nilV_mem hw)) (tag_image_mem hw hS),
+  (mem_strictU_pos hw).mpr ⟨(tg_isUniverse hw).binUnion_mem (empty_mem_tg w)
+    ((tg_isUniverse hw).sing_mem (empty_mem_tg w) (nilV_mem hw)) (tag_image_mem hw hS),
     strict_of_kpairs fun z hz => by
       rcases mem_binUnion.mp hz with h | h
       · exact ⟨empty, empty, mem_sing.mp h⟩
@@ -91,7 +91,7 @@ open Classical in
 theorem prodA_mem (hw : w ≠ 0) {A1 A2 : V} (h1 : A1 ∈ˢ (tg w : V)) (h2 : A2 ∈ˢ (tg w : V)) :
     (sigmaPairs (upair empty pt) fun t => if t = empty then A1 else A2) ∈ˢ (tg w : V) := by
   classical
-  have hU := tg_isTGUniverse (V := V) hw
+  have hU := tg_isUniverse (V := V) hw
   refine hU.sigmaPairs_mem (hU.upair_mem (empty_mem_tg w) (empty_mem_tg w) (pt_mem_tg hw))
     fun t _ => ?_
   by_cases h : t = empty
@@ -107,7 +107,7 @@ noncomputable def listF (α : V) (X : Nat → V) : V :=
 theorem list_closed {α : V} (hα : α ∈ˢ (tg w : V)) :
     ∃ L, IsClosedTuple w 1 is1 (op1 (listF α)) L := by
   refine closed_of_acc hw (A := unitSet) (unitSet_mem_tg w)
-    (maps_op1 fun X hX => nil_or_mem hw ((tg_isTGUniverse hw).sigmaPairs_mem hα
+    (maps_op1 fun X hX => nil_or_mem hw ((tg_isUniverse hw).sigmaPairs_mem hα
       fun _ _ => hole1_mem hX Nat.zero_lt_one)) (acc_op1 ?_)
   exact accRead_binUnion (accRead_const _ _) (accRead_image _ (accRead_sigma fun _ _ =>
     accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet))
@@ -119,7 +119,7 @@ noncomputable def treeF (X : Nat → V) : V :=
 
 theorem tree_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 treeF) L := by
   refine closed_of_acc hw (prodA_mem hw (unitSet_mem_tg w) (unitSet_mem_tg w))
-    (maps_op1 fun X hX => nil_or_mem hw ((tg_isTGUniverse hw).sigmaPairs_mem
+    (maps_op1 fun X hX => nil_or_mem hw ((tg_isUniverse hw).sigmaPairs_mem
       (hole1_mem hX Nat.zero_lt_one) fun _ _ => hole1_mem hX Nat.zero_lt_one)) (acc_op1 ?_)
   refine accRead_binUnion (accRead_const _ _) (accRead_image _ (accRead_prod ?_ ?_)) <;>
     exact accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet
@@ -131,7 +131,7 @@ noncomputable def supF (X : Nat → V) : V :=
 
 theorem sup_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 supF) L := by
   obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
-  have hU := tg_isTGUniverse (V := V) hw
+  have hU := tg_isUniverse (V := V) hw
   have hω : (omega : V) ∈ˢ (tg (w' + 1) : V) := omega_mem_tg_succ w'
   refine closed_of_acc hw (hU.sigmaPairs_mem hω fun _ _ => unitSet_mem_tg _)
     (maps_op1 fun X hX => nil_or_mem hw (hU.piSet_mem hω fun _ _ => hole1_mem hX Nat.zero_lt_one))
@@ -167,7 +167,7 @@ theorem listJ_maps : ∀ X Y : Nat → V, InTupleSpace w 1 is1 X → InTupleSpac
   intro X Y hX hY
   have hZ := catT_mem hX hY
   rw [catT_is1] at hZ
-  exact maps_op1 (fun Z hZ => nil_or_mem hw ((tg_isTGUniverse hw).sigmaPairs_mem
+  exact maps_op1 (fun Z hZ => nil_or_mem hw ((tg_isUniverse hw).sigmaPairs_mem
     (hole1_mem hZ (by omega)) fun _ _ => hole1_mem hZ (by omega))) _ hZ
 
 /-- `Rose`'s operator: the field reads `⟦List⟧(X)` = List's least tuple
@@ -176,7 +176,7 @@ noncomputable def roseΦ (w : Nat) : (Nat → V) → Nat → V :=
   op1 fun X => image (kpair pt) (app (lfpP w 1 1 is1 listJ X 0) pt)
 
 theorem rose_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (roseΦ w) L := by
-  have hU := tg_isTGUniverse (V := V) hw
+  have hU := tg_isUniverse (V := V) hw
   have hLA : (listA : V) ∈ˢ (tg w : V) := prodA_mem hw (unitSet_mem_tg w) (unitSet_mem_tg w)
   -- List is accessible in its parameter (the nested case)
   have hP : AccTuple w 1 is1 1 is1 (lfpP w 1 1 is1 (listJ : (Nat → V) → Nat → V)) (accPaths listA) :=

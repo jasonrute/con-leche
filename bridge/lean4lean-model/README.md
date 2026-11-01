@@ -3,7 +3,11 @@
 A separate Lake package (task #204) proving, in Lean, that the
 large-cardinal hypothesis of Mario Carneiro's
 [lean4lean-model](https://github.com/digama0/lean4lean-model) implies
-ConLeche's `SetTheory` interface (`ConLeche/SetTheory/Core.lean`).
+ConLeche's `SetTheory` interface (`ConLeche/SetTheory/Core.lean`) —
+which is now stated in **first-order** form: ZF⁻ (extensionality,
+pairing, union, power set, regularity, the replacement *scheme* as a
+meta-level scheme over relations) plus an ω-chain of Grothendieck
+universes (`ConLeche.IsUniverse`, five first-order closure clauses).
 
 It is a **separate package on purpose**: the ConLeche libraries never
 acquire a Mathlib dependency (build time, trust surface, layering).  The
@@ -43,20 +47,25 @@ directory's `.lake` (gitignored).
   ¬ ∃ e, env.HasType U [] e Term.false` (sorried there, pending his
   model construction).
 
-* `isTGUniverse_vonNeumann : κ.IsInaccessible → ConLeche.IsTGUniverse (· ∈ ·) (V_ κ.ord)`
-  — Mathlib's von Neumann stage at an inaccessible is a Grothendieck
-  universe in Tarski's form.  Transitivity, subset- and power-set
-  closure are Mathlib's `ZFSet.vonNeumann` lemmas; Tarski's cardinality
-  clause is the work: a subset `y ⊆ V_ κ` has rank `≤ κ`; if `< κ` it
-  is a member (`mem_vonNeumann`); otherwise `|y| ≥ κ` by **regularity**
-  (`rank_lt_ord_of_card_lt`: fewer than `κ` ordinals below `κ` are
-  bounded), and `|V_ κ| = ℶ_κ = κ` by **strong limitness**
-  (`card_vonNeumann_ord`), so `|y| = |V_ κ|` and a bijection exists.
+* `isUniverse_vonNeumann : κ.IsInaccessible → ConLeche.IsUniverse (· ∈ ·) (V_ κ.ord)`
+  — Mathlib's von Neumann stage at an inaccessible satisfies the five
+  first-order closure clauses.  Transitivity, subset closure, power-set
+  closure (`rank_powerset` + `IsSuccLimit.succ_lt`) and union closure
+  (`rank_sUnion_le`) are direct Mathlib computations.  The fibre-wise
+  replacement clause is where inaccessibility enters: the image of a
+  member `a ∈ V_ κ.ord` under a functional relation with values in
+  `V_ κ.ord` is a subset of `V_ κ.ord` (the values are members), and its
+  cardinality is `< κ`: `card a ≤ card (V_ (rank a)) = preBeth (rank a)
+  < κ` by **strong limitness** (`card_lt_of_mem_vonNeumann`), hence
+  `card (image f a) ≤ card a < κ` (`card_image_le`), so by
+  **regularity** (`rank_lt_ord_of_card_lt`: fewer than `κ` ordinals
+  below `κ.ord` are bounded below `κ.ord`) the image is a member
+  (`mem_vonNeumann`).
 
 * `setTheoryOfChain κ hmono hinacc : ConLeche.SetTheory ZFSet.{u}` — the
   explicit instance: ZF⁻ fields from Mathlib (`ZFSet.ext`, `{a, b}`,
-  `⋃₀`, `powerset`, `mem_wf`, `image` under
-  `Classical.allZFSetDefinable`), `univChain n := V_ (κ n).ord`.
+  `⋃₀`, `powerset`, `mem_wf`, and the replacement scheme via `image`
+  under `Classical.allZFSetDefinable`), `univChain n := V_ (κ n).ord`.
 
 * `carneiro_implies_conleche : OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V)`.
 
@@ -71,27 +80,26 @@ and strong limitness exactly as described above.
 
 The briefing for this task expected the converse to fail, with `H(κ)`
 for a *singular* strong-limit `κ` (hereditarily `< κ`-sized sets) as a
-Tarski-form universe that is not a `V_λ` for `λ` inaccessible.  **That
+universe that is not a `V_λ` for `λ` inaccessible.  **That
 countermodel is wrong.**  Take `κ = ℶ_ω` and `y = {V_{ω+n} | n < ω}`:
 every member is in `H(κ)` (`|TC(V_{ω+n})| = ℶ_n < κ`), so `y ⊆ H(κ)`;
 but `|TC(y)| = ℶ_ω = κ`, so `y ∉ H(κ)`; and `|y| = ℵ₀ ≠ κ = |H(κ)|`, so
-`y` is not equinumerous with `H(κ)`.  Tarski's clause fails.
+`y` is not equinumerous with `H(κ)`.  The old Tarski-form clause fails
+for it.
 
-In fact, over any model with the ambient cardinal arithmetic, a
-transitive Tarski-form universe `U` is `∅`, `V_ω`, or `V_κ` with `κ`
-strongly inaccessible.  Sketch, with `κ := |U|`: `U` is closed under
-power sets of members, so every member has size `< κ` and `κ` is a
-strong limit; the ordinals in `U` are exactly those `< κ`; and `κ` is
-regular because `U` contains **every** subset of itself of size `< κ`
-(Tarski's clause), of which there are `κ^{<κ}` many, while
-`κ^{<κ} ≥ κ^{cof κ} > κ` for singular `κ` (König).  Hence
-`U = V_κ`.  Applied to ConLeche's chain, `univChain (n + 2)` is `V_{κ_n}` for
-a strictly increasing sequence of inaccessibles (the bottom two may be
-`∅` and `V_ω`), so the two hypotheses are **equivalent up to that
-shift**.  The converse is not mechanized here (the counting argument
-needs a lower bound on the number of small subsets that Mathlib does
-not provide off the shelf); it is recorded in `DESIGN.md` as a
-follow-up.
+The same argument shows the five first-order clauses are the right
+strength: a fibre-wise replacement image of a member is *small*
+(cardinality `< κ`), which regularity turns into membership, so
+singular strong limits are excluded just as before.  In fact, over any
+model with the ambient cardinal arithmetic, a transitive universe
+satisfying the five clauses is `∅`, `V_ω`, or `V_κ` with `κ` strongly
+inaccessible; applied to ConLeche's chain, `univChain (n + 2)` is
+`V_{κ_n}` for a strictly increasing sequence of inaccessibles (the
+bottom two may be `∅` and `V_ω`), so the two hypotheses are
+**equivalent up to that shift**.  The converse is not mechanized here
+(the counting argument needs a lower bound on the number of small
+subsets that Mathlib does not provide off the shelf); it is recorded
+in `DESIGN.md` as a follow-up.
 
 ## CI
 

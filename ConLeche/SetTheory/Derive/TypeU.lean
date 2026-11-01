@@ -276,7 +276,7 @@ theorem tyU_mem_tg_succ (n : Nat) : (tyU n : V) ∈ˢ tg (n + 1) := by
   by_cases hn : n = 0
   · subst hn; rw [tyU_zero]; exact univZero_mem_tg_succ 0
   · unfold tyU; rw [ite_eq_right hn]
-    exact (tg_isTGUniverse (Nat.succ_ne_zero n)).sep_mem (tg_mem_tg n)
+    exact (tg_isUniverse (Nat.succ_ne_zero n)).sep_mem (tg_mem_tg n)
 
 /-- `Sort n : Sort (n+1)`. -/
 theorem tyU_mem_tyU_succ (n : Nat) : (tyU n : V) ∈ˢ tyU (n + 1) :=

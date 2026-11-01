@@ -114,8 +114,8 @@ theorem sigmaPairs_congr {A : V} {B B' : V → V}
   congr 1
   exact image_congr fun x hx => by rw [h x hx]
 
-theorem _root_.ConLeche.IsTGUniverse.sigmaPairs_mem {U A : V} {B : V → V}
-    (hU : IsTGUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+theorem _root_.ConLeche.IsUniverse.sigmaPairs_mem {U A : V} {B : V → V}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
     (hB : ∀ x, x ∈ˢ A → B x ∈ˢ U) : sigmaPairs A B ∈ˢ U :=
   hU.famUnion_mem hA fun x hx =>
     hU.image_mem (hB x hx) fun _y hy =>
@@ -138,8 +138,8 @@ theorem piSet_congr {A : V} {B B' : V → V}
   unfold piSet
   rw [sigmaPairs_congr h]
 
-theorem _root_.ConLeche.IsTGUniverse.piSet_mem {U A : V} {B : V → V}
-    (hU : IsTGUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+theorem _root_.ConLeche.IsUniverse.piSet_mem {U A : V} {B : V → V}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
     (hB : ∀ x, x ∈ˢ A → B x ∈ˢ U) : piSet A B ∈ˢ U :=
   hU.mem_of_subset_mem (hU.power_mem (hU.sigmaPairs_mem hA hB)) sep_subset
 

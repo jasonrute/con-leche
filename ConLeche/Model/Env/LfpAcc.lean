@@ -239,7 +239,7 @@ theorem subset_finUnion {f : Nat → V} : ∀ {n i : Nat}, i < n → f i ⊆ˢ f
 theorem finUnion_mem {w' : Nat} (hw : w' ≠ 0) {f : Nat → V} :
     ∀ {n : Nat}, (∀ i, i < n → f i ∈ˢ (tg w' : V)) → finUnion f n ∈ˢ (tg w' : V)
   | 0, _ => empty_mem_tg w'
-  | n + 1, h => (tg_isTGUniverse hw).binUnion_mem (empty_mem_tg w')
+  | n + 1, h => (tg_isUniverse hw).binUnion_mem (empty_mem_tg w')
       (finUnion_mem hw fun i hi => h i (by omega)) (h n (by omega))
 
 /-- **The hole fit is accessible with ONE bound**, a set of the level at

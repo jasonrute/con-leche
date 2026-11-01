@@ -217,7 +217,7 @@ theorem quotSet_mem_univ {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V)) :
     exact pt_mem_unitSet
   · refine mem_univ_of_tg_strict ?_ (strict_quotSet h A R)
     have hA' := mem_tg_of_mem_univ hA
-    have hU := tg_isTGUniverse (V := V) h
+    have hU := tg_isUniverse (V := V) h
     unfold quotSet
     rw [ite_eq_right h]
     exact hU.image_mem hA' fun a _ => hU.kpair_mem hA' (hU.empty_mem hA')

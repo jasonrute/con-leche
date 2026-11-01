@@ -61,7 +61,7 @@ noncomputable def tagU (X Y : V) : V :=
 
 theorem tagU_mem {w : Nat} (hw : w ≠ 0) {X Y : V} (hX : X ∈ˢ (tg w : V))
     (hY : Y ∈ˢ (tg w : V)) : tagU X Y ∈ˢ (tg w : V) := by
-  have hU := tg_isTGUniverse (V := V) hw
+  have hU := tg_isUniverse (V := V) hw
   have he : (empty : V) ∈ˢ (tg w : V) := empty_mem_tg w
   have hu : (unitSet : V) ∈ˢ (tg w : V) := unitSet_mem_tg w
   exact hU.binUnion_mem he
@@ -93,7 +93,7 @@ theorem teleBound_mem {w : Nat} (hw : w ≠ 0) (ord : Nat → Bool) (Af : Nat �
     unfold teleBound
     refine tagU_mem hw (guardU_mem hw _) ?_
     split
-    · exact (tg_isTGUniverse hw).famUnion_mem (guardU_mem hw _) fun a _ =>
+    · exact (tg_isUniverse hw).famUnion_mem (guardU_mem hw _) fun a _ =>
         teleBound_mem hw ord Af Fs (l + 1) (cons a τ)
     · exact teleBound_mem hw ord Af Fs (l + 1) (cons empty τ)
 
@@ -263,7 +263,7 @@ theorem teleBound_support {w k : Nat} {ord : Nat → Bool}
     | nil => exact hfit.elim
     | cons a fs =>
     obtain ⟨ha, hfit'⟩ := hfit
-    have haw : SmallAt w a := fun hw => (tg_isTGUniverse hw).transitive (hdom τ τ hRτ hw) ha
+    have haw : SmallAt w a := fun hw => (tg_isUniverse hw).transitive (hdom τ τ hRτ hw) ha
     -- the field's own support
     obtain ⟨B0, g0, hB0, hg0, hs0⟩ := hacc τ τ hRτ a haw ha
     -- the later fields' support, under the field

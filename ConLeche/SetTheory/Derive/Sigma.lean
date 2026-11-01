@@ -124,7 +124,7 @@ theorem sigma_mem_univ_tg {u v : Nat} {A : V} {B : V → V}
     exact truthVal_mem_univZero _
   · have hw' : Nat.max u v ≠ 0 := Nat.pos_iff_ne_zero.mp hw
     rw [sigmaSet_pos hw']
-    exact mem_univ_of_tg_strict ((tg_isTGUniverse hw').sigmaPairs_mem
+    exact mem_univ_of_tg_strict ((tg_isUniverse hw').sigmaPairs_mem
       (tg_mono (Nat.le_max_left u v) A hA)
       (fun x hx => tg_mono (Nat.le_max_right u v) _ (hB x hx)))
       strict_sigmaPairs
@@ -190,7 +190,7 @@ theorem unitSetAt_mem_univ : ∀ w : Nat, (unitSetAt w : V) ∈ˢ univ w
   | 0 => unitSetAt_zero (V := V) ▸ unitSet_mem_univ 0
   | n + 1 => by
     rw [unitSetAt_pos (Nat.succ_ne_zero n)]
-    exact mem_univ_of_tg_strict ((tg_isTGUniverse (Nat.succ_ne_zero n)).sing_mem
+    exact mem_univ_of_tg_strict ((tg_isUniverse (Nat.succ_ne_zero n)).sing_mem
       (univChain_one_mem_tg_succ n) (empty_mem_tg _)) strict_sing_empty
 
 /-- The unit is in the regime of its level: `{pt}` at `0`, strict

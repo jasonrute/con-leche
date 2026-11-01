@@ -317,7 +317,7 @@ theorem natLfp_clause {acval : Name → (Name → Nat) → Term} {nm zn sn : Nam
   lfp0_clause (C := fun _ => omega) (fits := natFits)
     (fun _ S hS => by
       have hS' := mem_tg_of_mem_strictU hS
-      have hU : IsTGUniverse (Mem (V := V)) (tg 1) := tg_isTGUniverse (by decide)
+      have hU : IsUniverse (Mem (V := V)) (tg 1) := tg_isUniverse (by decide)
       have h0 : (empty : V) ∈ˢ tg 1 := hU.empty_mem hS'
       refine (mem_strictU_pos (by decide)).mpr ⟨hU.sUnion_mem (hU.upair_mem hS'
         (hU.upair_mem hS' h0 h0) (hU.image_mem hS' ?_)), fun he => ?_, fun hp => ?_⟩
