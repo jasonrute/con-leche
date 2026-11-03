@@ -5,7 +5,7 @@ public import ConLeche.Model.Env.EnvModelM
 public import ConLeche.Model.NatSem
 public import ConLeche.Model.Denotes
 public import ConLeche.SetTheory.Derive.Universe
-import ConLeche.Cached.Installed
+public import ConLeche.Cached.Installed
 import ConLeche.Model.StreamConsts
 import ConLeche.Verify.Cached.MainC
 public section
