@@ -76,6 +76,57 @@ Nothing beyond Carneiro's hypothesis was needed: `ℵ₀ < κ` is used only
 to make `κ.ord` a limit ordinal (for `powerset y ∈ V_ κ`), regularity
 and strong limitness exactly as described above.
 
+`ConLecheBridge/FirstOrderZFC.lean`:
+
+* `LSet` — the first-order language of pure set theory `L = {∈}` via
+  Mathlib's `FirstOrder.Language` (one binary relation symbol, no
+  function symbols), with the membership atom `memF` and the
+  structure-level predicate `Mem M`.
+
+* `ZFC : LSet.Theory` — ZFC as a first-order theory in `LSet`: the
+  seven axioms as `Sentence`s (`extensionality`, `emptySet`,
+  `pairing`, `unionAxiom`, `powerSet`, `infinity`, `foundation`) plus
+  the separation and replacement **schemas** as sets of sentences
+  (`sepSchema`, `repSchema`, one sentence per formula with
+  parameters).
+
+* `inacc n` — the sentence "there exist `n` nested Grothendieck
+  universes" `U₀ ∈ U₁ ∈ … ∈ Uₙ₋₁`, each `Uᵢ` satisfying the
+  first-order universe clauses `isUnivFO` (the clauses of
+  `ConLeche.IsUniverse` except the meta-level fibre-replacement
+  clause); `ZFCInacc := ZFC ∪ Set.range inacc` is ZFC +
+  `{n inaccessibles | n ∈ ω}`, with `n` inaccessibles encoded as `n`
+  nested universes — the form the `SetTheory` interface consumes
+  (`univChain`).
+
+* Extraction theorems `ext_of_ZFC`, `pairing_of_ZFC`, `union_of_ZFC`,
+  `power_of_ZFC`, `regularity_of_ZFC`: the corresponding `SetTheory`
+  fields of a model `M ⊨ ZFC`, proved from the axiom sentences via
+  `hZFC.realize_of_mem`.
+
+* `setTheory_of_ZFC_model (hZFC : M ⊨ ZFC) (hInacc : ∀ n, M ⊨ inacc n) :
+  ConLeche.SetTheory M` — turns a first-order model of
+  `ZFCInacc` into ConLeche's `SetTheory` interface.
+
+* `no_False_declaration_first_order` — **the main theorem restated in
+  first-order ZFC**: if `M ⊨ ZFC + {n inaccessibles | n ∈ ω}`,
+  con-leche cannot accept a file declaring a theorem of type `False`.
+  Proved by `setTheory_of_ZFC_model` + `ConLeche.no_False_declaration`;
+  the same instance restates `ConLeche.model_exists`.
+
+* Two documented **bridge axioms** close the gap between a first-order
+  theory in `L = {∈}` and the meta-level `SetTheory` scheme (the same
+  gap as the `AXIOM_AUDIT.md` axioms in
+  `jasonrute/lean-intended-semantics`):
+  `replScheme_of_ZFC_model` (first-order replacement covers only
+  definable relations, `SetTheory.repl` quantifies over all
+  `p : M → M → Prop`) and `exists_univChain_of_inacc` (extracting a
+  coherent ω-chain of universes with the meta-level clause-5
+  replacement from the `inacc n` sentences).  Axiom pin
+  (`#guard_msgs in #print axioms`):
+  `propext`, `Classical.choice`, `Quot.sound`, plus the two bridge
+  axioms — nothing else.
+
 ## The converse
 
 The briefing for this task expected the converse to fail, with `H(κ)`
