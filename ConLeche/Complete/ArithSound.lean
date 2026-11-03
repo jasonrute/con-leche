@@ -874,7 +874,7 @@ theorem arith_sound (V : Type w) [SetTheory V]
     (hty : cv.type = p.toExpr) :
     p.satV := by
   obtain ⟨m⟩ := checkDecls_sound (V := V) rfl accepted
-  have hcv : Declaration.Declares (.thmDecl cv value) cv := rfl
+  have hcv : Cached.Declaration.Declares (.thmDecl cv value) cv := rfl
   obtain ⟨c, hfind, -, hcty⟩ := checkDecls_consts (V := V) accepted
     (pd := .thmDecl cv value) hmem hcv
   have hc : c ∈ env.consts := find?_mem hfind
