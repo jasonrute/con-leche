@@ -868,7 +868,7 @@ model `V` of ZFC plus `{n inaccessibles | n ∈ ω}` — the same
 `SetTheory` hypothesis as the main theorem. -/
 theorem arith_sound (V : Type w) [SetTheory V]
     (pins : List NatOpPinSet) (ds : Array Declaration)
-    (env : Env) (accepted : checkDecls .verified pins ds = .ok env)
+    (env : Env) (accepted : Cached.checkDecls .verified pins ds = .ok env)
     (p : AProp) (cv : ConstantVal) (value : Expr)
     (hmem : Declaration.thmDecl cv value ∈ ds)
     (hty : cv.type = p.toExpr) :
