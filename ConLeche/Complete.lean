@@ -3,7 +3,7 @@ module
 public import ConLeche.Complete.OfficialNested
 public import ConLeche.Complete.PosDerivComplete
 public import ConLeche.Complete.ProgActive
-public import ConLeche.Complete.ArithSound
+import ConLeche.Complete.ArithSound
 
 /-!
 # Parked completeness work (lib `ConLecheComplete`)

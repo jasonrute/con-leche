@@ -94,6 +94,16 @@ if ! lake build ConLeche.PinGen ConLeche.PinGen.Prelude ConLeche.PinGen.Dump \
   exit 3
 fi
 
+# `ConLeche/Complete/ArithSound.lean` is the in-progress parked module:
+# its `sorry`s are allowlisted in trust-surface.sh but `lake build` must
+# stay warning-free, so `ConLeche/Complete.lean` imports it privately and
+# tests/parked-sorries.sh builds it.  The census below reads every
+# module's olean, so build it first (a no-op once built).
+if ! lake build ConLeche.Complete.ArithSound > /dev/null 2>&1; then
+  echo 'SHAKE GATE ERROR — could not build ConLeche.Complete.ArithSound'
+  exit 3
+fi
+
 ALLOW=tests/shake-allowlist.txt
 WORK=${PUBPLAN_DIR:-_tmp/shake-gate}
 mkdir -p "$WORK" || exit 3
