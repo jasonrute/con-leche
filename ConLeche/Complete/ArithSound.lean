@@ -5,6 +5,7 @@ public import ConLeche.Model.Env.EnvModelM
 public import ConLeche.Model.NatSem
 public import ConLeche.Model.Denotes
 public import ConLeche.SetTheory.Derive.Universe
+import ConLeche.Cached.Installed
 import ConLeche.Model.StreamConsts
 import ConLeche.Verify.Cached.MainC
 public section
@@ -873,8 +874,9 @@ theorem arith_sound (V : Type w) [SetTheory V]
     (hty : cv.type = p.toExpr) :
     p.satV := by
   obtain ⟨m⟩ := Cached.checkDecls_sound (V := V) rfl accepted
+  have hcv : Declaration.Declares (.thmDecl cv value) cv := rfl
   obtain ⟨c, hfind, -, hcty⟩ := Cached.checkDecls_consts (V := V) accepted
-    (pd := .thmDecl cv value) (cv := cv) hmem rfl
+    (pd := .thmDecl cv value) hmem hcv
   have hc : c ∈ env.consts := find?_mem hfind
   obtain ⟨hs, hres, hdeps⟩ := arith_env_facts accepted p cv value hmem hty m hfind hcty
   obtain ⟨ta, hta⟩ := m.type_reads c hc (fun _ => 0)
