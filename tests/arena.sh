@@ -208,6 +208,17 @@ if tests/no-local-paths.sh; then :; else fail=1; fi
 # between the challenge and the solution module.  Seconds on a built tree.
 if tests/challenge.sh; then :; else fail=1; fi
 
+# THE PARKED SORRY GATE.  `ConLeche/Complete/ArithSound.lean` is the
+# in-progress arithmetic-soundness theorem in the parked lane: its two
+# remaining `sorry`s are allowlisted in `tests/trust-surface.sh` (with
+# the justification there) and it is a TCB dead end, but a `sorry` is
+# a warning and `lake build` must stay warning-free, so the module is
+# imported privately by `ConLeche/Complete.lean` and built HERE instead
+# — with the expected sorry warnings and no other diagnostic, the same
+# check `tests/challenge.sh` runs on the challenge module.  Seconds on
+# a built tree.
+if tests/parked-sorries.sh; then :; else fail=1; fi
+
 # THE IMPORT GATE (task #235).  Two questions no other gate asks and the
 # compiler answers for neither: is an import LINE needed at all (`lake shake`,
 # read against task #223's criterion and an allowlist of the proposals that

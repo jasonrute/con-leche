@@ -116,6 +116,19 @@
 #       `sorryAx` it introduces.  A `sorry` anywhere else still fails
 #       this gate.
 #
+#   ConLeche/Complete/ArithSound.lean  sorry
+#       The in-progress arithmetic-soundness theorem (the second
+#       theorem: an accepted proof of a closed arithmetic statement is
+#       satisfied by the standard model of arithmetic inside the
+#       model of an accepted environment).  `denote_aProp` and
+#       `arith_sound` are still `sorry` while the deep-embedding
+#       soundness is worked through.  Harmless because the module is
+#       a TCB dead end in the parked lane: nothing outside
+#       `ConLeche/Complete/` may import it (`tests/layering.sh`, the
+#       parked clause), and no shipped or proved declaration can
+#       reach the `sorryAx` it introduces.  A `sorry` anywhere else
+#       still fails this gate.
+#
 #   ConLeche/Kernel/Exclusive.lean     unsafe, implemented_by
 #       `withExclusive` (tasks #314, #317) — THE ONE
 #       `unsafe`-implemented primitive of the substitution walks.  It
@@ -300,6 +313,7 @@ ALLOW = {
     'ConLeche/Driver/ParInstall.lean': {'unsafe'},
     'ConLeche/Driver/OwnerParse.lean': {'unsafe'},
     'ConLeche/Challenge.lean':       {'sorry'},
+    'ConLeche/Complete/ArithSound.lean': {'sorry'},
     'ConLeche/Kernel/Expr.lean':     {'computed_field'},
     'ConLeche/Kernel/Name.lean':     {'computed_field'},
     'ConLeche/Kernel/BasisGen.lean': {'unsafe', 'implemented_by'},
