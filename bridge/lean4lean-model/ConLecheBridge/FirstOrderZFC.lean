@@ -1,6 +1,7 @@
 import Mathlib.ModelTheory.Syntax
 import Mathlib.ModelTheory.Semantics
 import ConLeche.SetTheory.Core
+import ConLeche.SetTheory.Form
 import ConLeche.MainTheorem
 
 /-!
@@ -33,16 +34,25 @@ It is proved by turning the first-order model into a
 `ConLeche.no_False_declaration`; the same instance restates
 `ConLeche.model_exists` (every accepted environment has a model in `M`).
 
-## The two bridge axioms
+## Definable replacement (proved) and the two bridge axioms
+
+The *definable* (first-order) replacement scheme is proved below with
+no axiom: `ConLeche.SetTheory.Form` is ConLeche's internal type of
+`L = {∈}` formulas, `toBF`/`toParam` embed it into Mathlib's
+`LSet.BoundedFormula`, and `replF_of_ZFC_model` extracts the
+replacement scheme over all `Form`s from `M ⊨ ZFC` via `repSchema`
+(axiom pin: only `propext`, `Classical.choice`, `Quot.sound`).
 
 Everything except two steps is proved below.  The two steps a
 first-order theory in `L = {∈}` cannot supply for an *arbitrary*
 model `M` are stated as axioms (the same gap as in
 `jasonrute/lean-intended-semantics`, `AXIOM_AUDIT.md`):
 
-1. `replScheme_of_ZFC_model`: first-order replacement covers only
-   *definable* relations, while `ConLeche.SetTheory.repl` is the
-   meta-level scheme over all `p : M → M → Prop`.  For the intended
+1. `replScheme_of_ZFC_model`: the meta-level scheme over all
+   `p : M → M → Prop`, while first-order replacement
+   (`replF_of_ZFC_model`, proved above) covers only *definable*
+   relations, and `ConLeche.SetTheory.repl` quantifies over all
+   `p : M → M → Prop`.  For the intended
    models (e.g. Mathlib's `ZFSet`, where every relation is definable
    under `Classical.allZFSetDefinable`) the two coincide; for an
    arbitrary `M` they do not, so this is an axiom here.
@@ -335,6 +345,197 @@ theorem regularity_of_ZFC (hZFC : M ⊨ ZFC) :
   refine ⟨y, hy, ?_⟩
   rintro ⟨z, hzy, hzx⟩
   exact h x y z hzy hzx hy
+
+/-! ## Definable (first-order) replacement, read off `repSchema`
+
+`ConLeche.Form` (the internal `L = {∈}` formula type) embeds into
+Mathlib's `LSet.BoundedFormula Empty n` (`toBF`), and realization
+corresponds (`realize_toBF`).  Hence every instance of the first-order
+replacement schema `repSchema` is a replacement instance for a `Form`
+(`replF_of_ZFC_model`) — proved below with NO bridge axiom, unlike the
+meta-level scheme `replScheme_of_ZFC_model` below. -/
+
+/-- Embed ConLeche's internal `L = {∈}` formulas into Mathlib's
+`LSet.BoundedFormula Empty n` (same de Bruijn convention). -/
+def toBF {n : Nat} : ConLeche.Form n → LSet.BoundedFormula Empty n
+  | .falsum => .falsum
+  | .equal i j => Term.bdEqual (&i) (&j)
+  | .mem i j => memF (&i) (&j)
+  | .imp a b => (toBF a).imp (toBF b)
+  | .all a => (toBF a).all
+
+/-- Mathlib's `Fin.snoc` agrees with `ConLeche.Form.snoc` on constant
+types. -/
+theorem finSnoc_eq {M : Type _} {n : Nat} (xs : Fin n → M) (x : M) :
+    Fin.snoc xs x = ConLeche.Form.snoc xs x := by
+  funext i
+  by_cases h : i.val < n
+  · simp [Fin.snoc, ConLeche.Form.snoc, h, Fin.castLT]
+  · simp [Fin.snoc, ConLeche.Form.snoc, h]
+
+/-- Realization of the embedded formula is ConLeche's realization. -/
+theorem realize_toBF {M : Type _} [LSet.Structure M] {n : Nat} (φ : ConLeche.Form n)
+    (v : Empty → M) (xs : Fin n → M) :
+    (toBF φ).Realize v xs ↔ ConLeche.Form.Realize (Mem M) xs φ := by
+  induction φ with
+  | falsum => exact Iff.rfl
+  | equal i j => simp [toBF, BoundedFormula.realize_bdEqual, Term.realize]
+  | mem i j => simp [toBF, memF, BoundedFormula.realize_rel₂, Term.realize, Mem]
+  | imp a b iha ihb => simp [toBF, BoundedFormula.realize_imp, iha, ihb]
+  | all a iha => simp [toBF, BoundedFormula.realize_all, iha, finSnoc_eq]
+
+/-- Maps parameter `i < n` of `Fin (n + 1)` to parameter `i` of `Fin n`,
+and the top parameter `n` to the single bound variable `&0`. -/
+def paramToVar {n : Nat} : Fin (n + 1) → Fin n ⊕ Fin 1 :=
+  fun i => if h : i.val < n then Sum.inl ⟨i.val, h⟩ else Sum.inr ⟨i.val - n, by omega⟩
+
+/-- Turn the free variables of a `ConLeche.Form n` into parameters
+(variable `i` ↦ parameter `i`): `toParam φ : LSet.Formula (Fin n)`. -/
+def toParam {n : Nat} : ConLeche.Form n → LSet.Formula (Fin n)
+  | .falsum => .falsum
+  | .equal i j => Term.bdEqual (Term.var (Sum.inl i)) (Term.var (Sum.inl j))
+  | .mem i j => memRel.boundedFormula₂ (Term.var (Sum.inl i)) (Term.var (Sum.inl j))
+  | .imp a b => (toParam a).imp (toParam b)
+  | .all a => (BoundedFormula.relabel paramToVar (toParam a)).all
+
+theorem realize_paramToVar {n : Nat} {M : Type _} (q : Fin n → M) (x : M) :
+    Sum.elim q (fun _ => x) ∘ paramToVar = ConLeche.Form.snoc q x := by
+  funext i
+  by_cases h : i.val < n
+  · simp [paramToVar, ConLeche.Form.snoc, h]
+  · simp [paramToVar, ConLeche.Form.snoc, h]
+
+/-- Realization of `toParam φ` under parameters `q` is ConLeche's
+realization of `φ` under the assignment `q`. -/
+theorem realize_toParam {n : Nat} (φ : ConLeche.Form n) :
+    ∀ q : Fin n → M, (toParam φ).Realize q ↔ ConLeche.Form.Realize (Mem M) q φ := by
+  induction φ with
+  | falsum => intro q; exact Iff.rfl
+  | equal i j => intro q; simp [toParam, Formula.Realize, BoundedFormula.realize_bdEqual, Term.realize]
+  | mem i j => intro q; simp [toParam, Formula.Realize, BoundedFormula.realize_rel₂, Term.realize, Mem]
+  | imp a b iha ihb =>
+    intro q
+    simp only [toParam, Formula.Realize, BoundedFormula.realize_imp, ConLeche.Form.realize_imp]
+    constructor
+    · intro h ha
+      exact (ihb q).mp (h ((iha q).mpr ha))
+    · intro h ha
+      exact (ihb q).mpr (h ((iha q).mp ha))
+  | all a iha =>
+    intro q
+    have e1 : ∀ x : M, Fin.snoc (default : Fin 0 → M) x = fun _ => x := by
+      intro x; funext i; simp [Fin.snoc]
+    have key : ∀ x : M,
+        (BoundedFormula.relabel paramToVar (toParam a)).Realize q (Fin.snoc (default : Fin 0 → M) x)
+          ↔ ConLeche.Form.Realize (Mem M) (ConLeche.Form.snoc q x) a := by
+      intro x
+      rw [BoundedFormula.realize_relabel, e1 x]
+      rw [show (fun _ : Fin (0 + 1) => x) ∘ Fin.castAdd 0 = (fun _ => x) from rfl,
+        realize_paramToVar q x,
+        show (fun _ : Fin (0 + 1) => x) ∘ Fin.natAdd 1 = (default : Fin 0 → M) from
+          Subsingleton.elim _ _]
+      exact iha _
+    simp only [toParam, Formula.Realize, BoundedFormula.realize_all, ConLeche.Form.realize_all]
+    exact forall_congr' fun x => key x
+
+/-- The parameter assignment produced by `repInst n ψ` when realized at
+`xs = Fin.cons A q`, image `B`, `y`, `z`: parameter `0 ↦ z`, `1 ↦ y`,
+`i + 2 ↦ q i` — i.e. `ConLeche.Form.cons2 z y q`. -/
+theorem repInst_assign {n : ℕ} {M : Type _} (A B y z : M) (q : Fin n → M) :
+    Sum.elim (default : Empty → M) (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z)
+        ∘ (fun i : Fin (n + 2) =>
+            if i = 0 then Sum.inr ⟨n + 3, by omega⟩
+            else if i.val = 1 then Sum.inr ⟨n + 2, by omega⟩
+            else Sum.inr ⟨i.val - 1, by omega⟩)
+      = ConLeche.Form.cons2 z y q := by
+  funext i
+  simp only [Function.comp_apply]
+  by_cases h0 : i = 0
+  · subst h0
+    rw [ite_eq_left rfl, Sum.elim_inr,
+      show (⟨n + 3, by omega⟩ : Fin (n + 4)) = Fin.last (n + 3) from rfl, Fin.snoc_last]
+    simp [ConLeche.Form.cons2]
+  · have h0v : i.val ≠ 0 := fun h => h0 (Fin.ext h)
+    rw [ite_eq_right h0]
+    by_cases h1 : i.val = 1
+    · rw [ite_eq_left h1, Sum.elim_inr,
+        show (⟨n + 2, by omega⟩ : Fin (n + 4)) = Fin.castSucc (Fin.last (n + 2)) from rfl,
+        Fin.snoc_castSucc, Fin.snoc_last]
+      simp [ConLeche.Form.cons2, h1]
+    · have h2 : i.val < n + 2 := i.isLt
+      rw [ite_eq_right h1, Sum.elim_inr,
+        show (⟨i.val - 1, by omega⟩ : Fin (n + 4))
+          = Fin.castSucc (Fin.castSucc (Fin.castSucc ⟨i.val - 1, by omega⟩)) from rfl,
+        Fin.snoc_castSucc, Fin.snoc_castSucc, Fin.snoc_castSucc,
+        show (⟨i.val - 1, by omega⟩ : Fin (n + 1)) = Fin.succ ⟨i.val - 2, by omega⟩ from
+          Fin.ext (by show i.val - 1 = i.val - 2 + 1; omega),
+        Fin.cons_succ]
+      simp [ConLeche.Form.cons2, h0v, h1]
+
+/-- One instance of the replacement schema, extracted from `M ⊨ ZFC`:
+`ψ`'s parameter `0` is the `z` of `∃ z ∈ A`, parameter `1` is the `y` of
+`∀ y`, parameter `i + 2` is `q i`. -/
+theorem repl_of_ZFC (hZFC : M ⊨ ZFC) (n : ℕ) (ψ : LSet.BoundedFormula (Fin (n + 2)) 0)
+    (A : M) (q : Fin n → M) :
+    ∃ B : M, ∀ y, Mem M y B ↔ ∃ z, Mem M z A ∧ Formula.Realize ψ (ConLeche.Form.cons2 z y q) := by
+  have h : M ⊨ repInst n ψ := hZFC.realize_of_mem _ (by
+    have hm : repInst n ψ ∈ repSchema := ⟨n, ψ, rfl⟩
+    simp only [ZFC]
+    exact Set.mem_union_right _ hm)
+  simp [repInst, Sentence.Realize, BoundedFormula.realize_alls, BoundedFormula.realize_ex,
+    BoundedFormula.realize_all, BoundedFormula.realize_iff, realize_conj, memF,
+    BoundedFormula.realize_rel₂, BoundedFormula.realize_relabel, Term.realize, Fin.snoc,
+    Sum.elim_inr, Function.comp_apply] at h
+  obtain ⟨B, hB⟩ := h (Fin.cons A q)
+  have key : ∀ y z : M,
+      BoundedFormula.Realize ψ
+          (Sum.elim (default : Empty → M) (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z)
+            ∘ (fun i : Fin (n + 2) =>
+                if i = 0 then Sum.inr ⟨n + 3, by omega⟩
+                else if i.val = 1 then Sum.inr ⟨n + 2, by omega⟩
+                else Sum.inr ⟨i.val - 1, by omega⟩))
+          (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z ∘ Fin.natAdd (n + 4))
+        ↔ Formula.Realize ψ (ConLeche.Form.cons2 z y q) := by
+    intro y z
+    rw [repInst_assign A B y z q,
+      show Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z ∘ Fin.natAdd (n + 4)
+        = (default : Fin 0 → M) from Subsingleton.elim _ _]
+    exact Iff.rfl
+  refine ⟨B, fun y => ?_⟩
+  have hB' := hB y
+  simp only [Fin.cons_zero] at hB'
+  constructor
+  · intro hy
+    rcases hB'.mp hy with ⟨z, hz, hψ⟩
+    exact ⟨z, hz, (key y z).mp hψ⟩
+  · rintro ⟨z, hz, hr⟩
+    exact hB'.mpr ⟨z, hz, (key y z).mpr hr⟩
+
+/-- **Definable replacement, extracted from `M ⊨ ZFC` — NO bridge axiom.**
+For every `ConLeche.Form` `φ` whose first two variables are the related
+pair `(x, y)` and whose remaining `n` variables are parameters `p`,
+`M ⊨ ZFC` yields the replacement set of `φ` over `a`.  This is exactly
+what the first-order schema `repSchema` provides.  The meta-level scheme
+`replScheme_of_ZFC_model` below (over all `p : M → M → Prop`) is strictly
+stronger for an arbitrary `M` and remains a bridge axiom. -/
+theorem replF_of_ZFC_model (hZFC : M ⊨ ZFC) (n : ℕ) (φ : ConLeche.Form (n + 2))
+    (p : Fin n → M) (a : M) :
+    ∃ b : M, ∀ y, Mem M y b ↔
+      ∃ x, Mem M x a ∧ ConLeche.Form.Realize (Mem M) (ConLeche.Form.cons2 x y p) φ := by
+  obtain ⟨B, hB⟩ := repl_of_ZFC hZFC n (toParam φ) a p
+  refine ⟨B, fun y => ?_⟩
+  rw [hB y]
+  constructor
+  · rintro ⟨x, hx, hψ⟩
+    exact ⟨x, hx, (realize_toParam φ (ConLeche.Form.cons2 x y p)).mp hψ⟩
+  · rintro ⟨x, hx, hr⟩
+    exact ⟨x, hx, (realize_toParam φ (ConLeche.Form.cons2 x y p)).mpr hr⟩
+
+/--
+info: 'ConLecheBridge.replF_of_ZFC_model' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms replF_of_ZFC_model
 
 /-! ## The two bridge axioms (the gap between first-order and the
 `SetTheory` scheme) -/

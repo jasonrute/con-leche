@@ -104,6 +104,21 @@ and strong limitness exactly as described above.
   fields of a model `M ⊨ ZFC`, proved from the axiom sentences via
   `hZFC.realize_of_mem`.
 
+* **Definable replacement, axiom-free** — `ConLeche.SetTheory.Form`
+  (in the Mathlib-free `ConLeche` package) is the internal type of
+  first-order `L = {∈}` formulas; `toBF`/`realize_toBF` embed it into
+  Mathlib's `LSet.BoundedFormula`, and `toParam`/`realize_toParam` turn
+  its free variables into parameters.  `repl_of_ZFC` reads one instance
+  of `repSchema` off `M ⊨ ZFC`, and
+  `replF_of_ZFC_model (hZFC : M ⊨ ZFC) (n) (φ : ConLeche.Form (n + 2))
+  (p : Fin n → M) (a : M) : ∃ b, ∀ y, Mem M y b ↔ ∃ x, Mem M x a ∧
+  Form.Realize (Mem M) (Form.cons2 x y p) φ` is the full **definable**
+  replacement scheme, proved with NO bridge axiom (axiom pin
+  `#guard_msgs in #print axioms`: only `propext`, `Classical.choice`,
+  `Quot.sound`).  This is the scheme the first-order theory actually
+  provides; removing the `replScheme_of_ZFC_model` bridge axiom means
+  migrating `SetTheory.repl` to this `Form`-based scheme.
+
 * `setTheory_of_ZFC_model (hZFC : M ⊨ ZFC) (hInacc : ∀ n, M ⊨ inacc n) :
   ConLeche.SetTheory M` — turns a first-order model of
   `ZFCInacc` into ConLeche's `SetTheory` interface.
@@ -118,9 +133,9 @@ and strong limitness exactly as described above.
   theory in `L = {∈}` and the meta-level `SetTheory` scheme (the same
   gap as the `AXIOM_AUDIT.md` axioms in
   `jasonrute/lean-intended-semantics`):
-  `replScheme_of_ZFC_model` (first-order replacement covers only
-  definable relations, `SetTheory.repl` quantifies over all
-  `p : M → M → Prop`) and `exists_univChain_of_inacc` (extracting a
+  `replScheme_of_ZFC_model` (the meta-level scheme over all
+  `p : M → M → Prop`; the definable scheme `replF_of_ZFC_model` above is
+  already a theorem) and `exists_univChain_of_inacc` (extracting a
   coherent ω-chain of universes with the meta-level clause-5
   replacement from the `inacc n` sentences).  Axiom pin
   (`#guard_msgs in #print axioms`):
