@@ -65,6 +65,7 @@ open ConLeche.Expr (hasFvar looseBVarsBounded fvarsBelow closeN_of_hasFvar
   bvarBound looseBVarsBounded_iff)
 open ConLeche.Verify (denote denote_const denote_app denote_natLit denote_app_inv
   pinnedStructT natLitT)
+open ConLeche.Cached (checkDecls checkDecls_sound checkDecls_consts)
 
 universe w
 
@@ -842,7 +843,7 @@ gives `constsResolve`), and every operation name the type can mention
 is stored as a certified definition. -/
 private theorem arith_env_facts
     {pins : List NatOpPinSet} {ds : Array Declaration} {env : Env}
-    (accepted : Cached.checkDecls .verified pins ds = .ok env)
+    (accepted : checkDecls .verified pins ds = .ok env)
     (p : AProp) (cv : ConstantVal) (value : Expr)
     (hmem : Declaration.thmDecl cv value ∈ ds)
     (hty : cv.type = p.toExpr)
@@ -859,7 +860,6 @@ private theorem arith_env_facts
   · sorry
   · sorry
 
-open Cached in
 /-- **Arithmetic soundness.**  If `φ` is a closed first-order statement
 of arithmetic and `con-leche` accepts a stream declaring a theorem of
 type `φ` (the record's declared type is `φ.toExpr`), then `φ` is
@@ -868,14 +868,14 @@ model `V` of ZFC plus `{n inaccessibles | n ∈ ω}` — the same
 `SetTheory` hypothesis as the main theorem. -/
 theorem arith_sound (V : Type w) [SetTheory V]
     (pins : List NatOpPinSet) (ds : Array Declaration)
-    (env : Env) (accepted : Cached.checkDecls .verified pins ds = .ok env)
+    (env : Env) (accepted : checkDecls .verified pins ds = .ok env)
     (p : AProp) (cv : ConstantVal) (value : Expr)
     (hmem : Declaration.thmDecl cv value ∈ ds)
     (hty : cv.type = p.toExpr) :
     p.satV := by
-  obtain ⟨m⟩ := Cached.checkDecls_sound (V := V) rfl accepted
+  obtain ⟨m⟩ := checkDecls_sound (V := V) rfl accepted
   have hcv : Declaration.Declares (.thmDecl cv value) cv := rfl
-  obtain ⟨c, hfind, -, hcty⟩ := Cached.checkDecls_consts (V := V) accepted
+  obtain ⟨c, hfind, -, hcty⟩ := checkDecls_consts (V := V) accepted
     (pd := .thmDecl cv value) hmem hcv
   have hc : c ∈ env.consts := find?_mem hfind
   obtain ⟨hs, hres, hdeps⟩ := arith_env_facts accepted p cv value hmem hty m hfind hcty
