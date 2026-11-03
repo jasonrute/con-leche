@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.MainTheorem
+import ConLeche.MainTheorem
 public import ConLeche.Model.Env.EnvModelM
 public import ConLeche.Model.NatSem
 public import ConLeche.Model.Denotes
