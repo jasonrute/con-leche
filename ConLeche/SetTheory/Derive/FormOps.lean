@@ -252,4 +252,59 @@ theorem realize_piSetF {A f : V} :
     Form.realize_equal, Form.realize_mem, Form.snoc_mk]
   simp
 
+/-! ## Equality and strictness -/
+
+/-- `a = b` as a formula (variables `0 ↦ a`, `1 ↦ b`), by
+extensionality: `∀ w, w ∈ a ↔ w ∈ b`. -/
+def equalF : Form 2 :=
+  .all (.iff (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+      (.mem ⟨2, by omega⟩ ⟨1, by omega⟩))
+
+theorem realize_equalF {a b : V} :
+    Form.Realize Mem (Form.snoc (fun _ => a) b) equalF ↔ a = b := by
+  simp only [equalF, Form.realize_all, Form.realize_iff, Form.realize_mem, Form.snoc_mk]
+  simp
+  constructor
+  · exact SetTheory.ext
+  · intro h; subst h; simp
+
+/-- `X` is strict (variables `0 ↦ pt`, `1 ↦ X`): `X ≠ pt` and
+`pt ∉ X`. -/
+def strictF : Form 2 :=
+  .and (.not equalF) (.not (.mem ⟨0, by omega⟩ ⟨1, by omega⟩))
+
+theorem realize_strictF {p X : V} :
+    Form.Realize Mem (Form.snoc (fun _ => p) X) strictF ↔ X ≠ p ∧ ¬ p ∈ˢ X := by
+  simp only [strictF, Form.realize_and, Form.realize_not, equalF,
+    Form.realize_all, Form.realize_iff, Form.realize_mem, Form.snoc_mk]
+  simp
+  intro h2
+  constructor
+  · rintro ⟨w, hw⟩ hEq
+    subst hEq
+    exact hw Iff.rfl
+  · intro hne
+    refine Classical.byContradiction fun hc => ?_
+    apply hne
+    exact (SetTheory.ext fun w => Classical.not_not.mp fun h => hc ⟨w, h⟩).symm
+
+/-- `X` is a type (variables `0 ↦ univZero`, `1 ↦ pt`, `2 ↦ X`):
+a truth value or strict. -/
+def tyF : Form 3 :=
+  .or (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+    (Form.relabel (Form.liftRelabel (fun _ => (⟨1, by omega⟩ : Fin 2))) strictF)
+
+theorem realize_tyF {U p X : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ => U) p) X) tyF ↔
+      X ∈ˢ U ∨ X ≠ p ∧ ¬ p ∈ˢ X := by
+  have e : ∀ X : V, (Form.snoc (Form.snoc (fun _ => U) p) X) ∘
+      (Form.liftRelabel (fun _ => (⟨1, by omega⟩ : Fin 2)) : Fin 2 → Fin 3) =
+      Form.snoc (fun _ => p) X := by
+    intro X
+    rw [Form.snoc_comp_liftRelabel]
+    congr 1
+  simp only [tyF, Form.realize_or, Form.realize_mem, Form.realize_relabel, e,
+    realize_strictF, Form.snoc_mk]
+  simp
+
 end ConLeche.SetTheory

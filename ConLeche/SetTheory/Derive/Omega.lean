@@ -68,6 +68,26 @@ theorem empty_mem_omega : (empty : V) ∈ˢ omega := omega_inductive.1
 theorem vsucc_mem_omega {n : V} (hn : n ∈ˢ (omega : V)) : vsucc n ∈ˢ (omega : V) :=
   omega_inductive.2 n hn
 
+/-- **Definable induction on `ω`** (the first-order induction scheme,
+from `replF` via `sepF`): if a definable property with parameters `p`
+holds at `∅` and is closed under `vsucc` on `ω`, it holds at every
+member of `ω`.  The induction set `sepF ω φ p` is inductive, and
+every member of `ω` lies in every inductive set (`mem_omega`). -/
+theorem omega_induction {n : Nat} {φ : Form (n + 1)} {p : Fin n → V}
+    (h0 : Form.Realize Mem (Form.snoc p (empty : V)) φ)
+    (hstep : ∀ x : V, x ∈ˢ (omega : V) →
+      Form.Realize Mem (Form.snoc p x) φ →
+      Form.Realize Mem (Form.snoc p (vsucc x)) φ)
+    {x : V} (hx : x ∈ˢ (omega : V)) :
+    Form.Realize Mem (Form.snoc p x) φ := by
+  have hind : Inductive (sepF (omega : V) φ p) := by
+    constructor
+    · exact mem_sepF.mpr ⟨empty_mem_omega, h0⟩
+    · intro y hy
+      obtain ⟨hyo, hyph⟩ := mem_sepF.mp hy
+      exact mem_sepF.mpr ⟨vsucc_mem_omega hyo, hstep y hyo hyph⟩
+  exact (mem_sepF.mp (mem_omega.mp hx _ hind)).2
+
 /-- The `k`-th von Neumann natural. -/
 noncomputable def vnat : Nat → V
   | 0 => empty

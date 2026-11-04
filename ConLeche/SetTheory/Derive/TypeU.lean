@@ -72,7 +72,8 @@ open Classical in
 /-- **The strict universe**: the truth values at `0`, the strict
 members of the axiomatic level `tg n` above (the fibre space of the
 least fixed points). -/
-noncomputable def strictU (n : Nat) : V := if n = 0 then tg 0 else sep (tg n) Strict
+noncomputable def strictU (n : Nat) : V :=
+  if n = 0 then tg 0 else sepF (tg n) strictF (fun _ => pt)
 
 theorem strictU_zero : (strictU 0 : V) = univZero := by
   unfold strictU; rw [ite_eq_left rfl, tg_zero]
@@ -82,7 +83,8 @@ theorem mem_strictU_zero {T : V} : T ∈ˢ (strictU 0 : V) ↔ T ∈ˢ univZero 
 
 theorem mem_strictU_pos {n : Nat} (hn : n ≠ 0) {T : V} :
     T ∈ˢ (strictU n : V) ↔ T ∈ˢ tg n ∧ Strict T := by
-  unfold strictU; rw [ite_eq_right hn]; exact mem_sep
+  unfold strictU; rw [ite_eq_right hn, mem_sepF, realize_strictF]
+  exact ⟨fun h => ⟨h.1, h.2⟩, fun h => ⟨h.1, h.2⟩⟩
 
 theorem strictU_subset_tg (n : Nat) : (strictU n : V) ⊆ˢ tg n := by
   by_cases hn : n = 0
@@ -214,18 +216,20 @@ theorem unitSet_mem_strictU_zero : (unitSet : V) ∈ˢ strictU 0 :=
 open Classical in
 /-- **The universe of types at level `n`**: the truth values at `0`,
 above the members of the axiomatic level `tg n` that are types. -/
-noncomputable def tyU (n : Nat) : V := if n = 0 then tg 0 else sep (tg n) IsTy
+noncomputable def tyU (n : Nat) : V :=
+  if n = 0 then tg 0 else sepF (tg n) tyF (Form.snoc (fun _ => univZero) pt)
 
 theorem tyU_zero : (tyU 0 : V) = univZero := by
   unfold tyU; rw [ite_eq_left rfl, tg_zero]
 
 /-- Membership, uniformly in the level: at `0` every truth value is a
-type, so `tyU 0` is `sep (tg 0) IsTy` too. -/
+type, so `tyU 0` is the same definable separation too. -/
 theorem mem_tyU {n : Nat} {T : V} : T ∈ˢ (tyU n : V) ↔ T ∈ˢ tg n ∧ IsTy T := by
   by_cases hn : n = 0
   · subst hn; rw [tyU_zero, tg_zero]
     exact ⟨fun h => ⟨h, Or.inl h⟩, fun h => h.1⟩
-  · unfold tyU; rw [ite_eq_right hn]; exact mem_sep
+  · unfold tyU; rw [ite_eq_right hn, mem_sepF, realize_tyF]
+    exact ⟨fun h => ⟨h.1, h.2⟩, fun h => ⟨h.1, h.2⟩⟩
 
 theorem mem_tg_of_mem_tyU {n : Nat} {T : V} (h : T ∈ˢ (tyU n : V)) : T ∈ˢ tg n :=
   (mem_tyU.mp h).1
@@ -276,7 +280,7 @@ theorem tyU_mem_tg_succ (n : Nat) : (tyU n : V) ∈ˢ tg (n + 1) := by
   by_cases hn : n = 0
   · subst hn; rw [tyU_zero]; exact univZero_mem_tg_succ 0
   · unfold tyU; rw [ite_eq_right hn]
-    exact (tg_isUniverse (Nat.succ_ne_zero n)).sep_mem (tg_mem_tg n)
+    exact (tg_isUniverse (Nat.succ_ne_zero n)).mem_of_subset_mem (tg_mem_tg n) sepF_subset
 
 /-- `Sort n : Sort (n+1)`. -/
 theorem tyU_mem_tyU_succ (n : Nat) : (tyU n : V) ∈ˢ tyU (n + 1) :=
