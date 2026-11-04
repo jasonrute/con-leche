@@ -55,13 +55,13 @@
    267      A ∈ˢ univ (Level.eval φ u) → a ∈ˢ A → b ∈ˢ A →
    268      app (app (app E A) a) b = eqv a b
 
-== ConLeche/SetTheory/Core.lean#L95-L100
-    95  /-- A model of set theory of exactly the strength the checker needs:
-    96  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
-    97  set, regularity, Lean-level replacement), and an ω-chain of
-    98  Grothendieck universes.  Infinity is derivable; choice is inherited
-    99  from the meta-logic (`Classical.choice`); see the module docstring. -/
-   100  class SetTheory (V : Type u) where
+== ConLeche/SetTheory/Core.lean#L117-L122
+   117  /-- A model of set theory of exactly the strength the checker needs:
+   118  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
+   119  set, regularity, the first-order replacement scheme), and an ω-chain of
+   120  Grothendieck universes.  Infinity is derivable; choice is inherited
+   121  from the meta-logic (`Classical.choice`); see the module docstring. -/
+   122  class SetTheory (V : Type u) where
 
 == ConLeche/Rules/Rel.lean#L101
    101  inductive Red (env : Env) : Nat → Expr → Expr → Prop where
@@ -1373,13 +1373,13 @@
    125    /-- (3): no graph is a member of the point. -/
    126    graph_not_mem_pt : ∀ {F : V → V} {A : V}, ¬ Mem (graph F A) pt
 
-== ConLeche/SetTheory/Core.lean#L95-L100
-    95  /-- A model of set theory of exactly the strength the checker needs:
-    96  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
-    97  set, regularity, Lean-level replacement), and an ω-chain of
-    98  Grothendieck universes.  Infinity is derivable; choice is inherited
-    99  from the meta-logic (`Classical.choice`); see the module docstring. -/
-   100  class SetTheory (V : Type u) where
+== ConLeche/SetTheory/Core.lean#L117-L122
+   117  /-- A model of set theory of exactly the strength the checker needs:
+   118  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
+   119  set, regularity, the first-order replacement scheme), and an ω-chain of
+   120  Grothendieck universes.  Infinity is derivable; choice is inherited
+   121  from the meta-logic (`Classical.choice`); see the module docstring. -/
+   122  class SetTheory (V : Type u) where
 
 == whitepaper/Fragment/Lib.lean#L64-L65
     64    /-- Extensionality. -/
@@ -1579,18 +1579,18 @@
     34  /-- **What `Sort n` means**: the universe of types `tyU n`. -/
     35  noncomputable def univ : Nat → V := tyU
 
-== ConLeche/SetTheory/Derive/TypeU.lean#L214-L216
-   214  open Classical in
-   215  /-- **The universe of types at level `n`**: the truth values at `0`,
-   216  above the members of the axiomatic level `tg n` that are types. -/
+== ConLeche/SetTheory/Derive/TypeU.lean#L238-L240
+   238  open Classical in
+   239  /-- **The universe of types at level `n`**: the truth values at `0`,
+   240  above the members of the axiomatic level `tg n` that are types. -/
 
-== ConLeche/SetTheory/Derive/TypeU.lean#L57-L58
-    57  /-- A **strict** set: not the point, and the point is not a member. -/
-    58  def Strict (X : V) : Prop := X ≠ pt ∧ ¬ pt ∈ˢ X
+== ConLeche/SetTheory/Derive/TypeU.lean#L79-L80
+    79  /-- A **strict** set: not the point, and the point is not a member. -/
+    80  def Strict (X : V) : Prop := X ≠ pt ∧ ¬ pt ∈ˢ X
 
-== ConLeche/SetTheory/Derive/TypeU.lean#L60-L61
-    60  /-- A **type**: a truth value, or a strict set. -/
-    61  def IsTy (X : V) : Prop := X ∈ˢ univZero ∨ Strict X
+== ConLeche/SetTheory/Derive/TypeU.lean#L82-L83
+    82  /-- A **type**: a truth value, or a strict set. -/
+    83  def IsTy (X : V) : Prop := X ∈ˢ univZero ∨ Strict X
 
 == whitepaper/Fragment/Interp.lean#L242-L246
    242  /-- **The β-substitution lemma**: substituting for the innermost
@@ -3606,20 +3606,20 @@
     34  exactly once: the set of finite paths over the bound is a countable
     35  union (`natUnion`).
 
-== ConLeche/SetTheory/Core.lean#L89-L93
-    89  def IsTGUniverse {V : Type u} (mem : V → V → Prop) (u : V) : Prop :=
-    90    (∀ y z, mem y u → mem z y → mem z u) ∧
-    91    (∀ y z, mem y u → (∀ w, mem w z → mem w y) → mem z u) ∧
-    92    (∀ y, mem y u → ∃ p, mem p u ∧ ∀ z, (∀ w, mem w z → mem w y) → mem z p) ∧
-    93    (∀ y, (∀ w, mem w y → mem w u) → Equinumerous mem y u ∨ mem y u)
+== ConLeche/SetTheory/Core.lean#L104-L108
+   104  def IsUniverse {V : Type u} (mem : V → V → Prop) (u : V) : Prop :=
+   105    (∀ y z, mem y u → mem z y → mem z u) ∧
+   106    (∀ y z, mem y u → (∀ w, mem w z → mem w y) → mem z u) ∧
+   107    (∀ y, mem y u → ∃ p, mem p u ∧ ∀ z, (∀ w, mem w z → mem w y) → mem z p) ∧
+   108    (∀ s, mem s u → ∃ q, mem q u ∧ ∀ z, mem z q ↔ ∃ w, mem w s ∧ mem z w) ∧
 
-== ConLeche/SetTheory/Core.lean#L95-L100
-    95  /-- A model of set theory of exactly the strength the checker needs:
-    96  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
-    97  set, regularity, Lean-level replacement), and an ω-chain of
-    98  Grothendieck universes.  Infinity is derivable; choice is inherited
-    99  from the meta-logic (`Classical.choice`); see the module docstring. -/
-   100  class SetTheory (V : Type u) where
+== ConLeche/SetTheory/Core.lean#L117-L122
+   117  /-- A model of set theory of exactly the strength the checker needs:
+   118  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
+   119  set, regularity, the first-order replacement scheme), and an ω-chain of
+   120  Grothendieck universes.  Infinity is derivable; choice is inherited
+   121  from the meta-logic (`Classical.choice`); see the module docstring. -/
+   122  class SetTheory (V : Type u) where
 
 == whitepaper/Fragment/IndSem.lean#L282-L303
    282  /-- **The set a field ranges over**, relative to a family `W` (index
@@ -4329,15 +4329,15 @@
    519      (hsat : Sat V (D.params ψ).reverse ρp) {c : Nat} (hc : c < D.N) :
    520      D.Φ ψ ρp (D.carrier ψ ρp) c = D.carrier ψ ρp c :=
 
-== ConLeche/SetModel/TaggedSum.lean#L65
-    65  noncomputable def inj (i : Nat) (a : V) : V := spair (vnat i) a
+== ConLeche/SetModel/TaggedSum.lean#L87
+    87  noncomputable def inj (i : Nat) (a : V) : V := spair (vnat i) a
 
 == ConLeche/SetModel/TupleTower.lean#L93
     93  noncomputable def mkTower : List V → V
 
-== ConLeche/SetModel/TaggedSum.lean#L61-L62
-    61  noncomputable def sumSet (w : Nat) (f : Nat → V) : V :=
-    62    sigmaSet w omega (natFibre f)
+== ConLeche/SetModel/TaggedSum.lean#L83-L84
+    83  noncomputable def sumSet (w : Nat) (f : Nat → V) : V :=
+    84    sigmaSet w omega (natFibre f)
 
 == whitepaper/Fragment/IndRec.lean#L89-L92
     89  /-- **The recursor's graph**: the least fixed point of `rstep`.
@@ -6191,9 +6191,9 @@
    293  theorem DefEq.structUnit_sound (hin : RulesInputs V m φ) {d : Nat}
    294      {a ta wta b tb wtb : Expr} {T : Name} {us' : List Level}
 
-== ConLeche/Model/Inductives/FixKit.lean#L1729-L1730
-  1729  /-- **Unit-likeness at a fieldless one-constructor block's leaf**: the
-  1730  fibre is the one tagged empty tuple (the point at a squash instance).
+== ConLeche/Model/Inductives/FixKit.lean#L1731-L1732
+  1731  /-- **Unit-likeness at a fieldless one-constructor block's leaf**: the
+  1732  fibre is the one tagged empty tuple (the point at a squash instance).
 
 >>> whitepaper/sections/07-left-out.typ
 
@@ -6650,10 +6650,10 @@
 
 >>> whitepaper/sections/08-related.typ
 
-== bridge/lean4lean-model/ConLecheBridge/Carneiro.lean#L200-L202
-   200  theorem carneiro_implies_conleche :
-   201      OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V) :=
-   202    fun h => ⟨⟨ZFSet.{u}, setTheoryOfCarneiro h⟩⟩
+== bridge/lean4lean-model/ConLecheBridge/Carneiro.lean#L245-L247
+   245  theorem carneiro_implies_conleche :
+   246      OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V) :=
+   247    fun h => ⟨⟨ZFSet.{u}, setTheoryOfCarneiro h⟩⟩
 
 >>> whitepaper/README.md
 

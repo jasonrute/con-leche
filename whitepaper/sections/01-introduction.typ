@@ -24,7 +24,7 @@ true in the model.
 The theorem is relative to a model of an abstract set theory, a
 structure with membership, extensionality, the usual set-forming
 operations and
-#src("ConLeche/SetTheory/Core.lean", 95, 100)[a chain of universes closed under them].
+#src("ConLeche/SetTheory/Core.lean", 117, 122)[a chain of universes closed under them].
 By Gödel's second incompleteness theorem, Lean cannot prove that such
 a structure exists. The assumption is standard, though: it follows
 from the existence of ω many inaccessible cardinals, the hypothesis of

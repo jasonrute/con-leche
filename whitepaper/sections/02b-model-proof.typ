@@ -34,7 +34,7 @@ fragment is proved against that class.
 
 #real[
   The real proof is parametric in
-  #src("ConLeche/SetTheory/Core.lean", 95, 100)[a smaller interface],
+  #src("ConLeche/SetTheory/Core.lean", 117, 122)[a smaller interface],
   ZF without infinity plus a chain of Grothendieck universes (sets
   closed under all the set-forming operations), from which it derives
   the operators below.
@@ -215,10 +215,10 @@ The point is no type, so no sort holds it.
 #real[
   Con-leche's sorts denote the same sets:
   #src("ConLeche/SetTheory/Derive/Univ.lean", 34, 35)[a sort's universe]
-  is #src("ConLeche/SetTheory/Derive/TypeU.lean", 214, 216)[the universe of types],
+  is #src("ConLeche/SetTheory/Derive/TypeU.lean", 238, 240)[the universe of types],
   read off the same notions of a
-  #src("ConLeche/SetTheory/Derive/TypeU.lean", 57, 58)[strict set] and a
-  #src("ConLeche/SetTheory/Derive/TypeU.lean", 60, 61)[type].
+  #src("ConLeche/SetTheory/Derive/TypeU.lean", 79, 80)[strict set] and a
+  #src("ConLeche/SetTheory/Derive/TypeU.lean", 82, 83)[type].
 ]
 
 This is the whole of the interpretation. Nothing had to be

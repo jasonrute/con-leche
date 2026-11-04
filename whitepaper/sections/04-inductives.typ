@@ -378,8 +378,8 @@ the hereditarily finite sets satisfy every other law in this list.
   The set theory is one class: ZF without infinity, plus a chain of
   universes each of which is a Grothendieck universe stated as the
   matrix of Tarski's Axiom A with transitivity
-  (#src("ConLeche/SetTheory/Core.lean", 89, 93)[the universe property],
-  #src("ConLeche/SetTheory/Core.lean", 95, 100)[the class]). The
+  (#src("ConLeche/SetTheory/Core.lean", 104, 108)[the universe property],
+  #src("ConLeche/SetTheory/Core.lean", 117, 122)[the class]). The
   closure laws of the list, and infinity, are derived from it; the
   fragment takes the derived laws as its interface, as it does for
   the rest of §2's laws.
@@ -653,10 +653,10 @@ every constructor denotes the point.
   #src("ConLeche/Model/Env/BlockLfp.lean", 181, 183)[the least fixed point]
   (#src("ConLeche/Model/Env/BlockLfp.lean", 517, 520)[the fixed-point equation]).
   Its constructors are
-  #src("ConLeche/SetModel/TaggedSum.lean", 65)[tagged pairs] of
+  #src("ConLeche/SetModel/TaggedSum.lean", 87)[tagged pairs] of
   #src("ConLeche/SetModel/TupleTower.lean", 93)[nested pairs], the
   two kinds of family in
-  #src("ConLeche/SetModel/TaggedSum.lean", 61, 62)[one carrier].
+  #src("ConLeche/SetModel/TaggedSum.lean", 83, 84)[one carrier].
 ]
 
 === The recursor
