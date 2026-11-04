@@ -201,6 +201,26 @@ noncomputable def setTheoryOfChain (
       refine ⟨x, hx, ?_⟩
       rw [hf x hx]
       exact ((Classical.choose_spec (hfun x hx)).2 y hxy).symm
+  replF n φ p a hfun := by
+    classical
+    let f : ZFSet.{u} → ZFSet.{u} := fun z => if hz : z ∈ a then Classical.choose (hfun z hz) else ∅
+    have hf : ∀ z (hz : z ∈ a), f z = Classical.choose (hfun z hz) := fun z hz => dite_eq_left hz
+    have instDefinable : ZFSet.Definable 1 (fun s => f (s 0)) := Classical.allZFSetDefinable _
+    have : ZFSet.Definable 1 (fun s => f (s 0)) := instDefinable
+    clear instDefinable
+    refine ⟨ZFSet.image (fun z => f z) a, fun y => ?_⟩
+    show y ∈ ZFSet.image (fun z => f z) a ↔ ∃ x, x ∈ a ∧
+      ConLeche.Form.Realize (· ∈ ·) (ConLeche.Form.cons2 x y p) φ
+    rw [ZFSet.mem_image]
+    constructor
+    · rintro ⟨z, hz, hzy⟩
+      refine ⟨z, hz, ?_⟩
+      rw [← hzy, hf z hz]
+      exact (Classical.choose_spec (hfun z hz)).1
+    · rintro ⟨x, hx, hR⟩
+      refine ⟨x, hx, ?_⟩
+      rw [hf x hx]
+      exact ((Classical.choose_spec (hfun x hx)).2 y hR).symm
   univChain n := V_ (κ n).ord
   univChain_mem n := vonNeumann_mem_of_lt (ord_lt_ord.mpr (hmono (Nat.lt_succ_self n)))
   univChain_univ n := isUniverse_vonNeumann (hinacc n)

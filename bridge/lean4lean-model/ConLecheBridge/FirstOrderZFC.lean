@@ -181,23 +181,68 @@ def sepInst (n : ℕ) (φ : LSet.BoundedFormula (Fin n) 0) : LSet.Sentence :=
     (memF z y).iff (conj (memF z x) φR)
   body.all.ex.alls
 
-/-- One instance of the replacement schema: for `φ` a formula whose
-first two free variables are the related pair `(z, y)` and whose
-remaining `n` are parameters, `∀A ∀p ∃B ∀y, y ∈ B ↔ ∃z, z ∈ A ∧ φ(z, y, p)`. -/
-def repInst (n : ℕ) (φ : LSet.BoundedFormula (Fin (n + 2)) 0) : LSet.Sentence :=
-  let g : Fin (n + 2) → Empty ⊕ Fin (n + 4) := fun i =>
-    if i.val = 0 then Sum.inr ⟨n + 3, by omega⟩
-    else if i.val = 1 then Sum.inr ⟨n + 2, by omega⟩
-    else Sum.inr ⟨i.val - 1, by omega⟩
-  let φR : LSet.BoundedFormula Empty (n + 4) := φ.relabel g
+/-- Variable map for the replacement body: `φ`'s variable `0` ↦ `z`
+(var `n + 3`), `1` ↦ `y` (var `n + 2`), parameter `i + 2` ↦ var
+`i + 1`. -/
+def repBodyG (n : ℕ) : Fin (n + 2) → Empty ⊕ Fin (n + 4) := fun i =>
+  if i = 0 then Sum.inr ⟨n + 3, by omega⟩
+  else if i.val = 1 then Sum.inr ⟨n + 2, by omega⟩
+  else Sum.inr ⟨i.val - 1, by omega⟩
+
+/-- The body of one replacement instance (in `n + 3` free variables:
+`0 = A`, `1..n = p`, `n + 1 = B`, `n + 2 = y`):
+`y ∈ B ↔ ∃z, z ∈ A ∧ φ(z, y, p)`. -/
+def repBody (n : ℕ) (φ : LSet.BoundedFormula (Fin (n + 2)) 0) :
+    LSet.BoundedFormula Empty (n + 3) :=
+  let φR : LSet.BoundedFormula Empty (n + 4) := φ.relabel (repBodyG n)
   let z := (&⟨n + 3, by omega⟩ : LSet.Term (Empty ⊕ Fin (n + 4)))
   let A := (&0 : LSet.Term (Empty ⊕ Fin (n + 4)))
   let rhs : LSet.BoundedFormula Empty (n + 4) := conj (memF z A) φR
   let rhsEx : LSet.BoundedFormula Empty (n + 3) := rhs.ex
   let y := (&⟨n + 2, by omega⟩ : LSet.Term (Empty ⊕ Fin (n + 3)))
   let B := (&⟨n + 1, by omega⟩ : LSet.Term (Empty ⊕ Fin (n + 3)))
-  let body : LSet.BoundedFormula Empty (n + 3) := (memF y B).iff rhsEx
-  body.all.ex.alls
+  (memF y B).iff rhsEx
+
+/-- Variable map for the functionality antecedent: `φ`'s variable `0` ↦
+`z` (var `n + 1`), `1` ↦ `y'` (var `n + 2`), parameter `i + 2` ↦ var
+`i + 1`. -/
+def repFuncG (n : ℕ) : Fin (n + 2) → Empty ⊕ Fin (n + 3) := fun i =>
+  if i = 0 then Sum.inr ⟨n + 1, by omega⟩
+  else if i.val = 1 then Sum.inr ⟨n + 2, by omega⟩
+  else Sum.inr ⟨i.val - 1, by omega⟩
+
+/-- Variable map for the second copy of `y` in the functionality
+antecedent: `φ`'s variable `0` ↦ `z` (var `n + 1`), `1` ↦ `y''` (var
+`n + 3`), parameter `i + 2` ↦ var `i + 1`. -/
+def repFuncG' (n : ℕ) : Fin (n + 2) → Empty ⊕ Fin (n + 4) := fun i =>
+  if i = 0 then Sum.inr ⟨n + 1, by omega⟩
+  else if i.val = 1 then Sum.inr ⟨n + 3, by omega⟩
+  else Sum.inr ⟨i.val - 1, by omega⟩
+
+/-- The functionality antecedent of one replacement instance (in
+`n + 1` free variables: `0 = A`, `1..n = p`):
+`∀z ∈ A, ∃!y, φ(z, y, p)`. -/
+def repFunc (n : ℕ) (φ : LSet.BoundedFormula (Fin (n + 2)) 0) :
+    LSet.BoundedFormula Empty (n + 1) :=
+  let φA : LSet.BoundedFormula Empty (n + 3) := φ.relabel (repFuncG n)
+  let φA' : LSet.BoundedFormula Empty (n + 4) := φ.relabel (repFuncG' n)
+  let eqA : LSet.BoundedFormula Empty (n + 4) :=
+    Term.bdEqual (&⟨n + 3, by omega⟩ : LSet.Term (Empty ⊕ Fin (n + 4)))
+      (&⟨n + 2, by omega⟩ : LSet.Term (Empty ⊕ Fin (n + 4)))
+  let inner : LSet.BoundedFormula Empty (n + 3) := (φA'.imp eqA).all
+  let exUn : LSet.BoundedFormula Empty (n + 2) := (conj φA inner).ex
+  let funcB : LSet.BoundedFormula Empty (n + 2) :=
+    (memF (&⟨n + 1, by omega⟩ : LSet.Term (Empty ⊕ Fin (n + 2)))
+      (&0 : LSet.Term (Empty ⊕ Fin (n + 2)))).imp exUn
+  funcB.all
+
+/-- One instance of the replacement schema (standard ZF replacement,
+with the functionality antecedent): for `φ` a formula whose first two
+free variables are the related pair `(z, y)` and whose remaining `n`
+are parameters, `∀A ∀p, (∀z ∈ A, ∃!y, φ(z, y, p)) → ∃B ∀y,
+y ∈ B ↔ ∃z, z ∈ A ∧ φ(z, y, p)`. -/
+def repInst (n : ℕ) (φ : LSet.BoundedFormula (Fin (n + 2)) 0) : LSet.Sentence :=
+  ((repFunc n φ).imp (repBody n φ).all.ex).alls
 
 /-- The separation schema, as a set of sentences. -/
 def sepSchema : Set LSet.Sentence :=
@@ -443,13 +488,10 @@ theorem realize_toParam {n : Nat} (φ : ConLeche.Form n) :
 `i + 2 ↦ q i` — i.e. `ConLeche.Form.cons2 z y q`. -/
 theorem repInst_assign {n : ℕ} {M : Type _} (A B y z : M) (q : Fin n → M) :
     Sum.elim (default : Empty → M) (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z)
-        ∘ (fun i : Fin (n + 2) =>
-            if i = 0 then Sum.inr ⟨n + 3, by omega⟩
-            else if i.val = 1 then Sum.inr ⟨n + 2, by omega⟩
-            else Sum.inr ⟨i.val - 1, by omega⟩)
+        ∘ repBodyG n
       = ConLeche.Form.cons2 z y q := by
   funext i
-  simp only [Function.comp_apply]
+  simp only [Function.comp_apply, repBodyG]
   by_cases h0 : i = 0
   · subst h0
     rw [ite_eq_left rfl, Sum.elim_inr,
@@ -472,62 +514,175 @@ theorem repInst_assign {n : ℕ} {M : Type _} (A B y z : M) (q : Fin n → M) :
         Fin.cons_succ]
       simp [ConLeche.Form.cons2, h0v, h1]
 
+/-- The parameter assignment produced by `repBody n ψ` when realized at
+`xs = Fin.cons A q`, image `B`, `y`, `z`: parameter `0` ↦ `z`,
+`1` ↦ `y`, `i + 2` ↦ `q i` — i.e. `ConLeche.Form.cons2 z y q`. -/
+theorem repBody_key {n : ℕ} {M : Type _} [LSet.Structure M] (A B y z : M) (q : Fin n → M)
+    (ψ : LSet.BoundedFormula (Fin (n + 2)) 0) :
+    BoundedFormula.Realize ψ
+        (Sum.elim (default : Empty → M) (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z)
+          ∘ repBodyG n)
+        (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z ∘ Fin.natAdd (n + 4))
+      ↔ Formula.Realize ψ (ConLeche.Form.cons2 z y q) := by
+  rw [repInst_assign A B y z q,
+    show Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z ∘ Fin.natAdd (n + 4)
+      = (default : Fin 0 → M) from Subsingleton.elim _ _]
+  exact Iff.rfl
+
+/-- The parameter assignment of `repFuncG n` at `Fin.cons A q`, extended
+by `z`, `y`: parameter `0` ↦ `z`, `1` ↦ `y`, `i + 2` ↦ `q i`. -/
+theorem repFunc_assign' {n : ℕ} {M : Type _} (A : M) (q : Fin n → M) (z y : M) :
+    Sum.elim (default : Empty → M) (Fin.snoc (Fin.snoc (Fin.cons A q) z) y)
+        ∘ repFuncG n
+      = ConLeche.Form.cons2 z y q := by
+  funext i
+  simp only [Function.comp_apply, repFuncG]
+  by_cases h0 : i = 0
+  · subst h0
+    rw [ite_eq_left rfl, Sum.elim_inr,
+      show (⟨n + 1, by omega⟩ : Fin (n + 3)) = Fin.castSucc (Fin.last (n + 1)) from rfl,
+      Fin.snoc_castSucc, Fin.snoc_last]
+    simp [ConLeche.Form.cons2]
+  · have h0v : i.val ≠ 0 := fun h => h0 (Fin.ext h)
+    rw [ite_eq_right h0]
+    by_cases h1 : i.val = 1
+    · rw [ite_eq_left h1, Sum.elim_inr,
+        show (⟨n + 2, by omega⟩ : Fin (n + 3)) = Fin.last (n + 2) from rfl,
+        Fin.snoc_last]
+      simp [ConLeche.Form.cons2, h1]
+    · rw [ite_eq_right h1, Sum.elim_inr,
+        show (⟨i.val - 1, by omega⟩ : Fin (n + 3))
+          = Fin.castSucc (Fin.castSucc ⟨i.val - 1, by omega⟩) from rfl,
+        Fin.snoc_castSucc, Fin.snoc_castSucc,
+        show (⟨i.val - 1, by omega⟩ : Fin (n + 1)) = Fin.succ ⟨i.val - 2, by omega⟩ from
+          Fin.ext (by show i.val - 1 = i.val - 2 + 1; omega),
+        Fin.cons_succ]
+      simp [ConLeche.Form.cons2, h0v, h1]
+
+/-- The parameter assignment of `repFuncG' n` at `Fin.cons A q`, extended
+by `z`, `y`, `y'`: parameter `0` ↦ `z`, `1` ↦ `y'`, `i + 2` ↦ `q i`. -/
+theorem repFunc_assign'' {n : ℕ} {M : Type _} (A : M) (q : Fin n → M) (z y y' : M) :
+    Sum.elim (default : Empty → M)
+        (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) z) y) y')
+        ∘ repFuncG' n
+      = ConLeche.Form.cons2 z y' q := by
+  funext i
+  simp only [Function.comp_apply, repFuncG']
+  by_cases h0 : i = 0
+  · subst h0
+    rw [ite_eq_left rfl, Sum.elim_inr,
+      show (⟨n + 1, by omega⟩ : Fin (n + 4)) = Fin.castSucc (Fin.castSucc (Fin.last (n + 1))) from rfl,
+      Fin.snoc_castSucc, Fin.snoc_castSucc, Fin.snoc_last]
+    simp [ConLeche.Form.cons2]
+  · have h0v : i.val ≠ 0 := fun h => h0 (Fin.ext h)
+    rw [ite_eq_right h0]
+    by_cases h1 : i.val = 1
+    · rw [ite_eq_left h1, Sum.elim_inr,
+        show (⟨n + 3, by omega⟩ : Fin (n + 4)) = Fin.last (n + 3) from rfl,
+        Fin.snoc_last]
+      simp [ConLeche.Form.cons2, h1]
+    · rw [ite_eq_right h1, Sum.elim_inr,
+        show (⟨i.val - 1, by omega⟩ : Fin (n + 4))
+          = Fin.castSucc (Fin.castSucc (Fin.castSucc ⟨i.val - 1, by omega⟩)) from rfl,
+        Fin.snoc_castSucc, Fin.snoc_castSucc, Fin.snoc_castSucc,
+        show (⟨i.val - 1, by omega⟩ : Fin (n + 1)) = Fin.succ ⟨i.val - 2, by omega⟩ from
+          Fin.ext (by show i.val - 1 = i.val - 2 + 1; omega),
+        Fin.cons_succ]
+      simp [ConLeche.Form.cons2, h0v, h1]
+
+theorem repFunc_key {n : ℕ} {M : Type _} [LSet.Structure M] (A : M) (q : Fin n → M) (z y : M)
+    (ψ : LSet.BoundedFormula (Fin (n + 2)) 0) :
+    BoundedFormula.Realize ψ
+        (Sum.elim (default : Empty → M) (Fin.snoc (Fin.snoc (Fin.cons A q) z) y)
+          ∘ repFuncG n)
+        (Fin.snoc (Fin.snoc (Fin.cons A q) z) y ∘ Fin.natAdd (n + 3))
+      ↔ Formula.Realize ψ (ConLeche.Form.cons2 z y q) := by
+  rw [repFunc_assign' A q z y,
+    show Fin.snoc (Fin.snoc (Fin.cons A q) z) y ∘ Fin.natAdd (n + 3)
+      = (default : Fin 0 → M) from Subsingleton.elim _ _]
+  exact Iff.rfl
+
+theorem repFunc_key'' {n : ℕ} {M : Type _} [LSet.Structure M] (A : M) (q : Fin n → M) (z y y' : M)
+    (ψ : LSet.BoundedFormula (Fin (n + 2)) 0) :
+    BoundedFormula.Realize ψ
+        (Sum.elim (default : Empty → M)
+            (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) z) y) y')
+          ∘ repFuncG' n)
+        (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) z) y) y' ∘ Fin.natAdd (n + 4))
+      ↔ Formula.Realize ψ (ConLeche.Form.cons2 z y' q) := by
+  rw [repFunc_assign'' A q z y y',
+    show Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) z) y) y' ∘ Fin.natAdd (n + 4)
+      = (default : Fin 0 → M) from Subsingleton.elim _ _]
+  exact Iff.rfl
+
+/-- Realization of the functionality antecedent `repFunc n ψ` at
+`Fin.cons A q`: `∀z ∈ A, ∃!y, ψ(z, y, q)`. -/
+theorem repFunc_realize {n : ℕ} {M : Type _} [LSet.Structure M]
+    (ψ : LSet.BoundedFormula (Fin (n + 2)) 0) (A : M) (q : Fin n → M) :
+    (repFunc n ψ).Realize (default : Empty → M) (Fin.cons A q) ↔
+      ∀ z, Mem M z A → ∃ y, Formula.Realize ψ (ConLeche.Form.cons2 z y q) ∧
+        ∀ y', Formula.Realize ψ (ConLeche.Form.cons2 z y' q) → y' = y := by
+  simp [repFunc, BoundedFormula.realize_all, BoundedFormula.realize_ex,
+    BoundedFormula.realize_imp, realize_conj, memF, BoundedFormula.realize_rel₂,
+    BoundedFormula.realize_relabel, BoundedFormula.realize_bdEqual, Term.realize,
+    Fin.snoc, Sum.elim_inr, Function.comp_apply]
+  constructor
+  · intro h z hz
+    rcases h z hz with ⟨y, hφ, hun⟩
+    refine ⟨y, (repFunc_key A q z y ψ).mp hφ, fun y' hy' => ?_⟩
+    exact hun y' ((repFunc_key'' A q z y y' ψ).mpr hy')
+  · intro h z hz
+    rcases h z hz with ⟨y, hφ, hun⟩
+    exact ⟨y, (repFunc_key A q z y ψ).mpr hφ,
+      fun y' hy' => hun y' ((repFunc_key'' A q z y y' ψ).mp hy')⟩
+
 /-- One instance of the replacement schema, extracted from `M ⊨ ZFC`:
 `ψ`'s parameter `0` is the `z` of `∃ z ∈ A`, parameter `1` is the `y` of
 `∀ y`, parameter `i + 2` is `q i`. -/
 theorem repl_of_ZFC (hZFC : M ⊨ ZFC) (n : ℕ) (ψ : LSet.BoundedFormula (Fin (n + 2)) 0)
-    (A : M) (q : Fin n → M) :
+    (A : M) (q : Fin n → M)
+    (hfun : ∀ z, Mem M z A → ∃ y, Formula.Realize ψ (ConLeche.Form.cons2 z y q) ∧
+      ∀ y', Formula.Realize ψ (ConLeche.Form.cons2 z y' q) → y' = y) :
     ∃ B : M, ∀ y, Mem M y B ↔ ∃ z, Mem M z A ∧ Formula.Realize ψ (ConLeche.Form.cons2 z y q) := by
   have h : M ⊨ repInst n ψ := hZFC.realize_of_mem _ (by
     have hm : repInst n ψ ∈ repSchema := ⟨n, ψ, rfl⟩
     simp only [ZFC]
     exact Set.mem_union_right _ hm)
-  simp [repInst, Sentence.Realize, BoundedFormula.realize_alls, BoundedFormula.realize_ex,
-    BoundedFormula.realize_all, BoundedFormula.realize_iff, realize_conj, memF,
-    BoundedFormula.realize_rel₂, BoundedFormula.realize_relabel, Term.realize, Fin.snoc,
-    Sum.elim_inr, Function.comp_apply] at h
-  obtain ⟨B, hB⟩ := h (Fin.cons A q)
-  have key : ∀ y z : M,
-      BoundedFormula.Realize ψ
-          (Sum.elim (default : Empty → M) (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z)
-            ∘ (fun i : Fin (n + 2) =>
-                if i = 0 then Sum.inr ⟨n + 3, by omega⟩
-                else if i.val = 1 then Sum.inr ⟨n + 2, by omega⟩
-                else Sum.inr ⟨i.val - 1, by omega⟩))
-          (Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z ∘ Fin.natAdd (n + 4))
-        ↔ Formula.Realize ψ (ConLeche.Form.cons2 z y q) := by
-    intro y z
-    rw [repInst_assign A B y z q,
-      show Fin.snoc (Fin.snoc (Fin.snoc (Fin.cons A q) B) y) z ∘ Fin.natAdd (n + 4)
-        = (default : Fin 0 → M) from Subsingleton.elim _ _]
-    exact Iff.rfl
+  simp [repInst, repBody, Sentence.Realize, memF, Term.realize, Fin.snoc] at h
+  obtain ⟨B, hB⟩ := h (Fin.cons A q) ((repFunc_realize ψ A q).mpr hfun)
   refine ⟨B, fun y => ?_⟩
   have hB' := hB y
-  simp only [Fin.cons_zero] at hB'
   constructor
   · intro hy
     rcases hB'.mp hy with ⟨z, hz, hψ⟩
-    exact ⟨z, hz, (key y z).mp hψ⟩
+    exact ⟨z, hz, (repBody_key A B y z q ψ).mp hψ⟩
   · rintro ⟨z, hz, hr⟩
-    exact hB'.mpr ⟨z, hz, (key y z).mpr hr⟩
+    exact hB'.mpr ⟨z, hz, (repBody_key A B y z q ψ).mpr hr⟩
 
 /-- **Definable replacement, extracted from `M ⊨ ZFC` — NO bridge axiom.**
 For every `ConLeche.Form` `φ` whose first two variables are the related
 pair `(x, y)` and whose remaining `n` variables are parameters `p`,
-`M ⊨ ZFC` yields the replacement set of `φ` over `a`.  This is exactly
+`M ⊨ ZFC` yields the replacement set of `φ` over `a`, provided `φ` is
+functional on `a` (`∀x ∈ a, ∃!y, φ(x, y, p)`) — standard ZF replacement.  This is exactly
 what the first-order schema `repSchema` provides.  The meta-level scheme
 `replScheme_of_ZFC_model` below (over all `p : M → M → Prop`) is strictly
 stronger for an arbitrary `M` and remains a bridge axiom. -/
 theorem replF_of_ZFC_model (hZFC : M ⊨ ZFC) (n : ℕ) (φ : ConLeche.Form (n + 2))
-    (p : Fin n → M) (a : M) :
+    (p : Fin n → M) (a : M)
+    (hfun : ∀ x, Mem M x a → ∃ y,
+      ConLeche.Form.Realize (Mem M) (ConLeche.Form.cons2 x y p) φ ∧
+      ∀ y', ConLeche.Form.Realize (Mem M) (ConLeche.Form.cons2 x y' p) φ → y' = y) :
     ∃ b : M, ∀ y, Mem M y b ↔
       ∃ x, Mem M x a ∧ ConLeche.Form.Realize (Mem M) (ConLeche.Form.cons2 x y p) φ := by
-  obtain ⟨B, hB⟩ := repl_of_ZFC hZFC n (toParam φ) a p
+  obtain ⟨B, hB⟩ := repl_of_ZFC hZFC n (toParam φ) a p (fun z hz => by
+    rcases hfun z hz with ⟨y, hy, hun⟩
+    exact ⟨y, (realize_toParam φ (ConLeche.Form.cons2 z y p)).mpr hy,
+      fun y' hy' => hun y' ((realize_toParam φ (ConLeche.Form.cons2 z y' p)).mp hy')⟩)
   refine ⟨B, fun y => ?_⟩
   rw [hB y]
   constructor
-  · rintro ⟨x, hx, hψ⟩
-    exact ⟨x, hx, (realize_toParam φ (ConLeche.Form.cons2 x y p)).mp hψ⟩
+  · rintro ⟨x, hx, hφ⟩
+    exact ⟨x, hx, (realize_toParam φ (ConLeche.Form.cons2 x y p)).mp hφ⟩
   · rintro ⟨x, hx, hr⟩
     exact ⟨x, hx, (realize_toParam φ (ConLeche.Form.cons2 x y p)).mpr hr⟩
 
@@ -581,6 +736,7 @@ noncomputable def setTheory_of_ZFC_model (M : Type _) [LSet.Structure M] (hZFC :
   mem_power {z x} := Classical.choose_spec (power_of_ZFC hZFC x) z
   regularity := regularity_of_ZFC hZFC
   repl := replScheme_of_ZFC_model M hZFC
+  replF := fun n φ p a hfun => replF_of_ZFC_model hZFC n φ p a hfun
   univChain := Classical.choose (exists_univChain_of_inacc M hInacc)
   univChain_mem n := (Classical.choose_spec (exists_univChain_of_inacc M hInacc)).1 n
   univChain_univ n := (Classical.choose_spec (exists_univChain_of_inacc M hInacc)).2 n

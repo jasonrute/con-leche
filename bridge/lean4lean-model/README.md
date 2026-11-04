@@ -109,15 +109,24 @@ and strong limitness exactly as described above.
   first-order `L = {∈}` formulas; `toBF`/`realize_toBF` embed it into
   Mathlib's `LSet.BoundedFormula`, and `toParam`/`realize_toParam` turn
   its free variables into parameters.  `repl_of_ZFC` reads one instance
-  of `repSchema` off `M ⊨ ZFC`, and
+  of `repSchema` off `M ⊨ ZFC` (each `repInst` is standard ZF
+  replacement, with the functionality antecedent `∀z ∈ A, ∃!y, φ(z,y,p)`),
+  and
   `replF_of_ZFC_model (hZFC : M ⊨ ZFC) (n) (φ : ConLeche.Form (n + 2))
-  (p : Fin n → M) (a : M) : ∃ b, ∀ y, Mem M y b ↔ ∃ x, Mem M x a ∧
+  (p : Fin n → M) (a : M) (hfun : ∀ x ∈ a, ∃! y, Form.Realize (Mem M)
+  (Form.cons2 x y p) φ) : ∃ b, ∀ y, Mem M y b ↔ ∃ x, Mem M x a ∧
   Form.Realize (Mem M) (Form.cons2 x y p) φ` is the full **definable**
   replacement scheme, proved with NO bridge axiom (axiom pin
   `#guard_msgs in #print axioms`: only `propext`, `Classical.choice`,
-  `Quot.sound`).  This is the scheme the first-order theory actually
-  provides; removing the `replScheme_of_ZFC_model` bridge axiom means
-  migrating `SetTheory.repl` to this `Form`-based scheme.
+  `Quot.sound`).  This is exactly the new `SetTheory.replF` field
+  (`ConLeche/SetTheory/Core.lean`), supplied axiom-free by both bridge
+  instances (`setTheory_of_ZFC_model` from `repSchema`,
+  `setTheoryOfChain` from `ZFSet.image` under
+  `Classical.allZFSetDefinable`), with the derived definable
+  separation/image `sepF`/`imageF` in `ConLeche/SetTheory/Derive/Sep.lean`.
+  Removing the `replScheme_of_ZFC_model` bridge axiom means migrating
+  the `SetTheory.repl` (`sep`/`image`) call sites to this `Form`-based
+  scheme.
 
 * `setTheory_of_ZFC_model (hZFC : M ⊨ ZFC) (hInacc : ∀ n, M ⊨ inacc n) :
   ConLeche.SetTheory M` — turns a first-order model of

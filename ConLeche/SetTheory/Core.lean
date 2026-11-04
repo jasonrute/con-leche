@@ -1,5 +1,7 @@
 module
 
+public import ConLeche.SetTheory.Form
+
 @[expose] public section
 
 /-!
@@ -137,6 +139,21 @@ class SetTheory (V : Type u) where
   repl : ∀ a : V, ∀ p : V → V → Prop,
     (∀ x, Mem x a → ∃ y, p x y ∧ ∀ y', p x y' → y' = y) →
     ∃ b : V, ∀ y, Mem y b ↔ ∃ x, Mem x a ∧ p x y
+  /-- **Definable replacement, the first-order scheme over `Form`s**:
+  the image of a set under a *functional* relation given by a
+  first-order `L = {∈}` formula `φ` (de Bruijn, first two variables the
+  related pair `(x, y)`, the remaining `n` the parameters `p`) is a set —
+  exactly standard ZF replacement, one instance per formula.  This is
+  the scheme the first-order theory `ZFC` actually provides
+  (`repSchema`), so a first-order model `M ⊨ ZFC` supplies it with NO
+  extra axiom (`ConLecheBridge.replF_of_ZFC_model`), unlike the
+  meta-level `repl` above.  Migration of the `sep`/`image` call sites
+  from `repl` to `replF` is what removes the `replScheme_of_ZFC_model`
+  bridge axiom. -/
+  replF : ∀ (n : Nat) (φ : Form (n + 2)) (p : Fin n → V) (a : V),
+    (∀ x, Mem x a → ∃ y, Form.Realize Mem (Form.cons2 x y p) φ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) φ → y' = y) →
+    ∃ b : V, ∀ y, Mem y b ↔ ∃ x, Mem x a ∧ Form.Realize Mem (Form.cons2 x y p) φ
   /-- An ω-chain of Grothendieck universes: the sets interpreting the
   universe tower (Carneiro's ω-many inaccessibles, op. cit.;
   intended model `V_{κ n}`). -/

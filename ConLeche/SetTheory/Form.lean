@@ -55,6 +55,22 @@ of the (first-order) replacement schema. -/
 def cons2 {V : Type u} {n : Nat} (x y : V) (p : Fin n → V) : Fin (n + 2) → V :=
   fun i => if h0 : i.val = 0 then x else if h1 : i.val = 1 then y else p ⟨i.val - 2, by omega⟩
 
+/-- Lift a variable map `f : Fin m → Fin n` to `Fin (m + 1) → Fin (n + 1)`,
+sending the bound (last) variable to the last variable — the bound-variable
+step of `relabel`. -/
+def liftRelabel {m n : Nat} (f : Fin m → Fin n) : Fin (m + 1) → Fin (n + 1) :=
+  fun i => if h : i.val < m then Fin.castSucc (f ⟨i.val, h⟩) else Fin.last n
+
+/-- Relabel the free variables of a formula along `f : Fin m → Fin n`
+(Mathlib's `BoundedFormula.relabel`, which is unavailable here without
+Mathlib). -/
+def relabel {m n : Nat} (f : Fin m → Fin n) : Form m → Form n
+  | .falsum => .falsum
+  | .equal i j => .equal (f i) (f j)
+  | .mem i j => .mem (f i) (f j)
+  | .imp a b => .imp (relabel f a) (relabel f b)
+  | .all a => .all (relabel (liftRelabel f) a)
+
 /-- Realization of a formula in a membership relation `mem` under the
 assignment `v` of its `n` free variables. -/
 def Realize {V : Type u} (mem : V → V → Prop) {n : Nat} (v : Fin n → V) : Form n → Prop
@@ -133,6 +149,30 @@ def ex (φ : Form (n + 1)) : Form n := φ.not.all.not
     exact hn ⟨x, hx⟩
   · rintro ⟨x, hx⟩ h
     exact h x hx
+
+theorem snoc_comp_liftRelabel {V : Type u} {m n : Nat} (v : Fin n → V) (f : Fin m → Fin n) (x : V) :
+    (snoc v x) ∘ liftRelabel f = snoc (v ∘ f) x := by
+  funext i
+  by_cases h : i.val < m
+  · simp [snoc, liftRelabel, h, Fin.castSucc]
+  · have him : i.val = m := by omega
+    simp [snoc, liftRelabel, Fin.last, him]
+
+/-- Relabeling the free variables commutes with realization
+(Mathlib's `BoundedFormula.realize_relabel`). -/
+theorem realize_relabel {V : Type u} {mem : V → V → Prop} {m : Nat} (φ : Form m) :
+    ∀ {n : Nat} (f : Fin m → Fin n) (v : Fin n → V),
+      Realize mem v (relabel f φ) ↔ Realize mem (v ∘ f) φ := by
+  induction φ with
+  | falsum => intro n f v; exact Iff.rfl
+  | equal i j => intro n f v; simp [relabel, realize_equal]
+  | mem i j => intro n f v; simp [relabel, realize_mem]
+  | imp a b iha ihb => intro n f v; simp [relabel, realize_imp, iha, ihb]
+  | all a iha =>
+    intro n f v
+    simp only [relabel, realize_all]
+    exact forall_congr' fun x => by
+      rw [iha (liftRelabel f) (snoc v x), snoc_comp_liftRelabel]
 
 end Form
 
