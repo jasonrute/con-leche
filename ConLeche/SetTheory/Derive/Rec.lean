@@ -211,6 +211,34 @@ theorem realize_appEqF {v g u : V} :
             mem_sUnion.mpr ⟨kpair u z, hz, mem_upair_right _ _⟩, mem_upair_right u z⟩, hz⟩, hy⟩
       exact hy
 
+/-- Variable map `Fin 4 ↦ Fin 5`, `0 ↦ 3`, `1 ↦ 4`, `2 ↦ 1`, `3 ↦ 2`
+(reads `appEqF`'s `(pt, v, g, u)` out of `(w, g, u, pt, v)`). -/
+def appMemEqMap : Fin 4 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨3, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | 2 => ⟨1, by omega⟩
+  | _ => ⟨2, by omega⟩
+
+/-- `w ∈ˢ app g u` (variables `0 ↦ w`, `1 ↦ g`, `2 ↦ u`, `3 ↦ pt`):
+`∃ v, v = app g u ∧ w ∈ˢ v`. -/
+def appMemF : Form 4 :=
+  .ex (.and (Form.relabel appMemEqMap appEqF) (.mem ⟨0, by omega⟩ ⟨4, by omega⟩))
+
+theorem realize_appMemF {w g u : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => w) g) u) (pt : V)) appMemF ↔
+      w ∈ˢ app g u := by
+  have hM : ∀ v : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => w) g) u) (pt : V)) v) ∘ appMemEqMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) v) g) u := by
+    intro v
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [appMemF, Form.realize_ex, Form.realize_and, Form.realize_relabel, hM,
+    realize_appEqF, Form.realize_mem, Form.snoc_mk]
+  simp
+
 /-! ## Attempts at `ω`-recursion -/
 
 /-- Variable map `Fin 3 → Fin 4`, `0 → 2`, `1 → 1`, `2 → 3`
@@ -563,6 +591,15 @@ theorem vsucc_mem_vsucc_of_mem_omega {m n : V} (hn : n ∈ˢ (omega : V))
   obtain ⟨e, he, h⟩ := realize_vsuccLeF.mp h m hm
   rw [← he]
   exact (mem_vsucc (z := e) (n := n)).mpr h
+
+/-- `m ≤ n` for `m, n ∈ˢ ω`, as `m ∈ˢ n ∨ m = n` (variables
+`0 ↦ n`, `1 ↦ m`). -/
+def vleqF : Form 2 :=
+  .or (.mem ⟨1, by omega⟩ ⟨0, by omega⟩) (.equal ⟨1, by omega⟩ ⟨0, by omega⟩)
+
+@[simp] theorem realize_vleqF {m n : V} :
+    Form.Realize Mem (Form.cons2 n m Form.nil) vleqF ↔ m ∈ˢ n ∨ m = n := by
+  simp [vleqF, Form.cons2]
 
 /-- `∀ m ∈ˢ w, n ∈ˢ m ∨ n = m ∨ m ∈ˢ n` (variables `0 → w`,
 bound `1 → n`, `2 → m`). -/
