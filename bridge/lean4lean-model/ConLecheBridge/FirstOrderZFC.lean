@@ -62,6 +62,9 @@ model `M` are stated as axioms (the same gap as in
    argument over a non-finitely-branching tree, and each chain member
    must satisfy the *meta-level* fibre-replacement clause of
    `IsUniverse` (clause 5), again not first-order.  Axiomatized here.
+   (The definable twin, clause 6, *is* first-order content — one
+   sentence per `Form` — and is what a `hasChain`-style encoding of
+   the inaccessibles would supply; the migration is in progress.)
 
 The extensionality, pairing, union, power-set and regularity fields
 are extracted from the corresponding `ZFC` sentences by actual proofs
@@ -267,8 +270,11 @@ def atTop {k : ℕ} (φ : LSet.BoundedFormula Empty 1) : LSet.BoundedFormula Emp
 
 /-- The first-order clauses of "`u` is a Grothendieck universe"
 (`ConLeche.IsUniverse`, clauses 1–4, plus nonemptiness): the
-fibre-replacement clause 5 quantifies over meta-level relations and
-is not first-order — see `exists_univChain_of_inacc`.
+meta-level fibre-replacement clause 5 quantifies over all relations
+and is not first-order — see `exists_univChain_of_inacc`.  The
+definable fibre-replacement clause 6 *is* first-order (one instance
+per formula, supplied by `repSchema` + closure of the universe), and
+`Derive/Universe.lean`'s `imageF_mem`/`upairF_mem` now use it directly.
 
 `u` is the free variable `&0`. -/
 def isUnivFO : LSet.BoundedFormula Empty 1 :=

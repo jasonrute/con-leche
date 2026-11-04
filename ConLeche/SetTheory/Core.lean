@@ -21,7 +21,7 @@ Prop-valued functional relations (`∀ a p, (∀ x ∈ a, ∃ y, p x y ∧ ∀ y
 ∃ b, ∀ y, y ∈ b ↔ ∃ x ∈ a ∧ p x y`, one instance per
 meta-level relation `p : V → V → Prop` — exactly how Mathlib's
 `ZFSet` carries it under `Classical.allZFSetDefinable`), and a
-Grothendieck universe is given by its five first-order closure clauses
+Grothendieck universe is given by its first-order closure clauses
 (`IsUniverse`): transitivity, subsets of members are members, power
 sets stay inside, unions of members stay inside, and fibre-wise
 replacement closure.  Infinity and separation are derivable and
@@ -74,10 +74,10 @@ namespace ConLeche
 
 universe u
 
-/-- A Grothendieck universe, as five first-order closure clauses (SGA 4,
+/-- A Grothendieck universe, as first-order closure clauses (SGA 4,
 Exp. I, Appendix): a transitive set closed under subsets of members,
 power sets of members, unions of members, and fibre-wise replacement.
-The five clauses, in order:
+The clauses, in order:
 
 1. *transitivity*: members of members are members;
 2. *subsets of members are members*;
@@ -97,7 +97,10 @@ replacement is *false* for `V_κ` in the meta-theory (the image of
 fibre-wise form holds because an image inside `V_κ` of a member has
 cardinality below κ (the bridge, `isUniverse_vonNeumann`).  It is
 also exactly what the derivation needs: the closure laws of
-`Derive/Universe.lean` are all instances of it. -/
+`Derive/Universe.lean` are all instances of it.  Clause 6 is the
+definable twin of clause 5: it quantifies over `Form`s (first-order
+definable relations) instead of all meta-level relations, so a
+first-order model supplies it from its replacement scheme. -/
 def IsUniverse {V : Type u} (mem : V → V → Prop) (u : V) : Prop :=
   (∀ y z, mem y u → mem z y → mem z u) ∧
   (∀ y z, mem y u → (∀ w, mem w z → mem w y) → mem z u) ∧
@@ -105,7 +108,11 @@ def IsUniverse {V : Type u} (mem : V → V → Prop) (u : V) : Prop :=
   (∀ s, mem s u → ∃ q, mem q u ∧ ∀ z, mem z q ↔ ∃ w, mem w s ∧ mem z w) ∧
   (∀ a, mem a u → ∀ p : V → V → Prop,
     (∀ x, mem x a → ∃ y, mem y u ∧ p x y ∧ ∀ y', p x y' → y' = y) →
-    ∃ b, mem b u ∧ ∀ y, mem y b ↔ ∃ x, mem x a ∧ p x y)
+    ∃ b, mem b u ∧ ∀ y, mem y b ↔ ∃ x, mem x a ∧ p x y) ∧
+  (∀ (n : Nat) (φ : Form (n + 2)) (p : Fin n → V) (a : V), mem a u →
+    (∀ x, mem x a → ∃ y, mem y u ∧ Form.Realize mem (Form.cons2 x y p) φ ∧
+      ∀ y', Form.Realize mem (Form.cons2 x y' p) φ → y' = y) →
+    ∃ b, mem b u ∧ ∀ y, mem y b ↔ ∃ x, mem x a ∧ Form.Realize mem (Form.cons2 x y p) φ)
 
 /-- A model of set theory of exactly the strength the checker needs:
 membership, the six ZF⁻ axioms (extensionality, pairing, union, power

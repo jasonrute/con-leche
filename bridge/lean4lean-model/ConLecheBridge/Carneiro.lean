@@ -15,7 +15,7 @@ ConLeche's consistency proof is parametric in the `ConLeche.SetTheory`
 class (`ConLeche/SetTheory/Core.lean`): first-order ZF⁻ (extensionality,
 pairing, union, power set, regularity, the first-order replacement
 scheme as a meta-level scheme over relations) plus an ω-chain of
-Grothendieck universes (`ConLeche.IsUniverse`, five first-order closure
+Grothendieck universes (`ConLeche.IsUniverse`, first-order closure
 clauses).  This module proves, in Lean, that his hypothesis implies
 ours:
 
@@ -28,7 +28,7 @@ ours:
   inaccessibles `κ`, with `univChain n := V_ (κ n).ord` (Mathlib's
   von Neumann hierarchy).  The ZF⁻ fields are Mathlib's; the work is
   `isUniverse_vonNeumann`: `V_ κ` for `κ` inaccessible satisfies the
-  five closure clauses.  Clause 5 (fibre-wise replacement) is where
+  closure clauses.  Clause 5 (fibre-wise replacement) is where
   inaccessibility enters: the image of a member of `V_ κ.ord` under a
   functional relation with values in `V_ κ.ord` is a subset of
   `V_ κ.ord` of cardinality `< κ` (it is an image of a member, and
@@ -64,7 +64,7 @@ His consistency theorem is
 def OmegaInaccessibles : Prop :=
   ∃ κ : ℕ → Cardinal.{u}, StrictMono κ ∧ ∀ n, (κ n).IsInaccessible
 
-/-! ### `V_ κ` is a Grothendieck universe (the five first-order closure
+/-! ### `V_ κ` is a Grothendieck universe (the first-order closure
 clauses) for `κ` inaccessible -/
 
 variable {κ : Cardinal.{u}}
@@ -109,31 +109,16 @@ theorem card_lt_of_mem_vonNeumann (hκ : κ.IsInaccessible) {a : ZFSet.{u}}
   rw [card_vonNeumann] at h1
   exact h1.trans_lt (preBeth_lt_of_lt_ord hκ (mem_vonNeumann.mp ha))
 
-/-- **`V_ κ` is a Grothendieck universe** (ConLeche's five-clause
+/-- **`V_ κ` is a Grothendieck universe** (ConLeche's six-clause
 `IsUniverse`) **for every inaccessible `κ`**. -/
 theorem isUniverse_vonNeumann (hκ : κ.IsInaccessible) :
     ConLeche.IsUniverse (· ∈ ·) (V_ κ.ord) := by
   have hlim : IsSuccLimit κ.ord := isSuccLimit_ord hκ.aleph0_lt.le
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩
-  · -- transitivity
-    intro y z (hy : y ∈ V_ κ.ord) (hz : z ∈ y)
-    exact isTransitive_vonNeumann _ y hy hz
-  · -- subsets of members are members
-    intro y z (hy : y ∈ V_ κ.ord) hzy
-    exact mem_vonNeumann_of_subset (fun w hw => hzy w hw) hy
-  · -- power sets stay inside
-    intro y (hy : y ∈ V_ κ.ord)
-    refine ⟨powerset y, ?_, fun z hz => mem_powerset.mpr fun w hw => hz w hw⟩
-    show powerset y ∈ V_ κ.ord
-    rw [mem_vonNeumann, rank_powerset]
-    exact hlim.succ_lt (mem_vonNeumann.mp hy)
-  · -- unions stay inside
-    intro s (hs : s ∈ V_ κ.ord)
-    refine ⟨⋃₀ s, ?_, fun z => mem_sUnion⟩
-    show ⋃₀ s ∈ V_ κ.ord
-    rw [mem_vonNeumann]
-    exact (rank_sUnion_le s).trans_lt (mem_vonNeumann.mp hs)
-  · -- fibre-wise replacement
+  -- clause 5 (meta-level fibre-wise replacement), proved first so the
+  -- definable clause 6 is a direct instance of it
+  have c5 : ∀ a : ZFSet.{u}, a ∈ V_ κ.ord → ∀ p : ZFSet.{u} → ZFSet.{u} → Prop,
+      (∀ x, x ∈ a → ∃ y, y ∈ V_ κ.ord ∧ p x y ∧ ∀ y', p x y' → y' = y) →
+      ∃ b, b ∈ V_ κ.ord ∧ ∀ y, y ∈ b ↔ ∃ x, x ∈ a ∧ p x y := by
     intro a ha p hfun
     classical
     let f : ZFSet.{u} → ZFSet.{u} := fun z => if hz : z ∈ a then Classical.choose (hfun z hz) else ∅
@@ -161,6 +146,29 @@ theorem isUniverse_vonNeumann (hκ : κ.IsInaccessible) :
         refine ⟨x, hx, ?_⟩
         rw [hf x hx]
         exact ((Classical.choose_spec (hfun x hx)).2.2 y hxy).symm
+  refine ⟨?_, ?_, ?_, ?_, c5, ?_⟩
+  · -- transitivity
+    intro y z (hy : y ∈ V_ κ.ord) (hz : z ∈ y)
+    exact isTransitive_vonNeumann _ y hy hz
+  · -- subsets of members are members
+    intro y z (hy : y ∈ V_ κ.ord) hzy
+    exact mem_vonNeumann_of_subset (fun w hw => hzy w hw) hy
+  · -- power sets stay inside
+    intro y (hy : y ∈ V_ κ.ord)
+    refine ⟨powerset y, ?_, fun z hz => mem_powerset.mpr fun w hw => hz w hw⟩
+    show powerset y ∈ V_ κ.ord
+    rw [mem_vonNeumann, rank_powerset]
+    exact hlim.succ_lt (mem_vonNeumann.mp hy)
+  · -- unions stay inside
+    intro s (hs : s ∈ V_ κ.ord)
+    refine ⟨⋃₀ s, ?_, fun z => mem_sUnion⟩
+    show ⋃₀ s ∈ V_ κ.ord
+    rw [mem_vonNeumann]
+    exact (rank_sUnion_le s).trans_lt (mem_vonNeumann.mp hs)
+  · -- definable fibre-wise replacement: an instance of clause 5
+    intro n φ p a ha hfun
+    exact c5 a ha
+      (fun x y => ConLeche.Form.Realize (· ∈ ·) (ConLeche.Form.cons2 x y p) φ) hfun
 
 /-! ### The `ConLeche.SetTheory` instance on `ZFSet` -/
 
