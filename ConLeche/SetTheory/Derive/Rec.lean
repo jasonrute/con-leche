@@ -1144,6 +1144,16 @@ theorem natrecF_vsucc (z s : V) {n : V} (hn : n ∈ˢ (omega : V)) :
       (fun y hy => ((recGraph_func (kpair (vsucc n) y) hy).2 (vsucc n) v y hGkv hy).symm)
   rw [hvapp, hv, huapp]
 
+/-- Unfolding lemma (proved before `natrecF` is sealed). -/
+theorem natrecF_eq (z s n : V) : natrecF z s n = app (recGraph z s) n := rfl
+
+theorem recGraph_app_empty (z s : V) : app (recGraph z s) (empty : V) = z :=
+  natrecF_empty z s
+
+theorem recGraph_app_vsucc (z s : V) {n : V} (hn : n ∈ˢ (omega : V)) :
+    app (recGraph z s) (vsucc n) = app (app s n) (app (recGraph z s) n) :=
+  natrecF_vsucc z s hn
+
 attribute [irreducible] natrecF
 
 end ConLeche.SetTheory
