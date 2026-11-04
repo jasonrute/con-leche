@@ -254,7 +254,7 @@ theorem spineFit_nil_iff {ρ : Nat → V} {fs : List V} : SpineFit ρ [] fs ↔ 
 holes, `{∅} ∪ {vsucc m ∣ m ∈ S}` — no `m ∈ ω` beside the hole; its least
 fixed point is `ω` all the same). -/
 @[expose] noncomputable def natF (S : V) : V :=
-  sUnion (upair (upair empty empty) (image vsucc S))
+  sUnion (upair (upair empty empty) (vsuccImage S))
 
 /-- `Nat`'s constructors' fit: `zero` with no field, `succ` with one
 field in the family. -/
@@ -280,11 +280,11 @@ theorem mem_natF {S x : V} : x ∈ˢ natF S ↔ x = empty ∨ ∃ m, m ∈ˢ S �
   · rintro ⟨y, hy, hxy⟩
     rcases mem_upair.mp hy with rfl | rfl
     · rcases mem_upair.mp hxy with h | h <;> exact Or.inl h
-    · obtain ⟨m, hm, rfl⟩ := mem_image.mp hxy
+    · obtain ⟨m, hm, rfl⟩ := mem_vsuccImage.mp hxy
       exact Or.inr ⟨m, hm, rfl⟩
   · rintro (rfl | ⟨m, hm, rfl⟩)
     · exact ⟨_, mem_upair.mpr (Or.inl rfl), mem_upair.mpr (Or.inl rfl)⟩
-    · exact ⟨_, mem_upair.mpr (Or.inr rfl), mem_image.mpr ⟨m, hm, rfl⟩⟩
+    · exact ⟨_, mem_upair.mpr (Or.inr rfl), mem_vsuccImage.mpr ⟨m, hm, rfl⟩⟩
 
 /-- The von Neumann successor is injective. -/
 theorem vsucc_inj {m m' : V} (h : vsucc m = vsucc m') : m = m' := by
@@ -320,10 +320,12 @@ theorem natLfp_clause {acval : Name → (Name → Nat) → Term} {nm zn sn : Nam
       have hU : IsUniverse (Mem (V := V)) (tg 1) := tg_isUniverse (by decide)
       have h0 : (empty : V) ∈ˢ tg 1 := hU.empty_mem hS'
       refine (mem_strictU_pos (by decide)).mpr ⟨hU.sUnion_mem (hU.upair_mem hS'
-        (hU.upair_mem hS' h0 h0) (hU.image_mem hS' ?_)), fun he => ?_, fun hp => ?_⟩
-      · intro m hm
-        have hmU : m ∈ˢ (tg 1 : V) := hU.transitive hS' hm
-        exact hU.binUnion_mem hS' hmU (hU.sing_mem hS' hmU)
+        (hU.upair_mem hS' h0 h0) (by
+          unfold vsuccImage
+          refine hU.imageF_mem hS' (fun x hx y hy => ?_)
+          rw [realize_vsuccF.mp hy]
+          have hxU : x ∈ˢ (tg 1 : V) := hU.transitive hS' hx
+          exact hU.binUnion_mem hS' hxU (hU.sing_mem hS' hxU))), fun he => ?_, fun hp => ?_⟩
       · -- `∅` is a member, and the point's one member is not `∅`
         have h1 : (empty : V) ∈ˢ natF S := mem_natF.mpr (Or.inl rfl)
         rw [he] at h1
@@ -349,12 +351,13 @@ theorem natLfp_clause {acval : Name → (Name → Nat) → Term} {nm zn sn : Nam
       · exact vsucc_mem_omega hm)
     (fun _ S _ hS => by
       intro n hn
-      have hI : Inductive (sep (omega : V) fun x => x ∈ˢ S) := by
-        refine ⟨mem_sep.mpr ⟨empty_mem_omega, hS _ (mem_natF.mpr (Or.inl rfl))⟩,
+      have hI : Inductive (sepF (omega : V) memPF (fun _ => S)) := by
+        refine ⟨mem_sepF.mpr ⟨empty_mem_omega, realize_memPF.mpr (hS _ (mem_natF.mpr (Or.inl rfl)))⟩,
           fun m hm => ?_⟩
-        obtain ⟨hmo, hmS⟩ := mem_sep.mp hm
-        exact mem_sep.mpr ⟨vsucc_mem_omega hmo, hS _ (mem_natF.mpr (Or.inr ⟨m, hmS, rfl⟩))⟩
-      exact (mem_sep.mp (omega_subset_inductive hI n hn)).2)
+        obtain ⟨hmo, hmS⟩ := mem_sepF.mp hm
+        exact mem_sepF.mpr ⟨vsucc_mem_omega hmo,
+          realize_memPF.mpr (hS _ (mem_natF.mpr (Or.inr ⟨m, realize_memPF.mp hmS, rfl⟩)))⟩
+      exact (realize_memPF.mp ((mem_sepF.mp (omega_subset_inductive hI n hn)).2)))
     hleaf
     (fun ρp S j fs => by
       unfold natFits natFlds

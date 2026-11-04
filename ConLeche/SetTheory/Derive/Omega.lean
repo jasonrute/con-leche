@@ -126,6 +126,26 @@ theorem vnat_inj {k l : Nat} (h : (vnat k : V) = vnat l) : k = l := by
   · exact heq
   · exact absurd (h ▸ vnat_mem_vnat_of_lt (V := V) hgt) (not_mem_self _)
 
+
+/-- Membership in a numeral is exactly the smaller numerals (proved by
+meta-level induction on the name `k`, no `mem_omega_iff` needed). -/
+theorem mem_vnat_iff {k : Nat} {a : V} :
+    a ∈ˢ (vnat k : V) ↔ ∃ n, n < k ∧ a = vnat n := by
+  induction k with
+  | zero =>
+    exact ⟨fun h => absurd h (not_mem_empty _),
+      fun ⟨n, hn, _⟩ => absurd hn (Nat.not_lt_zero n)⟩
+  | succ k ih =>
+    rw [show (vnat (k + 1) : V) = vsucc (vnat k) from rfl, mem_vsucc, ih]
+    constructor
+    · rintro (⟨n, hn, rfl⟩ | rfl)
+      · exact ⟨n, Nat.lt_succ_of_lt hn, rfl⟩
+      · exact ⟨k, Nat.lt_succ_self k, rfl⟩
+    · rintro ⟨n, hn, rfl⟩
+      rcases Nat.lt_succ_iff_lt_or_eq.mp hn with h | rfl
+      · exact Or.inl ⟨n, h, rfl⟩
+      · exact Or.inr rfl
+
 theorem omega_subset_univChain_one : (omega : V) ⊆ˢ univChain 1 := sepF_subset
 
 /-- `ω` is a member of any universe having the inductive universe

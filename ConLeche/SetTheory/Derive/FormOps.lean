@@ -307,4 +307,47 @@ theorem realize_tyF {U p X : V} :
     realize_strictF, Form.snoc_mk]
   simp
 
+/-- `z ∈ b` as a formula (variables `0 ↦ b`, `1 ↦ z`): the
+membership atom with a parameter. -/
+def memPF : Form 2 := .mem ⟨1, by omega⟩ ⟨0, by omega⟩
+
+theorem realize_memPF {b z : V} :
+    Form.Realize Mem (Form.snoc (fun _ => b) z) memPF ↔ z ∈ˢ b := by
+  simp only [memPF, Form.realize_mem, Form.snoc_mk]
+  simp
+
+/-- `y = vsucc x` as a formula (variables `0 ↦ x`, `1 ↦ y`), by
+extensionality: `∀ w, w ∈ y ↔ w ∈ x ∨ w = x`. -/
+def vsuccEqMap : Fin 2 → Fin 3 :=
+  fun i => if i.val = 0 then ⟨2, by omega⟩ else ⟨0, by omega⟩
+
+def vsuccF : Form 2 :=
+  .all (.iff (.mem ⟨2, by omega⟩ ⟨1, by omega⟩)
+    (.or (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+      (Form.relabel vsuccEqMap equalF)))
+
+theorem realize_vsuccF {x y : V} :
+    Form.Realize Mem (Form.cons2 x y Form.nil) vsuccF ↔ y = vsucc x := by
+  have h : Form.cons2 x y Form.nil = Form.snoc (fun _ => x) y := by
+    funext ⟨k, hk⟩
+    have hk : k = 0 ∨ k = 1 := by omega
+    rcases hk with rfl | rfl <;> rfl
+  rw [h]
+  have hg : ∀ w : V, (Form.snoc (Form.snoc (fun _ => x) y) w) ∘ vsuccEqMap =
+      Form.snoc (fun _ => w) x := by
+    intro w
+    funext ⟨k, hk⟩
+    have hk : k = 0 ∨ k = 1 := by omega
+    rcases hk with rfl | rfl <;> rfl
+  have hEq : ∀ w x : V, (w = x) ↔ ∀ w', w' ∈ˢ w ↔ w' ∈ˢ x :=
+    fun w x => ⟨fun h w' => by rw [h], fun h => SetTheory.ext h⟩
+  have hVs : y = vsucc x ↔ ∀ w, w ∈ˢ y ↔ w ∈ˢ x ∨ w = x :=
+    ⟨fun h w => by rw [h, mem_vsucc],
+      fun h => SetTheory.ext fun w => (h w).trans mem_vsucc.symm⟩
+  simp only [vsuccF, Form.realize_all, Form.realize_iff, Form.realize_or,
+    Form.realize_mem, Form.realize_relabel, hg, equalF, Form.realize_all,
+    Form.realize_iff, Form.snoc_mk]
+  simp
+  simp only [← hEq, hVs]
+
 end ConLeche.SetTheory

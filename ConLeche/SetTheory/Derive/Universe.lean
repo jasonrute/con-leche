@@ -63,6 +63,27 @@ theorem _root_.ConLeche.IsUniverse.image_mem {A : V} {F : V → V}
   rw [heq]
   exact hb
 
+/-- Definable version of `image_mem`: the `imageF` of a member under a
+functional definable relation with member values is a member (the
+fibre-replacement clause applied to the realized formula). -/
+theorem _root_.ConLeche.IsUniverse.imageF_mem {A : V} {n : Nat} {ψ : Form (n + 2)}
+    {p : Fin n → V} {hfun : ∀ x, x ∈ˢ A → ∃ y, Form.Realize Mem (Form.cons2 x y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ → y' = y}
+    (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → ∀ y, Form.Realize Mem (Form.cons2 x y p) ψ → y ∈ˢ U) :
+    imageF ψ p A hfun ∈ˢ U := by
+  have hfunU : ∀ x, x ∈ˢ A → ∃ y, y ∈ˢ U ∧ Form.Realize Mem (Form.cons2 x y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ → y' = y := by
+    intro x hx
+    obtain ⟨y, hyp, huniq⟩ := hfun x hx
+    exact ⟨y, hval x hx y hyp, hyp, huniq⟩
+  obtain ⟨b, hb, hspec⟩ := hU.2.2.2.2 A hA
+    (fun x y => Form.Realize Mem (Form.cons2 x y p) ψ) hfunU
+  have heq : imageF ψ p A hfun = b := ext fun z => by
+    rw [mem_imageF hfun, hspec]
+  rw [heq]
+  exact hb
+
 theorem _root_.ConLeche.IsUniverse.empty_mem {y : V} (hy : y ∈ˢ U) : (empty : V) ∈ˢ U :=
   hU.mem_of_subset_mem hy (empty_subset y)
 

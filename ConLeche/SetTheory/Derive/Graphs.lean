@@ -72,6 +72,21 @@ theorem mem_appSep {f a y : V} :
       y ∈ˢ sUnion (sUnion f) ∧ kpair a y ∈ˢ f := by
   rw [mem_sepF, realize_kpairMemF]
 
+/-- The definable image under `vsucc`: `{vsucc x | x ∈ˢ S}`. -/
+noncomputable def vsuccImage (S : V) : V :=
+  imageF vsuccF Form.nil S
+    (fun x _ => ⟨vsucc x, realize_vsuccF.mpr rfl, fun _ hy => realize_vsuccF.mp hy⟩)
+
+theorem mem_vsuccImage {S z : V} :
+    z ∈ˢ vsuccImage S ↔ ∃ x, x ∈ˢ S ∧ z = vsucc x := by
+  unfold vsuccImage
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    exact ⟨x, hx, realize_vsuccF.mp h⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, realize_vsuccF.mpr rfl⟩
+
 theorem app_pt (a : V) : app (pt : V) a = pt := by
   unfold app; exact ite_eq_left rfl
 
