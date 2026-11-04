@@ -5851,18 +5851,18 @@
     33  container is empty (`LfpClause.injNePt`).
     34  -/
 
-== ConLeche/SetModel/Access.lean#L530-L540
-   530  /-- **THE NESTED CASE: the least tuple is accessible in its parameter.**
-   531  If the joint operator `Θ` (parameter components first, then its own) is
-   532  `A`-accessible and maps the space into itself, then `X ↦ lfp_Y Θ(X, Y)`
-   533  is `accPaths A`-accessible — no key, no wide operator, no container
-   534  presentation.  (W) of each section and its monotonicity come from
-   535  `closed_of_acc` / `AccTuple.monoTuple`. -/
-   536  theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A ∈ˢ (tg w : V))
-   537      (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
-   538        InTupleSpace w kY IsY (Θ (catT kX X Y)))
-   539      (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :
-   540      AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths A) := by
+== ConLeche/SetModel/Access.lean#L551-L561
+   551  /-- **THE NESTED CASE: the least tuple is accessible in its parameter.**
+   552  If the joint operator `Θ` (parameter components first, then its own) is
+   553  `A`-accessible and maps the space into itself, then `X ↦ lfp_Y Θ(X, Y)`
+   554  is `accPaths A`-accessible — no key, no wide operator, no container
+   555  presentation.  (W) of each section and its monotonicity come from
+   556  `closed_of_acc` / `AccTuple.monoTuple`. -/
+   557  theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A ∈ˢ (tg w : V))
+   558      (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
+   559        InTupleSpace w kY IsY (Θ (catT kX X Y)))
+   560      (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :
+   561      AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths A) := by
 
 == ConLeche/Semantics/Inductives/HoleMono.lean#L17-L23
     17  | `nestPos` case | lemma |
