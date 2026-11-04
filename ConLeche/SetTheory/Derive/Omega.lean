@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.SetTheory.Derive.Universe
+public import ConLeche.SetTheory.Derive.FormOps
 
 @[expose] public section
 
@@ -33,20 +33,6 @@ universe u
 
 variable {V : Type u} [SetTheory V]
 
-/-- The von Neumann successor `n ∪ {n}`. -/
-noncomputable def vsucc (n : V) : V := binUnion n (sing n)
-
-theorem mem_vsucc {z n : V} : z ∈ˢ vsucc n ↔ z ∈ˢ n ∨ z = n := by
-  rw [vsucc, mem_binUnion, mem_sing]
-
-theorem self_mem_vsucc (n : V) : n ∈ˢ vsucc n := mem_vsucc.mpr (Or.inr rfl)
-
-theorem vsucc_ne_empty (n : V) : vsucc n ≠ empty :=
-  ne_empty_of_mem (self_mem_vsucc n)
-
-/-- An inductive set: contains `∅`, closed under the successor. -/
-def Inductive (I : V) : Prop :=
-  (empty : V) ∈ˢ I ∧ ∀ n, n ∈ˢ I → vsucc n ∈ˢ I
 
 /-- An inhabited Grothendieck universe is an inductive set. -/
 theorem _root_.ConLeche.IsUniverse.inductive_self {U y : V}
@@ -58,12 +44,13 @@ theorem univChain_one_inductive : Inductive (univChain 1 : V) :=
   (univChain_univ 1).inductive_self (univChain_mem 0)
 
 /-- The finite ordinals: the members of every inductive set, separated
-from the inductive universe `univChain 1`. -/
+from the inductive universe `univChain 1` by the *definable* formula
+`omegaF` (so first-order replacement applies to it). -/
 noncomputable def omega : V :=
-  sep (univChain 1) (fun n => ∀ I : V, Inductive I → n ∈ˢ I)
+  sepF (univChain 1) omegaF Form.nil
 
 theorem mem_omega {n : V} : n ∈ˢ (omega : V) ↔ ∀ I : V, Inductive I → n ∈ˢ I := by
-  rw [omega, mem_sep]
+  rw [omega, mem_sepF, realize_omegaF]
   exact ⟨fun h => h.2, fun h => ⟨h _ univChain_one_inductive, h⟩⟩
 
 theorem omega_subset_inductive {I : V} (hI : Inductive I) : (omega : V) ⊆ˢ I :=
@@ -118,7 +105,7 @@ theorem vnat_inj {k l : Nat} (h : (vnat k : V) = vnat l) : k = l := by
   · exact heq
   · exact absurd (h ▸ vnat_mem_vnat_of_lt (V := V) hgt) (not_mem_self _)
 
-theorem omega_subset_univChain_one : (omega : V) ⊆ˢ univChain 1 := sep_subset
+theorem omega_subset_univChain_one : (omega : V) ⊆ˢ univChain 1 := sepF_subset
 
 /-- `ω` is a member of any universe having the inductive universe
 `univChain 1` as a member. -/

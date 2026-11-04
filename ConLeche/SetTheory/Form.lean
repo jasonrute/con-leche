@@ -174,6 +174,30 @@ theorem realize_relabel {V : Type u} {mem : V → V → Prop} {m : Nat} (φ : Fo
     exact forall_congr' fun x => by
       rw [iha (liftRelabel f) (snoc v x), snoc_comp_liftRelabel]
 
+/-- The empty parameter assignment. -/
+def nil {V : Type u} : Fin 0 → V := fun i => i.elim0
+
+@[simp] theorem snoc_nil {V : Type u} (x : V) :
+    snoc (nil : Fin 0 → V) x = fun _ => x := by
+  funext i
+  simp [snoc]
+
+@[simp] theorem snoc_castSucc {V : Type u} {n : Nat} (v : Fin n → V) (x : V) (i : Fin n) :
+    snoc v x (Fin.castSucc i) = v i := by
+  show (if h : i.val < n then v ⟨i.val, h⟩ else x) = v i
+  rw [dite_eq_left i.isLt]
+
+@[simp] theorem snoc_last {V : Type u} {n : Nat} (v : Fin n → V) (x : V) :
+    snoc v x (Fin.last n) = x := by
+  show (if h : n < n then v ⟨n, h⟩ else x) = x
+  rw [dite_eq_right (Nat.lt_irrefl n)]
+
+/-- Evaluation of `snoc` at a literal index (this is `rfl`; stated as a
+simp lemma so that `Realize` proofs reduce ground de Bruijn indices). -/
+@[simp] theorem snoc_mk {V : Type u} {n : Nat} (v : Fin n → V) (x : V) {k : Nat}
+    {hk : k < n + 1} :
+    snoc v x ⟨k, hk⟩ = if h : k < n then v ⟨k, h⟩ else x := rfl
+
 end Form
 
 end ConLeche
