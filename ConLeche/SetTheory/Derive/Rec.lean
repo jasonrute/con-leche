@@ -336,26 +336,41 @@ def attemptStepF : Form 6 :=
     (.all (.imp (Form.relabel stepMMap kpairMemF)
       (.ex (.and (.ex attemptStepV) (.ex attemptStepW))))))
 
+/-- The body of an attempt at `n`, with the attempt `F` free
+(variables `0 → e`, `1 → z`, `2 → s`, `3 → pt`, `4 → n`,
+`5 → F`; then `6 → c` / `6 → m`, `7 → u`, `8 → v`,
+`9 → ee` / `w`). -/
+def attemptBodyF : Form 6 :=
+  .and (Form.relabel attFMap funcF)
+    (.and (Form.relabel attDMap domVSuccF)
+      (.and attemptBaseF attemptStepF))
+
 /-- An *attempt* at `n`: a single-valued pair relation `F` with domain
 `vsucc n`, base pair `kpair e z`, and step values along
 `app (app s m) u`.  Variables `0 → e`, `1 → z`, `2 → s`, `3 → pt`,
-`4 → n`; bound `5 → F`, then `6 → c` / `6 → m`, `7 → u`, `8 → v`,
-`9 → ee` / `w`. -/
-def attemptF : Form 5 :=
-  .ex (.and (Form.relabel attFMap funcF)
-    (.and (Form.relabel attDMap domVSuccF)
-      (.and attemptBaseF attemptStepF)))
+`4 → n`; bound `5 → F`. -/
+def attemptF : Form 5 := .ex attemptBodyF
 
-theorem realize_attemptF {e z s n : V} :
+/-- The `Prop`-level reading of `attemptBodyF`, flattened, with base
+parameter `e`. -/
+def IsAttemptE (e z s n f : V) : Prop :=
+  (∀ p, p ∈ˢ f → (∃ a b, p = kpair a b) ∧
+      ∀ a b b', kpair a b ∈ˢ f → kpair a b' ∈ˢ f → b = b') ∧
+    (∀ x, (x ∈ˢ n ∨ x = n) ↔ ∃ y, kpair x y ∈ˢ f) ∧
+    (kpair e z ∈ˢ f) ∧
+    (∀ m, m ∈ˢ n → ∀ u, kpair m u ∈ˢ f →
+      ∃ v, kpair (vsucc m) v ∈ˢ f ∧ v = app (app s m) u)
+
+/-- `f` is an attempt at `n` for base value `z` and step `s`: the
+`Prop`-level reading of `attemptF` (with `e = empty`), flattened. -/
+def IsAttempt (z s n f : V) : Prop := IsAttemptE (empty : V) z s n f
+
+
+theorem realize_attemptBodyF {e z s n f : V} :
     Form.Realize Mem
-        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) attemptF ↔
-      ∃ f, (∀ p, p ∈ˢ f → (∃ a b, p = kpair a b) ∧
-          ∀ a b b', kpair a b ∈ˢ f → kpair a b' ∈ˢ f → b = b') ∧
-        (∀ x, (x ∈ˢ n ∨ x = n) ↔ ∃ y, kpair x y ∈ˢ f) ∧
-        (∃ c, c = kpair e z ∧ kpair e z ∈ˢ f) ∧
-        (∀ m, m ∈ˢ n → ∀ u, kpair m u ∈ˢ f →
-          ∃ v, (∃ ee, ee = vsucc m ∧ kpair ee v ∈ˢ f) ∧
-            (∃ w, w = app s m ∧ v = app w u)) := by
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) f)
+          attemptBodyF ↔
+      IsAttemptE e z s n f := by
   have hF : ∀ f : V,
       (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) f) ∘ attFMap = (fun _ => f : Fin 1 → V) := by
     intro f
@@ -413,7 +428,7 @@ theorem realize_attemptF {e z s n : V} :
     funext ⟨k, hk⟩
     have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
     rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
-  simp only [attemptF, attemptBaseF, attemptStepF, attemptStepV, attemptStepW,
+  simp only [IsAttemptE, attemptBodyF, attemptBaseF, attemptStepF, attemptStepV, attemptStepW,
     Form.realize_ex, Form.realize_and, Form.realize_all, Form.realize_imp,
     Form.realize_mem, Form.realize_relabel, hF, hD, hBK, hBM, hSM, hSV, hSK, hSW1, hSW2,
     realize_funcF, realize_domVSuccF, realize_kpairEqF, realize_kpairMemF,
@@ -464,34 +479,139 @@ theorem vsucc_not_mem_of_mem_omega {n : V} (hn : n ∈ˢ (omega : V)) :
   exact not_mem_self n
     (omega_member_transitive hn (vsucc n) h n ((mem_vsucc (z := n) (n := n)).mpr (Or.inr rfl)))
 
-/-! ## Attempts, existence -/
 
-/-- `f` is an attempt at `n` for base value `z` and step `s`: the
-`Prop`-level reading of `attemptF` (with `e = empty`), flattened. -/
-def IsAttempt (z s n f : V) : Prop :=
-  (∀ p, p ∈ˢ f → (∃ a b, p = kpair a b) ∧
-      ∀ a b b', kpair a b ∈ˢ f → kpair a b' ∈ˢ f → b = b') ∧
-    (∀ x, (x ∈ˢ n ∨ x = n) ↔ ∃ y, kpair x y ∈ˢ f) ∧
-    (kpair (empty : V) z ∈ˢ f) ∧
-    (∀ m, m ∈ˢ n → ∀ u, kpair m u ∈ˢ f →
-      ∃ v, kpair (vsucc m) v ∈ˢ f ∧ v = app (app s m) u)
+/-! ## Ordinal helpers on `ω` (definable inductions) -/
+
+/-- `x = e ∨ e ∈ˢ x` (variables `0 → e`, bound `1 → x`). -/
+def hasEmptyF : Form 2 :=
+  .or (.equal ⟨1, by omega⟩ ⟨0, by omega⟩)
+    (.mem ⟨0, by omega⟩ ⟨1, by omega⟩)
+
+theorem realize_hasEmptyF {e x : V} :
+    Form.Realize Mem (Form.snoc (fun _ => e) x) hasEmptyF ↔ (x = e ∨ e ∈ˢ x) := by
+  simp only [hasEmptyF, Form.realize_or, Form.realize_equal, Form.realize_mem, Form.snoc_mk]
+  simp
+
+/-- Every member of `ω` is `∅` or contains it. -/
+theorem mem_omega_eq_empty_or {n : V} (hn : n ∈ˢ (omega : V)) :
+    n = (empty : V) ∨ (empty : V) ∈ˢ n := by
+  have h := omega_induction (p := fun _ => (empty : V)) (φ := hasEmptyF)
+    (by rw [realize_hasEmptyF]; exact Or.inl rfl)
+    (fun x _ hx => by
+      rw [realize_hasEmptyF] at hx
+      rw [realize_hasEmptyF]
+      rcases hx with h | h
+      · exact Or.inr ((mem_vsucc (z := (empty : V)) (n := x)).mpr (Or.inr h.symm))
+      · exact Or.inr ((mem_vsucc (z := (empty : V)) (n := x)).mpr (Or.inl h)))
+    hn
+  exact realize_hasEmptyF.mp h
+
+/-- `∅ ∈ˢ vsucc n` for `n ∈ˢ ω`. -/
+theorem empty_mem_vsucc_of_mem_omega {n : V} (hn : n ∈ˢ (omega : V)) :
+    (empty : V) ∈ˢ vsucc n :=
+  (mem_vsucc (z := (empty : V)) (n := n)).mpr
+    (Or.elim (mem_omega_eq_empty_or hn) (fun h => Or.inr h.symm) (fun h => Or.inl h))
+
+/-- Variable map `Fin 2 → Fin 3`, `0 → 2`, `1 → 1`
+(reads `(e, m)` as `vsuccEqF`'s `(e, m)` out of `(n, m, e)`). -/
+def vleqMap : Fin 2 → Fin 3 := fun i =>
+  match i.val with
+  | 0 => ⟨2, by omega⟩
+  | _ => ⟨1, by omega⟩
+
+/-- `∀ m ∈ˢ n, ∃ e, e = vsucc m ∧ (e ∈ˢ n ∨ e = n)`
+(bound `0 → n`). -/
+def vsuccLeF : Form 1 :=
+  .all (.imp (.mem ⟨1, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (Form.relabel vleqMap vsuccEqF)
+      (.or (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+        (.equal ⟨2, by omega⟩ ⟨0, by omega⟩)))))
+
+theorem realize_vsuccLeF {n : V} :
+    Form.Realize Mem (fun _ => n) vsuccLeF ↔
+      ∀ m, m ∈ˢ n → ∃ e, e = vsucc m ∧ (e ∈ˢ n ∨ e = n) := by
+  have hV : ∀ m e : V,
+      (Form.snoc (Form.snoc (fun _ => n) m) e) ∘ vleqMap = Form.snoc (fun _ => e) m := by
+    intro m e
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [vsuccLeF, Form.realize_all, Form.realize_imp, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, Form.realize_relabel, hV, realize_vsuccEqF,
+    Form.realize_or, Form.realize_equal, Form.snoc_mk]
+  simp
+
+/-- For `n ∈ˢ ω`, `m ∈ˢ n` implies `vsucc m ∈ˢ vsucc n`. -/
+theorem vsucc_mem_vsucc_of_mem_omega {m n : V} (hn : n ∈ˢ (omega : V))
+    (hm : m ∈ˢ n) : vsucc m ∈ˢ vsucc n := by
+  have h := omega_induction (p := Form.nil (V := V)) (φ := vsuccLeF)
+    (by
+      rw [Form.snoc_nil, realize_vsuccLeF]
+      intro m hm
+      exact absurd hm (not_mem_empty m))
+    (fun x _ hx => by
+      rw [Form.snoc_nil, realize_vsuccLeF] at hx
+      rw [Form.snoc_nil, realize_vsuccLeF]
+      intro m hm
+      rcases (mem_vsucc (n := x)).mp hm with hm | hmx
+      · obtain ⟨e, he, h⟩ := hx m hm
+        exact ⟨e, he, Or.inl ((mem_vsucc (z := e) (n := x)).mpr h)⟩
+      · rw [hmx]
+        exact ⟨vsucc x, rfl, Or.inr rfl⟩)
+    hn
+  rw [Form.snoc_nil] at h
+  obtain ⟨e, he, h⟩ := realize_vsuccLeF.mp h m hm
+  rw [← he]
+  exact (mem_vsucc (z := e) (n := n)).mpr h
+
+/-- `∀ m ∈ˢ w, n ∈ˢ m ∨ n = m ∨ m ∈ˢ n` (variables `0 → w`,
+bound `1 → n`, `2 → m`). -/
+def triF : Form 2 :=
+  .all (.imp (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+    (.or (.mem ⟨1, by omega⟩ ⟨2, by omega⟩)
+      (.or (.equal ⟨1, by omega⟩ ⟨2, by omega⟩)
+        (.mem ⟨2, by omega⟩ ⟨1, by omega⟩))))
+
+theorem realize_triF {w n : V} :
+    Form.Realize Mem (Form.snoc (fun _ => w) n) triF ↔
+      ∀ m, m ∈ˢ w → (n ∈ˢ m ∨ n = m ∨ m ∈ˢ n) := by
+  simp only [triF, Form.realize_all, Form.realize_imp, Form.realize_mem,
+    Form.realize_or, Form.realize_equal, Form.snoc_mk]
+  simp
+
+/-- Trichotomy for members of `ω`. -/
+theorem omega_trichotomy {n m : V} (hn : n ∈ˢ (omega : V))
+    (hm : m ∈ˢ (omega : V)) : n ∈ˢ m ∨ n = m ∨ m ∈ˢ n := by
+  have h := omega_induction (p := fun _ => (omega : V)) (φ := triF)
+    (by
+      rw [realize_triF]
+      intro m hm
+      rcases mem_omega_eq_empty_or hm with h | h
+      · exact Or.inr (Or.inl h.symm)
+      · exact Or.inl h)
+    (fun x hx hIH => by
+      rw [realize_triF] at hIH
+      rw [realize_triF]
+      intro m hm
+      rcases hIH m hm with h | h | h
+      · have hv := vsucc_mem_vsucc_of_mem_omega hm h
+        rcases (mem_vsucc (z := vsucc x) (n := m)).mp hv with hv | hv
+        · exact Or.inl hv
+        · exact Or.inr (Or.inl hv)
+      · exact Or.inr (Or.inr (by rw [← h]; exact self_mem_vsucc x))
+      · exact Or.inr (Or.inr ((mem_vsucc (z := m) (n := x)).mpr (Or.inl h))))
+    hn
+  exact realize_triF.mp h m hm
+
+/-! ## Attempts, existence -/
 
 theorem realize_attemptF' {z s n : V} :
     Form.Realize Mem
-        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => empty) z) s) pt) n) attemptF ↔
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => (empty : V)) z) s) pt) n) attemptF ↔
       ∃ f, IsAttempt z s n f := by
-  rw [realize_attemptF]
-  constructor
-  · rintro ⟨f, h1, h2, ⟨c, hc, hcm⟩, h4⟩
-    refine ⟨f, h1, h2, hcm, fun m hm u hu => ?_⟩
-    obtain ⟨v, ⟨ee, hee, hkv⟩, ⟨w, hw, hv⟩⟩ := h4 m hm u hu
-    rw [hee] at hkv
-    rw [hw] at hv
-    exact ⟨v, hkv, hv⟩
-  · rintro ⟨f, h1, h2, hbase, h4⟩
-    refine ⟨f, h1, h2, ⟨kpair (empty : V) z, rfl, hbase⟩, fun m hm u hu => ?_⟩
-    obtain ⟨v, hkv, hv⟩ := h4 m hm u hu
-    exact ⟨v, ⟨vsucc m, rfl, hkv⟩, ⟨app s m, rfl, hv⟩⟩
+  rw [attemptF, Form.realize_ex]
+  exact ⟨fun ⟨f, h⟩ => ⟨f, realize_attemptBodyF.mp h⟩,
+    fun ⟨f, h⟩ => ⟨f, realize_attemptBodyF.mpr h⟩⟩
 
 theorem attempt_empty (z s : V) :
     IsAttempt z s (empty : V) (sing (kpair (empty : V) z)) := by
@@ -615,5 +735,199 @@ theorem exists_attempt (z s : V) {n : V} (hn : n ∈ˢ (omega : V)) :
     hn
   rw [hnil] at h
   exact realize_attemptF'.mp h
+
+
+/-! ## Restriction of attempts and uniqueness -/
+
+/-- Variable map `Fin 3 → Fin 4`, `0 → 1`, `1 → 2`, `2 → 3`
+(reads `(p, x, y)` as `kpairEqF`'s `(z, x, y)` out of `(a, p, x, y)`). -/
+def rkMap : Fin 3 → Fin 4 := fun i =>
+  match i.val with
+  | 0 => ⟨1, by omega⟩
+  | 1 => ⟨2, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- `p = kpair x y ∧ x ∈ˢ a` (variables `0 → a`, `1 → p`;
+bound `2 → x`, `3 → y`). -/
+def restrictF : Form 2 :=
+  .ex (.ex (.and (Form.relabel rkMap kpairEqF)
+    (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)))
+
+theorem realize_restrictF {a p : V} :
+    Form.Realize Mem (Form.snoc (fun _ => a) p) restrictF ↔
+      ∃ x y, p = kpair x y ∧ x ∈ˢ a := by
+  have hR : ∀ x y : V,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ => a) p) x) y) ∘ rkMap =
+        Form.snoc (Form.snoc (fun _ => p) x) y := by
+    intro x y
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [restrictF, Form.realize_ex, Form.realize_and, Form.realize_relabel, hR,
+    realize_kpairEqF, Form.realize_mem, Form.snoc_mk]
+  simp
+
+/-- Restricting an attempt at `vsucc n` to pairs with first component
+in `vsucc n` gives an attempt at `n`. -/
+theorem attempt_restrict {z s n f : V} (hn : n ∈ˢ (omega : V))
+    (hf : IsAttempt z s (vsucc n) f) :
+    IsAttempt z s n (sepF f restrictF (fun _ => vsucc n)) := by
+  obtain ⟨hfunc, hdom, hbase, hstep⟩ := hf
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro p hp
+    rw [mem_sepF] at hp
+    exact ⟨(hfunc p hp.1).1, fun a b b' h1 h2 =>
+      (hfunc (kpair a b) (mem_sepF.mp h1).1).2 a b b' (mem_sepF.mp h1).1 (mem_sepF.mp h2).1⟩
+  · intro x
+    constructor
+    · rintro (hx | hxn)
+      · obtain ⟨y, hy⟩ := (hdom x).mp (Or.inl ((mem_vsucc (z := x) (n := n)).mpr (Or.inl hx)))
+        exact ⟨y, mem_sepF.mpr ⟨hy, realize_restrictF.mpr ⟨x, y, rfl, (mem_vsucc (z := x) (n := n)).mpr (Or.inl hx)⟩⟩⟩
+      · rw [hxn]
+        obtain ⟨y, hy⟩ := (hdom n).mp (Or.inl ((mem_vsucc (z := n) (n := n)).mpr (Or.inr rfl)))
+        exact ⟨y, mem_sepF.mpr ⟨hy, realize_restrictF.mpr ⟨n, y, rfl, (mem_vsucc (z := n) (n := n)).mpr (Or.inr rfl)⟩⟩⟩
+    · rintro ⟨y, hy⟩
+      rw [mem_sepF] at hy
+      obtain ⟨a, b, hab, ha⟩ := realize_restrictF.mp hy.2
+      have hxa : x = a := (kpair_inj hab).1
+      rw [← hxa] at ha
+      exact (mem_vsucc (z := x) (n := n)).mp ha
+  · exact mem_sepF.mpr ⟨hbase, realize_restrictF.mpr ⟨empty, z, rfl, empty_mem_vsucc_of_mem_omega hn⟩⟩
+  · intro m hm u hu
+    rw [mem_sepF] at hu
+    obtain ⟨v, hkv, hv⟩ := hstep m ((mem_vsucc (z := m) (n := n)).mpr (Or.inl hm)) u hu.1
+    exact ⟨v, mem_sepF.mpr ⟨hkv, realize_restrictF.mpr ⟨vsucc m, v, rfl, vsucc_mem_vsucc_of_mem_omega hn hm⟩⟩, hv⟩
+
+/-- Variable map `Fin 6 → Fin 7`, shifts the attempt variable
+`5 → 6` (leaves `0..4`). -/
+def attGMap : Fin 6 → Fin 7 := fun i =>
+  if h : i.val = 5 then ⟨6, by omega⟩ else ⟨i.val, by omega⟩
+
+/-- Uniqueness of attempts at `n` (variables `0 → e`, `1 → z`,
+`2 → s`, `3 → pt`, `4 → n`; bound `5 → f`, `6 → g`). -/
+def uniqF : Form 5 :=
+  .all (.all (.imp (Form.relabel Fin.castSucc attemptBodyF)
+    (.imp (Form.relabel attGMap attemptBodyF)
+      (.equal ⟨5, by omega⟩ ⟨6, by omega⟩))))
+
+theorem realize_uniqF {e z s n : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) uniqF ↔
+      ∀ f g, IsAttemptE e z s n f → IsAttemptE e z s n g → f = g := by
+  have hF : ∀ f g : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) f) g)
+          ∘ (Fin.castSucc : Fin 6 → Fin 7) =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) f := by
+    intro f g
+    funext ⟨k, hk⟩
+    have hk6 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+    rcases hk6 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  have hG : ∀ f g : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) f) g)
+          ∘ attGMap =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) g := by
+    intro f g
+    funext ⟨k, hk⟩
+    have hk6 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+    rcases hk6 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  simp only [uniqF, Form.realize_all, Form.realize_imp, Form.realize_relabel, hF, hG,
+    realize_attemptBodyF, Form.realize_equal, Form.snoc_mk]
+  simp
+
+/-- **Uniqueness of attempts**: two attempts at the same `n ∈ˢ ω`
+coincide, by definable induction on `ω`. -/
+theorem attempt_unique {z s n f g : V} (hn : n ∈ˢ (omega : V))
+    (hf : IsAttempt z s n f) (hg : IsAttempt z s n g) : f = g := by
+  have h := omega_induction
+    (p := Form.snoc (Form.snoc (Form.snoc (fun _ => (empty : V)) z) s) pt)
+    (φ := uniqF)
+    (by
+      rw [realize_uniqF]
+      intro f g hf hg
+      have hfeq : ∀ f : V, IsAttempt z s (empty : V) f →
+          f = sing (kpair (empty : V) z) := by
+        intro f hf
+        obtain ⟨hfunc, hdom, hbase, -⟩ := hf
+        apply SetTheory.ext
+        intro p
+        constructor
+        · intro hp
+          obtain ⟨⟨a, b, hab⟩, huniq⟩ := hfunc p hp
+          rw [hab] at hp
+          have ha : a = (empty : V) := by
+            rcases (hdom a).mpr ⟨b, hp⟩ with h | h
+            · exact absurd h (not_mem_empty a)
+            · exact h
+          rw [ha] at hp
+          have hbz : b = z := huniq empty b z hp hbase
+          rw [hab, ha, hbz]
+          exact mem_sing.mpr rfl
+        · intro hp
+          rw [mem_sing] at hp
+          rw [hp]
+          exact hbase
+      rw [hfeq f hf, hfeq g hg])
+    (fun x hx hIH => by
+      rw [realize_uniqF] at hIH
+      rw [realize_uniqF]
+      intro f g hf hg
+      have hsub : ∀ f g : V, IsAttempt z s (vsucc x) f → IsAttempt z s (vsucc x) g →
+          f ⊆ˢ g := by
+        intro f g hf hg
+        have hrestr : sepF f restrictF (fun _ => vsucc x) = sepF g restrictF (fun _ => vsucc x) :=
+          hIH _ _ (attempt_restrict hx hf) (attempt_restrict hx hg)
+        obtain ⟨hfunc, hdom, hbase, hstep⟩ := hf
+        obtain ⟨hfunc', hdom', hbase', hstep'⟩ := hg
+        have hfne : f ≠ pt := fun h => ptTag_ne_kpair (empty : V) z ((mem_pt.mp (h ▸ hbase)).symm)
+        have hgne : g ≠ pt := fun h => ptTag_ne_kpair (empty : V) z ((mem_pt.mp (h ▸ hbase')).symm)
+        intro p hp
+        obtain ⟨⟨a, b, hab⟩, huniq⟩ := hfunc p hp
+        rw [hab] at hp
+        have ha : a ∈ˢ vsucc x ∨ a = vsucc x := (hdom a).mpr ⟨b, hp⟩
+        rcases ha with ha | ha
+        · have h1 : kpair a b ∈ˢ sepF f restrictF (fun _ => vsucc x) :=
+            mem_sepF.mpr ⟨hp, realize_restrictF.mpr ⟨a, b, rfl, ha⟩⟩
+          rw [hrestr] at h1
+          rw [mem_sepF] at h1
+          rw [hab]
+          exact h1.1
+        · have hx' : x ∈ˢ vsucc x := (mem_vsucc (z := x) (n := x)).mpr (Or.inr rfl)
+          obtain ⟨u, hu⟩ := (hdom x).mp (Or.inl hx')
+          have huapp : app f x = u :=
+            app_eq_of_unique hfne hu (fun y hy => (hfunc (kpair x u) hu).2 x y u hy hu)
+          obtain ⟨v, hkv, hv⟩ := hstep x hx' u hu
+          have hvb : v = b := huniq (vsucc x) v b hkv (by rw [← ha]; exact hp)
+          obtain ⟨u', hu'⟩ := (hdom' x).mp (Or.inl hx')
+          have hu'app : app g x = u' :=
+            app_eq_of_unique hgne hu' (fun y hy => (hfunc' (kpair x u') hu').2 x y u' hy hu')
+          obtain ⟨v', hkv', hv'⟩ := hstep' x hx' u' hu'
+          rw [← hu'app] at hu'
+          have hxu : kpair x (app f x) ∈ˢ f := by rw [huapp]; exact hu
+          have hxu' : kpair x (app f x) ∈ˢ g := by
+            have h1 : kpair x (app f x) ∈ˢ sepF f restrictF (fun _ => vsucc x) :=
+              mem_sepF.mpr ⟨hxu, realize_restrictF.mpr ⟨x, app f x, rfl, hx'⟩⟩
+            rw [hrestr] at h1
+            rw [mem_sepF] at h1
+            exact h1.1
+          have happ : app g x = app f x :=
+            (hfunc' (kpair x (app f x)) hxu').2 x (app g x) (app f x) hu' hxu'
+          have hv2 : v = app (app s x) (app f x) := hv.trans (by rw [huapp])
+          have hv'2 : v' = app (app s x) (app f x) := hv'.trans (by rw [← hu'app, happ])
+          have hbv' : b = v' := hvb.symm.trans (hv2.trans hv'2.symm)
+          rw [hab, ha, hbv']
+          exact hkv'
+      apply SetTheory.ext
+      intro p
+      constructor
+      · intro hp; exact hsub f g hf hg p hp
+      · intro hp; exact hsub g f hg hf p hp)
+    hn
+  exact realize_uniqF.mp h f g hf hg
+
+/-- **Existence and uniqueness of attempts** at every `n ∈ˢ ω`. -/
+theorem exists_unique_attempt (z s : V) {n : V} (hn : n ∈ˢ (omega : V)) :
+    ∃ f, IsAttempt z s n f ∧ ∀ g, IsAttempt z s n g → g = f := by
+  obtain ⟨f, hf⟩ := exists_attempt z s hn
+  exact ⟨f, hf, fun g hg => attempt_unique hn hg hf⟩
 
 end ConLeche.SetTheory
