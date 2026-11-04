@@ -100,25 +100,26 @@ theorem prodA_mem (hw : w ≠ 0) {A1 A2 : V} (h1 : A1 ∈ˢ (tg w : V)) (h2 : A2
 
 /-- `List α`'s fibre. -/
 noncomputable def listF (α : V) (X : Nat → V) : V :=
-  binUnion (sing (kpair empty empty)) (kpairImage pt (sigmaPairs α fun _ => app (X 0) pt))
+  binUnion (sing (kpair empty empty)) (kpairImage pt (sigmaConstF α (app (X 0) pt)))
 
 theorem list_closed {α : V} (hα : α ∈ˢ (tg w : V)) :
     ∃ L, IsClosedTuple w 1 is1 (op1 (listF α)) L := by
   refine closed_of_acc hw (A := unitSet) (unitSet_mem_tg w)
-    (maps_op1 fun X hX => nil_or_mem hw ((tg_isUniverse hw).sigmaPairs_mem hα
-      fun _ _ => hole1_mem hX Nat.zero_lt_one)) (acc_op1 ?_)
-  exact accRead_binUnion (accRead_const _ _) (accRead_kpairImage (accRead_sigma fun _ _ =>
-    accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet))
+    (maps_op1 fun X hX => nil_or_mem hw ((tg_isUniverse hw).sigmaConstF_mem (empty_mem_tg w) hα
+      (hole1_mem hX Nat.zero_lt_one))) (acc_op1 ?_)
+  exact accRead_binUnion (accRead_const _ _) (accRead_kpairImage (accRead_congr
+    (fun X => (sigmaConstF_eq (A := α) (c := app (X 0) pt)).symm)
+    (accRead_sigma fun _ _ => accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet)))
 
 /-! ### Binary trees (flat, two recursive fields): `leaf | node : T → T → T` -/
 
 noncomputable def treeF (X : Nat → V) : V :=
-  binUnion (sing (kpair empty empty)) (kpairImage pt (sigmaPairs (app (X 0) pt) fun _ => app (X 0) pt))
+  binUnion (sing (kpair empty empty)) (kpairImage pt (sigmaConstF (app (X 0) pt) (app (X 0) pt)))
 
 theorem tree_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 treeF) L := by
   refine closed_of_acc hw (prodA_mem hw (unitSet_mem_tg w) (unitSet_mem_tg w))
-    (maps_op1 fun X hX => nil_or_mem hw ((tg_isUniverse hw).sigmaPairs_mem
-      (hole1_mem hX Nat.zero_lt_one) fun _ _ => hole1_mem hX Nat.zero_lt_one)) (acc_op1 ?_)
+    (maps_op1 fun X hX => nil_or_mem hw ((tg_isUniverse hw).sigmaConstF_mem (empty_mem_tg w)
+      (hole1_mem hX Nat.zero_lt_one) (hole1_mem hX Nat.zero_lt_one))) (acc_op1 ?_)
   refine accRead_binUnion (accRead_const _ _) (accRead_kpairImage (accRead_prod ?_ ?_)) <;>
     exact accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet
 
@@ -131,7 +132,7 @@ theorem sup_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 supF) L := by
   obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
   have hU := tg_isUniverse (V := V) hw
   have hω : (omega : V) ∈ˢ (tg (w' + 1) : V) := omega_mem_tg_succ w'
-  refine closed_of_acc hw (hU.sigmaPairs_mem hω fun _ _ => unitSet_mem_tg _)
+  refine closed_of_acc hw (hU.sigmaConstF_mem (empty_mem_tg (w' + 1)) hω (unitSet_mem_tg (w' + 1)))
     (maps_op1 fun X hX => nil_or_mem hw (hU.piSet_mem hω fun _ _ => hole1_mem hX Nat.zero_lt_one))
     (acc_op1 ?_)
   exact accRead_binUnion (accRead_const _ _) (accRead_kpairImage (accRead_pi fun _ _ =>
@@ -143,7 +144,7 @@ theorem sup_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 supF) L := by
 parameter (Rose's hole), component `1` List's own hole. -/
 noncomputable def listJ : (Nat → V) → Nat → V :=
   op1 fun Z => binUnion (sing (kpair empty empty))
-    (kpairImage pt (sigmaPairs (app (Z 0) pt) fun _ => app (Z 1) pt))
+    (kpairImage pt (sigmaConstF (app (Z 0) pt) (app (Z 1) pt)))
 
 open Classical in
 /-- Its support bound. -/
@@ -165,8 +166,8 @@ theorem listJ_maps : ∀ X Y : Nat → V, InTupleSpace w 1 is1 X → InTupleSpac
   intro X Y hX hY
   have hZ := catT_mem hX hY
   rw [catT_is1] at hZ
-  exact maps_op1 (fun Z hZ => nil_or_mem hw ((tg_isUniverse hw).sigmaPairs_mem
-    (hole1_mem hZ (by omega)) fun _ _ => hole1_mem hZ (by omega))) _ hZ
+  exact maps_op1 (fun Z hZ => nil_or_mem hw ((tg_isUniverse hw).sigmaConstF_mem (empty_mem_tg w)
+    (hole1_mem hZ (by omega)) (hole1_mem hZ (by omega)))) _ hZ
 
 /-- `Rose`'s operator: the field reads `⟦List⟧(X)` = List's least tuple
 at the parameter `X` — the model's own nested reading, no key. -/
@@ -182,8 +183,8 @@ theorem rose_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (roseΦ w) L := b
   have hPm : ∀ X : Nat → V, InTupleSpace w 1 is1 X →
       InTupleSpace w 1 is1 (lfpP w 1 1 is1 (listJ : (Nat → V) → Nat → V) X) :=
     fun X _ => lfpTuple_mem _ _ _ _
-  refine closed_of_acc hw (A := sigmaPairs unitSet fun _ => accPaths listA)
-    (hU.sigmaPairs_mem (unitSet_mem_tg w) fun _ _ => accPaths_mem hw hLA)
+  refine closed_of_acc hw (A := sigmaConstF unitSet (accPaths listA))
+    (hU.sigmaConstF_mem (empty_mem_tg w) (unitSet_mem_tg w) (accPaths_mem hw hLA))
     (maps_op1 fun X hX => tag_image_mem_strictU hw (hole1_mem (hPm X hX) Nat.zero_lt_one))
     (acc_op1 ?_)
   exact accRead_kpairImage (accRead_comp hP hPm (accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet))

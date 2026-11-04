@@ -381,6 +381,15 @@ theorem accRead_kpairImage {A : V} {G : (Nat → V) → V} {a : V} (hG : AccRead
   obtain ⟨B, g, hB, hg, hs⟩ := hG X hX y hy
   exact ⟨B, g, hB, hg, fun X' hX' h' => mem_kpairImage.mpr ⟨y, hs X' hX' h', rfl⟩⟩
 
+/-- **Congruence**: readings transport along pointwise equal
+operators. -/
+theorem accRead_congr {A : V} {F G : (Nat → V) → V} (h : ∀ X, F X = G X)
+    (hF : AccRead w kI IsI F A) : AccRead w kI IsI G A := by
+  intro X hX x hx
+  rw [← h X] at hx
+  obtain ⟨B, g, hB, hg, hs⟩ := hF X hX x hx
+  exact ⟨B, g, hB, hg, fun X' hX' h' => by rw [← h X']; exact hs X' hX' h'⟩
+
 /-- **A hole-free first component** (Σ over a constant set). -/
 theorem accRead_sigma {C A : V} {G : V → (Nat → V) → V} (hG : ∀ c, c ∈ˢ C → AccRead w kI IsI (G c) A) :
     AccRead w kI IsI (fun X => sigmaPairs C fun c => G c X) A := by
@@ -393,7 +402,7 @@ theorem accRead_sigma {C A : V} {G : V → (Nat → V) → V} (hG : ∀ c, c ∈
 support of `f` is the glued supports of its values, indexed by
 `Σ d ∈ D, A`. -/
 theorem accRead_pi {D A : V} {G : V → (Nat → V) → V} (hG : ∀ d, d ∈ˢ D → AccRead w kI IsI (G d) A) :
-    AccRead w kI IsI (fun X => piSet D fun d => G d X) (sigmaPairs D fun _ => A) := by
+    AccRead w kI IsI (fun X => piSet D fun d => G d X) (sigmaConstF D A) := by
   intro X hX f hf
   obtain ⟨Bf, gf, hsk⟩ := skolem_supp (S := D)
     (Q := fun d B g => B ⊆ˢ A ∧ (∀ a, a ∈ˢ B → InTup kI IsI X (g a)) ∧
@@ -402,7 +411,7 @@ theorem accRead_pi {D A : V} {G : V → (Nat → V) → V} (hG : ∀ d, d ∈ˢ 
   refine ⟨sigmaPairs D Bf, fun p => gf (sfst p) (ssnd p), ?_, ?_, ?_⟩
   · intro p hp
     obtain ⟨d, hd, q, hq, rfl⟩ := mem_glue.mp hp
-    exact mem_sigmaPairs.mpr ⟨d, hd, q, (hsk d hd).1 q hq, rfl⟩
+    exact mem_sigmaConstF.mpr ⟨d, hd, q, (hsk d hd).1 q hq, rfl⟩
   · intro p hp
     obtain ⟨d, hd, q, hq, rfl⟩ := mem_glue.mp hp
     simp only [sfst_kpair, ssnd_kpair]
@@ -417,11 +426,11 @@ open Classical in
 /-- **A pair of two hole-reading components** (a non-dependent product),
 supports tagged by `∅`/`pt`. -/
 theorem accRead_prod {A1 A2 : V} {G H : (Nat → V) → V} (hG : AccRead w kI IsI G A1) (hH : AccRead w kI IsI H A2) :
-    AccRead w kI IsI (fun X => sigmaPairs (G X) fun _ => H X)
+    AccRead w kI IsI (fun X => sigmaConstF (G X) (H X))
       (sigmaPairs (upair empty pt) fun t => if t = empty then A1 else A2) := by
   classical
   intro X hX x hx
-  obtain ⟨y, hy, z, hz, rfl⟩ := mem_sigmaPairs.mp hx
+  obtain ⟨y, hy, z, hz, rfl⟩ := mem_sigmaConstF.mp hx
   obtain ⟨B1, g1, hB1, hg1, hs1⟩ := hG X hX y hy
   obtain ⟨B2, g2, hB2, hg2, hs2⟩ := hH X hX z hz
   have hne : (pt : V) ≠ empty := pt_ne_empty
@@ -440,7 +449,7 @@ theorem accRead_prod {A1 A2 : V} {G H : (Nat → V) → V} (hG : AccRead w kI Is
     · simp only [h, ite_true] at hq ⊢; exact hg1 q hq
     · simp only [h, ite_false] at hq ⊢; exact hg2 q hq
   · intro X' hX' h'
-    refine mem_sigmaPairs.mpr ⟨y, hs1 X' hX' fun q hq => ?_, z, hs2 X' hX' fun q hq => ?_, rfl⟩
+    refine mem_sigmaConstF.mpr ⟨y, hs1 X' hX' fun q hq => ?_, z, hs2 X' hX' fun q hq => ?_, rfl⟩
     · have := h' (kpair empty q) (mem_sigmaPairs.mpr ⟨empty, mem_upair_left _ _, q, by simpa using hq, rfl⟩)
       simpa only [sfst_kpair, ssnd_kpair, ite_true] using this
     · have := h' (kpair pt q) (mem_sigmaPairs.mpr ⟨pt, mem_upair.mpr (Or.inr rfl), q, by simpa [hne] using hq, rfl⟩)
@@ -452,7 +461,7 @@ theorem accRead_comp {kY : Nat} {IsY : Nat → V} {Ψ : (Nat → V) → Nat → 
     {G : (Nat → V) → V}
     (hΨ : AccTuple w kI IsI kY IsY Ψ A1) (hmaps : ∀ X, InTupleSpace w kI IsI X → InTupleSpace w kY IsY (Ψ X))
     (hG : AccRead w kY IsY G A2) :
-    AccRead w kI IsI (fun X => G (Ψ X)) (sigmaPairs A2 fun _ => A1) := by
+    AccRead w kI IsI (fun X => G (Ψ X)) (sigmaConstF A2 A1) := by
   intro X hX x hx
   obtain ⟨B2, g2, hB2, hg2, hs2⟩ := hG (Ψ X) (hmaps X hX) x hx
   obtain ⟨Bf, gf, hsk⟩ := skolem_supp (S := B2)
@@ -463,7 +472,7 @@ theorem accRead_comp {kY : Nat} {IsY : Nat → V} {Ψ : (Nat → V) → Nat → 
   refine ⟨sigmaPairs B2 Bf, fun p => gf (sfst p) (ssnd p), ?_, ?_, ?_⟩
   · intro p hp
     obtain ⟨b, hb, q, hq, rfl⟩ := mem_glue.mp hp
-    exact mem_sigmaPairs.mpr ⟨b, hB2 b hb, q, (hsk b hb).1 q hq, rfl⟩
+    exact mem_sigmaConstF.mpr ⟨b, hB2 b hb, q, (hsk b hb).1 q hq, rfl⟩
   · intro p hp
     obtain ⟨b, hb, q, hq, rfl⟩ := mem_glue.mp hp
     simp only [sfst_kpair, ssnd_kpair]
