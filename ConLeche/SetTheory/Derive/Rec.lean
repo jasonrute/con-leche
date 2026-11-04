@@ -930,4 +930,220 @@ theorem exists_unique_attempt (z s : V) {n : V} (hn : n ∈ˢ (omega : V)) :
   obtain ⟨f, hf⟩ := exists_attempt z s hn
   exact ⟨f, hf, fun g hg => attempt_unique hn hg hf⟩
 
+/-! ## The chain lemma: attempts at smaller members of ω are subsets -/
+
+/-- Variable map `Fin 6 → Fin 8` reading the attempt at `(n, f)` out of
+`(e, z, s, pt, m, n, f, g)` (`0→0`, `1→1`, `2→2`, `3→3`, `4→5`, `5→6`). -/
+def attNMap : Fin 6 → Fin 8 := fun i =>
+  match i.val with
+  | 0 => ⟨0, by omega⟩
+  | 1 => ⟨1, by omega⟩
+  | 2 => ⟨2, by omega⟩
+  | 3 => ⟨3, by omega⟩
+  | 4 => ⟨5, by omega⟩
+  | _ => ⟨6, by omega⟩
+
+/-- Variable map `Fin 6 → Fin 8` reading the attempt at `(m, g)` out of
+`(e, z, s, pt, m, n, f, g)` (`0→0`, `1→1`, `2→2`, `3→3`, `4→4`, `5→7`). -/
+def attMMap : Fin 6 → Fin 8 := fun i =>
+  match i.val with
+  | 0 => ⟨0, by omega⟩
+  | 1 => ⟨1, by omega⟩
+  | 2 => ⟨2, by omega⟩
+  | 3 => ⟨3, by omega⟩
+  | 4 => ⟨4, by omega⟩
+  | _ => ⟨7, by omega⟩
+
+/-- Chain property (variables `0 → e`, `1 → z`, `2 → s`, `3 → pt`,
+bound `4 → m`, then `5 → n`, `6 → f`, `7 → g`, `8 → p`):
+if `n ∈ˢ m` and `f`, `g` are attempts at `n`, `m`, then `f ⊆ˢ g`. -/
+def chainF : Form 5 :=
+  .all (.all (.all (.imp
+    (.and (.mem ⟨5, by omega⟩ ⟨4, by omega⟩)
+      (.and (Form.relabel attNMap attemptBodyF)
+        (Form.relabel attMMap attemptBodyF)))
+    (.all (.imp (.mem ⟨8, by omega⟩ ⟨6, by omega⟩)
+      (.mem ⟨8, by omega⟩ ⟨7, by omega⟩))))))
+
+theorem realize_chainF {e z s m : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) m) chainF ↔
+      ∀ n f g, n ∈ˢ m → IsAttemptE e z s n f → IsAttemptE e z s m g → f ⊆ˢ g := by
+  have hN : ∀ n f g : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) m) n) f) g)
+          ∘ attNMap =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) f := by
+    intro n f g
+    funext ⟨k, hk⟩
+    have hk6 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+    rcases hk6 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  have hM : ∀ n f g : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) m) n) f) g)
+          ∘ attMMap =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) m) g := by
+    intro n f g
+    funext ⟨k, hk⟩
+    have hk6 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+    rcases hk6 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  simp only [chainF, Form.realize_all, Form.realize_imp, Form.realize_and, Form.realize_mem,
+    Form.realize_relabel, hN, hM, realize_attemptBodyF, Form.snoc_mk, SetTheory.Subset]
+  simp
+
+/-- **Chain lemma**: for `n ∈ˢ m` with `m ∈ˢ ω`, an attempt at `n` is
+a subset of an attempt at `m`. -/
+theorem attempt_subset {z s n m f g : V} (hm : m ∈ˢ (omega : V)) (hn : n ∈ˢ m)
+    (hf : IsAttempt z s n f) (hg : IsAttempt z s m g) : f ⊆ˢ g := by
+  have h := omega_induction
+    (p := Form.snoc (Form.snoc (Form.snoc (fun _ => (empty : V)) z) s) pt)
+    (φ := chainF)
+    (by
+      rw [realize_chainF]
+      intro n f g hn _ _
+      exact absurd hn (not_mem_empty n))
+    (fun x hx hIH => by
+      rw [realize_chainF] at hIH
+      rw [realize_chainF]
+      intro n f g hn hf hg
+      rcases (mem_vsucc (z := n) (n := x)).mp hn with hn | hn
+      · exact Subset.trans
+          (hIH n f (sepF g restrictF (fun _ => vsucc x)) hn hf (attempt_restrict hx hg))
+          sepF_subset
+      · rw [hn] at hf
+        rw [attempt_unique hx hf (attempt_restrict hx hg)]
+        exact sepF_subset)
+    hm
+  exact realize_chainF.mp h n f g hn hf hg
+
+/-! ## The definable recursion graph -/
+
+/-- Variable map `Fin 6 → Fin 6` into the `cons2` convention of
+`imageF`: attempt variables `(e, z, s, pt, n, f)` → `(2, 3, 4, 5, 0, 1)`,
+so the index `n` sits at `0`, the attempt `f` at `1`, parameters at `2..5`. -/
+def attXMap : Fin 6 → Fin 6 := fun i =>
+  match i.val with
+  | 0 => ⟨2, by omega⟩
+  | 1 => ⟨3, by omega⟩
+  | 2 => ⟨4, by omega⟩
+  | 3 => ⟨5, by omega⟩
+  | 4 => ⟨0, by omega⟩
+  | _ => ⟨1, by omega⟩
+
+/-- The attempt relation `(n, f)` in the `cons2` convention of
+`imageF` (parameters `e, z, s, pt`). -/
+def attemptRelF : Form 6 := Form.relabel attXMap attemptBodyF
+
+theorem realize_attemptRelF {e z s x y : V} :
+    Form.Realize Mem
+        (Form.cons2 x y (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt))
+          attemptRelF ↔
+      IsAttemptE e z s x y := by
+  have hX : ∀ x y : V,
+      (Form.cons2 x y (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt)) ∘ attXMap =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) x) y := by
+    intro x y
+    funext ⟨k, hk⟩
+    have hk6 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+    rcases hk6 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  simp only [attemptRelF, Form.realize_relabel, hX, realize_attemptBodyF]
+
+/-- The functionality witness for `recGraph`: at each `n ∈ˢ ω` pick the
+unique attempt at `n`. -/
+theorem recGraphHFun (z s : V) :
+    ∀ x, x ∈ˢ (omega : V) → ∃ y,
+      Form.Realize Mem (Form.cons2 x y (Form.snoc (Form.snoc (Form.snoc (fun _ => (empty : V)) z) s) pt)) attemptRelF ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' (Form.snoc (Form.snoc (Form.snoc (fun _ => (empty : V)) z) s) pt)) attemptRelF → y' = y :=
+  fun n hn => by
+    obtain ⟨f, hf, huniq⟩ := exists_unique_attempt z s hn
+    exact ⟨f, realize_attemptRelF.mpr hf, fun y hy => huniq y (realize_attemptRelF.mp hy)⟩
+
+/-- The recursion graph: the union of all attempts at members of `ω`,
+formed by the definable replacement scheme (`imageF` over `ω`). -/
+noncomputable def recGraph (z s : V) : V :=
+  sUnion (imageF attemptRelF
+    (Form.snoc (Form.snoc (Form.snoc (fun _ => (empty : V)) z) s) pt) (omega : V) (recGraphHFun z s))
+
+theorem mem_recGraph {z s p : V} :
+    p ∈ˢ recGraph z s ↔ ∃ f, (∃ n, n ∈ˢ (omega : V) ∧ IsAttempt z s n f) ∧ p ∈ˢ f := by
+  unfold recGraph
+  rw [mem_sUnion]
+  constructor
+  · rintro ⟨y, hy, hp⟩
+    obtain ⟨n, hn, hrel⟩ := (mem_imageF (recGraphHFun z s)).mp hy
+    exact ⟨y, ⟨n, hn, realize_attemptRelF.mp hrel⟩, hp⟩
+  · rintro ⟨f, ⟨n, hn, hf⟩, hp⟩
+    exact ⟨f, (mem_imageF (recGraphHFun z s)).mpr ⟨n, hn, realize_attemptRelF.mpr hf⟩, hp⟩
+
+theorem mem_recGraph_base {z s : V} : kpair (empty : V) z ∈ˢ recGraph z s := by
+  obtain ⟨f, hf⟩ := exists_attempt z s empty_mem_omega
+  exact mem_recGraph.mpr ⟨f, ⟨(empty : V), empty_mem_omega, hf⟩, hf.2.2.1⟩
+
+theorem recGraph_ne_pt {z s : V} : recGraph z s ≠ pt := by
+  intro h
+  have h2 : kpair (empty : V) z ∈ˢ (pt : V) := by
+    rw [← h]
+    exact mem_recGraph_base
+  exact ptTag_ne_kpair (empty : V) z ((mem_pt.mp h2).symm)
+
+/-- The recursion graph is single-valued. -/
+theorem recGraph_func {z s : V} :
+    ∀ p, p ∈ˢ recGraph z s → (∃ a b, p = kpair a b) ∧
+      ∀ a b b', kpair a b ∈ˢ recGraph z s → kpair a b' ∈ˢ recGraph z s → b = b' := by
+  intro p hp
+  obtain ⟨f, ⟨m, hm, hf⟩, hpf⟩ := mem_recGraph.mp hp
+  have hfunc := hf.1
+  refine ⟨(hfunc p hpf).1, fun a b b' h1 h2 => ?_⟩
+  obtain ⟨f1, ⟨m1, hm1, hf1⟩, h1f⟩ := mem_recGraph.mp h1
+  have hfunc1 := hf1.1
+  obtain ⟨f2, ⟨m2, hm2, hf2⟩, h2f⟩ := mem_recGraph.mp h2
+  have hfunc2 := hf2.1
+  rcases omega_trichotomy hm1 hm2 with h | h | h
+  · have hsub := attempt_subset hm2 h hf1 hf2
+    exact (hfunc2 (kpair a b) (hsub (kpair a b) h1f)).2 a b b' (hsub (kpair a b) h1f) h2f
+  · rw [h] at hf1
+    rw [attempt_unique hm2 hf1 hf2] at h1f
+    exact (hfunc2 (kpair a b) h1f).2 a b b' h1f h2f
+  · have hsub := attempt_subset hm1 h hf2 hf1
+    exact (hfunc1 (kpair a b) h1f).2 a b b' h1f (hsub (kpair a b') h2f)
+
+/-- Every `n ∈ˢ ω` lies in the domain of the recursion graph. -/
+theorem recGraph_dom {z s n : V} (hn : n ∈ˢ (omega : V)) :
+    ∃ y, kpair n y ∈ˢ recGraph z s := by
+  obtain ⟨f, hf⟩ := exists_attempt z s hn
+  obtain ⟨y, hy⟩ := (hf.2.1 n).mp (Or.inr rfl)
+  exact ⟨y, mem_recGraph.mpr ⟨f, ⟨n, hn, hf⟩, hy⟩⟩
+
+/-! ## Definable primitive recursion on `ω` -/
+
+/-- Set-theoretic primitive recursion on `ω` via the recursion graph
+`recGraph` (definable: `imageF` over `ω`, no meta-level `repl`). -/
+noncomputable def natrecF (z s n : V) : V := app (recGraph z s) n
+
+theorem natrecF_empty (z s : V) : natrecF z s (empty : V) = z := by
+  unfold natrecF
+  exact app_eq_of_unique recGraph_ne_pt mem_recGraph_base
+    (fun y hy =>
+      ((recGraph_func (kpair (empty : V) y) hy).2 (empty : V) z y mem_recGraph_base hy).symm)
+
+theorem natrecF_vsucc (z s : V) {n : V} (hn : n ∈ˢ (omega : V)) :
+    natrecF z s (vsucc n) = app (app s n) (natrecF z s n) := by
+  unfold natrecF
+  have hvn : vsucc n ∈ˢ (omega : V) := vsucc_mem_omega hn
+  obtain ⟨f, hf⟩ := exists_attempt z s hvn
+  have hnx : n ∈ˢ vsucc n := (mem_vsucc (z := n) (n := n)).mpr (Or.inr rfl)
+  obtain ⟨u, hu⟩ := (hf.2.1 n).mp (Or.inl hnx)
+  obtain ⟨v, hkv, hv⟩ := hf.2.2.2 n hnx u hu
+  have hGnu : kpair n u ∈ˢ recGraph z s :=
+    mem_recGraph.mpr ⟨f, ⟨vsucc n, hvn, hf⟩, hu⟩
+  have hGkv : kpair (vsucc n) v ∈ˢ recGraph z s :=
+    mem_recGraph.mpr ⟨f, ⟨vsucc n, hvn, hf⟩, hkv⟩
+  have huapp : app (recGraph z s) n = u :=
+    app_eq_of_unique recGraph_ne_pt hGnu
+      (fun y hy => ((recGraph_func (kpair n y) hy).2 n u y hGnu hy).symm)
+  have hvapp : app (recGraph z s) (vsucc n) = v :=
+    app_eq_of_unique recGraph_ne_pt hGkv
+      (fun y hy => ((recGraph_func (kpair (vsucc n) y) hy).2 (vsucc n) v y hGkv hy).symm)
+  rw [hvapp, hv, huapp]
+
+attribute [irreducible] natrecF
+
 end ConLeche.SetTheory
