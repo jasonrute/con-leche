@@ -184,44 +184,12 @@ theorem _root_.ConLeche.IsUniverse.upairF_mem {a b y : V} (hy : y ∈ˢ U)
   rw [heq]
   exact hc
 
-open Classical in
-/-- Pairing closure: fibre-wise replacement over the two-element member
-`power (power ∅) = {∅, {∅}}`, via the relation
-`x ↦ (if x = ∅ then a else b)`. -/
+/-- Pairing closure: via the definable clause 6 (`upairF_mem`) — the
+relation `x ↦ (if x = ∅ then a else b)` over `power (power ∅)` is
+the formula `upairRelF`, so no meta-level relation is involved. -/
 theorem _root_.ConLeche.IsUniverse.upair_mem {a b y : V} (hy : y ∈ˢ U)
-    (ha : a ∈ˢ U) (hb : b ∈ˢ U) : upair a b ∈ˢ U := by
-  have h2 : power (power (empty : V)) ∈ˢ U :=
-    (hU.empty_mem hy |> hU.power_mem) |> hU.power_mem
-  have hfun : ∀ x, x ∈ˢ power (power (empty : V)) →
-      ∃ y, y ∈ˢ U ∧ (y = if x = empty then a else b) ∧
-        ∀ y', (y' = if x = empty then a else b) → y' = y := by
-    intro x hx
-    by_cases hx0 : x = empty
-    · refine ⟨a, ha, ?_, fun y' hy' => ?_⟩
-      · rw [ite_eq_left hx0]
-      · rw [ite_eq_left hx0] at hy'; exact hy'
-    · refine ⟨b, hb, ?_, fun y' hy' => ?_⟩
-      · rw [ite_eq_right hx0]
-      · rw [ite_eq_right hx0] at hy'; exact hy'
-  obtain ⟨c, hc, hspec⟩ :=
-    hU.2.2.2.2.1 (power (power (empty : V))) h2 (fun x y => (y = if x = empty then a else b)) hfun
-  have heq : upair a b = c := ext fun z => by
-    constructor
-    · intro hz
-      rcases mem_upair.mp hz with h | h
-      · rw [h]
-        exact (hspec a).mpr ⟨empty, mem_power.mpr (empty_subset _), by simp⟩
-      · rw [h]
-        have hne : power (empty : V) ≠ empty :=
-          ne_empty_of_mem (mem_power.mpr (Subset.refl _))
-        exact (hspec b).mpr ⟨power empty, mem_power.mpr (Subset.refl _), by simp [hne]⟩
-    · intro hz
-      obtain ⟨x, hx, hzw⟩ := (hspec z).mp hz
-      by_cases hx0 : x = empty
-      · rw [ite_eq_left hx0] at hzw; rw [hzw]; exact mem_upair.mpr (Or.inl rfl)
-      · rw [ite_eq_right hx0] at hzw; rw [hzw]; exact mem_upair.mpr (Or.inr rfl)
-  rw [heq]
-  exact hc
+    (ha : a ∈ˢ U) (hb : b ∈ˢ U) : upair a b ∈ˢ U :=
+  hU.upairF_mem hy ha hb
 
 theorem _root_.ConLeche.IsUniverse.sing_mem {a y : V} (hy : y ∈ˢ U) (ha : a ∈ˢ U) :
     sing a ∈ˢ U := hU.upair_mem hy ha ha
