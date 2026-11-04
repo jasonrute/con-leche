@@ -102,6 +102,21 @@ theorem mem_kpairImage {a X z : V} :
   · rintro ⟨x, hx, rfl⟩
     exact ⟨x, hx, realize_kpairEqF'.mpr rfl⟩
 
+/-- The meta-level `image (kpair a) X` is exactly the definable
+`kpairImage a X`. -/
+theorem image_kpair_eq {a X : V} : image (kpair a) X = kpairImage a X :=
+  ext fun z => by rw [mem_image, mem_kpairImage]
+
+/-- Definable tag-image closure (clause 6): the definable image of a
+member under the tag function `kpair a` is a member — the first-order
+twin of `image_mem` at `kpair a`. -/
+theorem _root_.ConLeche.IsUniverse.kpairImage_mem {U a X : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (ha : a ∈ˢ U) (hX : X ∈ˢ U) : kpairImage a X ∈ˢ U := by
+  unfold kpairImage
+  exact hU.imageF_mem hX fun x hx z hz => by
+    rw [realize_kpairEqF'.mp hz]
+    exact hU.kpair_mem he ha (hU.transitive hX hx)
+
 /-- The definable constant image `{c | x ∈ˢ A}`: the `imageF` of the
 relation `z = c` (variable `1 ↦ z`, parameter `0 ↦ c`) — the
 first-order twin of `image (fun _ => c) A`. -/

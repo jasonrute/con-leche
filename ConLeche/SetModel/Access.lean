@@ -371,6 +371,16 @@ theorem accRead_image {A : V} {G : (Nat → V) → V} (h : V → V) (hG : AccRea
   obtain ⟨B, g, hB, hg, hs⟩ := hG X hX y hy
   exact ⟨B, g, hB, hg, fun X' hX' h' => mem_image.mpr ⟨y, hs X' hX' h', rfl⟩⟩
 
+/-- **Definable tag images** (constructor tags, injections): the
+definable `kpairImage a` of a readable set is readable — the
+first-order twin of `accRead_image` at the tag function `kpair a`. -/
+theorem accRead_kpairImage {A : V} {G : (Nat → V) → V} {a : V} (hG : AccRead w kI IsI G A) :
+    AccRead w kI IsI (fun X => kpairImage a (G X)) A := by
+  intro X hX x hx
+  obtain ⟨y, hy, rfl⟩ := mem_kpairImage.mp hx
+  obtain ⟨B, g, hB, hg, hs⟩ := hG X hX y hy
+  exact ⟨B, g, hB, hg, fun X' hX' h' => mem_kpairImage.mpr ⟨y, hs X' hX' h', rfl⟩⟩
+
 /-- **A hole-free first component** (Σ over a constant set). -/
 theorem accRead_sigma {C A : V} {G : V → (Nat → V) → V} (hG : ∀ c, c ∈ˢ C → AccRead w kI IsI (G c) A) :
     AccRead w kI IsI (fun X => sigmaPairs C fun c => G c X) A := by

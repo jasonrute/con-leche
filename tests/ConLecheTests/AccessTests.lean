@@ -63,26 +63,24 @@ theorem pt_mem_tg : (pt : V) ∈ˢ (tg w : V) :=
 theorem nilV_mem : (kpair empty empty : V) ∈ˢ (tg w : V) :=
   (tg_isUniverse hw).kpair_mem (empty_mem_tg w) (empty_mem_tg w) (empty_mem_tg w)
 
-theorem tag_image_mem {S : V} (hS : S ∈ˢ (tg w : V)) : image (kpair pt) S ∈ˢ (tg w : V) :=
-  (tg_isUniverse hw).image_mem hS fun _ hx =>
-    (tg_isUniverse hw).kpair_mem (empty_mem_tg w) (pt_mem_tg hw)
-      ((tg_isUniverse hw).transitive hS hx)
+theorem tag_image_mem {S : V} (hS : S ∈ˢ (tg w : V)) : kpairImage pt S ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).kpairImage_mem (empty_mem_tg w) (pt_mem_tg hw) hS
 
 /-- A tagged image is strict: its members are pairs. -/
 theorem tag_image_mem_strictU {S : V} (hS : S ∈ˢ (tg w : V)) :
-    image (kpair pt) S ∈ˢ (strictU w : V) :=
+    kpairImage pt S ∈ˢ (strictU w : V) :=
   (mem_strictU_pos hw).mpr ⟨tag_image_mem hw hS, strict_of_kpairs fun z hz => by
-    obtain ⟨x, -, rfl⟩ := mem_image.mp hz
+    obtain ⟨x, -, rfl⟩ := mem_kpairImage.mp hz
     exact ⟨pt, x, rfl⟩⟩
 
 theorem nil_or_mem {S : V} (hS : S ∈ˢ (tg w : V)) :
-    binUnion (sing (kpair empty empty)) (image (kpair pt) S) ∈ˢ (strictU w : V) :=
+    binUnion (sing (kpair empty empty)) (kpairImage pt S) ∈ˢ (strictU w : V) :=
   (mem_strictU_pos hw).mpr ⟨(tg_isUniverse hw).binUnion_mem (empty_mem_tg w)
     ((tg_isUniverse hw).sing_mem (empty_mem_tg w) (nilV_mem hw)) (tag_image_mem hw hS),
     strict_of_kpairs fun z hz => by
       rcases mem_binUnion.mp hz with h | h
       · exact ⟨empty, empty, mem_sing.mp h⟩
-      · obtain ⟨x, -, rfl⟩ := mem_image.mp h
+      · obtain ⟨x, -, rfl⟩ := mem_kpairImage.mp h
         exact ⟨pt, x, rfl⟩⟩
 
 omit hw in
@@ -102,32 +100,32 @@ theorem prodA_mem (hw : w ≠ 0) {A1 A2 : V} (h1 : A1 ∈ˢ (tg w : V)) (h2 : A2
 
 /-- `List α`'s fibre. -/
 noncomputable def listF (α : V) (X : Nat → V) : V :=
-  binUnion (sing (kpair empty empty)) (image (kpair pt) (sigmaPairs α fun _ => app (X 0) pt))
+  binUnion (sing (kpair empty empty)) (kpairImage pt (sigmaPairs α fun _ => app (X 0) pt))
 
 theorem list_closed {α : V} (hα : α ∈ˢ (tg w : V)) :
     ∃ L, IsClosedTuple w 1 is1 (op1 (listF α)) L := by
   refine closed_of_acc hw (A := unitSet) (unitSet_mem_tg w)
     (maps_op1 fun X hX => nil_or_mem hw ((tg_isUniverse hw).sigmaPairs_mem hα
       fun _ _ => hole1_mem hX Nat.zero_lt_one)) (acc_op1 ?_)
-  exact accRead_binUnion (accRead_const _ _) (accRead_image _ (accRead_sigma fun _ _ =>
+  exact accRead_binUnion (accRead_const _ _) (accRead_kpairImage (accRead_sigma fun _ _ =>
     accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet))
 
 /-! ### Binary trees (flat, two recursive fields): `leaf | node : T → T → T` -/
 
 noncomputable def treeF (X : Nat → V) : V :=
-  binUnion (sing (kpair empty empty)) (image (kpair pt) (sigmaPairs (app (X 0) pt) fun _ => app (X 0) pt))
+  binUnion (sing (kpair empty empty)) (kpairImage pt (sigmaPairs (app (X 0) pt) fun _ => app (X 0) pt))
 
 theorem tree_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 treeF) L := by
   refine closed_of_acc hw (prodA_mem hw (unitSet_mem_tg w) (unitSet_mem_tg w))
     (maps_op1 fun X hX => nil_or_mem hw ((tg_isUniverse hw).sigmaPairs_mem
       (hole1_mem hX Nat.zero_lt_one) fun _ _ => hole1_mem hX Nat.zero_lt_one)) (acc_op1 ?_)
-  refine accRead_binUnion (accRead_const _ _) (accRead_image _ (accRead_prod ?_ ?_)) <;>
+  refine accRead_binUnion (accRead_const _ _) (accRead_kpairImage (accRead_prod ?_ ?_)) <;>
     exact accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet
 
 /-! ### Reflexive (infinitary): `zero | sup : (Nat → T) → T` -/
 
 noncomputable def supF (X : Nat → V) : V :=
-  binUnion (sing (kpair empty empty)) (image (kpair pt) (piSet omega fun _ => app (X 0) pt))
+  binUnion (sing (kpair empty empty)) (kpairImage pt (piSet omega fun _ => app (X 0) pt))
 
 theorem sup_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 supF) L := by
   obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
@@ -136,7 +134,7 @@ theorem sup_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 supF) L := by
   refine closed_of_acc hw (hU.sigmaPairs_mem hω fun _ _ => unitSet_mem_tg _)
     (maps_op1 fun X hX => nil_or_mem hw (hU.piSet_mem hω fun _ _ => hole1_mem hX Nat.zero_lt_one))
     (acc_op1 ?_)
-  exact accRead_binUnion (accRead_const _ _) (accRead_image _ (accRead_pi fun _ _ =>
+  exact accRead_binUnion (accRead_const _ _) (accRead_kpairImage (accRead_pi fun _ _ =>
     accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet))
 
 /-! ### Nested, no keys: `Rose ::= node : List Rose → Rose` -/
@@ -145,7 +143,7 @@ theorem sup_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 supF) L := by
 parameter (Rose's hole), component `1` List's own hole. -/
 noncomputable def listJ : (Nat → V) → Nat → V :=
   op1 fun Z => binUnion (sing (kpair empty empty))
-    (image (kpair pt) (sigmaPairs (app (Z 0) pt) fun _ => app (Z 1) pt))
+    (kpairImage pt (sigmaPairs (app (Z 0) pt) fun _ => app (Z 1) pt))
 
 open Classical in
 /-- Its support bound. -/
@@ -158,7 +156,7 @@ theorem catT_is1 : catT 1 (is1 : Nat → V) is1 = is1 := by
 omit hw in
 theorem listJ_acc : AccTuple w (1 + 1) (catT 1 is1 is1) 1 is1 (listJ : (Nat → V) → Nat → V) listA := by
   rw [catT_is1]
-  refine acc_op1 (accRead_binUnion (accRead_const _ _) (accRead_image _ (accRead_prod ?_ ?_)))
+  refine acc_op1 (accRead_binUnion (accRead_const _ _) (accRead_kpairImage (accRead_prod ?_ ?_)))
   · exact accRead_hole (by omega) pt_mem_unitSet pt_mem_unitSet
   · exact accRead_hole (by omega) pt_mem_unitSet pt_mem_unitSet
 
@@ -173,7 +171,7 @@ theorem listJ_maps : ∀ X Y : Nat → V, InTupleSpace w 1 is1 X → InTupleSpac
 /-- `Rose`'s operator: the field reads `⟦List⟧(X)` = List's least tuple
 at the parameter `X` — the model's own nested reading, no key. -/
 noncomputable def roseΦ (w : Nat) : (Nat → V) → Nat → V :=
-  op1 fun X => image (kpair pt) (app (lfpP w 1 1 is1 listJ X 0) pt)
+  op1 fun X => kpairImage pt (app (lfpP w 1 1 is1 listJ X 0) pt)
 
 theorem rose_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (roseΦ w) L := by
   have hU := tg_isUniverse (V := V) hw
@@ -188,7 +186,7 @@ theorem rose_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (roseΦ w) L := b
     (hU.sigmaPairs_mem (unitSet_mem_tg w) fun _ _ => accPaths_mem hw hLA)
     (maps_op1 fun X hX => tag_image_mem_strictU hw (hole1_mem (hPm X hX) Nat.zero_lt_one))
     (acc_op1 ?_)
-  exact accRead_image _ (accRead_comp hP hPm (accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet))
+  exact accRead_kpairImage (accRead_comp hP hPm (accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet))
 
 end Instances
 
