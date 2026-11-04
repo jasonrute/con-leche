@@ -38,19 +38,41 @@ variable {V : Type u} [SetTheory V]
 
 /-! ## The point is not a natural number -/
 
-/-- `pt ∉ ω`: every nonzero von Neumann numeral has `∅` as a member,
-and the point's one member `ptTag` is not `∅` (it has `∅` as a member). -/
+/-- `x ≠ pt` as a formula (parameter `0 → pt`, bound `1 → x`). -/
+def nePtF : Form 2 := .not (.equal ⟨1, by omega⟩ ⟨0, by omega⟩)
+
+theorem realize_nePtF {x : V} :
+    Form.Realize Mem (Form.snoc (fun _ => pt) x) nePtF ↔ x ≠ pt := by
+  simp only [nePtF, Form.realize_not, Form.realize_equal, Form.snoc_mk]
+  simp
+
+/-- The von Neumann successor is never the point: `x ∈ˢ vsucc x = pt`
+forces `x = ptTag`, whose member `∅` then lies in `pt`, impossible. -/
+theorem vsucc_ne_pt (x : V) : vsucc x ≠ pt := by
+  intro hEq
+  have hx : x ∈ˢ vsucc x := (mem_vsucc (z := x) (n := x)).mpr (Or.inr rfl)
+  rw [hEq] at hx
+  have hx1 : x = ptTag := mem_pt.mp hx
+  have he0 : (empty : V) ∈ˢ ptTag := empty_mem_ptTag
+  rw [← hx1] at he0
+  have he2 : (empty : V) ∈ˢ vsucc x := (mem_vsucc (z := (empty : V)) (n := x)).mpr (Or.inl he0)
+  rw [hEq] at he2
+  have he3 : (empty : V) ∈ˢ ptTag := empty_mem_ptTag
+  rw [mem_pt.mp he2] at he3
+  exact not_mem_self _ he3
+
+/-- `pt ∉ ω`: the definable property `x ≠ pt` holds at `∅`
+(`pt_ne_empty`) and is closed under `vsucc` (`vsucc_ne_pt`), so it holds
+on all of `ω` by `omega_induction`. -/
 theorem pt_not_mem_omega : ¬ (pt : V) ∈ˢ omega := by
   intro h
-  obtain ⟨k, hk⟩ := mem_omega_iff.mp h
-  match k, hk with
-  | 0, hk => exact pt_ne_empty hk
-  | k + 1, hk =>
-    have h0 : (vnat 0 : V) ∈ˢ pt := hk ▸ vnat_mem_vnat_of_lt (Nat.succ_pos k)
-    have h1 : (empty : V) = ptTag := mem_pt.mp h0
-    have h2 := empty_mem_ptTag (V := V)
-    rw [← h1] at h2
-    exact not_mem_empty _ h2
+  have h := omega_induction
+    (p := fun _ => pt)
+    (φ := nePtF)
+    (by rw [realize_nePtF]; exact pt_ne_empty.symm)
+    (fun x _ _ => by rw [realize_nePtF]; exact vsucc_ne_pt x)
+    h
+  exact (realize_nePtF.mp h) rfl
 
 /-! ## Strict sets, types, fibres -/
 

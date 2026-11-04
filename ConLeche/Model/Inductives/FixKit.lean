@@ -802,15 +802,17 @@ theorem wellDenoted_proj1_sum {w : Nat} (hw : w ≠ 0) {ρ' ρ : Nat → V} {Fs 
   · rw [nat_max_self]; exact hval
   · obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
     exact omega_mem_univ_succ w'
-  · intro k hk
-    obtain ⟨j, rfl, hfib⟩ := natFibre_of_mem _ hk
-    rw [hfib]
-    cases j with
-    | zero =>
-      rw [sumFibre_of_getElem? rfl]
-      exact towerSet_mem_univ _ (boundS_teleOfFields.mpr hb)
-    | succ j =>
-      rw [sumFibre_of_ge (by simp)]
+  · intro k _
+    rcases natFibre_cases (sumFibre w ρ' [Fs ++ [idxEqAV []]]) k with ⟨j, rfl, hfib⟩ | hempty
+    · rw [hfib]
+      cases j with
+      | zero =>
+        rw [sumFibre_of_getElem? rfl]
+        exact towerSet_mem_univ _ (boundS_teleOfFields.mpr hb)
+      | succ j =>
+        rw [sumFibre_of_ge (by simp)]
+        exact empty_mem_univ w
+    · rw [hempty]
       exact empty_mem_univ w
 
 /-- `.snd` of the point is graded (the squash regime). -/

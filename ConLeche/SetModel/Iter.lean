@@ -29,8 +29,8 @@ theorem mem_natUnion {f : Nat → V} {x : V} : x ∈ˢ natUnion f ↔ ∃ n, x �
   rw [mem_sUnion]
   constructor
   · rintro ⟨y, hy, hxy⟩
-    obtain ⟨k, hk, rfl⟩ := mem_image.mp hy
-    obtain ⟨n, rfl, hfib⟩ := natFibre_of_mem f hk
+    obtain ⟨k, -, rfl⟩ := mem_image.mp hy
+    obtain ⟨n, rfl, hfib⟩ := natFibre_eq_of_mem f hxy
     rw [hfib] at hxy
     exact ⟨n, hxy⟩
   · rintro ⟨n, hn⟩
@@ -44,9 +44,11 @@ theorem natUnion_mem_tg_pos {w : Nat} (hw : w ≠ 0) {f : Nat → V}
   obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
   unfold natUnion
   refine (tg_isUniverse (Nat.succ_ne_zero w')).famUnion_mem (omega_mem_tg_succ w') ?_
-  intro k hk
-  obtain ⟨n, rfl, hfib⟩ := natFibre_of_mem f hk
-  rw [hfib]
-  exact h n
+  intro k _
+  rcases natFibre_cases f k with ⟨n, rfl, hfib⟩ | hempty
+  · rw [hfib]
+    exact h n
+  · rw [hempty]
+    exact empty_mem_tg _
 
 end ConLeche.SetTheory.Tower

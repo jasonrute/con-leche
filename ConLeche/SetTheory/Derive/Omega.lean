@@ -18,9 +18,13 @@ Leastness is then definitional.  The inductive universe used is
 itself need not be — the empty set satisfies `IsUniverse`
 vacuously).
 
-`vnat : Nat → V` names the members of `ω` from the meta-level; every
-member of `ω` is a unique `vnat k` (`mem_omega_iff`, `vnat_inj`),
-which is what makes recursion on `ω` cheap in `Derive/Natrec.lean`.
+`vnat : Nat → V` names standard numerals from the meta-level; distinct
+names are distinct (`vnat_inj`), and recursion on `ω` runs through
+the definable scheme in `Derive/Natrec.lean`.  `mem_omega_iff` below still
+uses the meta-level `sep` (the predicate `∃ k : Nat, n = vnat k` is not
+first-order definable: in an arbitrary first-order model `ω` may
+have nonstandard members), so it is slated for removal together with the
+meta-level `repl` migration.
 
 `ω` itself is a *member* of any universe that has the inductive
 universe `univChain 1` as a member — arranged for the tower in
