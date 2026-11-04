@@ -57,7 +57,7 @@ theorem guardU_eq {w : Nat} {S : V} (h : SmallAt w S) : guardU w S = S := by
 
 /-- The tagged union: `X` under the tag `∅`, `Y` under `{pt}`. -/
 noncomputable def tagU (X Y : V) : V :=
-  binUnion (image (kpair empty) X) (image (kpair unitSet) Y)
+  binUnion (kpairImage empty X) (kpairImage unitSet Y)
 
 theorem tagU_mem {w : Nat} (hw : w ≠ 0) {X Y : V} (hX : X ∈ˢ (tg w : V))
     (hY : Y ∈ˢ (tg w : V)) : tagU X Y ∈ˢ (tg w : V) := by
@@ -65,14 +65,22 @@ theorem tagU_mem {w : Nat} (hw : w ≠ 0) {X Y : V} (hX : X ∈ˢ (tg w : V))
   have he : (empty : V) ∈ˢ (tg w : V) := empty_mem_tg w
   have hu : (unitSet : V) ∈ˢ (tg w : V) := unitSet_mem_tg w
   exact hU.binUnion_mem he
-    (hU.image_mem hX fun x hx => hU.kpair_mem he he (hU.transitive hX hx))
-    (hU.image_mem hY fun y hy => hU.kpair_mem he hu (hU.transitive hY hy))
+    (by
+      unfold kpairImage
+      exact hU.imageF_mem hX (fun x hx z hz => by
+        rw [realize_kpairEqF'.mp hz]
+        exact hU.kpair_mem he he (hU.transitive hX hx)))
+    (by
+      unfold kpairImage
+      exact hU.imageF_mem hY (fun y hy z hz => by
+        rw [realize_kpairEqF'.mp hz]
+        exact hU.kpair_mem he hu (hU.transitive hY hy)))
 
 theorem kpair_empty_mem_tagU {X Y b : V} (hb : b ∈ˢ X) : kpair empty b ∈ˢ tagU X Y :=
-  mem_binUnion.mpr (Or.inl (mem_image.mpr ⟨b, hb, rfl⟩))
+  mem_binUnion.mpr (Or.inl (mem_kpairImage.mpr ⟨b, hb, rfl⟩))
 
 theorem kpair_unit_mem_tagU {X Y b : V} (hb : b ∈ˢ Y) : kpair unitSet b ∈ˢ tagU X Y :=
-  mem_binUnion.mpr (Or.inr (mem_image.mpr ⟨b, hb, rfl⟩))
+  mem_binUnion.mpr (Or.inr (mem_kpairImage.mpr ⟨b, hb, rfl⟩))
 
 /-! ## The telescope's bound -/
 
@@ -291,11 +299,11 @@ theorem teleBound_support {w k : Nat} {ord : Nat → Bool}
       intro p hp
       unfold teleBound
       rcases mem_binUnion.mp hp with hp | hp
-      · obtain ⟨b, hb, rfl⟩ := mem_image.mp hp
+      · obtain ⟨b, hb, rfl⟩ := mem_kpairImage.mp hp
         refine kpair_empty_mem_tagU ?_
         rw [guardU_eq (hsz τ τ hRτ)]
         exact hB0 b hb
-      · obtain ⟨b, hb, rfl⟩ := mem_image.mp hp
+      · obtain ⟨b, hb, rfl⟩ := mem_kpairImage.mp hp
         refine kpair_unit_mem_tagU ?_
         split
         · refine mem_sUnion.mpr ⟨_, mem_image.mpr ⟨a, ?_, rfl⟩, hB1 b hb⟩
@@ -309,10 +317,10 @@ theorem teleBound_support {w k : Nat} {ord : Nat → Bool}
     · -- the items
       intro p hp
       rcases mem_binUnion.mp hp with hp | hp
-      · obtain ⟨b, hb, rfl⟩ := mem_image.mp hp
+      · obtain ⟨b, hb, rfl⟩ := mem_kpairImage.mp hp
         simp only [sfst_kpair, ssnd_kpair, ite_true]
         exact hg0 b hb
-      · obtain ⟨b, hb, rfl⟩ := mem_image.mp hp
+      · obtain ⟨b, hb, rfl⟩ := mem_kpairImage.mp hp
         simp only [sfst_kpair, ssnd_kpair, ite_eq_right (unitSet_ne_empty (V := V))]
         obtain ⟨hQ, hH⟩ := hg1 b hb
         refine ⟨?_, (holds_cons_down (hne b hb)).mp hH⟩

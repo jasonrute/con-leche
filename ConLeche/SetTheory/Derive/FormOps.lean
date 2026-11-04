@@ -202,6 +202,32 @@ theorem realize_kpairMemF {a f y : V} :
   · rintro ⟨z, hz, rfl⟩; exact hz
   · intro h; exact ⟨kpair a y, h, rfl⟩
 
+/-- Variable map `Fin 3 → Fin 3`, `0 ↦ 1`, `1 ↦ 2`, `2 ↦ 0`, turning
+`kpairEqF` into the replacement convention. -/
+def kpairSwapMap : Fin 3 → Fin 3 := fun i =>
+  match i.val with
+  | 0 => ⟨1, by omega⟩
+  | 1 => ⟨2, by omega⟩
+  | _ => ⟨0, by omega⟩
+
+/-- `z = kpair a x` in the replacement convention (variables `0 ↦ x`,
+`1 ↦ z`, parameter `2 ↦ a`). -/
+def kpairEqF' : Form 3 := Form.relabel kpairSwapMap kpairEqF
+
+theorem realize_kpairEqF' {x z a : V} :
+    Form.Realize Mem (Form.cons2 x z (fun _ => a)) kpairEqF' ↔ z = kpair a x := by
+  have h : Form.cons2 x z (fun _ => a) = (Form.snoc (Form.snoc (fun _ => x) z) a : Fin 3 → V) := by
+    funext ⟨k, hk⟩
+    have hk : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk with rfl | rfl | rfl <;> rfl
+  rw [h]
+  have hcomp : (Form.snoc (Form.snoc (fun _ => x) z) a : Fin 3 → V) ∘ kpairSwapMap =
+      (Form.snoc (Form.snoc (fun _ => z) a) x : Fin 3 → V) := by
+    funext ⟨k, hk⟩
+    have hk : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk with rfl | rfl | rfl <;> rfl
+  simp only [kpairEqF', Form.realize_relabel, hcomp, realize_kpairEqF]
+
 /-! ## Total single-valued graphs (`piSet`) -/
 
 /-- Variable map `Fin 2 → Fin 3`, `0 ↦ 2`, `1 ↦ 1` (used to read

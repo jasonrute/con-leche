@@ -87,6 +87,21 @@ theorem mem_vsuccImage {S z : V} :
   · rintro ⟨x, hx, rfl⟩
     exact ⟨x, hx, realize_vsuccF.mpr rfl⟩
 
+/-- The definable image under `kpair a`: `{kpair a x | x ∈ˢ X}`. -/
+noncomputable def kpairImage (a X : V) : V :=
+  imageF kpairEqF' (fun _ => a) X
+    (fun x _ => ⟨kpair a x, realize_kpairEqF'.mpr rfl, fun _ hy => realize_kpairEqF'.mp hy⟩)
+
+theorem mem_kpairImage {a X z : V} :
+    z ∈ˢ kpairImage a X ↔ ∃ x, x ∈ˢ X ∧ z = kpair a x := by
+  unfold kpairImage
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    exact ⟨x, hx, realize_kpairEqF'.mp h⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, realize_kpairEqF'.mpr rfl⟩
+
 theorem app_pt (a : V) : app (pt : V) a = pt := by
   unfold app; exact ite_eq_left rfl
 
