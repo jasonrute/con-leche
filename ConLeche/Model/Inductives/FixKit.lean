@@ -531,10 +531,10 @@ theorem mkAppN_wellDenoted_of_pt :
     refine mkAppN_wellDenoted_of_pt (f := .app f a) ?_ ?_
       (fun b hb => hargs b (List.mem_cons_of_mem _ hb))
     · rw [WellDenoted_app]
-      refine ⟨hf, ha, 0, image (fun _ => interp V ρ a) unitSet, fun _ => unitSet, ?_, ?_, ?_,
+      refine ⟨hf, ha, 0, sing (interp V ρ a), fun _ => unitSet, ?_, ?_, ?_,
         fun h => absurd rfl h⟩
       · rw [hpt]; exact pt_mem_piR_zero_of fun _ _ => pt_mem_unitSet
-      · exact mem_image.mpr ⟨pt, pt_mem_unitSet, rfl⟩
+      · exact mem_sing.mpr rfl
       · intro _ _ _; rw [← univ_zero]; exact unitSet_mem_univ 0
     · rw [interp_app, hpt, app_pt]
 

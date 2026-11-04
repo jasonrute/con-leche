@@ -14,7 +14,7 @@ the pair `kpair ∅ (qclass A R a)` (task #342: a raw class can be the
 point, see the end of the file; a tagged one is a pair, so the quotient
 is strict); for `u = 0` the base
 lives in `Prop`, everything collapses to the proof point, and the
-quotient is `image (fun _ => pt) A` — the truth value `[A inhabited]`.
+quotient is `constImageF pt A` — the truth value `[A inhabited]`.
 
 The lift (`quotLiftR`, `SetModel/Value.lean`) lifts `f` to the quotient as the graph of
 `q ↦ app f (representative of q)` (representatives by choice) — except
@@ -64,7 +64,7 @@ theorem rel_of_qclass_eq {A R a b : V} (ha : a ∈ˢ A) (_hb : b ∈ˢ A)
 open Classical in
 /-- The quotient (see module docs). -/
 noncomputable def quotSet (u : Nat) (A R : V) : V :=
-  if u = 0 then image (fun _ => pt) A else image (fun a => kpair empty (qclass A R a)) A
+  if u = 0 then constImageF pt A else image (fun a => kpair empty (qclass A R a)) A
 
 open Classical in
 /-- The class of `a` in the quotient: at `u ≠ 0` the `QuotRel`-class,
@@ -77,7 +77,7 @@ theorem quotClass_mem {u : Nat} {A R a : V} (ha : a ∈ˢ A) :
     quotClass u A R a ∈ˢ quotSet u A R := by
   unfold quotClass quotSet
   split
-  · exact mem_image.mpr ⟨a, ha, rfl⟩
+  · exact mem_constImageF.mpr ⟨a, ha, rfl⟩
   · exact mem_image.mpr ⟨a, ha, rfl⟩
 
 theorem quotClass_surj {u : Nat} {A R q : V} (hq : q ∈ˢ quotSet u A R) :
@@ -86,7 +86,7 @@ theorem quotClass_surj {u : Nat} {A R q : V} (hq : q ∈ˢ quotSet u A R) :
   unfold quotClass
   split at hq
   · next h =>
-    obtain ⟨a, ha, rfl⟩ := mem_image.mp hq
+    obtain ⟨a, ha, rfl⟩ := mem_constImageF.mp hq
     exact ⟨a, ha, (ite_eq_left h).symm⟩
   · next h =>
     obtain ⟨a, ha, rfl⟩ := mem_image.mp hq
@@ -213,7 +213,7 @@ theorem quotSet_mem_univ {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V)) :
     unfold quotSet
     rw [ite_eq_left rfl, univ_zero]
     refine mem_univZero.mpr fun z hz => ?_
-    obtain ⟨-, -, rfl⟩ := mem_image.mp hz
+    obtain ⟨-, -, rfl⟩ := mem_constImageF.mp hz
     exact pt_mem_unitSet
   · refine mem_univ_of_tg_strict ?_ (strict_quotSet h A R)
     have hA' := mem_tg_of_mem_univ hA

@@ -102,6 +102,32 @@ theorem mem_kpairImage {a X z : V} :
   · rintro ⟨x, hx, rfl⟩
     exact ⟨x, hx, realize_kpairEqF'.mpr rfl⟩
 
+/-- The definable constant image `{c | x ∈ˢ A}`: the `imageF` of the
+relation `z = c` (variable `1 ↦ z`, parameter `0 ↦ c`) — the
+first-order twin of `image (fun _ => c) A`. -/
+noncomputable def constImageF (c A : V) : V :=
+  imageF (n := 1) (Form.equal (⟨1, by omega⟩ : Fin 3) (⟨2, by omega⟩ : Fin 3))
+    (fun _ => c) A
+    (fun _ _ => ⟨c, by simp [Form.cons2], fun y hy => by simpa [Form.cons2] using hy⟩)
+
+theorem mem_constImageF {c A z : V} :
+    z ∈ˢ constImageF c A ↔ ∃ x, x ∈ˢ A ∧ z = c := by
+  unfold constImageF
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    exact ⟨x, hx, by simpa [Form.cons2] using h⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, by simp [Form.cons2]⟩
+
+theorem constImageF_eq_sing {c A x : V} (hx : x ∈ˢ A) :
+    constImageF c A = sing c := by
+  apply ext fun z => ?_
+  rw [mem_constImageF, mem_sing]
+  constructor
+  · rintro ⟨_, -, rfl⟩; rfl
+  · intro rfl; exact ⟨x, hx, rfl⟩
+
 theorem app_pt (a : V) : app (pt : V) a = pt := by
   unfold app; exact ite_eq_left rfl
 

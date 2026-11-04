@@ -6314,7 +6314,7 @@
 == ConLeche/SetTheory/Derive/Quot.lean#L65-L67
     65  /-- The quotient (see module docs). -/
     66  noncomputable def quotSet (u : Nat) (A R : V) : V :=
-    67    if u = 0 then image (fun _ => pt) A else image (fun a => kpair empty (qclass A R a)) A
+    67    if u = 0 then constImageF pt A else image (fun a => kpair empty (qclass A R a)) A
 
 == ConLeche/Model/BasisQuot.lean#L2431-L2435
   2431  theorem extendQuotLift (mp : EnvModelM V μ env)
