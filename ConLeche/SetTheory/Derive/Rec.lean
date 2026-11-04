@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetTheory.Derive.Graphs
+public import ConLeche.SetTheory.Derive.Omega
 
 @[expose] public section
 
@@ -418,5 +419,201 @@ theorem realize_attemptF {e z s n : V} :
     realize_funcF, realize_domVSuccF, realize_kpairEqF, realize_kpairMemF,
     realize_vsuccEqF, realize_appEqF, Form.snoc_mk]
   simp
+
+/-! ## Ordinal helpers -/
+
+/-- Transitivity as a formula (bound variable `0 → x`). -/
+def transF : Form 1 :=
+  .all (.imp (.mem ⟨1, by omega⟩ ⟨0, by omega⟩)
+    (.all (.imp (.mem ⟨2, by omega⟩ ⟨1, by omega⟩)
+      (.mem ⟨2, by omega⟩ ⟨0, by omega⟩))))
+
+theorem realize_transF {x : V} :
+    Form.Realize Mem (fun _ => x) transF ↔
+      ∀ y, y ∈ˢ x → ∀ z, z ∈ˢ y → z ∈ˢ x := by
+  simp only [transF, Form.realize_all, Form.realize_imp, Form.realize_mem, Form.snoc_mk]
+  simp
+
+theorem omega_member_transitive {n : V} (hn : n ∈ˢ (omega : V)) :
+    ∀ y, y ∈ˢ n → ∀ z, z ∈ˢ y → z ∈ˢ n := by
+  have h := omega_induction (p := Form.nil (V := V)) (φ := transF)
+    (by
+      rw [Form.snoc_nil, realize_transF]
+      intro y hy
+      exact absurd hy (not_mem_empty y))
+    (fun x _ hx => by
+      rw [Form.snoc_nil, realize_transF]
+      intro y hy z hz
+      rcases (mem_vsucc (n := x)).mp hy with hy | hyx
+      · exact (mem_vsucc (n := x)).mpr (Or.inl (realize_transF.mp hx y hy z hz))
+      · rw [hyx] at hz
+        exact (mem_vsucc (n := x)).mpr (Or.inl hz))
+    hn
+  rw [Form.snoc_nil] at h
+  exact realize_transF.mp h
+
+theorem vsucc_ne (n : V) : vsucc n ≠ n := by
+  intro h
+  have h2 : n ∈ˢ vsucc n := (mem_vsucc (z := n) (n := n)).mpr (Or.inr rfl)
+  rw [h] at h2
+  exact not_mem_self n h2
+
+theorem vsucc_not_mem_of_mem_omega {n : V} (hn : n ∈ˢ (omega : V)) :
+    ¬ vsucc n ∈ˢ n := by
+  intro h
+  exact not_mem_self n
+    (omega_member_transitive hn (vsucc n) h n ((mem_vsucc (z := n) (n := n)).mpr (Or.inr rfl)))
+
+/-! ## Attempts, existence -/
+
+/-- `f` is an attempt at `n` for base value `z` and step `s`: the
+`Prop`-level reading of `attemptF` (with `e = empty`), flattened. -/
+def IsAttempt (z s n f : V) : Prop :=
+  (∀ p, p ∈ˢ f → (∃ a b, p = kpair a b) ∧
+      ∀ a b b', kpair a b ∈ˢ f → kpair a b' ∈ˢ f → b = b') ∧
+    (∀ x, (x ∈ˢ n ∨ x = n) ↔ ∃ y, kpair x y ∈ˢ f) ∧
+    (kpair (empty : V) z ∈ˢ f) ∧
+    (∀ m, m ∈ˢ n → ∀ u, kpair m u ∈ˢ f →
+      ∃ v, kpair (vsucc m) v ∈ˢ f ∧ v = app (app s m) u)
+
+theorem realize_attemptF' {z s n : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => empty) z) s) pt) n) attemptF ↔
+      ∃ f, IsAttempt z s n f := by
+  rw [realize_attemptF]
+  constructor
+  · rintro ⟨f, h1, h2, ⟨c, hc, hcm⟩, h4⟩
+    refine ⟨f, h1, h2, hcm, fun m hm u hu => ?_⟩
+    obtain ⟨v, ⟨ee, hee, hkv⟩, ⟨w, hw, hv⟩⟩ := h4 m hm u hu
+    rw [hee] at hkv
+    rw [hw] at hv
+    exact ⟨v, hkv, hv⟩
+  · rintro ⟨f, h1, h2, hbase, h4⟩
+    refine ⟨f, h1, h2, ⟨kpair (empty : V) z, rfl, hbase⟩, fun m hm u hu => ?_⟩
+    obtain ⟨v, hkv, hv⟩ := h4 m hm u hu
+    exact ⟨v, ⟨vsucc m, rfl, hkv⟩, ⟨app s m, rfl, hv⟩⟩
+
+theorem attempt_empty (z s : V) :
+    IsAttempt z s (empty : V) (sing (kpair (empty : V) z)) := by
+  refine ⟨?_, ?_, mem_sing.mpr rfl, ?_⟩
+  · intro p hp
+    rw [mem_sing] at hp
+    subst hp
+    refine ⟨⟨empty, z, rfl⟩, ?_⟩
+    intro a b b' h1 h2
+    rw [mem_sing] at h1 h2
+    obtain ⟨rfl, rfl⟩ := kpair_inj h1
+    obtain ⟨-, rfl⟩ := kpair_inj h2
+    rfl
+  · intro x
+    constructor
+    · rintro (hx | rfl)
+      · exact absurd hx (not_mem_empty x)
+      · exact ⟨z, mem_sing.mpr rfl⟩
+    · rintro ⟨y, hy⟩
+      rw [mem_sing] at hy
+      obtain ⟨rfl, -⟩ := kpair_inj hy
+      exact Or.inr rfl
+  · intro m hm
+    exact absurd hm (not_mem_empty m)
+
+/-- Extend an attempt at `n` (with `n ∈ˢ ω`) to an attempt at
+`vsucc n`, by adjoining the step pair. -/
+theorem attempt_vsucc {z s n f : V} (hn : n ∈ˢ (omega : V)) (hf : IsAttempt z s n f) :
+    IsAttempt z s (vsucc n)
+      (binUnion f (sing (kpair (vsucc n) (app (app s n) (app f n))))) := by
+  obtain ⟨hfunc, hdom, hbase, hstep⟩ := hf
+  have hvnot : ¬ vsucc n ∈ˢ n := vsucc_not_mem_of_mem_omega hn
+  have hvne : vsucc n ≠ n := vsucc_ne n
+  have hfne : f ≠ (pt : V) := by
+    intro h
+    exact ptTag_ne_kpair (empty : V) z ((mem_pt.mp (h ▸ hbase)).symm)
+  have huniq : ∀ a b b',
+      kpair a b ∈ˢ binUnion f (sing (kpair (vsucc n) (app (app s n) (app f n)))) →
+      kpair a b' ∈ˢ binUnion f (sing (kpair (vsucc n) (app (app s n) (app f n)))) →
+      b = b' := by
+    intro a b b' h1 h2
+    rw [mem_binUnion] at h1 h2
+    rcases h1 with h1 | h1 <;> rcases h2 with h2 | h2
+    · exact (hfunc (kpair a b) h1).2 a b b' h1 h2
+    · rw [mem_sing] at h2
+      obtain ⟨rfl, rfl⟩ := kpair_inj h2
+      rcases (hdom (vsucc n)).mpr ⟨b, h1⟩ with h | h
+      · exact absurd h hvnot
+      · exact absurd h hvne
+    · rw [mem_sing] at h1
+      obtain ⟨rfl, rfl⟩ := kpair_inj h1
+      rcases (hdom (vsucc n)).mpr ⟨b', h2⟩ with h | h
+      · exact absurd h hvnot
+      · exact absurd h hvne
+    · rw [mem_sing] at h1 h2
+      obtain ⟨-, rfl⟩ := kpair_inj h1
+      obtain ⟨-, rfl⟩ := kpair_inj h2
+      rfl
+  refine ⟨?_, ?_, mem_binUnion.mpr (Or.inl hbase), ?_⟩
+  · intro p hp
+    rw [mem_binUnion] at hp
+    rcases hp with hp | hp
+    · exact ⟨(hfunc p hp).1, huniq⟩
+    · rw [mem_sing] at hp
+      subst hp
+      exact ⟨⟨vsucc n, app (app s n) (app f n), rfl⟩, huniq⟩
+  · intro x
+    rw [mem_vsucc (n := n)]
+    constructor
+    · rintro ((hx | hxn) | hxv)
+      · obtain ⟨y, hy⟩ := (hdom x).mp (Or.inl hx)
+        exact ⟨y, mem_binUnion.mpr (Or.inl hy)⟩
+      · obtain ⟨y, hy⟩ := (hdom x).mp (Or.inr hxn)
+        exact ⟨y, mem_binUnion.mpr (Or.inl hy)⟩
+      · rw [hxv]
+        exact ⟨app (app s n) (app f n), mem_binUnion.mpr (Or.inr (mem_sing.mpr rfl))⟩
+    · rintro ⟨y, hy⟩
+      rw [mem_binUnion] at hy
+      rcases hy with hy | hy
+      · exact Or.inl ((hdom x).mpr ⟨y, hy⟩)
+      · rw [mem_sing] at hy
+        obtain ⟨hxv, -⟩ := kpair_inj hy
+        rw [hxv]
+        exact Or.inr rfl
+  · intro m hm u hu
+    rw [mem_vsucc (n := n)] at hm
+    rw [mem_binUnion] at hu
+    rcases hm with hm | hmn
+    · rcases hu with hu | hu
+      · obtain ⟨v, hkv, hv⟩ := hstep m hm u hu
+        exact ⟨v, mem_binUnion.mpr (Or.inl hkv), hv⟩
+      · rw [mem_sing] at hu
+        obtain ⟨hmv, -⟩ := kpair_inj hu
+        rw [hmv] at hm
+        exact absurd hm hvnot
+    · rw [hmn] at hu ⊢
+      rcases hu with hu | hu
+      · have hu' : app f n = u :=
+          app_eq_of_unique hfne hu (fun y hy => (hfunc (kpair n u) hu).2 n y u hy hu)
+        exact ⟨app (app s n) (app f n), mem_binUnion.mpr (Or.inr (mem_sing.mpr rfl)), by rw [hu']⟩
+      · rw [mem_sing] at hu
+        obtain ⟨hnv, -⟩ := kpair_inj hu
+        exact absurd hnv hvne.symm
+
+/-- **Existence of attempts**: for every `n ∈ˢ ω` there is an
+attempt at `n`, by definable induction on `ω`. -/
+theorem exists_attempt (z s : V) {n : V} (hn : n ∈ˢ (omega : V)) :
+    ∃ f, IsAttempt z s n f := by
+  have hnil : Form.snoc (Form.nil (V := V)) (empty : V) = (fun _ => (empty : V)) :=
+    Form.snoc_nil _
+  have h := omega_induction
+    (p := Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.nil (V := V)) (empty : V)) z) s) pt)
+    (φ := attemptF)
+    (by rw [hnil, realize_attemptF']; exact ⟨_, attempt_empty z s⟩)
+    (fun x hx hf => by
+      rw [hnil, realize_attemptF'] at hf
+      obtain ⟨f, hf⟩ := hf
+      rw [hnil, realize_attemptF']
+      exact ⟨binUnion f (sing (kpair (vsucc x) (app (app s x) (app f x)))),
+        attempt_vsucc hx hf⟩)
+    hn
+  rw [hnil] at h
+  exact realize_attemptF'.mp h
 
 end ConLeche.SetTheory
