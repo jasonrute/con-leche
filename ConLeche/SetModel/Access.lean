@@ -116,7 +116,7 @@ noncomputable def stage : BT V → Nat → V
 /-- A tree's code: its set of `A`-paths. -/
 noncomputable def code : BT V → V
   | .leaf => empty
-  | .node f => binUnion unitSet (sUnion (image (fun a => image (kpair a) (code (f a))) A))
+  | .node f => binUnion unitSet (sUnion (image (fun a => kpairImage a (code (f a))) A))
 
 /-- The chosen tree of a code. -/
 noncomputable def pick (c : V) : BT V :=
@@ -137,11 +137,11 @@ theorem mem_code_node {f : V → BT V} {p : V} :
   · rintro (h | ⟨s, hs, hp⟩)
     · exact Or.inl h
     · obtain ⟨a, ha, rfl⟩ := mem_image.mp hs
-      obtain ⟨q, hq, rfl⟩ := mem_image.mp hp
+      obtain ⟨q, hq, rfl⟩ := mem_kpairImage.mp hp
       exact Or.inr ⟨a, ha, q, hq, rfl⟩
   · rintro (h | ⟨a, ha, q, hq, rfl⟩)
     · exact Or.inl h
-    · exact Or.inr ⟨_, mem_image.mpr ⟨a, ha, rfl⟩, mem_image.mpr ⟨q, hq, rfl⟩⟩
+    · exact Or.inr ⟨_, mem_image.mpr ⟨a, ha, rfl⟩, mem_kpairImage.mpr ⟨q, hq, rfl⟩⟩
 
 theorem code_sub : ∀ T : BT V, code A T ⊆ˢ accPaths A
   | .leaf => by simp only [code]; exact empty_subset _

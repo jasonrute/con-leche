@@ -107,6 +107,21 @@ theorem mem_kpairImage {a X z : V} :
 theorem image_kpair_eq {a X : V} : image (kpair a) X = kpairImage a X :=
   ext fun z => by rw [mem_image, mem_kpairImage]
 
+/-- The definable intersection of `a` and `c`, separated from `a` by
+the membership formula `memPF` with parameter `c`. -/
+noncomputable def interF (a c : V) : V := sepF a memPF (fun _ => c)
+
+theorem mem_interF {a c z : V} : z ∈ˢ interF a c ↔ z ∈ˢ a ∧ z ∈ˢ c := by
+  unfold interF
+  rw [mem_sepF, realize_memPF]
+
+/-- Definable intersection closure: the first-order twin of a
+`sep`-based intersection at a member parameter. -/
+theorem _root_.ConLeche.IsUniverse.interF_mem {U a c : V} (hU : IsUniverse (Mem (V := V)) U)
+    (ha : a ∈ˢ U) (_hc : c ∈ˢ U) : interF a c ∈ˢ U := by
+  unfold interF
+  exact hU.sepF_mem ha
+
 /-- Definable tag-image closure (clause 6): the definable image of a
 member under the tag function `kpair a` is a member — the first-order
 twin of `image_mem` at `kpair a`. -/
@@ -328,7 +343,7 @@ theorem mem_sigmaPairsF {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A z : V
 /-- The raw dependent pair set `{⟨x, y⟩ : x ∈ A, y ∈ B x}`. -/
 
 noncomputable def sigmaPairs (A : V) (B : V → V) : V :=
-  sUnion (image (fun x => image (fun y => kpair x y) (B x)) A)
+  sUnion (image (fun x => kpairImage x (B x)) A)
 
 theorem mem_sigmaPairs {A p : V} {B : V → V} :
     p ∈ˢ sigmaPairs A B ↔ ∃ x, x ∈ˢ A ∧ ∃ y, y ∈ˢ B x ∧ p = kpair x y := by
@@ -337,11 +352,11 @@ theorem mem_sigmaPairs {A p : V} {B : V → V} :
   constructor
   · rintro ⟨s, hs, hps⟩
     obtain ⟨x, hx, rfl⟩ := mem_image.mp hs
-    obtain ⟨y, hy, rfl⟩ := mem_image.mp hps
+    obtain ⟨y, hy, rfl⟩ := mem_kpairImage.mp hps
     exact ⟨x, hx, y, hy, rfl⟩
   · rintro ⟨x, hx, y, hy, rfl⟩
-    exact ⟨image (fun y => kpair x y) (B x), mem_image.mpr ⟨x, hx, rfl⟩,
-      mem_image.mpr ⟨y, hy, rfl⟩⟩
+    exact ⟨kpairImage x (B x), mem_image.mpr ⟨x, hx, rfl⟩,
+      mem_kpairImage.mpr ⟨y, hy, rfl⟩⟩
 
 theorem sigmaPairs_congr {A : V} {B B' : V → V}
     (h : ∀ x, x ∈ˢ A → B x = B' x) : sigmaPairs A B = sigmaPairs A B' := by
@@ -353,8 +368,7 @@ theorem _root_.ConLeche.IsUniverse.sigmaPairs_mem {U A : V} {B : V → V}
     (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
     (hB : ∀ x, x ∈ˢ A → B x ∈ˢ U) : sigmaPairs A B ∈ˢ U :=
   hU.famUnion_mem hA fun x hx =>
-    hU.image_mem (hB x hx) fun _y hy =>
-      hU.kpair_mem hA (hU.transitive hA hx) (hU.transitive (hB x hx) hy)
+    hU.kpairImage_mem (hU.empty_mem hA) (hU.transitive hA hx) (hB x hx)
 
 /-- Definable constant-product closure (clause 6 via the subset
 clause): the first-order twin of `sigmaPairs_mem` at a constant
