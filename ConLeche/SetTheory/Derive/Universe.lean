@@ -226,6 +226,19 @@ theorem _root_.ConLeche.IsUniverse.famUnion_mem {A : V} {F : V → V}
     sUnion (image F A) ∈ˢ U :=
   hU.sUnion_mem (hU.image_mem hA hF)
 
+/-- Definable union-of-image closure (clause 6): `sUnion` of a definable
+image of a member, with member values, is a member — the first-order
+twin of `famUnion_mem`. -/
+theorem _root_.ConLeche.IsUniverse.famUnionF_mem {A : V} {n : Nat} {ψ : Form (n + 2)}
+    {p : Fin n → V}
+    {hfun : ∀ x, x ∈ˢ A → ∃ y, Form.Realize Mem (Form.cons2 x y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ → y' = y}
+    (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → ∀ y, Form.Realize Mem (Form.cons2 x y p) ψ → y ∈ˢ U) :
+    sUnion (imageF ψ p A hfun) ∈ˢ U :=
+  hU.sUnion_mem (hU.imageF_mem hA hval)
+
+
 end IsUniverse
 
 /-- Chain membership generalizes along the ordering, by transitivity

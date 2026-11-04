@@ -130,7 +130,131 @@ theorem app_graph {F : V → V} {A a : V} (ha : a ∈ˢ A) :
   obtain ⟨rfl, rfl⟩ := kpair_inj hx
   rfl
 
+/-! ## Definable function graphs (`graphF`, `sigmaPairsF`)
+
+The first-order twins of `graph`/`sigmaPairs`: the graph of a
+*definable* functional relation `φ` (replacement convention:
+`Form.Realize Mem (Form.cons2 x z p) φ` means `z = F x`) is
+`{⟨x, z⟩ : x ∈ˢ A, φ(x, z; p)}`, built by `imageF` from `replF` — no
+meta-level `image` (the `repl` field) involved.  Since `graph F A` and
+`sigmaPairs A B` coincide at `B x = sing (F x)`, one relation
+`pairRelF` serves both. -/
+
+/-- Variable map `Fin 3 → Fin (n+3)` reading `kpairEqF'` in the pair-relation
+body: `(z, pair, x) ↦ (n+2, 1, 0)`, asserting `pair = ⟨x, z⟩`. -/
+def pairRelMapK (n : Nat) : Fin 3 → Fin (n + 3) := fun i =>
+  match i.val with
+  | 0 => ⟨n + 2, by omega⟩
+  | 1 => ⟨1, by omega⟩
+  | _ => ⟨0, by omega⟩
+
+/-- Variable map `Fin (n+2) → Fin (n+3)` reading the fibre formula `φ` in the
+pair-relation body: `x ↦ 0`, `z ↦ n+2`, parameters unchanged. -/
+def pairRelMapF (n : Nat) : Fin (n + 2) → Fin (n + 3) := fun i =>
+  if i.val = 1 then ⟨n + 2, by omega⟩ else ⟨i.val, by omega⟩
+
+/-- The pair-relation body: `y = ⟨x, z⟩ ∧ φ(x, z; p)` (variables `0 ↦ x`,
+`1 ↦ y`, `2..n+1 ↦ p`, last ↦ bound `z`). -/
+def pairRelBody (n : Nat) (φ : Form (n + 2)) : Form (n + 3) :=
+  Form.and (Form.relabel (pairRelMapK n) kpairEqF') (Form.relabel (pairRelMapF n) φ)
+
+/-- The pair relation `y = ⟨x, z⟩` for some `z` with `φ(x, z; p)`, in the
+replacement convention (variables `0 ↦ x`, `1 ↦ y`, `i+2 ↦ p i`). -/
+def pairRelF (n : Nat) (φ : Form (n + 2)) : Form (n + 2) :=
+  Form.ex (pairRelBody n φ)
+
+theorem realize_pairRelF {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {x y : V} :
+    Form.Realize Mem (Form.cons2 x y p) (pairRelF n φ) ↔
+      ∃ z, y = kpair x z ∧ Form.Realize Mem (Form.cons2 x z p) φ := by
+  have hK : ∀ z : V, (Form.snoc (Form.cons2 x y p) z) ∘ pairRelMapK n =
+      Form.cons2 z y (fun _ => x) := by
+    intro z
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;>
+      simp [pairRelMapK, Form.snoc, Form.cons2]
+  have hF : ∀ z : V, (Form.snoc (Form.cons2 x y p) z) ∘ pairRelMapF n =
+      Form.cons2 x z p := by
+    intro z
+    funext ⟨k, hk⟩
+    by_cases hk0 : k = 0
+    · subst hk0; simp [pairRelMapF, Form.snoc, Form.cons2]
+    by_cases hk1 : k = 1
+    · subst hk1; simp [pairRelMapF, Form.snoc, Form.cons2]
+    · have hk2 : 2 ≤ k := by omega
+      simp [pairRelMapF, Form.snoc, Form.cons2, hk0, hk1, hk]
+  simp only [pairRelF, pairRelBody, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hK, hF, realize_kpairEqF']
+
+theorem pairRelF_fun {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) :
+    ∀ x, x ∈ˢ A → ∃ y, Form.Realize Mem (Form.cons2 x y p) (pairRelF n φ) ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) (pairRelF n φ) → y' = y := by
+  intro x hx
+  obtain ⟨z, hφ, huniq⟩ := hfun x hx
+  refine ⟨kpair x z, realize_pairRelF.mpr ⟨z, rfl, hφ⟩, fun y' hy' => ?_⟩
+  obtain ⟨z', hz', hφ'⟩ := realize_pairRelF.mp hy'
+  rw [hz', huniq z' hφ']
+
+/-- The definable function graph `{⟨x, z⟩ : x ∈ˢ A, φ(x, z; p)}` — the
+first-order twin of `graph`, from `replF` via `imageF`. -/
+noncomputable def graphF {n : Nat} (φ : Form (n + 2)) (p : Fin n → V) (A : V)
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) : V :=
+  imageF (pairRelF n φ) p A (pairRelF_fun hfun)
+
+theorem mem_graphF {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A z : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) :
+    z ∈ˢ graphF φ p A hfun ↔
+      ∃ x, x ∈ˢ A ∧ ∃ w, z = kpair x w ∧ Form.Realize Mem (Form.cons2 x w p) φ := by
+  unfold graphF
+  rw [mem_imageF (pairRelF_fun hfun)]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    obtain ⟨w, h1, h2⟩ := realize_pairRelF.mp h
+    exact ⟨x, hx, w, h1, h2⟩
+  · rintro ⟨x, hx, w, h1, h2⟩
+    exact ⟨x, hx, realize_pairRelF.mpr ⟨w, h1, h2⟩⟩
+
+theorem graphF_ne_pt {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) :
+    graphF φ p A hfun ≠ (pt : V) := by
+  intro h
+  obtain ⟨x, -, w, hx, -⟩ := (mem_graphF hfun).mp (h ▸ ptTag_mem_pt)
+  exact ptTag_ne_kpair x w hx
+
+/-- Beta on definable graphs. -/
+theorem app_graphF {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A a w : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z)
+    (ha : a ∈ˢ A) (hw : Form.Realize Mem (Form.cons2 a w p) φ) :
+    app (graphF φ p A hfun) a = w := by
+  refine app_eq_of_unique (graphF_ne_pt hfun) (mem_graphF hfun |>.mpr ⟨a, ha, w, rfl, hw⟩) ?_
+  intro y hy
+  obtain ⟨z₀, -, huniq⟩ := hfun a ha
+  obtain ⟨x, -, z, hx, hφ⟩ := (mem_graphF hfun).mp hy
+  obtain ⟨rfl, rfl⟩ := kpair_inj hx
+  rw [huniq y hφ, huniq w hw]
+
+/-- The raw dependent pair set `{⟨x, y⟩ : x ∈ˢ A, φ(x, y; p)}` — the
+first-order twin of `sigmaPairs` (the same set as `graphF φ p A`). -/
+noncomputable def sigmaPairsF {n : Nat} (φ : Form (n + 2)) (p : Fin n → V) (A : V)
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) : V :=
+  graphF φ p A hfun
+
+theorem mem_sigmaPairsF {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A z : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) :
+    z ∈ˢ sigmaPairsF φ p A hfun ↔
+      ∃ x, x ∈ˢ A ∧ ∃ y, z = kpair x y ∧ Form.Realize Mem (Form.cons2 x y p) φ :=
+  mem_graphF hfun
+
 /-- The raw dependent pair set `{⟨x, y⟩ : x ∈ A, y ∈ B x}`. -/
+
 noncomputable def sigmaPairs (A : V) (B : V → V) : V :=
   sUnion (image (fun x => image (fun y => kpair x y) (B x)) A)
 
@@ -159,6 +283,33 @@ theorem _root_.ConLeche.IsUniverse.sigmaPairs_mem {U A : V} {B : V → V}
   hU.famUnion_mem hA fun x hx =>
     hU.image_mem (hB x hx) fun _y hy =>
       hU.kpair_mem hA (hU.transitive hA hx) (hU.transitive (hB x hx) hy)
+
+/-- Definable graph closure (clause 6): the definable graph of a member
+under a functional definable relation with member-valued pairs is a
+member.  First-order twin of `image_mem` for `graph`. -/
+theorem _root_.ConLeche.IsUniverse.graphF_mem {U A : V} {n : Nat} {φ : Form (n + 2)}
+    {p : Fin n → V}
+    {hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → ∀ w, Form.Realize Mem (Form.cons2 x w p) φ → kpair x w ∈ˢ U) :
+    graphF φ p A hfun ∈ˢ U := by
+  unfold graphF
+  refine hU.imageF_mem hA (fun x hx y hy => ?_)
+  obtain ⟨w, h1, h2⟩ := realize_pairRelF.mp hy
+  rw [h1]
+  exact hval x hx w h2
+
+/-- Definable sigma-pair closure (clause 6): first-order twin of
+`sigmaPairs_mem`. -/
+theorem _root_.ConLeche.IsUniverse.sigmaPairsF_mem {U A : V} {n : Nat} {φ : Form (n + 2)}
+    {p : Fin n → V}
+    {hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → ∀ y, Form.Realize Mem (Form.cons2 x y p) φ → kpair x y ∈ˢ U) :
+    sigmaPairsF φ p A hfun ∈ˢ U :=
+  hU.graphF_mem hA hval
 
 /-- The set of total single-valued dependent graphs on `A` with fibres
 `B`: the `v ≠ 0` dependent function space. -/
