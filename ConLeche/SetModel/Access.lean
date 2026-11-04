@@ -427,7 +427,7 @@ open Classical in
 supports tagged by `∅`/`pt`. -/
 theorem accRead_prod {A1 A2 : V} {G H : (Nat → V) → V} (hG : AccRead w kI IsI G A1) (hH : AccRead w kI IsI H A2) :
     AccRead w kI IsI (fun X => sigmaConstF (G X) (H X))
-      (sigmaPairs (upair empty pt) fun t => if t = empty then A1 else A2) := by
+      (sigmaTag2 A1 A2) := by
   classical
   intro X hX x hx
   obtain ⟨y, hy, z, hz, rfl⟩ := mem_sigmaConstF.mp hx
@@ -438,10 +438,12 @@ theorem accRead_prod {A1 A2 : V} {G H : (Nat → V) → V} (hG : AccRead w kI Is
     fun p => if sfst p = empty then g1 (ssnd p) else g2 (ssnd p), ?_, ?_, ?_⟩
   · intro p hp
     obtain ⟨t, ht, q, hq, rfl⟩ := mem_sigmaPairs.mp hp
-    refine mem_sigmaPairs.mpr ⟨t, ht, q, ?_, rfl⟩
-    by_cases h : t = empty
-    · simp only [h, ite_true] at hq ⊢; exact hB1 q hq
-    · simp only [h, ite_false] at hq ⊢; exact hB2 q hq
+    rcases mem_upair.mp ht with h | h
+    · simp only [h, ite_true] at hq ⊢
+      exact mem_sigmaTag2.mpr (Or.inl ⟨q, hB1 q hq, rfl⟩)
+    · rw [h] at hq ⊢
+      simp only [pt_ne_empty, ite_false] at hq
+      exact mem_sigmaTag2.mpr (Or.inr ⟨q, hB2 q hq, rfl⟩)
   · intro p hp
     obtain ⟨t, ht, q, hq, rfl⟩ := mem_sigmaPairs.mp hp
     simp only [sfst_kpair, ssnd_kpair]

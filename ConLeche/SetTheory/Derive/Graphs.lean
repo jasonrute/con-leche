@@ -367,6 +367,34 @@ theorem _root_.ConLeche.IsUniverse.sigmaConstF_mem {U A c : V} (hU : IsUniverse 
 theorem sigmaConstF_eq {A c : V} : sigmaConstF A c = sigmaPairs A (fun _ => c) :=
   ext fun z => by rw [mem_sigmaConstF, mem_sigmaPairs]
 
+/-- The two-tag product `Σ t " + M2 + " {" + EMP + ", pt}, (if t = " + EMP + " then c0 else c1)` as a
+definable union of two constant products — the first-order twin of
+`sigmaPairs (upair empty pt) (fun t => if t = empty then c0 else c1)`. -/
+noncomputable def sigmaTag2 (c0 c1 : V) : V :=
+  binUnion (sigmaConstF (sing empty) c0) (sigmaConstF (sing pt) c1)
+
+theorem mem_sigmaTag2 {c0 c1 z : V} :
+    z ∈ˢ sigmaTag2 c0 c1 ↔ (∃ y, y ∈ˢ c0 ∧ z = kpair empty y) ∨ (∃ y, y ∈ˢ c1 ∧ z = kpair pt y) := by
+  unfold sigmaTag2
+  rw [mem_binUnion, mem_sigmaConstF, mem_sigmaConstF]
+  constructor
+  · rintro (⟨x, hx, y, hy, rfl⟩ | ⟨x, hx, y, hy, rfl⟩)
+    · obtain rfl : x = empty := mem_sing.mp hx
+      exact Or.inl ⟨y, hy, rfl⟩
+    · obtain rfl : x = pt := mem_sing.mp hx
+      exact Or.inr ⟨y, hy, rfl⟩
+  · rintro (⟨y, hy, rfl⟩ | ⟨y, hy, rfl⟩)
+    · exact Or.inl ⟨empty, mem_sing.mpr rfl, y, hy, rfl⟩
+    · exact Or.inr ⟨pt, mem_sing.mpr rfl, y, hy, rfl⟩
+
+
+/-- Definable two-tag-product closure (clause 6 via `binUnion`/`sing`/
+`sigmaConstF`): the first-order twin of the dite-family `sigmaPairs_mem`. -/
+theorem _root_.ConLeche.IsUniverse.sigmaTag2_mem {U c0 c1 : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (h0 : c0 ∈ˢ U) (h1 : c1 ∈ˢ U) : sigmaTag2 c0 c1 ∈ˢ U :=
+  hU.binUnion_mem he (hU.sigmaConstF_mem he (hU.sing_mem he he) h0)
+    (hU.sigmaConstF_mem he (hU.sing_mem he (hU.pt_mem he)) h1)
+
 /-- Definable graph closure (clause 6): the definable graph of a member
 under a functional definable relation with member-valued pairs is a
 member.  First-order twin of `image_mem` for `graph`. -/

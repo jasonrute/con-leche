@@ -87,14 +87,8 @@ omit hw in
 open Classical in
 /-- The two-tag product bound is a set of the level. -/
 theorem prodA_mem (hw : w ≠ 0) {A1 A2 : V} (h1 : A1 ∈ˢ (tg w : V)) (h2 : A2 ∈ˢ (tg w : V)) :
-    (sigmaPairs (upair empty pt) fun t => if t = empty then A1 else A2) ∈ˢ (tg w : V) := by
-  classical
-  have hU := tg_isUniverse (V := V) hw
-  refine hU.sigmaPairs_mem (hU.upair_mem (empty_mem_tg w) (empty_mem_tg w) (pt_mem_tg hw))
-    fun t _ => ?_
-  by_cases h : t = empty
-  · simp only [h, ite_true]; exact h1
-  · simp only [h, ite_false]; exact h2
+    (sigmaTag2 A1 A2) ∈ˢ (tg w : V) :=
+  (tg_isUniverse (V := V) hw).sigmaTag2_mem (empty_mem_tg w) h1 h2
 
 /-! ### `List α` (flat): `nil | cons : α → List α → List α` -/
 
@@ -148,7 +142,7 @@ noncomputable def listJ : (Nat → V) → Nat → V :=
 
 open Classical in
 /-- Its support bound. -/
-noncomputable def listA : V := sigmaPairs (upair empty pt) fun t => if t = empty then unitSet else unitSet
+noncomputable def listA : V := sigmaTag2 unitSet unitSet
 
 omit hw in
 theorem catT_is1 : catT 1 (is1 : Nat → V) is1 = is1 := by
