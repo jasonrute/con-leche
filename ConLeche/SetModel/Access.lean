@@ -67,7 +67,7 @@ def AccTuple (w kI : Nat) (IsI : Nat → V) (kO : Nat) (IsO : Nat → V)
 /-- Paths of length `n` over `A`: nested pairs, `pt` the empty path. -/
 noncomputable def accPathsN (A : V) : Nat → V
   | 0 => unitSet
-  | n + 1 => sigmaPairs A fun _ => accPathsN A n
+  | n + 1 => sigmaConstF A (accPathsN A n)
 
 /-- All finite paths over `A`. -/
 noncomputable def accPaths (A : V) : V := natUnion (accPathsN A)
@@ -78,7 +78,7 @@ theorem pt_mem_accPaths (A : V) : (pt : V) ∈ˢ accPaths A :=
 theorem kpair_mem_accPaths {A a p : V} (ha : a ∈ˢ A) (hp : p ∈ˢ accPaths A) :
     kpair a p ∈ˢ accPaths A := by
   obtain ⟨n, hn⟩ := mem_natUnion.mp hp
-  exact mem_natUnion.mpr ⟨n + 1, mem_sigmaPairs.mpr ⟨a, ha, p, hn, rfl⟩⟩
+  exact mem_natUnion.mpr ⟨n + 1, mem_sigmaConstF.mpr ⟨a, ha, p, hn, rfl⟩⟩
 
 theorem accPaths_mem {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
     accPaths A ∈ˢ (tg w : V) := by
@@ -86,7 +86,7 @@ theorem accPaths_mem {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) 
   refine natUnion_mem_tg_pos hw fun n => ?_
   induction n with
   | zero => exact unitSet_mem_tg w
-  | succ n ih => exact hU.sigmaPairs_mem hA fun _ _ => ih
+  | succ n ih => exact hU.sigmaConstF_mem (empty_mem_tg w) hA ih
 
 /-! ## Brouwer trees and stages -/
 

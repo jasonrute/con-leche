@@ -228,6 +228,36 @@ theorem realize_kpairEqF' {x z a : V} :
     rcases hk with rfl | rfl | rfl <;> rfl
   simp only [kpairEqF', Form.realize_relabel, hcomp, realize_kpairEqF]
 
+/-- Variable map `Fin 3 ↦ Fin 5`, `0 ↦ 2`, `1 ↦ 3`, `2 ↦ 4` (reads
+`kpairEqF`'s `(z, x, y)` out of the context `(A, c, z, x, y)`). -/
+def sigmaConstMap : Fin 3 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨2, by omega⟩
+  | 1 => ⟨3, by omega⟩
+  | _ => ⟨4, by omega⟩
+
+/-- `z` is a pair ⟨x, y⟩ with `x ∈ˢ A` and `y ∈ˢ c` (variables
+`0 ↦ A`, `1 ↦ c`, bound `2 ↦ z`, then bound `3 ↦ x`, `4 ↦ y`). -/
+def sigmaConstForm : Form 3 :=
+  .ex (.ex (.and (Form.relabel sigmaConstMap kpairEqF)
+    (.and (.mem ⟨3, by omega⟩ ⟨0, by omega⟩) (.mem ⟨4, by omega⟩ ⟨1, by omega⟩))))
+
+theorem realize_sigmaConstForm {A c z : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ => A) c) z) sigmaConstForm ↔
+      ∃ x, x ∈ˢ A ∧ ∃ y, y ∈ˢ c ∧ z = kpair x y := by
+  have hcomp : ∀ x y : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => A) c) z) x) y) ∘ sigmaConstMap =
+        Form.snoc (Form.snoc (fun _ => z) x) y := by
+    intro x y
+    funext ⟨k, hk⟩
+    have hk : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk with rfl | rfl | rfl <;> rfl
+  simp only [sigmaConstForm, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hcomp, realize_kpairEqF, Form.realize_mem, Form.snoc_mk]
+  constructor
+  · rintro ⟨x, y, h, hx, hy⟩; exact ⟨x, hx, y, hy, h⟩
+  · rintro ⟨x, hx, y, hy, rfl⟩; exact ⟨x, y, rfl, hx, hy⟩
+
 /-! ## Total single-valued graphs (`piSet`) -/
 
 /-- Variable map `Fin 2 → Fin 3`, `0 ↦ 2`, `1 ↦ 1` (used to read

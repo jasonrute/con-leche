@@ -117,6 +117,37 @@ theorem _root_.ConLeche.IsUniverse.kpairImage_mem {U a X : V} (hU : IsUniverse (
     rw [realize_kpairEqF'.mp hz]
     exact hU.kpair_mem he ha (hU.transitive hX hx)
 
+/-- A pair ⟨x, y⟩ with `x ∈ˢ A` and `y ∈ˢ c` lies in
+`power (power (binUnion A c))`. -/
+theorem kpair_mem_power_power_binUnion {A c x y : V} (hx : x ∈ˢ A) (hy : y ∈ˢ c) :
+    kpair x y ∈ˢ power (power (binUnion A c)) := by
+  rw [mem_power_iff_subset]
+  intro w hw
+  rw [mem_power_iff_subset]
+  rcases mem_upair.mp hw with rfl | rfl
+  · intro z hz
+    rw [mem_sing.mp hz]
+    exact mem_binUnion.mpr (Or.inl hx)
+  · intro z hz
+    rcases mem_upair.mp hz with rfl | rfl
+    · exact mem_binUnion.mpr (Or.inl hx)
+    · exact mem_binUnion.mpr (Or.inr hy)
+
+/-- The definable constant product `A × c = {⟨x, y⟩ : x ∈ˢ A, y ∈ˢ c}`:
+`sepF` over `power (power (binUnion A c))` — the first-order twin of
+`sigmaPairs A (fun _ => c)`. -/
+noncomputable def sigmaConstF (A c : V) : V :=
+  sepF (power (power (binUnion A c))) sigmaConstForm (Form.snoc (fun _ => A) c)
+
+theorem mem_sigmaConstF {A c z : V} :
+    z ∈ˢ sigmaConstF A c ↔ ∃ x, x ∈ˢ A ∧ ∃ y, y ∈ˢ c ∧ z = kpair x y := by
+  unfold sigmaConstF
+  rw [mem_sepF, realize_sigmaConstForm]
+  constructor
+  · rintro ⟨-, h⟩; exact h
+  · rintro ⟨x, hx, y, hy, rfl⟩
+    exact ⟨kpair_mem_power_power_binUnion hx hy, x, hx, y, hy, rfl⟩
+
 /-- The definable constant image `{c | x ∈ˢ A}`: the `imageF` of the
 relation `z = c` (variable `1 ↦ z`, parameter `0 ↦ c`) — the
 first-order twin of `image (fun _ => c) A`. -/
@@ -324,6 +355,17 @@ theorem _root_.ConLeche.IsUniverse.sigmaPairs_mem {U A : V} {B : V → V}
   hU.famUnion_mem hA fun x hx =>
     hU.image_mem (hB x hx) fun _y hy =>
       hU.kpair_mem hA (hU.transitive hA hx) (hU.transitive (hB x hx) hy)
+
+/-- Definable constant-product closure (clause 6 via the subset
+clause): the first-order twin of `sigmaPairs_mem` at a constant
+family. -/
+theorem _root_.ConLeche.IsUniverse.sigmaConstF_mem {U A c : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hA : A ∈ˢ U) (hc : c ∈ˢ U) : sigmaConstF A c ∈ˢ U := by
+  unfold sigmaConstF
+  exact hU.sepF_mem (hU.power_mem (hU.power_mem (hU.binUnion_mem he hA hc)))
+
+theorem sigmaConstF_eq {A c : V} : sigmaConstF A c = sigmaPairs A (fun _ => c) :=
+  ext fun z => by rw [mem_sigmaConstF, mem_sigmaPairs]
 
 /-- Definable graph closure (clause 6): the definable graph of a member
 under a functional definable relation with member-valued pairs is a
