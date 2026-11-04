@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetTheory.Derive.Pt
+public import ConLeche.SetTheory.Derive.FormOps
 
 @[expose] public section
 
@@ -61,7 +62,15 @@ open Classical in
 with `a` in `f` — except at the proof point, which applies to `pt`
 again. -/
 noncomputable def app (f a : V) : V :=
-  if f = pt then pt else sUnion (sep (sUnion (sUnion f)) (fun y => kpair a y ∈ˢ f))
+  if f = pt then pt else
+    sUnion (sepF (sUnion (sUnion f)) kpairMemF (Form.snoc (fun _ => a) f))
+
+/-- Membership in the definable separation defining `app`: the predicate
+`kpair a y ∈ˢ f` is the `Form` `kpairMemF` with parameters `a`, `f`. -/
+theorem mem_appSep {f a y : V} :
+    y ∈ˢ sepF (sUnion (sUnion f)) kpairMemF (Form.snoc (fun _ => a) f) ↔
+      y ∈ˢ sUnion (sUnion f) ∧ kpair a y ∈ˢ f := by
+  rw [mem_sepF, realize_kpairMemF]
 
 theorem app_pt (a : V) : app (pt : V) a = pt := by
   unfold app; exact ite_eq_left rfl
@@ -71,9 +80,9 @@ theorem app_eq_of_unique {f a b : V} (hf : f ≠ pt) (hab : kpair a b ∈ˢ f)
     (huniq : ∀ y, kpair a y ∈ˢ f → y = b) : app f a = b := by
   unfold app
   rw [ite_eq_right hf]
-  have : sep (sUnion (sUnion f)) (fun y => kpair a y ∈ˢ f) = sing b := by
+  have : sepF (sUnion (sUnion f)) kpairMemF (Form.snoc (fun _ => a) f) = sing b := by
     apply ext fun z => ?_
-    rw [mem_sep, mem_sing]
+    rw [mem_appSep, mem_sing]
     constructor
     · exact fun ⟨_, hz⟩ => huniq z hz
     · rintro rfl
@@ -124,14 +133,13 @@ theorem _root_.ConLeche.IsUniverse.sigmaPairs_mem {U A : V} {B : V → V}
 /-- The set of total single-valued dependent graphs on `A` with fibres
 `B`: the `v ≠ 0` dependent function space. -/
 noncomputable def piSet (A : V) (B : V → V) : V :=
-  sep (power (sigmaPairs A B))
-    (fun f => ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y)
+  sepF (power (sigmaPairs A B)) piSetF (fun _ => A)
 
 theorem mem_piSet {A f : V} {B : V → V} :
     f ∈ˢ piSet A B ↔ f ⊆ˢ sigmaPairs A B ∧
       ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
   unfold piSet
-  rw [mem_sep, mem_power_iff_subset]
+  rw [mem_sepF, mem_power_iff_subset, realize_piSetF]
 
 theorem piSet_congr {A : V} {B B' : V → V}
     (h : ∀ x, x ∈ˢ A → B x = B' x) : piSet A B = piSet A B' := by
@@ -141,7 +149,7 @@ theorem piSet_congr {A : V} {B B' : V → V}
 theorem _root_.ConLeche.IsUniverse.piSet_mem {U A : V} {B : V → V}
     (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
     (hB : ∀ x, x ∈ˢ A → B x ∈ˢ U) : piSet A B ∈ˢ U :=
-  hU.mem_of_subset_mem (hU.power_mem (hU.sigmaPairs_mem hA hB)) sep_subset
+  hU.mem_of_subset_mem (hU.power_mem (hU.sigmaPairs_mem hA hB)) sepF_subset
 
 theorem graph_mem_piSet {A : V} {B F : V → V}
     (hF : ∀ x, x ∈ˢ A → F x ∈ˢ B x) : graph F A ∈ˢ piSet A B := by
@@ -215,7 +223,7 @@ theorem app_eq_empty_of_not_mem {f a : V} (hf : f ≠ pt)
   rw [ite_eq_right hf]
   refine eq_empty fun z hz => ?_
   obtain ⟨y, hy, -⟩ := mem_sUnion.mp hz
-  exact h y (mem_sep.mp hy).2
+  exact h y (mem_appSep.mp hy).2
 
 /-- `app` off a graph's domain is the canonical junk value. -/
 theorem app_graph_of_not_mem {F : V → V} {A a : V} (ha : ¬ a ∈ˢ A) :

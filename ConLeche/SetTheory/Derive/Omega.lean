@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetTheory.Derive.FormOps
+public import ConLeche.SetTheory.Derive.Universe
 
 @[expose] public section
 

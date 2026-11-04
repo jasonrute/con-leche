@@ -1,6 +1,6 @@
 module
 
-public import ConLeche.SetTheory.Derive.Universe
+public import ConLeche.SetTheory.Derive.Pair
 
 @[expose] public section
 
@@ -129,6 +129,127 @@ theorem realize_omegaF {n : V} :
     exact inductive_iff_realize.symm
   simp only [Form.snoc_nil, omegaF, Form.realize_all, Form.realize_imp, hrel,
     Form.realize_mem, Form.snoc_mk]
+  simp
+
+/-! ## Kuratowski pairs -/
+
+/-- `z = ⟨x, y⟩` in raw first-order form (variables `0 ↦ z`,
+`1 ↦ x`, `2 ↦ y`): `z = {s, t}` with `s = {x}` and `t = {x, y}`. -/
+def kpairEqF : Form 3 :=
+  .ex (.and (.mem ⟨3, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨4, by omega⟩ ⟨0, by omega⟩)
+      (.and (.all (.iff (.mem ⟨5, by omega⟩ ⟨3, by omega⟩)
+            (.equal ⟨5, by omega⟩ ⟨1, by omega⟩)))
+        (.and (.all (.iff (.mem ⟨5, by omega⟩ ⟨4, by omega⟩)
+              (.or (.equal ⟨5, by omega⟩ ⟨1, by omega⟩)
+                (.equal ⟨5, by omega⟩ ⟨2, by omega⟩))))
+          (.all (.imp (.mem ⟨5, by omega⟩ ⟨0, by omega⟩)
+              (.or (.equal ⟨5, by omega⟩ ⟨3, by omega⟩)
+                (.equal ⟨5, by omega⟩ ⟨4, by omega⟩)))))))))
+
+theorem realize_kpairEqF {z x y : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ => z) x) y) kpairEqF ↔
+      z = kpair x y := by
+  simp only [kpairEqF, Form.realize_ex, Form.realize_and, Form.realize_mem,
+    Form.realize_all, Form.realize_iff, Form.realize_equal, Form.realize_imp,
+    Form.realize_or, Form.snoc_mk]
+  simp
+  constructor
+  · rintro ⟨s, hs, t, ht, hseq, hut, hall⟩
+    have hsx : s = sing x :=
+      SetTheory.ext fun u => (hseq u).trans (mem_sing (a := x)).symm
+    have htx : t = upair x y :=
+      SetTheory.ext fun u => (hut u).trans (mem_upair (a := x) (b := y)).symm
+    have hz : z = upair s t :=
+      SetTheory.ext fun w =>
+        ⟨fun h => mem_upair.mpr (hall w h), fun h => by
+          rcases mem_upair.mp h with rfl | rfl
+          · exact hs
+          · exact ht⟩
+    rw [hz, hsx, htx, kpair]
+  · intro h
+    rw [h]
+    exact ⟨sing x, mem_upair_left _ _, upair x y, mem_upair_right _ _,
+      fun u => mem_sing, fun u => mem_upair, fun w hw => mem_upair.mp hw⟩
+
+/-- Variable map `Fin 3 → Fin 4` for `kpairMemF`: `(z, x, y) ↦ (3, 0, 2)`. -/
+def kpairMemMap : Fin 3 → Fin 4 := fun i =>
+  match i.val with
+  | 0 => ⟨3, by omega⟩
+  | 1 => ⟨0, by omega⟩
+  | _ => ⟨2, by omega⟩
+
+/-- `⟨a, y⟩ ∈ f` (variables `0 ↦ a`, `1 ↦ f`, `2 ↦ y`). -/
+def kpairMemF : Form 3 :=
+  .ex (.and (.mem ⟨3, by omega⟩ ⟨1, by omega⟩)
+      (Form.relabel kpairMemMap kpairEqF))
+
+theorem realize_kpairMemF {a f y : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ => a) f) y) kpairMemF ↔
+      kpair a y ∈ˢ f := by
+  have hcomp : ∀ z : V, (Form.snoc (Form.snoc (Form.snoc (fun _ => a) f) y) z) ∘ kpairMemMap =
+      Form.snoc (Form.snoc (fun _ => z) a) y := by
+    intro z
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl
+    · rfl
+    · rfl
+    · rfl
+  simp only [kpairMemF, Form.realize_ex, Form.realize_and, Form.realize_mem,
+    Form.realize_relabel, hcomp, realize_kpairEqF]
+  constructor
+  · rintro ⟨z, hz, rfl⟩; exact hz
+  · intro h; exact ⟨kpair a y, h, rfl⟩
+
+/-! ## Total single-valued graphs (`piSet`) -/
+
+/-- Variable map `Fin 2 → Fin 3`, `0 ↦ 2`, `1 ↦ 1` (used to read
+`(x, f)` out of the context `(A, f, x)`). -/
+def piMap1 : Fin 2 → Fin 3 := fun i =>
+  match i.val with
+  | 0 => ⟨2, by omega⟩
+  | _ => ⟨1, by omega⟩
+
+/-- Variable map `Fin 2 → Fin 4`, `0 ↦ 2`, `1 ↦ 1` (used to read
+`(x, f)` out of the context `(A, f, x, y, y')`). -/
+def piMap2 : Fin 2 → Fin 4 := fun i =>
+  match i.val with
+  | 0 => ⟨2, by omega⟩
+  | _ => ⟨1, by omega⟩
+
+/-- `f` is a total single-valued graph over `A` (variables `0 ↦ A`,
+`1 ↦ f`): every `x ∈ A` has a unique `y` with `⟨x, y⟩ ∈ f`. -/
+def piSetF : Form 2 :=
+  .all (.imp (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (Form.relabel (Form.liftRelabel piMap1) kpairMemF)
+        (.all (.imp (Form.relabel (Form.liftRelabel piMap2) kpairMemF)
+            (.equal ⟨4, by omega⟩ ⟨3, by omega⟩))))))
+
+theorem realize_piSetF {A f : V} :
+    Form.Realize Mem (Form.snoc (fun _ => A) f) piSetF ↔
+      ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
+  have e1 : ∀ x y : V,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ => A) f) x) y) ∘ Form.liftRelabel piMap1 =
+        Form.snoc (Form.snoc (fun _ => x) f) y := by
+    intro x y
+    rw [Form.snoc_comp_liftRelabel]
+    congr 1
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have e2 : ∀ x y y' : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => A) f) x) y) y') ∘ Form.liftRelabel piMap2 =
+        Form.snoc (Form.snoc (fun _ => x) f) y' := by
+    intro x y y'
+    rw [Form.snoc_comp_liftRelabel]
+    congr 1
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [piSetF, Form.realize_all, Form.realize_imp, Form.realize_ex,
+    Form.realize_and, Form.realize_relabel, e1, e2, realize_kpairMemF,
+    Form.realize_equal, Form.realize_mem, Form.snoc_mk]
   simp
 
 end ConLeche.SetTheory
