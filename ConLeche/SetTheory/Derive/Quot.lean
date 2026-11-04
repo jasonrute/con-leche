@@ -191,10 +191,107 @@ theorem mem_qclassF {A R a b : V} :
 theorem qclassF_eq_qclass (A R a : V) : qclassF A R a = qclass A R a :=
   ext fun b => by rw [mem_qclassF, mem_qclass]
 
+/-- `QuotRel` relates members of `A`. -/
+theorem quotRel_mem {A R a b : V} (h : QuotRel A R a b) : a ∈ˢ A ∧ b ∈ˢ A := by
+  induction h with
+  | base ha hb _ => exact ⟨ha, hb⟩
+  | refl ha => exact ⟨ha, ha⟩
+  | symm _ ih => exact ⟨ih.2, ih.1⟩
+  | trans _ _ ih1 ih2 => exact ⟨ih1.1, ih2.2⟩
+
+theorem realize_qsatF_quotRel {A R a b : V} :
+    Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF ↔ QuotRel A R a b :=
+  realize_qsatF.trans quotRel_iff_qsat.symm
+
+/-- Membership in the meta class is the definable realization. -/
+theorem mem_qclass_realize {A R a b : V} :
+    b ∈ˢ qclass A R a ↔ Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF := by
+  rw [mem_qclass, realize_qsatF_quotRel]
+  exact ⟨fun h => h.2, fun h => ⟨(quotRel_mem h).2, h⟩⟩
+
+/-- Parameters of the quotient-image relation: `0 ↦ A`, `1 ↦ R`, `2 ↦ empty`, rest `pt`. -/
+noncomputable def quotParam (A R : V) : Fin 5 → V := fun i =>
+  match i.val with
+  | 0 => A
+  | 1 => R
+  | 2 => (empty : V)
+  | _ => (pt : V)
+
+/-- Variable map `Fin 3 → Fin 8` reading `kpairEqF`'s `(z, x, y)` as `(z, empty, c)` out of `(x, z, A, R, empty, pt, pt, c)`. -/
+def quotKMap : Fin 3 → Fin 8 := fun i =>
+  match i.val with
+  | 0 => ⟨1, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | _ => ⟨7, by omega⟩
+
+/-- Variable map `Fin 5 → Fin 9` reading `qsatF`'s `(A, R, a, pt, b)` out of `(x, z, A, R, empty, pt, pt, c, b)`. -/
+def quotGMap : Fin 5 → Fin 9 := fun i =>
+  match i.val with
+  | 0 => ⟨2, by omega⟩
+  | 1 => ⟨3, by omega⟩
+  | 2 => ⟨0, by omega⟩
+  | 3 => ⟨5, by omega⟩
+  | _ => ⟨8, by omega⟩
+
+/-- The definable quotient-class relation (replacement convention: variables `0 ↦ x`, `1 ↦ z`, parameters `2 ↦ A`, `3 ↦ R`, `4 ↦ empty`): `z = kpair empty c` where `c` is the `qsatF`-class of `x`. -/
+def quotRelF : Form 7 :=
+  .ex (.and (Form.relabel quotKMap kpairEqF)
+    (.all (.iff (.mem ⟨8, by omega⟩ ⟨7, by omega⟩) (Form.relabel quotGMap qsatF))))
+
+theorem realize_quotRelF {A R x z : V} :
+    Form.Realize Mem (Form.cons2 x z (quotParam A R)) quotRelF ↔
+      ∃ c : V, z = kpair (empty : V) c ∧
+        ∀ b : V, b ∈ˢ c ↔ Form.Realize Mem (Form.snoc (qclassParam A R x) b) qsatF := by
+  have hK : ∀ c : V,
+      (Form.snoc (Form.cons2 x z (quotParam A R)) c) ∘ quotKMap =
+        Form.snoc (Form.snoc (fun _ => z) (empty : V)) c := by
+    intro c
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hG : ∀ c b : V,
+      (Form.snoc (Form.snoc (Form.cons2 x z (quotParam A R)) c) b) ∘ quotGMap =
+        Form.snoc (qclassParam A R x) b := by
+    intro c b
+    funext ⟨k, hk⟩
+    have hk5 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 := by omega
+    rcases hk5 with rfl | rfl | rfl | rfl | rfl <;> rfl
+  have h8 : ∀ c b : V, ∀ h : 8 < 5 + 2 + 1 + 1,
+      (Form.snoc (Form.snoc (Form.cons2 x z (quotParam A R)) c) b) ⟨8, h⟩ = b := by
+    intro c b h
+    rfl
+  have h7 : ∀ c b : V, ∀ h : 7 < 5 + 2 + 1 + 1,
+      (Form.snoc (Form.snoc (Form.cons2 x z (quotParam A R)) c) b) ⟨7, h⟩ = c := by
+    intro c b h
+    rfl
+  constructor
+  · intro h
+    simp only [quotRelF, Form.realize_ex, Form.realize_and, Form.realize_all,
+      Form.realize_iff, Form.realize_mem, Form.realize_relabel, hK, hG, h8, h7,
+      realize_kpairEqF] at h
+    exact h
+  · intro h
+    simp only [quotRelF, Form.realize_ex, Form.realize_and, Form.realize_all,
+      Form.realize_iff, Form.realize_mem, Form.realize_relabel, hK, hG, h8, h7,
+      realize_kpairEqF]
+    exact h
+
+theorem quotRelF_fun (A R : V) :
+    ∀ x, x ∈ˢ A → ∃ y, Form.Realize Mem (Form.cons2 x y (quotParam A R)) quotRelF ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' (quotParam A R)) quotRelF → y' = y := by
+  intro x _
+  refine ⟨kpair (empty : V) (qclass A R x), realize_quotRelF.mpr ⟨qclass A R x, rfl, fun b => mem_qclass_realize⟩, ?_⟩
+  intro y' hy'
+  obtain ⟨c, hy', hc⟩ := realize_quotRelF.mp hy'
+  have hcq : c = qclass A R x := ext fun b => by rw [hc b, mem_qclass_realize]
+  rw [hy', hcq]
+
+
 open Classical in
 /-- The quotient (see module docs). -/
 noncomputable def quotSet (u : Nat) (A R : V) : V :=
-  if u = 0 then constImageF pt A else image (fun a => kpair empty (qclass A R a)) A
+  if u = 0 then constImageF pt A
+  else imageF quotRelF (quotParam A R) A (quotRelF_fun A R)
 
 open Classical in
 /-- The class of `a` in the quotient: at `u ≠ 0` the `QuotRel`-class,
@@ -208,7 +305,7 @@ theorem quotClass_mem {u : Nat} {A R a : V} (ha : a ∈ˢ A) :
   unfold quotClass quotSet
   split
   · exact mem_constImageF.mpr ⟨a, ha, rfl⟩
-  · exact mem_image.mpr ⟨a, ha, rfl⟩
+  · exact mem_imageF (quotRelF_fun A R) |>.mpr ⟨a, ha, realize_quotRelF.mpr ⟨qclass A R a, rfl, fun b => mem_qclass_realize⟩⟩
 
 theorem quotClass_surj {u : Nat} {A R q : V} (hq : q ∈ˢ quotSet u A R) :
     ∃ a, a ∈ˢ A ∧ q = quotClass u A R a := by
@@ -219,8 +316,10 @@ theorem quotClass_surj {u : Nat} {A R q : V} (hq : q ∈ˢ quotSet u A R) :
     obtain ⟨a, ha, rfl⟩ := mem_constImageF.mp hq
     exact ⟨a, ha, (ite_eq_left h).symm⟩
   · next h =>
-    obtain ⟨a, ha, rfl⟩ := mem_image.mp hq
-    exact ⟨a, ha, (ite_eq_right h).symm⟩
+    obtain ⟨a, ha, hreal⟩ := mem_imageF (quotRelF_fun A R) |>.mp hq
+    obtain ⟨c, hqc, hc⟩ := realize_quotRelF.mp hreal
+    have hcq : c = qclass A R a := ext fun b => by rw [hc b, mem_qclass_realize]
+    exact ⟨a, ha, (hqc.trans (congrArg (kpair (empty : V)) hcq)).trans (ite_eq_right h).symm⟩
 
 /-- A class formed at ONE pair of parameters that lands in the quotient
 of ANOTHER: its representative lies in the second parameter's carrier,
@@ -331,8 +430,9 @@ contains it (`strict_quotSet`). -/
 theorem strict_quotSet {u : Nat} (hu : u ≠ 0) (A R : V) : Strict (quotSet u A R) :=
   strict_of_kpairs fun z hz => by
     unfold quotSet at hz; rw [ite_eq_right hu] at hz
-    obtain ⟨a, -, rfl⟩ := mem_image.mp hz
-    exact ⟨_, _, rfl⟩
+    obtain ⟨x, hx, hreal⟩ := mem_imageF (quotRelF_fun A R) |>.mp hz
+    obtain ⟨c, hz', -⟩ := realize_quotRelF.mp hreal
+    exact ⟨empty, c, hz'⟩
 
 attribute [irreducible] quotSet quotClass
 
@@ -350,7 +450,13 @@ theorem quotSet_mem_univ {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V)) :
     have hU := tg_isUniverse (V := V) h
     unfold quotSet
     rw [ite_eq_right h]
-    exact hU.image_mem hA' fun a _ => hU.kpair_mem hA' (hU.empty_mem hA')
-      (hU.mem_of_subset_mem hA' fun w hw => (mem_qclass.mp hw).1)
+    refine hU.imageF_mem hA' ?_
+    intro x _ y hy
+    obtain ⟨c, rfl, hc⟩ := realize_quotRelF.mp hy
+    have hcq : c = qclassF A R x := ext fun b => by
+      rw [hc b, mem_qclassF, realize_qsatF_quotRel]
+      exact ⟨fun h => ⟨(quotRel_mem h).2, h⟩, fun h => h.2⟩
+    rw [hcq]
+    exact hU.kpair_mem hA' (hU.empty_mem hA') (hU.sepF_mem hA')
 
 end ConLeche.SetTheory
