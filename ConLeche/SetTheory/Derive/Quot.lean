@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetTheory.Derive.Univ
+public import ConLeche.SetTheory.Derive.Rec
 
 @[expose] public section
 
@@ -60,6 +61,135 @@ theorem qclass_eq_of_rel {A R a b : V} (h : QuotRel A R a b) :
 theorem rel_of_qclass_eq {A R a b : V} (ha : a ∈ˢ A) (_hb : b ∈ˢ A)
     (h : qclass A R a = qclass A R b) : QuotRel A R a b :=
   (mem_qclass.mp (h ▸ self_mem_qclass ha)).2.symm
+
+/-! ## The equivalence closure as a first-order formula -/
+
+/-- The generating step of `QuotRel`: `x ∈ˢ A ∧ y ∈ˢ A ∧ ∃ w, w ∈ˢ app (app R x) y`. -/
+def qstep (A R x y : V) : Prop :=
+  x ∈ˢ A ∧ y ∈ˢ A ∧ ∃ w, w ∈ˢ app (app R x) y
+
+/-- Variable map `Fin 4 → Fin 10` reading `appEqF`'s `(pt, v, g, u)` as `(A, R, a, pt, b, S, x, y, w, g')`: `0 ↦ 3`, `1 ↦ 9`, `2 ↦ 1`, `3 ↦ 6`. -/
+def qsatEqMap : Fin 4 → Fin 10 := fun i =>
+  match i.val with
+  | 0 => ⟨3, by omega⟩
+  | 1 => ⟨9, by omega⟩
+  | 2 => ⟨1, by omega⟩
+  | _ => ⟨6, by omega⟩
+
+/-- Variable map `Fin 4 → Fin 10` reading `appMemF`'s `(w, g, u, pt)` as `(A, R, a, pt, b, S, x, y, w, g')`: `0 ↦ 8`, `1 ↦ 9`, `2 ↦ 7`, `3 ↦ 3`. -/
+def qsatMemMap : Fin 4 → Fin 10 := fun i =>
+  match i.val with
+  | 0 => ⟨8, by omega⟩
+  | 1 => ⟨9, by omega⟩
+  | 2 => ⟨7, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- The generating step as a `Form 8` (variables `0 ↦ A`, `1 ↦ R`, `3 ↦ pt`, `6 ↦ x`, `7 ↦ y`; bound `8 ↦ w`, `9 ↦ g'`). -/
+def qsatStepF : Form 8 :=
+  .and (.mem ⟨6, by omega⟩ ⟨0, by omega⟩)
+    (.and (.mem ⟨7, by omega⟩ ⟨0, by omega⟩)
+      (.ex (.ex (.and (Form.relabel qsatEqMap appEqF) (Form.relabel qsatMemMap appMemF)))))
+
+/-- Variable map `Fin 8 → Fin 8` swapping `6` and `7` (for the backward step). -/
+def qsatSwapMap : Fin 8 → Fin 8 := fun i =>
+  if i.val = 6 then ⟨7, by omega⟩ else if i.val = 7 then ⟨6, by omega⟩ else i
+
+/-- The class formula's parameters: `0 ↦ A`, `1 ↦ R`, `2 ↦ a`, `3 ↦ pt`. -/
+noncomputable def qclassParam (A R a : V) : Fin 4 → V := fun i =>
+  match i.val with
+  | 0 => A
+  | 1 => R
+  | 2 => a
+  | _ => (pt : V)
+
+theorem realize_qsatStepF {A R a b S x y : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc (qclassParam A R a) b) S) x) y) qsatStepF ↔ qstep A R x y := by
+  have hE : ∀ w g' : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (qclassParam A R a) b) S) x) y) w) g') ∘ qsatEqMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) g') R) x := by
+    intro w g'
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hM : ∀ w g' : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (qclassParam A R a) b) S) x) y) w) g') ∘ qsatMemMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => w) g') y) (pt : V) := by
+    intro w g'
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [qsatStepF, Form.realize_and, Form.realize_mem, Form.realize_ex,
+    Form.realize_relabel, hE, hM, realize_appEqF, realize_appMemF, Form.snoc_mk,
+    qclassParam, qstep]
+  constructor
+  · rintro ⟨hxA, hyA, w, g', rfl, hw⟩
+    exact ⟨hxA, hyA, w, hw⟩
+  · rintro ⟨hxA, hyA, w, hw⟩
+    exact ⟨hxA, hyA, w, app R x, rfl, hw⟩
+
+/-- The saturated-set characterization of `QuotRel A R a b`, as a `Form 5` (variables `0 ↦ A`, `1 ↦ R`, `2 ↦ a`, `3 ↦ pt`, bound `4 ↦ b`): `a ∈ˢ A ∧ ∀ S, S ⊆ˢ A → a ∈ˢ S → (∀ x y, x ∈ˢ S → (qstep A R x y ∨ qstep A R y x) → y ∈ˢ S) → b ∈ˢ S`. -/
+def qsatF : Form 5 :=
+  .and (.mem ⟨2, by omega⟩ ⟨0, by omega⟩) (.all (.imp (.all (.imp (.mem ⟨6, by omega⟩ ⟨5, by omega⟩) (.mem ⟨6, by omega⟩ ⟨0, by omega⟩))) (.imp (.mem ⟨2, by omega⟩ ⟨5, by omega⟩) (.imp (.all (.all (.imp (.mem ⟨6, by omega⟩ ⟨5, by omega⟩) (.imp (.or qsatStepF (Form.relabel qsatSwapMap qsatStepF)) (.mem ⟨7, by omega⟩ ⟨5, by omega⟩))))) (.mem ⟨4, by omega⟩ ⟨5, by omega⟩)))))
+
+theorem realize_qsatF {A R a b : V} :
+    Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF ↔
+      a ∈ˢ A ∧ ∀ S : V, S ⊆ˢ A → a ∈ˢ S →
+        (∀ x y : V, x ∈ˢ S → (qstep A R x y ∨ qstep A R y x) → y ∈ˢ S) → b ∈ˢ S := by
+  have hSw : ∀ S x y : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (qclassParam A R a) b) S) x) y) ∘ qsatSwapMap = Form.snoc (Form.snoc (Form.snoc (Form.snoc (qclassParam A R a) b) S) y) x := by
+    intro S x y
+    funext ⟨k, hk⟩
+    have hk8 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 ∨ k = 6 ∨ k = 7 := by omega
+    rcases hk8 with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  simp only [qsatF, Form.realize_and, Form.realize_mem, Form.realize_all,
+    Form.realize_imp, Form.realize_or, Form.realize_relabel, hSw,
+    realize_qsatStepF, Form.snoc_mk, qclassParam, SetTheory.Subset]
+  simp
+
+/-- The equivalence closure is exactly the saturated-set characterization. -/
+theorem quotRel_iff_qsat {A R a b : V} :
+    QuotRel A R a b ↔
+      a ∈ˢ A ∧ ∀ S : V, S ⊆ˢ A → a ∈ˢ S →
+        (∀ x y : V, x ∈ˢ S → (qstep A R x y ∨ qstep A R y x) → y ∈ˢ S) → b ∈ˢ S := by
+  constructor
+  · intro h
+    have key : ∀ a' b' : V, QuotRel A R a' b' →
+        a' ∈ˢ A ∧ b' ∈ˢ A ∧ ∀ S : V,
+          (∀ x y : V, x ∈ˢ S → (qstep A R x y ∨ qstep A R y x) → y ∈ˢ S) →
+          (a' ∈ˢ S ↔ b' ∈ˢ S) := by
+      intro a' b' h'
+      induction h' with
+      | base ha hb hw => exact ⟨ha, hb, fun S hcl => ⟨fun h => hcl _ _ h (Or.inl ⟨ha, hb, hw⟩), fun h => hcl _ _ h (Or.inr ⟨ha, hb, hw⟩)⟩⟩
+      | refl ha => exact ⟨ha, ha, fun S hcl => Iff.rfl⟩
+      | symm _ ih =>
+        obtain ⟨h1, h2, h3⟩ := ih
+        exact ⟨h2, h1, fun S hcl => (h3 S hcl).symm⟩
+      | trans _ _ ih1 ih2 =>
+        obtain ⟨h1, h2, h3⟩ := ih1
+        obtain ⟨h4, h5, h6⟩ := ih2
+        exact ⟨h1, h5, fun S hcl => (h3 S hcl).trans (h6 S hcl)⟩
+    obtain ⟨ha, hb, hiff⟩ := key a b h
+    refine ⟨ha, fun S hSA haS hcl => (hiff S hcl).mp haS⟩
+  · intro ⟨ha, hsat⟩
+    have hclosed : ∀ x y : V, x ∈ˢ qclass A R a →
+        (qstep A R x y ∨ qstep A R y x) → y ∈ˢ qclass A R a := by
+      intro x y hx hor
+      obtain ⟨hxA, hxr⟩ := mem_qclass.mp hx
+      rcases hor with ⟨hxA', hyA, hw⟩ | ⟨hyA, hxA', hw⟩
+      · exact mem_qclass.mpr ⟨hyA, hxr.trans (QuotRel.base hxA' hyA hw)⟩
+      · exact mem_qclass.mpr ⟨hyA, hxr.trans (QuotRel.base hyA hxA' hw).symm⟩
+    exact (mem_qclass.mp (hsat (qclass A R a) (fun z hz => (mem_qclass.mp hz).1)
+      (self_mem_qclass ha) hclosed)).2
+
+/-- The `QuotRel`-class of `a` in `A` by *definable* separation: the first-order twin of `qclass`. -/
+noncomputable def qclassF (A R a : V) : V := sepF A qsatF (qclassParam A R a)
+
+theorem mem_qclassF {A R a b : V} :
+    b ∈ˢ qclassF A R a ↔ b ∈ˢ A ∧ QuotRel A R a b := by
+  rw [qclassF, mem_sepF, realize_qsatF, quotRel_iff_qsat]
+
+theorem qclassF_eq_qclass (A R a : V) : qclassF A R a = qclass A R a :=
+  ext fun b => by rw [mem_qclassF, mem_qclass]
 
 open Classical in
 /-- The quotient (see module docs). -/
