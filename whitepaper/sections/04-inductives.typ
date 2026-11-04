@@ -653,10 +653,10 @@ every constructor denotes the point.
   #src("ConLeche/Model/Env/BlockLfp.lean", 181, 183)[the least fixed point]
   (#src("ConLeche/Model/Env/BlockLfp.lean", 517, 520)[the fixed-point equation]).
   Its constructors are
-  #src("ConLeche/SetModel/TaggedSum.lean", 87)[tagged pairs] of
+  #src("ConLeche/SetModel/TaggedSum.lean", 78)[tagged pairs] of
   #src("ConLeche/SetModel/TupleTower.lean", 93)[nested pairs], the
   two kinds of family in
-  #src("ConLeche/SetModel/TaggedSum.lean", 83, 84)[one carrier].
+  #src("ConLeche/SetModel/TaggedSum.lean", 74, 75)[one carrier].
 ]
 
 === The recursor

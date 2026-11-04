@@ -1579,10 +1579,10 @@
     34  /-- **What `Sort n` means**: the universe of types `tyU n`. -/
     35  noncomputable def univ : Nat → V := tyU
 
-== ConLeche/SetTheory/Derive/TypeU.lean#L238-L240
-   238  open Classical in
-   239  /-- **The universe of types at level `n`**: the truth values at `0`,
-   240  above the members of the axiomatic level `tg n` that are types. -/
+== ConLeche/SetTheory/Derive/TypeU.lean#L249-L251
+   249  /-- **The universe of types at level `n`**: the truth values at `0`,
+   250  above the members of the axiomatic level `tg n` that are types. -/
+   251  noncomputable def tyU (n : Nat) : V :=
 
 == ConLeche/SetTheory/Derive/TypeU.lean#L79-L80
     79  /-- A **strict** set: not the point, and the point is not a member. -/
@@ -4329,15 +4329,15 @@
    519      (hsat : Sat V (D.params ψ).reverse ρp) {c : Nat} (hc : c < D.N) :
    520      D.Φ ψ ρp (D.carrier ψ ρp) c = D.carrier ψ ρp c :=
 
-== ConLeche/SetModel/TaggedSum.lean#L87
-    87  noncomputable def inj (i : Nat) (a : V) : V := spair (vnat i) a
+== ConLeche/SetModel/TaggedSum.lean#L78
+    78  noncomputable def inj (i : Nat) (a : V) : V := spair (vnat i) a
 
 == ConLeche/SetModel/TupleTower.lean#L93
     93  noncomputable def mkTower : List V → V
 
-== ConLeche/SetModel/TaggedSum.lean#L83-L84
-    83  noncomputable def sumSet (w : Nat) (f : Nat → V) : V :=
-    84    sigmaSet w omega (natFibre f)
+== ConLeche/SetModel/TaggedSum.lean#L74-L75
+    74  noncomputable def sumSet (w : Nat) (f : Nat → V) : V :=
+    75    sigmaSet w omega (natFibre f)
 
 == whitepaper/Fragment/IndRec.lean#L89-L92
     89  /-- **The recursor's graph**: the least fixed point of `rstep`.

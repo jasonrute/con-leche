@@ -19,12 +19,12 @@ itself need not be — the empty set satisfies `IsUniverse`
 vacuously).
 
 `vnat : Nat → V` names standard numerals from the meta-level; distinct
-names are distinct (`vnat_inj`), and recursion on `ω` runs through
-the definable scheme in `Derive/Natrec.lean`.  `mem_omega_iff` below still
-uses the meta-level `sep` (the predicate `∃ k : Nat, n = vnat k` is not
-first-order definable: in an arbitrary first-order model `ω` may
-have nonstandard members), so it is slated for removal together with the
-meta-level `repl` migration.
+names are distinct (`vnat_inj`), recursion on `ω` runs through
+the definable scheme in `Derive/Natrec.lean`, and every member of a
+numeral is a smaller numeral (`mem_vnat_iff`) — the first-order facts
+the spelled constructions rely on.  No meta-level `sep` remains here: in
+an arbitrary first-order model `ω` may have nonstandard members, which
+the spelled forms never inspect.
 
 `ω` itself is a *member* of any universe that has the inductive
 universe `univChain 1` as a member — arranged for the tower in
@@ -101,20 +101,6 @@ theorem vnat_mem_omega : ∀ k, (vnat k : V) ∈ˢ omega
   | 0 => empty_mem_omega
   | k + 1 => vsucc_mem_omega (vnat_mem_omega k)
 
-/-- Every finite ordinal is named by a meta-level natural. -/
-theorem mem_omega_iff {n : V} : n ∈ˢ (omega : V) ↔ ∃ k, n = vnat k := by
-  constructor
-  · intro hn
-    have hind : Inductive (sep (omega : V) (fun n => ∃ k, n = vnat k)) := by
-      constructor
-      · exact mem_sep.mpr ⟨empty_mem_omega, 0, rfl⟩
-      · intro m hm
-        obtain ⟨hmo, k, rfl⟩ := mem_sep.mp hm
-        exact mem_sep.mpr ⟨vsucc_mem_omega hmo, k + 1, rfl⟩
-    exact (mem_sep.mp (omega_subset_inductive hind n hn)).2
-  · rintro ⟨k, rfl⟩
-    exact vnat_mem_omega k
-
 theorem vnat_mem_vnat_of_lt : ∀ {k l : Nat}, k < l → (vnat k : V) ∈ˢ vnat l := by
   intro k l hkl
   induction l with
@@ -149,6 +135,12 @@ theorem mem_vnat_iff {k : Nat} {a : V} :
       rcases Nat.lt_succ_iff_lt_or_eq.mp hn with h | rfl
       · exact Or.inl ⟨n, h, rfl⟩
       · exact Or.inr rfl
+
+/-- A numeral is a subset of `ω`. -/
+theorem vnat_subset_omega (k : Nat) : (vnat k : V) ⊆ˢ (omega : V) := by
+  intro z hz
+  obtain ⟨n, -, rfl⟩ := mem_vnat_iff.mp hz
+  exact vnat_mem_omega n
 
 theorem omega_subset_univChain_one : (omega : V) ⊆ˢ univChain 1 := sepF_subset
 

@@ -75,6 +75,11 @@ theorem tg_mono {m n : Nat} (h : m ≤ n) : (tg m : V) ⊆ˢ tg n := by
 theorem omega_mem_tg_succ (n : Nat) : (omega : V) ∈ˢ tg (n + 1) :=
   (tg_isUniverse (Nat.succ_ne_zero n)).omega_mem (univChain_one_mem_tg_succ n)
 
+/-- A numeral is a member of every positive `tg` level. -/
+theorem vnat_mem_tg {w : Nat} (hw : w ≠ 0) (k : Nat) : (vnat k : V) ∈ˢ tg w := by
+  obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hw
+  exact (tg_isUniverse (Nat.succ_ne_zero n)).transitive (omega_mem_tg_succ n) (vnat_mem_omega k)
+
 theorem empty_mem_tg : ∀ n : Nat, (empty : V) ∈ˢ tg n
   | 0 => mem_univZero.mpr (empty_subset _)
   | n + 1 =>

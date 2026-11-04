@@ -70,15 +70,6 @@ theorem natFibre_eq_of_mem (f : Nat → V) {k a : V} (ha : a ∈ˢ natFibre f k)
   · rw [h] at ha
     exact absurd ha (not_mem_empty a)
 
-/-- Every member of `ω` is a numeral, at which the fibre is the
-named set.  (Meta-level `sep` via `mem_omega_iff` — slated for removal
-with the meta-`repl` migration; the first-order-safe call sites use
-`natFibre_eq_of_mem`/`natFibre_cases` instead.) -/
-theorem natFibre_of_mem (f : Nat → V) {k : V} (hk : k ∈ˢ (omega : V)) :
-    ∃ i, k = vnat i ∧ natFibre f k = f i := by
-  obtain ⟨i, rfl⟩ := mem_omega_iff.mp hk
-  exact ⟨i, rfl, natFibre_vnat f i⟩
-
 /-- **The tagged sum carrier.** -/
 noncomputable def sumSet (w : Nat) (f : Nat → V) : V :=
   sigmaSet w omega (natFibre f)

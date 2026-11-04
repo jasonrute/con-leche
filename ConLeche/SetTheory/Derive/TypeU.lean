@@ -194,6 +194,16 @@ theorem strict_sigmaPairs {A : V} {B : V → V} : Strict (sigmaPairs A B) :=
 
 theorem IsTy_of_strict {X : V} (h : Strict X) : IsTy X := Or.inr h
 
+/-- A numeral is strict: it is not the point (its member `∅` would then
+lie in the point), and the point is not among its members (they are all
+smaller numerals). -/
+theorem strict_vnat (k : Nat) : Strict (vnat k : V) :=
+  ⟨fun h => pt_not_mem_omega (by rw [← h]; exact vnat_mem_omega k),
+    fun h => pt_not_mem_omega (vnat_subset_omega k pt h)⟩
+
+/-- A numeral is a type. -/
+theorem IsTy_vnat (k : Nat) : IsTy (vnat k : V) := IsTy_of_strict (strict_vnat k)
+
 /-- **Every set is a member of some type** (task #342, L5): `{pt}` for the
 point, `{y}` for a set that is neither the point nor its tag, and
 `{ptTag, ∅}` for the tag. -/

@@ -12,7 +12,7 @@ Set-theoretic recursion on `ω` is the definable recursion graph
 (`natrecF`), with the base and step laws proved from
 `recGraph_app_empty`/`recGraph_app_vsucc` alone.  No meta-level
 `sep`/`image`/`repl` and no `vnat`-naming of `ω` members
-(`mem_omega_iff`) is needed: `natrec_vnat` is meta-level induction on
+is needed: `natrec_vnat` is meta-level induction on
 the name `k`, and the typing theorem `natrec_mem_vsucc` runs through
 `omega_induction` on the definable formula `recAppMemF`.  Off `ω`
 the value is junk (`app` of a non-pair set), which no law constrains.
