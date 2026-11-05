@@ -169,19 +169,21 @@ The numeral has already decided the regime, so membership in a
 positive-regime function space is *by definition* graph-hood: no consumer
 dispatches on "graph or proof point". -/
 
-/-- **The prized inversion.**  A member of a graph-regime function space is a
-graph whose domain is exactly the function space's domain, whose applications
+/-- **The prized inversion.**  A member of a graph-regime function space is the
+definable app-graph of its own applications (`graphAppF`, equal to the meta
+`graph (fun x => app f x) A` by `graphAppF_eq`) whose domain is exactly the
+function space's domain, whose applications
 land pointwise in the fibres, which is never the proof point, and which
 applies to the canonical junk `∅` off the domain.  Every clause is by
 definition of `piSet`; nothing about `B` is used. -/
 theorem mem_piR_pos {v : Nat} {A f : V} {B : V → V} (hv : v ≠ 0)
     (hf : f ∈ˢ piR v A B) :
-    graph (fun x => app f x) A = f ∧
+    graphAppF f A = f ∧
     (∀ x, x ∈ˢ A → app f x ∈ˢ B x) ∧
     (∀ a, ¬ a ∈ˢ A → app f a = empty) ∧
     f ≠ pt := by
   rw [piR_pos hv] at hf
-  exact ⟨eq_graph_app_of_mem_piSet hf, fun x hx => app_mem_of_mem_piSet hf hx,
+  exact ⟨eq_graphAppF_of_mem_piSet hf, fun x hx => app_mem_of_mem_piSet hf hx,
     fun a ha => app_off_dom_of_mem_piSet hf ha, ne_pt_of_mem_piSet hf⟩
 
 /-- **Domain uniqueness, unconditional.**  A graph determines its own

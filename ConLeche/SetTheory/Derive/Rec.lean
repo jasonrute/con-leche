@@ -404,6 +404,14 @@ theorem graphAppF_mem_piSet {g A : V} {B : V → V}
   rw [graphAppF_eq]
   exact graph_mem_piSet h
 
+/-- Eta at the definable app-graph: a member of `piSet A B` is the
+definable graph of its own application (the `graphAppF` twin of
+`eq_graph_app_of_mem_piSet`). -/
+theorem eq_graphAppF_of_mem_piSet {A f : V} {B : V → V} (hf : f ∈ˢ piSet A B) :
+    graphAppF f A = f := by
+  rw [graphAppF_eq]
+  exact eq_graph_app_of_mem_piSet hf
+
 /-! ## The raw app-pair product and the functionality-free app function space
 
 `sigmaPairs A (fun j => app S j)` and `piSet A (fun j => app S j)` at an

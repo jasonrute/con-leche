@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetTheory.Derive.Rec
+public import ConLeche.SetTheory.Derive.Quot
 public import ConLeche.SetTheory.Derive.Tg
 public import ConLeche.SetModel.UnionRec
 
@@ -225,5 +226,45 @@ example {Is X : Nat → V} (c : Nat) :
 example {Is X : Nat → V} {i x : V} (hi : i ∈ˢ Is 0) (hx : x ∈ˢ app (X 0) i) :
     tagged 0 i x ∈ˢ unionSet 1 Is X :=
   tagged_mem_unionSet Nat.zero_lt_one hi hx
+
+/-! ## The quotient saturation toolkit, repl-free (`Derive/Quot.lean`)
+
+`qclassF` is read through `qsatF` alone: self-membership, closure under a
+generating step, and invariance of a base-relation-invariant function
+along the class — all via definable `sepF`, no meta `sep`/`image`. -/
+
+example {A R a : V} (ha : a ∈ˢ A) : a ∈ˢ qclassF A R a :=
+  self_mem_qclassF ha
+
+example {A R a x y : V} (hx : x ∈ˢ qclassF A R a) (h : qstep A R x y ∨ qstep A R y x) :
+    y ∈ˢ qclassF A R a :=
+  qclassF_step_closed hx h
+
+example {A R f a b : V}
+    (hinv : ∀ a' b', a' ∈ˢ A → b' ∈ˢ A → (∃ w, w ∈ˢ app (app R a') b') → app f a' = app f b')
+    (ha : a ∈ˢ A) (hb : b ∈ˢ qclassF A R a) : app f b = app f a :=
+  app_eq_of_mem_qclassF hinv ha hb
+
+/-- Concretely: over the one-point domain `unitSet` every function is
+invariant, so it is constant on the definable class of `pt`. -/
+example {b : V} (hb : b ∈ˢ qclassF (unitSet : V) (testS V) pt) :
+    app (testS V) b = app (testS V) pt :=
+  app_eq_of_mem_qclassF (f := testS V) (A := (unitSet : V)) (R := testS V) (a := pt)
+    (fun a' b' ha' hb' _ => by
+      rw [mem_unitSet_iff] at ha' hb'
+      rw [ha', hb'])
+    pt_mem_unitSet hb
+
+/-- The definable app-graph eta: a `piSet` member is its own
+`graphAppF`. -/
+example {A f : V} {B : V → V} (hf : f ∈ˢ piSet A B) : graphAppF f A = f :=
+  eq_graphAppF_of_mem_piSet hf
+
+example : graphAppF (testS V) (unitSet : V) ∈ˢ piSet (unitSet : V) (fun _ => upair (empty : V) unitSet) :=
+  graphAppF_mem_piSet fun x hx => by
+    rw [mem_unitSet_iff] at hx
+    subst hx
+    rw [app_testS_pt]
+    exact mem_upair_right _ _
 
 end ConLeche.SetTheory.DefinableAppEx
