@@ -6311,10 +6311,11 @@
     13  synthetic rule each (applying the lift/ind slot to the packed
     14  element), and `Quot.sound` as a stored axiom (true in the set model).
 
-== ConLeche/SetTheory/Derive/Quot.lean#L65-L67
-    65  /-! ## The equivalence closure as a first-order formula -/
-    66  
-    67  /-- The generating step of `QuotRel`: `x ∈ˢ A ∧ y ∈ˢ A ∧ ∃ w, w ∈ˢ app (app R x) y`. -/
+== ConLeche/SetTheory/Derive/Quot.lean#L472-L475
+   472  /-- The quotient (see module docs). -/
+   473  noncomputable def quotSet (u : Nat) (A R : V) : V :=
+   474    if u = 0 then constImageF pt A
+   475    else imageF quotRelF (quotParam A R) A (quotRelF_fun A R)
 
 == ConLeche/Model/BasisQuot.lean#L2431-L2435
   2431  theorem extendQuotLift (mp : EnvModelM V μ env)

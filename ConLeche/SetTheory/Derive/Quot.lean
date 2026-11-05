@@ -10,7 +10,8 @@ public import ConLeche.SetTheory.Derive.Rec
 
 `quotSet u A R` is, for `u ≠ 0`, the set of equivalence classes of the
 equivalence closure of "`app (app R a) b` is inhabited" on `A` (classes
-by separation, the class set by replacement), each class **tagged** as
+by definable separation `qclassF`, the class set by definable
+replacement `imageF` — no meta-level scheme), each class **tagged** as
 the pair `kpair ∅ (qclass A R a)` (task #342: a raw class can be the
 point, see the end of the file; a tagged one is a pair, so the quotient
 is strict); for `u = 0` the base
@@ -42,27 +43,10 @@ inductive QuotRel (A R : V) : V → V → Prop where
   | symm {a b : V} : QuotRel A R a b → QuotRel A R b a
   | trans {a b c : V} : QuotRel A R a b → QuotRel A R b c → QuotRel A R a c
 
-/-- The `QuotRel`-class of `a` in `A`. -/
-noncomputable def qclass (A R a : V) : V := sep A (fun b => QuotRel A R a b)
-
-theorem mem_qclass {A R a b : V} :
-    b ∈ˢ qclass A R a ↔ b ∈ˢ A ∧ QuotRel A R a b := mem_sep
-
-theorem self_mem_qclass {A R a : V} (ha : a ∈ˢ A) : a ∈ˢ qclass A R a :=
-  mem_qclass.mpr ⟨ha, QuotRel.refl ha⟩
-
-theorem qclass_eq_of_rel {A R a b : V} (h : QuotRel A R a b) :
-    qclass A R a = qclass A R b :=
-  ext fun z => by
-    rw [mem_qclass, mem_qclass]
-    exact ⟨fun ⟨hz, hr⟩ => ⟨hz, (h.symm).trans hr⟩,
-           fun ⟨hz, hr⟩ => ⟨hz, h.trans hr⟩⟩
-
-theorem rel_of_qclass_eq {A R a b : V} (ha : a ∈ˢ A) (_hb : b ∈ˢ A)
-    (h : qclass A R a = qclass A R b) : QuotRel A R a b :=
-  (mem_qclass.mp (h ▸ self_mem_qclass ha)).2.symm
-
 /-! ## The equivalence closure as a first-order formula -/
+
+/- The class of `a` (`qclass`, defined below as the *definable* class
+`qclassF`) is introduced after `qsatF`, its first-order formula. -/
 
 /-- The generating step of `QuotRel`: `x ∈ˢ A ∧ y ∈ˢ A ∧ ∃ w, w ∈ˢ app (app R x) y`. -/
 def qstep (A R x y : V) : Prop :=
@@ -146,50 +130,42 @@ theorem realize_qsatF {A R a b : V} :
     realize_qsatStepF, Form.snoc_mk, qclassParam, SetTheory.Subset]
   simp
 
-/-- The equivalence closure is exactly the saturated-set characterization. -/
-theorem quotRel_iff_qsat {A R a b : V} :
-    QuotRel A R a b ↔
-      a ∈ˢ A ∧ ∀ S : V, S ⊆ˢ A → a ∈ˢ S →
-        (∀ x y : V, x ∈ˢ S → (qstep A R x y ∨ qstep A R y x) → y ∈ˢ S) → b ∈ˢ S := by
-  constructor
-  · intro h
-    have key : ∀ a' b' : V, QuotRel A R a' b' →
-        a' ∈ˢ A ∧ b' ∈ˢ A ∧ ∀ S : V,
-          (∀ x y : V, x ∈ˢ S → (qstep A R x y ∨ qstep A R y x) → y ∈ˢ S) →
-          (a' ∈ˢ S ↔ b' ∈ˢ S) := by
-      intro a' b' h'
-      induction h' with
-      | base ha hb hw => exact ⟨ha, hb, fun S hcl => ⟨fun h => hcl _ _ h (Or.inl ⟨ha, hb, hw⟩), fun h => hcl _ _ h (Or.inr ⟨ha, hb, hw⟩)⟩⟩
-      | refl ha => exact ⟨ha, ha, fun S hcl => Iff.rfl⟩
-      | symm _ ih =>
-        obtain ⟨h1, h2, h3⟩ := ih
-        exact ⟨h2, h1, fun S hcl => (h3 S hcl).symm⟩
-      | trans _ _ ih1 ih2 =>
-        obtain ⟨h1, h2, h3⟩ := ih1
-        obtain ⟨h4, h5, h6⟩ := ih2
-        exact ⟨h1, h5, fun S hcl => (h3 S hcl).trans (h6 S hcl)⟩
-    obtain ⟨ha, hb, hiff⟩ := key a b h
-    refine ⟨ha, fun S hSA haS hcl => (hiff S hcl).mp haS⟩
-  · intro ⟨ha, hsat⟩
-    have hclosed : ∀ x y : V, x ∈ˢ qclass A R a →
-        (qstep A R x y ∨ qstep A R y x) → y ∈ˢ qclass A R a := by
-      intro x y hx hor
-      obtain ⟨hxA, hxr⟩ := mem_qclass.mp hx
-      rcases hor with ⟨hxA', hyA, hw⟩ | ⟨hyA, hxA', hw⟩
-      · exact mem_qclass.mpr ⟨hyA, hxr.trans (QuotRel.base hxA' hyA hw)⟩
-      · exact mem_qclass.mpr ⟨hyA, hxr.trans (QuotRel.base hyA hxA' hw).symm⟩
-    exact (mem_qclass.mp (hsat (qclass A R a) (fun z hz => (mem_qclass.mp hz).1)
-      (self_mem_qclass ha) hclosed)).2
+/-- The equivalence closure implies the saturated-set characterization.
+Only this direction is available without the meta-level scheme: the
+converse (`qsat → QuotRel`) is false in nonstandard models, so the class
+`qclassF` below is characterized by `qsatF` alone. -/
+theorem quotRel_qsat {A R a b : V} (h : QuotRel A R a b) :
+    a ∈ˢ A ∧ ∀ S : V, S ⊆ˢ A → a ∈ˢ S →
+      (∀ x y : V, x ∈ˢ S → (qstep A R x y ∨ qstep A R y x) → y ∈ˢ S) → b ∈ˢ S := by
+  have key : ∀ a' b' : V, QuotRel A R a' b' →
+      a' ∈ˢ A ∧ b' ∈ˢ A ∧ ∀ S : V,
+        (∀ x y : V, x ∈ˢ S → (qstep A R x y ∨ qstep A R y x) → y ∈ˢ S) →
+        (a' ∈ˢ S ↔ b' ∈ˢ S) := by
+    intro a' b' h'
+    induction h' with
+    | base ha hb hw => exact ⟨ha, hb, fun S hcl => ⟨fun h => hcl _ _ h (Or.inl ⟨ha, hb, hw⟩), fun h => hcl _ _ h (Or.inr ⟨ha, hb, hw⟩)⟩⟩
+    | refl ha => exact ⟨ha, ha, fun S hcl => Iff.rfl⟩
+    | symm _ ih =>
+      obtain ⟨h1, h2, h3⟩ := ih
+      exact ⟨h2, h1, fun S hcl => (h3 S hcl).symm⟩
+    | trans _ _ ih1 ih2 =>
+      obtain ⟨h1, h2, h3⟩ := ih1
+      obtain ⟨h4, h5, h6⟩ := ih2
+      exact ⟨h1, h5, fun S hcl => (h3 S hcl).trans (h6 S hcl)⟩
+  obtain ⟨ha, hb, hiff⟩ := key a b h
+  exact ⟨ha, fun S hSA haS hcl => (hiff S hcl).mp haS⟩
 
-/-- The `QuotRel`-class of `a` in `A` by *definable* separation: the first-order twin of `qclass`. -/
+/-- The class of `a` in `A` by *definable* separation: the first-order
+class `sepF A qsatF (qclassParam A R a)`.  This is what `qclass` (below)
+is defined as — no meta-level `sep` anywhere. -/
 noncomputable def qclassF (A R a : V) : V := sepF A qsatF (qclassParam A R a)
 
+/-- Membership in the definable class, read through `qsatF` alone (no
+`QuotRel`, no meta-level scheme). -/
 theorem mem_qclassF {A R a b : V} :
-    b ∈ˢ qclassF A R a ↔ b ∈ˢ A ∧ QuotRel A R a b := by
-  rw [qclassF, mem_sepF, realize_qsatF, quotRel_iff_qsat]
-
-theorem qclassF_eq_qclass (A R a : V) : qclassF A R a = qclass A R a :=
-  ext fun b => by rw [mem_qclassF, mem_qclass]
+    b ∈ˢ qclassF A R a ↔ b ∈ˢ A ∧ Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF := by
+  rw [qclassF]
+  exact mem_sepF
 
 /-- `QuotRel` relates members of `A`. -/
 theorem quotRel_mem {A R a b : V} (h : QuotRel A R a b) : a ∈ˢ A ∧ b ∈ˢ A := by
@@ -199,15 +175,220 @@ theorem quotRel_mem {A R a b : V} (h : QuotRel A R a b) : a ∈ˢ A ∧ b ∈ˢ 
   | symm _ ih => exact ⟨ih.2, ih.1⟩
   | trans _ _ ih1 ih2 => exact ⟨ih1.1, ih2.2⟩
 
-theorem realize_qsatF_quotRel {A R a b : V} :
-    Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF ↔ QuotRel A R a b :=
-  realize_qsatF.trans quotRel_iff_qsat.symm
+/-- `QuotRel` implies the `qsatF` realization (the forward direction of
+the old equivalence; the converse needs the meta-level scheme and is
+false in nonstandard models). -/
+theorem realize_qsatF_of_quotRel {A R a b : V} (h : QuotRel A R a b) :
+    Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF :=
+  realize_qsatF.mpr (quotRel_qsat h)
 
-/-- Membership in the meta class is the definable realization. -/
+theorem qclassF_subset {A R a : V} : qclassF A R a ⊆ˢ A := by
+  rw [qclassF]
+  exact sepF_subset
+
+/-- A saturated point contains itself. -/
+theorem self_realize_qsatF {A R a : V} (ha : a ∈ˢ A) :
+    Form.Realize Mem (Form.snoc (qclassParam A R a) a) qsatF := by
+  rw [realize_qsatF]
+  exact ⟨ha, fun S _ haS _ => haS⟩
+
+/-- Saturation is closed under a generating step, in both directions. -/
+theorem realize_qsatF_step_closed {A R a x y : V}
+    (hx : Form.Realize Mem (Form.snoc (qclassParam A R a) x) qsatF)
+    (hstep : qstep A R x y ∨ qstep A R y x) :
+    Form.Realize Mem (Form.snoc (qclassParam A R a) y) qsatF := by
+  rw [realize_qsatF] at hx ⊢
+  obtain ⟨haA, hsat⟩ := hx
+  exact ⟨haA, fun S hSA haS hcl => hcl x y (hsat S hSA haS hcl) hstep⟩
+
+theorem self_mem_qclassF {A R a : V} (ha : a ∈ˢ A) : a ∈ˢ qclassF A R a :=
+  mem_qclassF.mpr ⟨ha, self_realize_qsatF ha⟩
+
+theorem qclassF_step_closed {A R a x y : V} (hx : x ∈ˢ qclassF A R a)
+    (hstep : qstep A R x y ∨ qstep A R y x) : y ∈ˢ qclassF A R a := by
+  have hyA : y ∈ˢ A := by
+    rcases hstep with ⟨-, h, -⟩ | ⟨h, -, -⟩ <;> exact h
+  exact mem_qclassF.mpr
+    ⟨hyA, realize_qsatF_step_closed (mem_qclassF.mp hx).2 hstep⟩
+
+/-- **Symmetry of the definable class, repl-free**: the complement of a
+saturated set is saturated (the generating steps are symmetric), so
+`b ∈ˢ qclassF A R a` forces `a ∈ˢ qclassF A R b`. -/
+theorem qclassF_symm {A R a b : V} (ha : a ∈ˢ A) (hb : b ∈ˢ qclassF A R a) :
+    a ∈ˢ qclassF A R b := by
+  obtain ⟨hbA, hreal⟩ := mem_qclassF.mp hb
+  by_cases h : a ∈ˢ qclassF A R b
+  · exact h
+  · rw [mem_qclassF] at h
+    have hnot : ¬ Form.Realize Mem (Form.snoc (qclassParam A R b) a) qsatF := by
+      intro hr
+      exact h ⟨ha, hr⟩
+    have hSclosed : ∀ x y : V, x ∈ˢ sepF A (.not qsatF) (qclassParam A R b) →
+        (qstep A R x y ∨ qstep A R y x) → y ∈ˢ sepF A (.not qsatF) (qclassParam A R b) := by
+      intro x y hxS hor
+      obtain ⟨hxA, hxnot⟩ := mem_sepF.mp hxS
+      have hyA : y ∈ˢ A := by rcases hor with ⟨-, h, -⟩ | ⟨h, -, -⟩ <;> exact h
+      refine mem_sepF.mpr ⟨hyA, ?_⟩
+      rw [Form.realize_not]
+      intro hyreal
+      have hyT : y ∈ˢ qclassF A R b := mem_qclassF.mpr ⟨hyA, hyreal⟩
+      have hxT : x ∈ˢ qclassF A R b := by
+        rcases hor with hxy | hyx
+        · exact qclassF_step_closed hyT (Or.inr hxy)
+        · exact qclassF_step_closed hyT (Or.inl hyx)
+      exact hxnot (mem_qclassF.mp hxT).2
+    have haS : a ∈ˢ sepF A (.not qsatF) (qclassParam A R b) :=
+      mem_sepF.mpr ⟨ha, by rw [Form.realize_not]; exact hnot⟩
+    have hbS : b ∈ˢ sepF A (.not qsatF) (qclassParam A R b) :=
+      (realize_qsatF.mp hreal).2 _ sepF_subset haS hSclosed
+    obtain ⟨-, hbnot⟩ := mem_sepF.mp hbS
+    rw [Form.realize_not] at hbnot
+    exact absurd (mem_qclassF.mp (self_mem_qclassF hbA)).2 hbnot
+
+/-- **Transitivity of the definable class, repl-free**. -/
+theorem qclassF_trans {A R a b c : V} (hb : b ∈ˢ qclassF A R a) (hc : c ∈ˢ qclassF A R b) :
+    c ∈ˢ qclassF A R a := by
+  obtain ⟨-, hreal⟩ := mem_qclassF.mp hb
+  obtain ⟨-, hreal'⟩ := mem_qclassF.mp hc
+  obtain ⟨haA, hsat⟩ := realize_qsatF.mp hreal
+  refine mem_qclassF.mpr ⟨(mem_qclassF.mp hc).1, realize_qsatF.mpr ⟨haA, ?_⟩⟩
+  intro S hSA haS hcl
+  exact (realize_qsatF.mp hreal').2 S hSA (hsat S hSA haS hcl) hcl
+
+/-- Equal classes from a member: repl-free. -/
+theorem qclassF_eq_of_mem {A R a b : V} (ha : a ∈ˢ A) (hb : b ∈ˢ qclassF A R a) :
+    qclassF A R a = qclassF A R b :=
+  have hsymm : a ∈ˢ qclassF A R b := qclassF_symm ha hb
+  ext fun _ => ⟨fun hz => qclassF_trans hsymm hz, fun hz => qclassF_trans hb hz⟩
+
+/-- Equal classes from a `QuotRel` step (via the forward `qsat` direction). -/
+theorem qclassF_eq_of_rel {A R a b : V} (h : QuotRel A R a b) :
+    qclassF A R a = qclassF A R b :=
+  qclassF_eq_of_mem (quotRel_mem h).1
+    (mem_qclassF.mpr ⟨(quotRel_mem h).2, realize_qsatF_of_quotRel h⟩)
+
+/-! ## The saturation toolkit, without the meta-level scheme
+
+The lemmas below read the definable class `qclassF = sepF A qsatF
+(qclassParam A R a)` through `qsatF` alone — definable separation only,
+no meta-level `sep`/`image`/`repl`: invariance of a base-relation
+invariant function along a definable class (`app_eq_of_realize_qsatF`,
+proved through the definable saturated set `sepF A appFixF
+(appFixParam f a)`). -/
+
+/-- Parameters of "the value at the element equals the value at `a`":
+`0 ↦ f`, `1 ↦ a`, `2 ↦ pt`. -/
+noncomputable def appFixParam (f a : V) : Fin 3 → V := fun i =>
+  match i.val with
+  | 0 => f
+  | 1 => a
+  | _ => (pt : V)
+
+/-- Variable map `Fin 4 → Fin 5` reading `appEqF`'s `(pt, v, g, u)` out of
+`(f, a, pt, x, v)` with the element `x` as the argument: `0 ↦ 2`,
+`1 ↦ 4`, `2 ↦ 0`, `3 ↦ 3`. -/
+def appFixXMap : Fin 4 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨2, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | 2 => ⟨0, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- Variable map `Fin 4 → Fin 5` reading `appEqF`'s `(pt, v, g, u)` out of
+`(f, a, pt, x, v)` with the fixed argument `a`: `0 ↦ 2`, `1 ↦ 4`,
+`2 ↦ 0`, `3 ↦ 1`. -/
+def appFixAMap : Fin 4 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨2, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | 2 => ⟨0, by omega⟩
+  | _ => ⟨1, by omega⟩
+
+/-- `app f x = app f a` as a `Form 4` (parameters `0 ↦ f`, `1 ↦ a`,
+`2 ↦ pt`, element variable `3 ↦ x`, bound `4 ↦ v`). -/
+def appFixF : Form 4 :=
+  .ex (.and (Form.relabel appFixXMap appEqF) (Form.relabel appFixAMap appEqF))
+
+theorem realize_appFixF {f a x : V} :
+    Form.Realize Mem (Form.snoc (appFixParam f a) x) appFixF ↔ app f x = app f a := by
+  have hX : ∀ v : V,
+      (Form.snoc (Form.snoc (appFixParam f a) x) v) ∘ appFixXMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) v) f) x := by
+    intro v
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hA : ∀ v : V,
+      (Form.snoc (Form.snoc (appFixParam f a) x) v) ∘ appFixAMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) v) f) a := by
+    intro v
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [appFixF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hX, hA, realize_appEqF]
+  constructor
+  · rintro ⟨v, hv1, hv2⟩
+    exact hv1.symm.trans hv2
+  · intro h
+    exact ⟨app f x, rfl, h⟩
+
+/-- **Invariance inside a definable class, repl-free**: a function
+invariant under the base relation is constant on the `qsatF`-class of
+`a`, read through the definable saturated set `sepF A appFixF
+(appFixParam f a)`. -/
+theorem app_eq_of_realize_qsatF {A R f a b : V}
+    (hinv : ∀ a' b', a' ∈ˢ A → b' ∈ˢ A → (∃ w, w ∈ˢ app (app R a') b') → app f a' = app f b')
+    (ha : a ∈ˢ A)
+    (hb : Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF) :
+    app f b = app f a := by
+  rw [realize_qsatF] at hb
+  obtain ⟨-, hsat⟩ := hb
+  have hS : b ∈ˢ sepF A appFixF (appFixParam f a) :=
+    hsat (sepF A appFixF (appFixParam f a)) sepF_subset
+      (mem_sepF.mpr ⟨ha, realize_appFixF.mpr rfl⟩)
+      (fun x y hxS hor => by
+        obtain ⟨-, hxeq⟩ := mem_sepF.mp hxS
+        rw [realize_appFixF] at hxeq
+        have hyA : y ∈ˢ A := by rcases hor with ⟨-, h, -⟩ | ⟨h, -, -⟩ <;> exact h
+        rw [mem_sepF, realize_appFixF]
+        rcases hor with ⟨hxA, -, hw⟩ | ⟨-, hxA, hw⟩
+        · exact ⟨hyA, (hinv x y hxA hyA hw).symm.trans hxeq⟩
+        · exact ⟨hyA, (hinv y x hyA hxA hw).trans hxeq⟩)
+  rw [mem_sepF, realize_appFixF] at hS
+  exact hS.2
+
+/-- The same invariance at the definable class itself. -/
+theorem app_eq_of_mem_qclassF {A R f a b : V}
+    (hinv : ∀ a' b', a' ∈ˢ A → b' ∈ˢ A → (∃ w, w ∈ˢ app (app R a') b') → app f a' = app f b')
+    (ha : a ∈ˢ A) (hb : b ∈ˢ qclassF A R a) : app f b = app f a :=
+  app_eq_of_realize_qsatF hinv ha (mem_qclassF.mp hb).2
+
+/-- The `QuotRel`-class of `a` in `A` — the definable class `qclassF`
+(no meta-level `sep`). -/
+noncomputable def qclass (A R a : V) : V := qclassF A R a
+
+theorem mem_qclass {A R a b : V} :
+    b ∈ˢ qclass A R a ↔ b ∈ˢ A ∧ Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF :=
+  mem_qclassF
+
+theorem self_mem_qclass {A R a : V} (ha : a ∈ˢ A) : a ∈ˢ qclass A R a :=
+  self_mem_qclassF ha
+
+theorem qclass_eq_of_rel {A R a b : V} (h : QuotRel A R a b) :
+    qclass A R a = qclass A R b :=
+  qclassF_eq_of_rel h
+
+/-- Membership in the class is the definable realization. -/
 theorem mem_qclass_realize {A R a b : V} :
     b ∈ˢ qclass A R a ↔ Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF := by
-  rw [mem_qclass, realize_qsatF_quotRel]
-  exact ⟨fun h => h.2, fun h => ⟨(quotRel_mem h).2, h⟩⟩
+  rw [mem_qclass]
+  constructor
+  · exact fun h => h.2
+  · intro h
+    obtain ⟨haA, hsat⟩ := realize_qsatF.mp h
+    refine ⟨hsat A (fun z hz => hz) haA (fun x y _ hor => ?_), h⟩
+    rcases hor with ⟨-, hyA, -⟩ | ⟨hyA, -, -⟩ <;> exact hyA
 
 /-- Parameters of the quotient-image relation: `0 ↦ A`, `1 ↦ R`, `2 ↦ empty`, rest `pt`. -/
 noncomputable def quotParam (A R : V) : Fin 5 → V := fun i =>
@@ -345,8 +526,8 @@ theorem quotClass_of_mem_quotSet {u : Nat} {Aset R A' R' a : V}
     rw [ite_eq_right hu, ite_eq_right hu]
     have hcls' := (kpair_inj hcls).2
     have hab : a ∈ˢ qclass Aset R b := by rw [← hcls']; exact self_mem_qclass ha
-    obtain ⟨haA, hrel⟩ := mem_qclass.mp hab
-    exact ⟨haA, hcls.trans (congrArg (kpair empty) (qclass_eq_of_rel hrel))⟩
+    obtain ⟨haA, -⟩ := mem_qclass.mp hab
+    exact ⟨haA, hcls.trans (congrArg (kpair empty) (qclassF_eq_of_mem hb hab))⟩
 
 /-- **`quotClass_of_mem_quotSet` across two positive levels**: a class
 formed at one positive level and one pair of parameters that lands in
@@ -365,8 +546,8 @@ theorem quotClass_of_mem_quotSet_pos {u u' : Nat} (hu : u ≠ 0) (hu' : u' ≠ 0
   rw [ite_eq_right hu, ite_eq_right hu]
   have hcls' := (kpair_inj hcls).2
   have hab : a ∈ˢ qclass Aset R b := by rw [← hcls']; exact self_mem_qclass ha
-  obtain ⟨haA, hrel⟩ := mem_qclass.mp hab
-  exact ⟨haA, hcls.trans (congrArg (kpair empty) (qclass_eq_of_rel hrel))⟩
+  obtain ⟨haA, -⟩ := mem_qclass.mp hab
+  exact ⟨haA, hcls.trans (congrArg (kpair empty) (qclassF_eq_of_mem hb hab))⟩
 
 theorem quotSound {u : Nat} {A R a b w : V} (ha : a ∈ˢ A) (hb : b ∈ˢ A)
     (hw : w ∈ˢ app (app R a) b) : quotClass u A R a = quotClass u A R b := by
@@ -411,7 +592,11 @@ theorem app_eq_of_quotClass_eq {u : Nat} {A R f a b : V}
     subst h
     rw [univ_zero] at hA
     rw [eq_pt_of_mem_univZero hA ha, eq_pt_of_mem_univZero hA hb]
-  · exact app_eq_of_rel hinv (rel_of_qclass_eq ha hb (kpair_inj hq).2)
+  · have hab : a ∈ˢ qclass A R b := by
+      have hs : a ∈ˢ qclass A R a := self_mem_qclass ha
+      rw [(kpair_inj hq).2] at hs
+      exact hs
+    exact app_eq_of_mem_qclassF hinv hb hab
 
 /-! ## The class is never the point above `Prop` (tasks #109, #342)
 
@@ -454,144 +639,9 @@ theorem quotSet_mem_univ {u : Nat} {A R : V} (hA : A ∈ˢ (univ u : V)) :
     intro x _ y hy
     obtain ⟨c, rfl, hc⟩ := realize_quotRelF.mp hy
     have hcq : c = qclassF A R x := ext fun b => by
-      rw [hc b, mem_qclassF, realize_qsatF_quotRel]
-      exact ⟨fun h => ⟨(quotRel_mem h).2, h⟩, fun h => h.2⟩
+      rw [hc b]
+      exact mem_qclass_realize.symm
     rw [hcq]
     exact hU.kpair_mem hA' (hU.empty_mem hA') (hU.sepF_mem hA')
-
-/-! ## The saturation toolkit, without the meta-level scheme
-
-The lemmas below read the definable class `qclassF = sepF A qsatF
-(qclassParam A R a)` through `qsatF` alone — definable separation only,
-no meta-level `sep`/`image`/`repl`: closure of a saturated point under a
-generating step in both directions (`realize_qsatF_step_closed`), trivial
-self-membership (`self_realize_qsatF`), and invariance of a base-relation
-invariant function along a definable class (`app_eq_of_realize_qsatF`,
-proved through the definable saturated set `sepF A appFixF
-(appFixParam f a)`). -/
-
-/-- Parameters of "the value at the element equals the value at `a`":
-`0 ↦ f`, `1 ↦ a`, `2 ↦ pt`. -/
-noncomputable def appFixParam (f a : V) : Fin 3 → V := fun i =>
-  match i.val with
-  | 0 => f
-  | 1 => a
-  | _ => (pt : V)
-
-/-- Variable map `Fin 4 → Fin 5` reading `appEqF`'s `(pt, v, g, u)` out of
-`(f, a, pt, x, v)` with the element `x` as the argument: `0 ↦ 2`,
-`1 ↦ 4`, `2 ↦ 0`, `3 ↦ 3`. -/
-def appFixXMap : Fin 4 → Fin 5 := fun i =>
-  match i.val with
-  | 0 => ⟨2, by omega⟩
-  | 1 => ⟨4, by omega⟩
-  | 2 => ⟨0, by omega⟩
-  | _ => ⟨3, by omega⟩
-
-/-- Variable map `Fin 4 → Fin 5` reading `appEqF`'s `(pt, v, g, u)` out of
-`(f, a, pt, x, v)` with the fixed argument `a`: `0 ↦ 2`, `1 ↦ 4`,
-`2 ↦ 0`, `3 ↦ 1`. -/
-def appFixAMap : Fin 4 → Fin 5 := fun i =>
-  match i.val with
-  | 0 => ⟨2, by omega⟩
-  | 1 => ⟨4, by omega⟩
-  | 2 => ⟨0, by omega⟩
-  | _ => ⟨1, by omega⟩
-
-/-- `app f x = app f a` as a `Form 4` (parameters `0 ↦ f`, `1 ↦ a`,
-`2 ↦ pt`, element variable `3 ↦ x`, bound `4 ↦ v`). -/
-def appFixF : Form 4 :=
-  .ex (.and (Form.relabel appFixXMap appEqF) (Form.relabel appFixAMap appEqF))
-
-theorem realize_appFixF {f a x : V} :
-    Form.Realize Mem (Form.snoc (appFixParam f a) x) appFixF ↔ app f x = app f a := by
-  have hX : ∀ v : V,
-      (Form.snoc (Form.snoc (appFixParam f a) x) v) ∘ appFixXMap =
-        Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) v) f) x := by
-    intro v
-    funext ⟨k, hk⟩
-    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
-    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
-  have hA : ∀ v : V,
-      (Form.snoc (Form.snoc (appFixParam f a) x) v) ∘ appFixAMap =
-        Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) v) f) a := by
-    intro v
-    funext ⟨k, hk⟩
-    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
-    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
-  simp only [appFixF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
-    hX, hA, realize_appEqF]
-  constructor
-  · rintro ⟨v, hv1, hv2⟩
-    exact hv1.symm.trans hv2
-  · intro h
-    exact ⟨app f x, rfl, h⟩
-
-/-- A saturated point contains itself. -/
-theorem self_realize_qsatF {A R a : V} (ha : a ∈ˢ A) :
-    Form.Realize Mem (Form.snoc (qclassParam A R a) a) qsatF := by
-  rw [realize_qsatF]
-  exact ⟨ha, fun S _ haS _ => haS⟩
-
-/-- Saturation is closed under a generating step, in both directions. -/
-theorem realize_qsatF_step_closed {A R a x y : V}
-    (hx : Form.Realize Mem (Form.snoc (qclassParam A R a) x) qsatF)
-    (hstep : qstep A R x y ∨ qstep A R y x) :
-    Form.Realize Mem (Form.snoc (qclassParam A R a) y) qsatF := by
-  rw [realize_qsatF] at hx ⊢
-  obtain ⟨haA, hsat⟩ := hx
-  exact ⟨haA, fun S hSA haS hcl => hcl x y (hsat S hSA haS hcl) hstep⟩
-
-/-- Membership in the definable class, read through `qsatF` alone (no
-`QuotRel`, no meta-level scheme). -/
-theorem mem_qclassF_realize {A R a b : V} :
-    b ∈ˢ qclassF A R a ↔ b ∈ˢ A ∧ Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF := by
-  rw [qclassF]
-  exact mem_sepF
-
-theorem qclassF_subset {A R a : V} : qclassF A R a ⊆ˢ A := by
-  rw [qclassF]
-  exact sepF_subset
-
-theorem self_mem_qclassF {A R a : V} (ha : a ∈ˢ A) : a ∈ˢ qclassF A R a :=
-  mem_qclassF_realize.mpr ⟨ha, self_realize_qsatF ha⟩
-
-theorem qclassF_step_closed {A R a x y : V} (hx : x ∈ˢ qclassF A R a)
-    (hstep : qstep A R x y ∨ qstep A R y x) : y ∈ˢ qclassF A R a := by
-  have hyA : y ∈ˢ A := by
-    rcases hstep with ⟨-, h, -⟩ | ⟨h, -, -⟩ <;> exact h
-  exact mem_qclassF_realize.mpr
-    ⟨hyA, realize_qsatF_step_closed (mem_qclassF_realize.mp hx).2 hstep⟩
-
-/-- **Invariance inside a definable class, repl-free**: a function
-invariant under the base relation is constant on the `qsatF`-class of
-`a`, read through the definable saturated set `sepF A appFixF
-(appFixParam f a)`. -/
-theorem app_eq_of_realize_qsatF {A R f a b : V}
-    (hinv : ∀ a' b', a' ∈ˢ A → b' ∈ˢ A → (∃ w, w ∈ˢ app (app R a') b') → app f a' = app f b')
-    (ha : a ∈ˢ A)
-    (hb : Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF) :
-    app f b = app f a := by
-  rw [realize_qsatF] at hb
-  obtain ⟨-, hsat⟩ := hb
-  have hS : b ∈ˢ sepF A appFixF (appFixParam f a) :=
-    hsat (sepF A appFixF (appFixParam f a)) sepF_subset
-      (mem_sepF.mpr ⟨ha, realize_appFixF.mpr rfl⟩)
-      (fun x y hxS hor => by
-        obtain ⟨-, hxeq⟩ := mem_sepF.mp hxS
-        rw [realize_appFixF] at hxeq
-        have hyA : y ∈ˢ A := by rcases hor with ⟨-, h, -⟩ | ⟨h, -, -⟩ <;> exact h
-        rw [mem_sepF, realize_appFixF]
-        rcases hor with ⟨hxA, -, hw⟩ | ⟨-, hxA, hw⟩
-        · exact ⟨hyA, (hinv x y hxA hyA hw).symm.trans hxeq⟩
-        · exact ⟨hyA, (hinv y x hyA hxA hw).trans hxeq⟩)
-  rw [mem_sepF, realize_appFixF] at hS
-  exact hS.2
-
-/-- The same invariance at the definable class itself. -/
-theorem app_eq_of_mem_qclassF {A R f a b : V}
-    (hinv : ∀ a' b', a' ∈ˢ A → b' ∈ˢ A → (∃ w, w ∈ˢ app (app R a') b') → app f a' = app f b')
-    (ha : a ∈ˢ A) (hb : b ∈ˢ qclassF A R a) : app f b = app f a :=
-  app_eq_of_realize_qsatF hinv ha (mem_qclassF_realize.mp hb).2
 
 end ConLeche.SetTheory

@@ -267,4 +267,40 @@ example : graphAppF (testS V) (unitSet : V) ∈ˢ piSet (unitSet : V) (fun _ => 
     rw [app_testS_pt]
     exact mem_upair_right _ _
 
+/-! ## The quotient rewire: `qclass` is the definable `qclassF`
+
+`qclass A R a = qclassF A R a` by definition, so the class API reads
+through `qsatF` alone: symmetry and transitivity of the definable class
+(repl-free, via the complement of a saturated set), equal classes from a
+member or a `QuotRel` step, and the class membership as the `qsatF`
+realization. -/
+
+example {A R a b : V} (ha : a ∈ˢ A) (hb : b ∈ˢ qclass A R a) : a ∈ˢ qclass A R b :=
+  qclassF_symm ha hb
+
+example {A R a b c : V} (hb : b ∈ˢ qclass A R a) (hc : c ∈ˢ qclass A R b) :
+    c ∈ˢ qclass A R a :=
+  qclassF_trans hb hc
+
+example {A R a b : V} (ha : a ∈ˢ A) (hb : b ∈ˢ qclass A R a) :
+    qclass A R a = qclass A R b :=
+  qclassF_eq_of_mem ha hb
+
+example {A R a b : V} (h : QuotRel A R a b) : qclass A R a = qclass A R b :=
+  qclass_eq_of_rel h
+
+example {A R a b : V} :
+    b ∈ˢ qclass A R a ↔ b ∈ˢ A ∧ Form.Realize Mem (Form.snoc (qclassParam A R a) b) qsatF :=
+  mem_qclass
+
+/-- Concretely: the one-point class is symmetric and the invariance
+lemma fires through `qclass` itself. -/
+example {b : V} (ha : (pt : V) ∈ˢ (unitSet : V)) (hb : b ∈ˢ qclass (unitSet : V) (testS V) pt) :
+    app (testS V) b = app (testS V) pt :=
+  app_eq_of_mem_qclassF (f := testS V) (A := (unitSet : V)) (R := testS V) (a := pt)
+    (fun a' b' ha' hb' _ => by
+      rw [mem_unitSet_iff] at ha' hb'
+      rw [ha', hb'])
+    ha hb
+
 end ConLeche.SetTheory.DefinableAppEx
