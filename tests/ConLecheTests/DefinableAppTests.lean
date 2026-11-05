@@ -303,4 +303,63 @@ example {b : V} (ha : (pt : V) ∈ˢ (unitSet : V)) (hb : b ∈ˢ qclass (unitSe
       rw [ha', hb'])
     ha hb
 
+/-! ## The definable selector graph `recGraphF`
+
+At `G = graphAppF (testS V) unitSet` (the definable graph of
+`app (testS V)` over `unitSet`, with `app G pt = unitSet = {pt}`),
+`recGraphF G unitSet` is the singleton `{kpair pt pt}`: a member of
+`piSetAppNF G unitSet` whose application at `pt` is `pt` — the
+first-order twin of `graph (fun j => recSel G j) unitSet`. -/
+
+/-- Single-valuedness of `graphAppF (testS V) unitSet` on `unitSet`. -/
+theorem testGraphF_single : ∀ j, j ∈ˢ (unitSet : V) →
+    ∃ y, y ∈ˢ app (graphAppF (testS V) unitSet) j ∧
+      ∀ z, z ∈ˢ app (graphAppF (testS V) unitSet) j → z = y := by
+  intro j hj
+  rw [mem_unitSet_iff] at hj
+  subst hj
+  refine ⟨pt, ?_, fun z hz => ?_⟩
+  · rw [app_graphAppF pt_mem_unitSet, app_testS_pt]
+    exact pt_mem_unitSet
+  · rw [app_graphAppF pt_mem_unitSet, app_testS_pt, mem_unitSet_iff] at hz
+    exact hz
+
+theorem app_testGraphF_pt : app (graphAppF (testS V) unitSet) pt = (unitSet : V) := by
+  rw [app_graphAppF pt_mem_unitSet, app_testS_pt]
+
+example : kpair pt pt ∈ˢ recGraphF (graphAppF (testS V) unitSet) (unitSet : V) :=
+  mem_recGraphF_of_single pt_mem_unitSet
+    (by rw [app_testGraphF_pt]; exact pt_mem_unitSet)
+    (fun z hz => by rw [app_testGraphF_pt, mem_unitSet_iff] at hz; exact hz)
+
+example : recGraphF (graphAppF (testS V) unitSet) (unitSet : V) ∈ˢ
+    piSetAppNF (graphAppF (testS V) unitSet) (unitSet : V) :=
+  recGraphF_mem_piSetAppNF testGraphF_single
+
+example : app (recGraphF (graphAppF (testS V) unitSet) (unitSet : V)) pt = (pt : V) :=
+  app_recGraphF_eq testGraphF_single pt_mem_unitSet
+    (by rw [app_testGraphF_pt]; exact pt_mem_unitSet)
+
+example (p : V) : p ∈ˢ recGraphF (graphAppF (testS V) unitSet) (unitSet : V) ↔
+    p = kpair pt pt := by
+  rw [mem_recGraphF]
+  constructor
+  · rintro ⟨-, j, y, hp, hj, hy, -⟩
+    rw [mem_unitSet_iff] at hj
+    subst hj
+    rw [app_testGraphF_pt, mem_unitSet_iff] at hy
+    subst hy
+    exact hp
+  · intro rfl
+    exact ⟨mem_sigmaPairsAppF.mpr ⟨pt, pt_mem_unitSet, pt,
+      by rw [app_testGraphF_pt]; exact pt_mem_unitSet, rfl⟩,
+      pt, pt, rfl, pt_mem_unitSet,
+      by rw [app_testGraphF_pt]; exact pt_mem_unitSet,
+      fun z hz => by rw [app_testGraphF_pt, mem_unitSet_iff] at hz; exact hz⟩
+
+example (hw : w ≠ 0) : recGraphF (graphAppF (testS V) unitSet) (unitSet : V) ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).recGraphF_mem (empty_mem_tg w)
+    ((tg_isUniverse hw).graphAppF_mem (empty_mem_tg w) (testS_mem_tg hw) (unitSet_mem_tg w))
+    (unitSet_mem_tg w)
+
 end ConLeche.SetTheory.DefinableAppEx

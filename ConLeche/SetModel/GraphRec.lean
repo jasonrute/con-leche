@@ -235,13 +235,14 @@ one value at every major. -/
 theorem exu : ∀ u, u ∈ˢ U → Single K.G u := by
   refine K.ind (fun u => Single K.G u) ?_
   intro u hu ⟨d, hd, hP⟩
-  -- the choice function over the decoding's predecessors
-  have hg : graph (fun j => recSel K.G j) (K.pred d)
-      ∈ˢ piSetAppNF K.G (K.pred d) := by
-    rw [piSetAppNF_eq_piSet]
-    exact graph_mem_piSet fun j hj => recSel_mem (hP j hj).1
+  -- the choice function over the decoding's predecessors, as the
+  -- definable selector graph
+  have hg : recGraphF K.G (K.pred d) ∈ˢ piSetAppNF K.G (K.pred d) :=
+    recGraphF_mem_piSetAppNF fun j hj => by
+      obtain ⟨⟨y, hy⟩, huniq⟩ := hP j hj
+      exact ⟨y, hy, fun z hz => huniq z y hz hy⟩
   constructor
-  · refine ⟨K.st d (graph (fun j => recSel K.G j) (K.pred d)), ?_⟩
+  · refine ⟨K.st d (recGraphF K.G (K.pred d)), ?_⟩
     rw [K.app_G_eq hu]
     exact mem_gFibre.mpr ⟨K.hst u hu d hd _ hg, d, hd, _, hg, rfl⟩
   · intro v v' hv hv'

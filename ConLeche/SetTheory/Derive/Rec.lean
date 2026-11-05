@@ -1512,4 +1512,127 @@ theorem recGraph_app_vsucc (z s : V) {n : V} (hn : n ∈ˢ (omega : V)) :
 
 attribute [irreducible] natrecF
 
+/-! ## The definable selector graph `recGraphF`
+
+The first-order twin of the selector graph `graph (fun j => recSel G j) D`
+(`recSel` is a `Classical.choose`, not first-order expressible): separate
+`sigmaPairsAppF G D` by "`p = kpair j y` with `y` the unique value of
+`app G j`". -/
+
+/-- The parameters `(G, D, pt)` of `recPredF`. -/
+noncomputable def recGraphParam (G D : V) : Fin 3 → V := fun i =>
+  match i.val with
+  | 0 => G
+  | 1 => D
+  | _ => (pt : V)
+
+/-- Variable map `Fin 3 → Fin 6` reading `kpairEqF`'s `(z, x, y)` out of
+`(G, D, pt, p, j, y)` as `(p, j, y)`. -/
+def rgKMap : Fin 3 → Fin 6 := fun i =>
+  match i.val with
+  | 0 => ⟨3, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | _ => ⟨5, by omega⟩
+
+/-- Variable map `Fin 4 → Fin 6` reading `appMemF`'s `(w, g, u, pt)` out of
+`(G, D, pt, p, j, y)` as `(y, G, j, pt)`. -/
+def rgMMap : Fin 4 → Fin 6 := fun i =>
+  match i.val with
+  | 0 => ⟨5, by omega⟩
+  | 1 => ⟨0, by omega⟩
+  | 2 => ⟨4, by omega⟩
+  | _ => ⟨2, by omega⟩
+
+/-- Variable map `Fin 4 → Fin 7` reading `appMemF`'s `(w, g, u, pt)` out of
+`(G, D, pt, p, j, y, z)` as `(z, G, j, pt)`. -/
+def rgZMap : Fin 4 → Fin 7 := fun i =>
+  match i.val with
+  | 0 => ⟨6, by omega⟩
+  | 1 => ⟨0, by omega⟩
+  | 2 => ⟨4, by omega⟩
+  | _ => ⟨2, by omega⟩
+
+/-- `p = kpair j y` with `j ∈ˢ D` and `y` the unique value of `app G j`
+(variable `3 ↦ p`, parameters `G`, `D`, `pt`). -/
+def recPredF : Form 4 :=
+  .ex (.ex (.and (Form.relabel rgKMap kpairEqF)
+    (.and (.mem ⟨4, by omega⟩ ⟨1, by omega⟩)
+      (.and (Form.relabel rgMMap appMemF)
+        (.all (.imp (Form.relabel rgZMap appMemF) (.equal ⟨6, by omega⟩ ⟨5, by omega⟩)))))))
+
+theorem realize_recPredF {p G D : V} :
+    Form.Realize Mem (Form.snoc (recGraphParam G D) p) recPredF ↔
+      ∃ j y, p = kpair j y ∧ j ∈ˢ D ∧ y ∈ˢ app G j ∧ ∀ z, z ∈ˢ app G j → z = y := by
+  have hK : ∀ j y : V,
+      (Form.snoc (Form.snoc (Form.snoc (recGraphParam G D) p) j) y) ∘ rgKMap =
+        Form.snoc (Form.snoc (fun _ => p) j) y := by
+    intro j y
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hM : ∀ j y : V,
+      (Form.snoc (Form.snoc (Form.snoc (recGraphParam G D) p) j) y) ∘ rgMMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => y) G) j) (pt : V) := by
+    intro j y
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hZ : ∀ j y z : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (recGraphParam G D) p) j) y) z) ∘ rgZMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => z) G) j) (pt : V) := by
+    intro j y z
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [recPredF, Form.realize_ex, Form.realize_and, Form.realize_mem,
+    Form.realize_all, Form.realize_imp, Form.realize_equal, Form.realize_relabel,
+    hK, hM, hZ, realize_kpairEqF, realize_appMemF, Form.snoc_mk]
+  simp [recGraphParam]
+
+/-- The definable selector graph: the pairs `kpair j y` over `j ∈ˢ D`
+whose second component is the unique value of `app G j` — the
+first-order twin of `graph (fun j => recSel G j) D`. -/
+noncomputable def recGraphF (G D : V) : V :=
+  sepF (sigmaPairsAppF G D) recPredF (recGraphParam G D)
+
+theorem mem_recGraphF {G D p : V} :
+    p ∈ˢ recGraphF G D ↔ p ∈ˢ sigmaPairsAppF G D ∧
+      ∃ j y, p = kpair j y ∧ j ∈ˢ D ∧ y ∈ˢ app G j ∧ ∀ z, z ∈ˢ app G j → z = y := by
+  unfold recGraphF
+  rw [mem_sepF, realize_recPredF]
+
+theorem mem_recGraphF_of_single {G D j y : V} (hj : j ∈ˢ D) (hy : y ∈ˢ app G j)
+    (huniq : ∀ z, z ∈ˢ app G j → z = y) : kpair j y ∈ˢ recGraphF G D :=
+  mem_recGraphF.mpr ⟨mem_sigmaPairsAppF.mpr ⟨j, hj, y, hy, rfl⟩, j, y, rfl, hj, hy, huniq⟩
+
+/-- Under single-valuedness of `G` on `D`, the selector graph is a
+member of the definable function space `piSetAppNF G D`. -/
+theorem recGraphF_mem_piSetAppNF {G D : V}
+    (hS : ∀ j, j ∈ˢ D → ∃ y, y ∈ˢ app G j ∧ ∀ z, z ∈ˢ app G j → z = y) :
+    recGraphF G D ∈ˢ piSetAppNF G D := by
+  rw [mem_piSetAppNF]
+  refine ⟨sepF_subset, fun j hj => ?_⟩
+  obtain ⟨y, hy, huniq⟩ := hS j hj
+  refine ⟨y, mem_recGraphF_of_single hj hy huniq, fun y' hy' => ?_⟩
+  obtain ⟨-, j', y'', hp, -, hy2, -⟩ := mem_recGraphF.mp hy'
+  obtain ⟨rfl, rfl⟩ := kpair_inj hp
+  exact huniq y' hy2
+
+/-- Under single-valuedness, `app (recGraphF G D) j` is the (unique)
+value of `app G j`. -/
+theorem app_recGraphF_eq {G D j v : V}
+    (hS : ∀ j, j ∈ˢ D → ∃ y, y ∈ˢ app G j ∧ ∀ z, z ∈ˢ app G j → z = y)
+    (hj : j ∈ˢ D) (hv : v ∈ˢ app G j) : app (recGraphF G D) j = v := by
+  have hmem := recGraphF_mem_piSetAppNF hS
+  have ha := app_mem_of_mem_piSetAppNF hmem hj
+  obtain ⟨y, hy, huniq⟩ := hS j hj
+  exact (huniq _ ha).trans (huniq _ hv).symm
+
+/-- Definable selector-graph closure (clause 6): the first-order twin of
+`graph_mem` for selector graphs. -/
+theorem _root_.ConLeche.IsUniverse.recGraphF_mem {U G D : V}
+    (hU : IsUniverse (Mem (V := V)) U) (he : (empty : V) ∈ˢ U) (hG : G ∈ˢ U) (hD : D ∈ˢ U) :
+    recGraphF G D ∈ˢ U :=
+  hU.sepF_mem (hU.sigmaPairsAppF_mem he hG hD)
+
 end ConLeche.SetTheory

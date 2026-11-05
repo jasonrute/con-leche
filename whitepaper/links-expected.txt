@@ -4468,17 +4468,17 @@
    103  whose fibres are sets of values, not types (no drop ever fires: the
    104  level is closed under subsets). -/
 
-== ConLeche/SetModel/GraphRec.lean#L233-L235
-   233  /-- **The recursion theorem, from induction**: the graph has exactly
-   234  one value at every major. -/
+== ConLeche/SetModel/GraphRec.lean#L235-L237
    235  theorem exu : ∀ u, u ∈ˢ U → Single K.G u := by
+   236    refine K.ind (fun u => Single K.G u) ?_
+   237    intro u hu ⟨d, hd, hP⟩
 
-== ConLeche/SetModel/GraphRec.lean#L273-L277
-   273  /-- **The ι law, at ANY decoding**: the recursor at a major is the
-   274  step at that decoding, the `ih`s being the recursor at the
-   275  predecessors. -/
-   276  theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
-   277      K.recAt u = K.st d (graph (fun j => K.recAt j) (K.pred d)) := by
+== ConLeche/SetModel/GraphRec.lean#L275-L279
+   275  step at that decoding, the `ih`s being the recursor at the
+   276  predecessors. -/
+   277  theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
+   278      K.recAt u = K.st d (graph (fun j => K.recAt j) (K.pred d)) := by
+   279    have hv := K.rec_mem_G hu
 
 == ConLeche/SetModel/GraphRec.lean#L191-L193
    191    /-- **the sort-dependent fact**: decodings are unique, or the bound is a subsingleton -/
