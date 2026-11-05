@@ -719,7 +719,7 @@ is read by its values, and there is nothing to construct.
   The graph has
   #src("ConLeche/SetModel/GraphRec.lean", 235, 237)[exactly one value at every major]
   by the family's own induction, and the equation at any decoding is
-  #src("ConLeche/SetModel/GraphRec.lean", 275, 279)[the $iota$ law].
+  #src("ConLeche/SetModel/GraphRec.lean", 307, 311)[the $iota$ law].
   The one fact about sorts it asks is a premise: at every major,
   #src("ConLeche/SetModel/GraphRec.lean", 191, 193)[two decodings are equal, or the motive's value there has at most one member].
   This is the elimination rule of @sec:ind-checks, read three ways

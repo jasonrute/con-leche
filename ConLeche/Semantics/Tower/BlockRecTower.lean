@@ -1381,7 +1381,7 @@ theorem famCandG_hCand (D : GraphFamData V ℓ K rP rds concl ρ R)
       xs.length = (pdoms c).length →
       SpineFit (chainFrame K (famCandG D) ρ) (pdoms c ++ fdoms c j) (xs ++ fs) →
       (D.kit xs).st (dOf xs c j fs)
-          (graph (fun v => (D.kit xs).recAt v) ((D.kit xs).pred (dOf xs c j fs)))
+          (recGraphF (D.kit xs).G ((D.kit xs).pred (dOf xs c j fs)))
         = interp V
             (consList ((ihs c j).map (interp V (consList (xs ++ fs) (chainFrame K (famCandG D) ρ))))
               (consList (xs ++ fs) (chainFrame K (famCandG D) ρ))) (Rb c j)) :

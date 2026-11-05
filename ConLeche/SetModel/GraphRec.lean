@@ -264,18 +264,50 @@ theorem rec_mem_G {u : V} (hu : u ∈ˢ U) : K.recAt u ∈ˢ app K.G u :=
 theorem rec_mem_B {u : V} (hu : u ∈ˢ U) : K.recAt u ∈ˢ K.B u :=
   K.graph_mem_B hu (K.rec_mem_G hu)
 
-/-- The recursor's graph over a decoding's predecessors is a choice of
-graph values. -/
+/-- The graph's fibres are single-valued at a decoding's predecessors. -/
+theorem G_single {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
+    ∀ j, j ∈ˢ K.pred d → ∃ y, y ∈ˢ app K.G j ∧ ∀ z, z ∈ˢ app K.G j → z = y :=
+  fun j hj => by
+    obtain ⟨⟨y, hy⟩, huniq⟩ := K.exu j (K.hpred u hu d hd j hj)
+    exact ⟨y, hy, fun z hz => huniq z y hz hy⟩
+
+/-- The recursor's selector graph over a decoding's predecessors is a
+choice of graph values. -/
 theorem recGraph_mem_piSet {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
-    graph (fun j => K.recAt j) (K.pred d) ∈ˢ piSetAppNF K.G (K.pred d) := by
-  rw [piSetAppNF_eq_piSet]
-  exact graph_mem_piSet fun j hj => K.rec_mem_G (K.hpred u hu d hd j hj)
+    recGraphF K.G (K.pred d) ∈ˢ piSetAppNF K.G (K.pred d) :=
+  recGraphF_mem_piSetAppNF (K.G_single hu hd)
+
+/-- The definable selector graph is exactly the recursor's graph. -/
+theorem recGraphF_eq_graph_recAt {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
+    recGraphF K.G (K.pred d) = graph (fun j => K.recAt j) (K.pred d) := by
+  refine eq_of_mem_piSetAppNF_app_eq (K.recGraph_mem_piSet hu hd) ?_ fun j hj => ?_
+  · rw [piSetAppNF_eq_piSet]
+    exact graph_mem_piSet fun j hj => K.rec_mem_G (K.hpred u hu d hd j hj)
+  · rw [app_graph hj, app_recGraphF_eq (K.G_single hu hd) hj
+      (K.rec_mem_G (K.hpred u hu d hd j hj))]
+
+/-- Single-valuedness at every element of a subset of the majors. -/
+theorem G_single_of_subset {D : V} (hD : D ⊆ˢ U) :
+    ∀ j, j ∈ˢ D → ∃ y, y ∈ˢ app K.G j ∧ ∀ z, z ∈ˢ app K.G j → z = y :=
+  fun j hj => by
+    obtain ⟨⟨y, hy⟩, huniq⟩ := K.exu j (hD j hj)
+    exact ⟨y, hy, fun z hz => huniq z y hz hy⟩
+
+/-- The definable selector graph over any subset of the majors is the
+recursor's graph. -/
+theorem recGraphF_eq_graph_recAt_of_subset {D : V} (hD : D ⊆ˢ U) :
+    recGraphF K.G D = graph (fun j => K.recAt j) D := by
+  refine eq_of_mem_piSetAppNF_app_eq
+    (recGraphF_mem_piSetAppNF (K.G_single_of_subset hD)) ?_ fun j hj => ?_
+  · rw [piSetAppNF_eq_piSet]
+    exact graph_mem_piSet fun j hj => K.rec_mem_G (hD j hj)
+  · rw [app_graph hj, app_recGraphF_eq (K.G_single_of_subset hD) hj (K.rec_mem_G (hD j hj))]
 
 /-- **The ι law, at ANY decoding**: the recursor at a major is the
 step at that decoding, the `ih`s being the recursor at the
 predecessors. -/
 theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
-    K.recAt u = K.st d (graph (fun j => K.recAt j) (K.pred d)) := by
+    K.recAt u = K.st d (recGraphF K.G (K.pred d)) := by
   have hv := K.rec_mem_G hu
   rw [K.app_G_eq hu] at hv
   obtain ⟨hvB, d₁, hd₁, g₁, hg₁, heq⟩ := mem_gFibre.mp hv
@@ -283,7 +315,7 @@ theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
   · rw [heq]
     congr 1
     refine eq_of_mem_piSetAppNF_app_eq hg₁ (K.recGraph_mem_piSet hu hd) fun j hj => ?_
-    rw [app_graph hj]
+    rw [app_recGraphF_eq (K.G_single hu hd) hj (K.rec_mem_G (K.hpred u hu d hd j hj))]
     exact (K.exu j (K.hpred u hu d hd j hj)).2 _ _ (app_mem_of_mem_piSetAppNF hg₁ hj)
       (K.rec_mem_G (K.hpred u hu d hd j hj))
   · exact hsub _ _ hvB (K.hst u hu d hd _ (K.recGraph_mem_piSet hu hd))
