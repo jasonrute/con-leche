@@ -239,6 +239,126 @@ theorem realize_appMemF {w g u : V} :
     realize_appEqF, Form.realize_mem, Form.snoc_mk]
   simp
 
+/-! ## The image of `app g`, in the `imageF`/`sigmaPairsF` convention -/
+
+/-- Variable map `Fin 4 → Fin 4`, `0 ↦ 3`, `1 ↦ 1`, `2 ↦ 2`, `3 ↦ 0`
+(reads `appEqF`'s `(pt, v, g, u)` out of the `imageF` convention
+`(x, v, g, pt)`). -/
+def appRepMap : Fin 4 → Fin 4 := fun i =>
+  match i.val with
+  | 0 => ⟨3, by omega⟩
+  | 1 => ⟨1, by omega⟩
+  | 2 => ⟨2, by omega⟩
+  | _ => ⟨0, by omega⟩
+
+/-- `v = app g x` in the `imageF` convention (variables `0 ↦ x`, `1 ↦ v`,
+parameters `g`, `pt`). -/
+def appEqRepF : Form 4 := Form.relabel appRepMap appEqF
+
+theorem realize_appEqRepF {x v g : V} :
+    Form.Realize Mem (Form.cons2 x v (Form.snoc (fun _ => g) (pt : V))) appEqRepF ↔
+      v = app g x := by
+  have hcomp : (Form.cons2 x v (Form.snoc (fun _ => g) (pt : V)) : Fin 4 → V) ∘ appRepMap =
+      Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) v) g) x := by
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk3 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [appEqRepF, Form.realize_relabel, hcomp, realize_appEqF]
+
+/-- The definable image under `app g`: `{app g x | x ∈ˢ A}`. -/
+noncomputable def appImageF (g A : V) : V :=
+  imageF appEqRepF (Form.snoc (fun _ => g) (pt : V)) A
+    (fun x _ => ⟨app g x, realize_appEqRepF.mpr rfl, fun _ hy => realize_appEqRepF.mp hy⟩)
+
+theorem mem_appImageF {g A z : V} :
+    z ∈ˢ appImageF g A ↔ ∃ x, x ∈ˢ A ∧ z = app g x := by
+  unfold appImageF
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    exact ⟨x, hx, realize_appEqRepF.mp h⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, realize_appEqRepF.mpr rfl⟩
+
+/-- The meta-level `image (app g) A` is exactly the definable
+`appImageF g A`. -/
+theorem image_app_eq {g A : V} : image (app g) A = appImageF g A :=
+  ext fun z => by rw [mem_image, mem_appImageF]
+
+/-- Variable map `Fin 4 → Fin 4`, `0 ↦ 1`, `1 ↦ 2`, `2 ↦ 0`, `3 ↦ 3`
+(reads `appMemF`'s `(w, g, u, pt)` out of the `cons2` convention
+`(x, y, g, pt)`). -/
+def appMemRepMap : Fin 4 → Fin 4 := fun i =>
+  match i.val with
+  | 0 => ⟨1, by omega⟩
+  | 1 => ⟨2, by omega⟩
+  | 2 => ⟨0, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- `y ∈ˢ app g x` in the `cons2` convention (variables `0 ↦ x`, `1 ↦ y`,
+parameters `g`, `pt`) — the fibre predicate for `app g`-families. -/
+def appMemRepF : Form 4 := Form.relabel appMemRepMap appMemF
+
+theorem realize_appMemRepF {x y g : V} :
+    Form.Realize Mem (Form.cons2 x y (Form.snoc (fun _ => g) (pt : V))) appMemRepF ↔
+      y ∈ˢ app g x := by
+  have hcomp : (Form.cons2 x y (Form.snoc (fun _ => g) (pt : V)) : Fin 4 → V) ∘ appMemRepMap =
+      Form.snoc (Form.snoc (Form.snoc (fun _ => y) g) x) (pt : V) := by
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk3 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [appMemRepF, Form.realize_relabel, hcomp, realize_appMemF]
+
+/-- Application of a member graph is a member. -/
+theorem _root_.ConLeche.IsUniverse.app_mem {U g x : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hg : g ∈ˢ U) : app g x ∈ˢ U := by
+  unfold app
+  split
+  · exact hU.pt_mem he
+  · exact hU.sUnion_mem (hU.sepF_mem (hU.sUnion_mem (hU.sUnion_mem hg)))
+
+/-- Definable application-image closure (clause 6): the definable image
+of a member under `app g` at a member graph is a member — the
+first-order twin of `image_mem` at `app g`. -/
+theorem _root_.ConLeche.IsUniverse.appImageF_mem {U g A : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hg : g ∈ˢ U) (hA : A ∈ˢ U) : appImageF g A ∈ˢ U := by
+  unfold appImageF
+  exact hU.imageF_mem hA fun x _ z hz => by
+    rw [realize_appEqRepF.mp hz]
+    exact hU.app_mem he hg
+
+/-- The definable function space with fibres `app S j` over `A`: the
+first-order twin of `piSet A (fun j => app S j)`, available when `S`
+is single-valued on `A`. -/
+noncomputable def piSetApp (S A : V)
+    (hfun : ∀ x, x ∈ˢ A → ∃ y, y ∈ˢ app S x ∧ ∀ y', y' ∈ˢ app S x → y' = y) : V :=
+  piSetD appMemRepF (Form.snoc (fun _ => S) (pt : V)) A
+    (fun x hx => by
+      obtain ⟨y, hy, huniq⟩ := hfun x hx
+      exact ⟨y, realize_appMemRepF.mpr hy, fun y' hy' => huniq y' (realize_appMemRepF.mp hy')⟩)
+
+theorem piSetApp_eq_piSet {S A : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ y, y ∈ˢ app S x ∧ ∀ y', y' ∈ˢ app S x → y' = y) :
+    piSetApp S A hfun = piSet A (fun j => app S j) :=
+  piSetD_eq_piSet (fun _ _ => realize_appMemRepF)
+
+theorem mem_piSetApp {S A f : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ y, y ∈ˢ app S x ∧ ∀ y', y' ∈ˢ app S x → y' = y) :
+    f ∈ˢ piSetApp S A hfun ↔ f ⊆ˢ sigmaPairs A (fun j => app S j) ∧
+      ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
+  rw [piSetApp_eq_piSet hfun, mem_piSet]
+
+/-- Definable app-fibre function-space closure (clause 6): the
+first-order twin of `piSet_mem` at an `app S`-family. -/
+theorem _root_.ConLeche.IsUniverse.piSetApp_mem {U S A : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hS : S ∈ˢ U) (hA : A ∈ˢ U)
+    (hfun : ∀ x, x ∈ˢ A → ∃ y, y ∈ˢ app S x ∧ ∀ y', y' ∈ˢ app S x → y' = y) :
+    piSetApp S A hfun ∈ˢ U := by
+  unfold piSetApp
+  exact hU.piSetD_mem hA fun x hx y hy =>
+    hU.kpair_mem he (hU.transitive hA hx)
+      (hU.transitive (hU.app_mem he hS) (realize_appMemRepF.mp hy))
+
 /-! ## Attempts at `ω`-recursion -/
 
 /-- Variable map `Fin 3 → Fin 4`, `0 → 2`, `1 → 1`, `2 → 3`

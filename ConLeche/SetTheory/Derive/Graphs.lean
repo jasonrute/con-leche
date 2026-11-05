@@ -513,6 +513,53 @@ theorem graph_dom_of_mem_piSet {A A' : V} {B F : V → V}
   obtain ⟨rfl, rfl⟩ := kpair_inj hp
   exact hx'
 
+/-- The definable dependent function space: total single-valued graphs
+over `A` whose fibres are picked out by the `Form` `ψ` — the
+first-order twin of `piSet A B` when `Realize (cons2 x y p) ψ ↔
+y ∈ˢ B x`. -/
+noncomputable def piSetD {n : Nat} (ψ : Form (n + 2)) (p : Fin n → V) (A : V)
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) ψ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) ψ → z' = z) : V :=
+  sepF (power (sigmaPairsF ψ p A hfun)) piSetF (fun _ => A)
+
+theorem mem_piSetD {n : Nat} {ψ : Form (n + 2)} {p : Fin n → V} {A f : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) ψ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) ψ → z' = z) :
+    f ∈ˢ piSetD ψ p A hfun ↔ f ⊆ˢ sigmaPairsF ψ p A hfun ∧
+      ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
+  unfold piSetD
+  rw [mem_sepF, mem_power_iff_subset, realize_piSetF]
+
+/-- A definable function space at a family given by a `Form` is the
+meta `piSet` at the corresponding meta family. -/
+theorem piSetD_eq_piSet {A : V} {B : V → V} {n : Nat} {ψ : Form (n + 2)} {p : Fin n → V}
+    {hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) ψ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) ψ → z' = z}
+    (hψ : ∀ x y, Form.Realize Mem (Form.cons2 x y p) ψ ↔ y ∈ˢ B x) :
+    piSetD ψ p A hfun = piSet A B := by
+  have hsig : sigmaPairsF ψ p A hfun = sigmaPairs A B := by
+    refine SetTheory.ext fun z => ?_
+    rw [mem_sigmaPairsF hfun, mem_sigmaPairs]
+    constructor
+    · rintro ⟨x, hx, y, rfl, h⟩
+      exact ⟨x, hx, y, (hψ x y).mp h, rfl⟩
+    · rintro ⟨x, hx, y, hy, rfl⟩
+      exact ⟨x, hx, y, rfl, (hψ x y).mpr hy⟩
+  unfold piSetD piSet
+  rw [hsig]
+
+/-- Definable function-space closure (clause 6): the definable `piSet`
+of a member under member-valued pairs is a member — the first-order
+twin of `piSet_mem`. -/
+theorem _root_.ConLeche.IsUniverse.piSetD_mem {U A : V} {n : Nat} {ψ : Form (n + 2)}
+    {p : Fin n → V}
+    {hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) ψ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) ψ → z' = z}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → ∀ y, Form.Realize Mem (Form.cons2 x y p) ψ → kpair x y ∈ˢ U) :
+    piSetD ψ p A hfun ∈ˢ U :=
+  hU.sepF_mem (hU.power_mem (hU.sigmaPairsF_mem hA hval))
+
 /-! ### Off-domain and junk behavior of `app`
 
 `app` is total: on a non-`pt` value with no pair at the argument —
