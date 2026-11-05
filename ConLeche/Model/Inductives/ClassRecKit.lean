@@ -120,7 +120,7 @@ noncomputable def graphKitR
     have hgB : ∀ v, v ∈ˢ graphPredG Is Cr K call xs (c, j, fs) →
         app g v ∈ˢ blockRecMot K concl uX nIdxX ρ xs v := by
       intro v hv
-      have h1 := app_mem_of_mem_piSet hg hv
+      have h1 := app_mem_of_mem_piSetAppNF hg hv
       exact gGraph_mem_B (blockRecMot_mem_univ hconclTy) (fun _ _ _ _ => sep_subset)
         (mem_graphPredG.mp hv).1 h1
     exact hstep c hc j hj i fs hi hfit g hgB

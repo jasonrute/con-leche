@@ -404,6 +404,152 @@ theorem graphAppF_mem_piSet {g A : V} {B : V → V}
   rw [graphAppF_eq]
   exact graph_mem_piSet h
 
+/-! ## The raw app-pair product and the functionality-free app function space
+
+`sigmaPairs A (fun j => app S j)` and `piSet A (fun j => app S j)` at an
+arbitrary family graph `S` — not necessarily single-valued on `A`.  The
+pair set is the union of the images `x ↦ kpairImage x (app S x)`, and
+that outer map is a function of `x` outright, so both sets have
+definable (`replF`-only) twins with NO `hfun` hypothesis. -/
+
+/-- Variable map `Fin 3 → Fin 6` reading `kpairEqF'`'s `(x, z, a)` out of
+`(x, y, S, pt, w, z)` as `(z, w, x)`, asserting `w = kpair x z`. -/
+def sigAppKMap : Fin 3 → Fin 6 := fun i =>
+  match i.val with
+  | 0 => ⟨5, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | _ => ⟨0, by omega⟩
+
+/-- Variable map `Fin 4 → Fin 6` reading `appMemF`'s `(w, g, u, pt)` out of
+`(x, y, S, pt, w, z)` as `(z, S, x, pt)`, asserting `z ∈ˢ app S x`. -/
+def sigAppMMap : Fin 4 → Fin 6 := fun i =>
+  match i.val with
+  | 0 => ⟨5, by omega⟩
+  | 1 => ⟨2, by omega⟩
+  | 2 => ⟨0, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- `y = kpairImage x (app S x)` in the `imageF` convention (variables
+`0 ↦ x`, `1 ↦ y`, parameters `S`, `pt`): `∀ w, w ∈ˢ y ↔ ∃ z, w = kpair x z
+∧ z ∈ˢ app S x`. -/
+def sigAppRelF : Form 4 :=
+  .all (.iff (.mem ⟨4, by omega⟩ ⟨1, by omega⟩)
+    (.ex (.and (Form.relabel sigAppKMap kpairEqF') (Form.relabel sigAppMMap appMemF))))
+
+theorem realize_sigAppRelF {x y S : V} :
+    Form.Realize Mem (Form.cons2 x y (Form.snoc (fun _ => S) (pt : V))) sigAppRelF ↔
+      ∀ w, w ∈ˢ y ↔ ∃ z, w = kpair x z ∧ z ∈ˢ app S x := by
+  have hK : ∀ w z : V,
+      (Form.snoc (Form.snoc (Form.cons2 x y (Form.snoc (fun _ => S) (pt : V))) w) z) ∘ sigAppKMap =
+        Form.cons2 z w (fun _ => x) := by
+    intro w z
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk2 with rfl | rfl | rfl <;> rfl
+  have hM : ∀ w z : V,
+      (Form.snoc (Form.snoc (Form.cons2 x y (Form.snoc (fun _ => S) (pt : V))) w) z) ∘ sigAppMMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => z) S) x) (pt : V) := by
+    intro w z
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [sigAppRelF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, Form.realize_relabel, hK, hM,
+    realize_kpairEqF', realize_appMemF, Form.snoc_mk, Form.cons2]
+  simp
+
+theorem sigAppRelF_eq_kpairImage {x y S : V} :
+    Form.Realize Mem (Form.cons2 x y (Form.snoc (fun _ => S) (pt : V))) sigAppRelF ↔
+      y = kpairImage x (app S x) := by
+  rw [realize_sigAppRelF]
+  constructor
+  · intro h
+    refine SetTheory.ext fun w => ?_
+    rw [h w, mem_kpairImage]
+    constructor
+    · rintro ⟨z, hw, hz⟩; exact ⟨z, hz, hw⟩
+    · rintro ⟨z, hz, hw⟩; exact ⟨z, hw, hz⟩
+  · intro h w
+    rw [h, mem_kpairImage]
+    constructor
+    · rintro ⟨z, hz, hw⟩; exact ⟨z, hw, hz⟩
+    · rintro ⟨z, hw, hz⟩; exact ⟨z, hz, hw⟩
+
+/-- The definable raw app-pair product `{⟨x, y⟩ : x ∈ˢ A, y ∈ˢ app S x}`:
+the first-order twin of `sigmaPairs A (fun j => app S j)`, needing no
+single-valuedness of `S` (the outer map `x ↦ kpairImage x (app S x)` is
+functional outright). -/
+noncomputable def sigmaPairsAppF (S A : V) : V :=
+  sUnion (imageF sigAppRelF (Form.snoc (fun _ => S) (pt : V)) A
+    (fun x _ => ⟨kpairImage x (app S x), sigAppRelF_eq_kpairImage.mpr rfl,
+      fun _ hy => sigAppRelF_eq_kpairImage.mp hy⟩))
+
+theorem mem_sigmaPairsAppF {S A z : V} :
+    z ∈ˢ sigmaPairsAppF S A ↔ ∃ x, x ∈ˢ A ∧ ∃ y, y ∈ˢ app S x ∧ z = kpair x y := by
+  unfold sigmaPairsAppF
+  rw [mem_sUnion]
+  constructor
+  · rintro ⟨s, hs, hz⟩
+    obtain ⟨x, hx, hrel⟩ := (mem_imageF _).mp hs
+    rw [sigAppRelF_eq_kpairImage.mp hrel] at hz
+    obtain ⟨y, hy, rfl⟩ := mem_kpairImage.mp hz
+    exact ⟨x, hx, y, hy, rfl⟩
+  · rintro ⟨x, hx, y, hy, rfl⟩
+    exact ⟨kpairImage x (app S x), (mem_imageF _).mpr ⟨x, hx, sigAppRelF_eq_kpairImage.mpr rfl⟩,
+      mem_kpairImage.mpr ⟨y, hy, rfl⟩⟩
+
+theorem sigmaPairsAppF_eq {S A : V} :
+    sigmaPairsAppF S A = sigmaPairs A (fun j => app S j) := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_sigmaPairsAppF, mem_sigmaPairs]
+
+/-- Definable app-fibre function space WITHOUT a functionality hypothesis:
+the first-order twin of `piSet A (fun j => app S j)` at any family graph
+`S`. -/
+noncomputable def piSetAppNF (S A : V) : V :=
+  sepF (power (sigmaPairsAppF S A)) piSetF (fun _ => A)
+
+theorem mem_piSetAppNF {S A f : V} :
+    f ∈ˢ piSetAppNF S A ↔ f ⊆ˢ sigmaPairsAppF S A ∧
+      ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
+  unfold piSetAppNF
+  rw [mem_sepF, mem_power_iff_subset, realize_piSetF]
+
+theorem piSetAppNF_eq_piSet {S A : V} :
+    piSetAppNF S A = piSet A (fun j => app S j) := by
+  unfold piSetAppNF piSet
+  rw [sigmaPairsAppF_eq]
+
+/-- Definable app-pair-product closure (clause 6): the first-order twin of
+`sigmaPairs_mem` at an `app S`-family. -/
+theorem _root_.ConLeche.IsUniverse.sigmaPairsAppF_mem {U S A : V}
+    (hU : IsUniverse (Mem (V := V)) U) (he : (empty : V) ∈ˢ U) (hS : S ∈ˢ U) (hA : A ∈ˢ U) :
+    sigmaPairsAppF S A ∈ˢ U := by
+  unfold sigmaPairsAppF
+  refine hU.sUnion_mem (hU.imageF_mem hA fun x hx y hy => ?_)
+  rw [sigAppRelF_eq_kpairImage.mp hy]
+  exact hU.kpairImage_mem he (hU.transitive hA hx) (hU.app_mem he hS)
+
+/-- Definable functionality-free app function-space closure (clause 6):
+the first-order twin of `piSet_mem` at an `app S`-family. -/
+theorem _root_.ConLeche.IsUniverse.piSetAppNF_mem {U S A : V}
+    (hU : IsUniverse (Mem (V := V)) U) (he : (empty : V) ∈ˢ U) (hS : S ∈ˢ U) (hA : A ∈ˢ U) :
+    piSetAppNF S A ∈ˢ U := by
+  unfold piSetAppNF
+  exact hU.sepF_mem (hU.power_mem (hU.sigmaPairsAppF_mem he hS hA))
+
+/-- Application reading at a functionality-free app function space. -/
+theorem app_mem_of_mem_piSetAppNF {S A f a : V} (hf : f ∈ˢ piSetAppNF S A) (ha : a ∈ˢ A) :
+    app f a ∈ˢ app S a := by
+  rw [piSetAppNF_eq_piSet] at hf
+  exact app_mem_of_mem_piSet hf ha
+
+/-- Extensionality at a functionality-free app function space. -/
+theorem eq_of_mem_piSetAppNF_app_eq {S A f g : V} (hf : f ∈ˢ piSetAppNF S A)
+    (hg : g ∈ˢ piSetAppNF S A) (h : ∀ x, x ∈ˢ A → app f x = app g x) : f = g := by
+  rw [piSetAppNF_eq_piSet] at hf hg
+  exact eq_of_mem_piSet_app_eq hf hg h
+
 /-! ## Attempts at `ω`-recursion -/
 
 /-- Variable map `Fin 3 → Fin 4`, `0 → 2`, `1 → 1`, `2 → 3`

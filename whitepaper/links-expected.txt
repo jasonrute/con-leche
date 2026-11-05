@@ -4462,28 +4462,28 @@
    325      S.recSem M ls ps m mins is t ∈ˢ appList m (is.reverse ++ [t]) := by
 
 == ConLeche/SetModel/GraphRec.lean#L100-L104
-   100  /-- **The recursor family's graph**: the least fixed point of the graph
-   101  functor, over families of the axiomatic level `tg ℓ` — a relation,
-   102  whose fibres are sets of values, not types (no drop ever fires: the
-   103  level is closed under subsets). -/
-   104  noncomputable def gGraph : V := lfpFamIn (tg ℓ) U (gStep ℓ U Dec pred B st)
+   100  
+   101  /-- **The recursor family's graph**: the least fixed point of the graph
+   102  functor, over families of the axiomatic level `tg ℓ` — a relation,
+   103  whose fibres are sets of values, not types (no drop ever fires: the
+   104  level is closed under subsets). -/
 
-== ConLeche/SetModel/GraphRec.lean#L232-L234
-   232  /-- **The recursion theorem, from induction**: the graph has exactly
-   233  one value at every major. -/
-   234  theorem exu : ∀ u, u ∈ˢ U → Single K.G u := by
+== ConLeche/SetModel/GraphRec.lean#L233-L235
+   233  /-- **The recursion theorem, from induction**: the graph has exactly
+   234  one value at every major. -/
+   235  theorem exu : ∀ u, u ∈ˢ U → Single K.G u := by
 
-== ConLeche/SetModel/GraphRec.lean#L270-L274
-   270  /-- **The ι law, at ANY decoding**: the recursor at a major is the
-   271  step at that decoding, the `ih`s being the recursor at the
-   272  predecessors. -/
-   273  theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
-   274      K.recAt u = K.st d (graph (fun j => K.recAt j) (K.pred d)) := by
+== ConLeche/SetModel/GraphRec.lean#L273-L277
+   273  /-- **The ι law, at ANY decoding**: the recursor at a major is the
+   274  step at that decoding, the `ih`s being the recursor at the
+   275  predecessors. -/
+   276  theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
+   277      K.recAt u = K.st d (graph (fun j => K.recAt j) (K.pred d)) := by
 
-== ConLeche/SetModel/GraphRec.lean#L190-L192
-   190    /-- **the sort-dependent fact**: decodings are unique, or the bound is a subsingleton -/
-   191    huniq : ∀ u, u ∈ˢ U → ∀ d d', Dec u d → Dec u d' →
-   192      d = d' ∨ ∀ v v', v ∈ˢ B u → v' ∈ˢ B u → v = v'
+== ConLeche/SetModel/GraphRec.lean#L191-L193
+   191    /-- **the sort-dependent fact**: decodings are unique, or the bound is a subsingleton -/
+   192    huniq : ∀ u, u ∈ˢ U → ∀ d d', Dec u d → Dec u d' →
+   193      d = d' ∨ ∀ v v', v ∈ˢ B u → v' ∈ˢ B u → v = v'
 
 == ConLeche/Model/Inductives/ClassGenUniq.lean#L13-L19
     13  * **`huniq`** (`genUniq`): two decodings of a major are equal, or the

@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetTheory.Derive.LfpFam
+public import ConLeche.SetTheory.Derive.Rec
 @[expose] public section
 
 /-!
@@ -91,7 +92,7 @@ variable {R : Type u} (ℓ : Nat) (U : V) (Dec : V → R → Prop) (pred : R →
 the values of some rule at some decoding of `u`, at a choice of
 `S`-values over that decoding's predecessors. -/
 noncomputable def gFibre (S u : V) : V :=
-  sep (B u) fun v => ∃ d, Dec u d ∧ ∃ g, g ∈ˢ piSet (pred d) (fun j => app S j) ∧ v = st d g
+  sep (B u) fun v => ∃ d, Dec u d ∧ ∃ g, g ∈ˢ piSetAppNF S (pred d) ∧ v = st d g
 
 /-- The graph functor on families over `U`. -/
 noncomputable def gStep : V :=
@@ -115,7 +116,7 @@ theorem app_app_gStep {S u : V} (hS : S ∈ˢ famSpaceIn (tg ℓ) U) (hu : u ∈
 
 theorem mem_gFibre {S u v : V} :
     v ∈ˢ gFibre Dec pred B st S u ↔
-      v ∈ˢ B u ∧ ∃ d, Dec u d ∧ ∃ g, g ∈ˢ piSet (pred d) (fun j => app S j) ∧ v = st d g :=
+      v ∈ˢ B u ∧ ∃ d, Dec u d ∧ ∃ g, g ∈ˢ piSetAppNF S (pred d) ∧ v = st d g :=
   mem_sep
 
 theorem gStep_maps (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V)) :
@@ -132,10 +133,10 @@ theorem gStep_mono (hpred : ∀ u, u ∈ˢ U → ∀ d, Dec u d → pred d ⊆ˢ
   rw [app_app_gStep hY hu]
   obtain ⟨hvB, d, hd, g, hg, rfl⟩ := mem_gFibre.mp hv
   refine mem_gFibre.mpr ⟨hvB, d, hd, g, ?_, rfl⟩
-  obtain ⟨hsub, htot⟩ := mem_piSet.mp hg
-  refine mem_piSet.mpr ⟨fun p hp => ?_, htot⟩
-  obtain ⟨j, hj, y, hy, rfl⟩ := mem_sigmaPairs.mp (hsub p hp)
-  exact mem_sigmaPairs.mpr ⟨j, hj, y, hle j (hpred u hu d hd j hj) y hy, rfl⟩
+  obtain ⟨hsub, htot⟩ := mem_piSetAppNF.mp hg
+  refine mem_piSetAppNF.mpr ⟨fun p hp => ?_, htot⟩
+  obtain ⟨j, hj, y, hy, rfl⟩ := mem_sigmaPairsAppF.mp (hsub p hp)
+  exact mem_sigmaPairsAppF.mpr ⟨j, hj, y, hle j (hpred u hu d hd j hj) y hy, rfl⟩
 
 theorem gStep_closed (hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V)) :
     IsClosedFamIn (tg ℓ) U (gStep ℓ U Dec pred B st) (famOf B U) := by
@@ -186,7 +187,7 @@ structure GraphRecKit (ℓ : Nat) (U : V) (R : Type u) where
   hB : ∀ u, u ∈ˢ U → B u ∈ˢ (univ ℓ : V)
   /-- the step lands in the bound (the rule's certified typing) -/
   hst : ∀ u, u ∈ˢ U → ∀ d, Dec u d → ∀ g,
-    g ∈ˢ piSet (pred d) (fun j => app (gGraph ℓ U Dec pred B st) j) → st d g ∈ˢ B u
+    g ∈ˢ piSetAppNF (gGraph ℓ U Dec pred B st) (pred d) → st d g ∈ˢ B u
   /-- **the sort-dependent fact**: decodings are unique, or the bound is a subsingleton -/
   huniq : ∀ u, u ∈ˢ U → ∀ d d', Dec u d → Dec u d' →
     d = d' ∨ ∀ v v', v ∈ˢ B u → v' ∈ˢ B u → v = v'
@@ -236,8 +237,9 @@ theorem exu : ∀ u, u ∈ˢ U → Single K.G u := by
   intro u hu ⟨d, hd, hP⟩
   -- the choice function over the decoding's predecessors
   have hg : graph (fun j => recSel K.G j) (K.pred d)
-      ∈ˢ piSet (K.pred d) (fun j => app K.G j) :=
-    graph_mem_piSet fun j hj => recSel_mem (hP j hj).1
+      ∈ˢ piSetAppNF K.G (K.pred d) := by
+    rw [piSetAppNF_eq_piSet]
+    exact graph_mem_piSet fun j hj => recSel_mem (hP j hj).1
   constructor
   · refine ⟨K.st d (graph (fun j => recSel K.G j) (K.pred d)), ?_⟩
     rw [K.app_G_eq hu]
@@ -249,8 +251,8 @@ theorem exu : ∀ u, u ∈ˢ U → Single K.G u := by
     rcases K.huniq u hu d d₁ hd hd₁ with rfl | hsub
     · rcases K.huniq u hu d d₂ hd hd₂ with rfl | hsub
       · congr 1
-        exact eq_of_mem_piSet_app_eq hg₁ hg₂ fun j hj =>
-          (hP j hj).2 _ _ (app_mem_of_mem_piSet hg₁ hj) (app_mem_of_mem_piSet hg₂ hj)
+        exact eq_of_mem_piSetAppNF_app_eq hg₁ hg₂ fun j hj =>
+          (hP j hj).2 _ _ (app_mem_of_mem_piSetAppNF hg₁ hj) (app_mem_of_mem_piSetAppNF hg₂ hj)
       · exact hsub _ _ hvB hvB'
     · exact hsub _ _ hvB hvB'
 
@@ -264,8 +266,9 @@ theorem rec_mem_B {u : V} (hu : u ∈ˢ U) : K.recAt u ∈ˢ K.B u :=
 /-- The recursor's graph over a decoding's predecessors is a choice of
 graph values. -/
 theorem recGraph_mem_piSet {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
-    graph (fun j => K.recAt j) (K.pred d) ∈ˢ piSet (K.pred d) (fun j => app K.G j) :=
-  graph_mem_piSet fun j hj => K.rec_mem_G (K.hpred u hu d hd j hj)
+    graph (fun j => K.recAt j) (K.pred d) ∈ˢ piSetAppNF K.G (K.pred d) := by
+  rw [piSetAppNF_eq_piSet]
+  exact graph_mem_piSet fun j hj => K.rec_mem_G (K.hpred u hu d hd j hj)
 
 /-- **The ι law, at ANY decoding**: the recursor at a major is the
 step at that decoding, the `ih`s being the recursor at the
@@ -278,9 +281,9 @@ theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
   rcases K.huniq u hu d d₁ hd hd₁ with rfl | hsub
   · rw [heq]
     congr 1
-    refine eq_of_mem_piSet_app_eq hg₁ (K.recGraph_mem_piSet hu hd) fun j hj => ?_
+    refine eq_of_mem_piSetAppNF_app_eq hg₁ (K.recGraph_mem_piSet hu hd) fun j hj => ?_
     rw [app_graph hj]
-    exact (K.exu j (K.hpred u hu d hd j hj)).2 _ _ (app_mem_of_mem_piSet hg₁ hj)
+    exact (K.exu j (K.hpred u hu d hd j hj)).2 _ _ (app_mem_of_mem_piSetAppNF hg₁ hj)
       (K.rec_mem_G (K.hpred u hu d hd j hj))
   · exact hsub _ _ hvB (K.hst u hu d hd _ (K.recGraph_mem_piSet hu hd))
 

@@ -132,4 +132,84 @@ example : graphAppF (testS V) unitSet ∈ˢ piSet unitSet (fun _ => upair (empty
 example (hw : w ≠ 0) : graphAppF (testS V) unitSet ∈ˢ (tg w : V) :=
   (tg_isUniverse hw).graphAppF_mem (empty_mem_tg w) (testS_mem_tg hw) (unitSet_mem_tg w)
 
+/-! ## The functionality-free twins (`sigmaPairsAppF`, `piSetAppNF`)
+
+Stage 17: the raw app-pair product and the app function space WITHOUT a
+single-valuedness hypothesis on the family graph `S` — exercised at the
+NON-functional `twoS = {<pt, {pt}>, <pt, {empty}>}`, whose fibre
+`app (twoS V) pt` has two members.  `sigmaPairsAppF (twoS V) unitSet`
+still equals the meta `sigmaPairs unitSet (fun j => app (twoS V) j)` and
+both close under `tg w` via the clause-6 lemmas only. -/
+
+/-- Membership in an application: a member of a paired value. -/
+theorem mem_app_of_mem_kpair {f a y z : V} (hf : f ≠ pt) (h : kpair a y ∈ˢ f) (hz : z ∈ˢ y) :
+    z ∈ˢ app f a := by
+  have happ : app f a = sUnion (sepF (sUnion (sUnion f)) kpairMemF (Form.snoc (fun _ => a) f)) := by
+    unfold app; exact ite_eq_right hf
+  rw [happ]
+  have hy : y ∈ˢ sUnion (sUnion f) :=
+    mem_sUnion.mpr ⟨upair a y, mem_sUnion.mpr ⟨kpair a y, h, mem_upair_right _ _⟩,
+      mem_upair_right _ _⟩
+  exact mem_sUnion.mpr ⟨y, mem_appSep.mpr ⟨hy, h⟩, hz⟩
+
+/-- A concrete NON-single-valued graph: two pairs at `pt`, with values
+`{pt}` and `{empty}`. -/
+noncomputable def twoS (V : Type u) [SetTheory V] : V :=
+  upair (kpair pt (sing pt)) (kpair pt (sing (empty : V)))
+
+theorem kpair_pt_singPt_mem_twoS : kpair pt (sing pt) ∈ˢ twoS V := mem_upair_left _ _
+
+theorem kpair_pt_singEmpty_mem_twoS : kpair pt (sing (empty : V)) ∈ˢ twoS V := mem_upair_right _ _
+
+theorem twoS_ne_pt : twoS V ≠ (pt : V) := by
+  intro h
+  have hm := h ▸ kpair_pt_singPt_mem_twoS
+  exact ptTag_ne_kpair pt (sing pt) (mem_pt.mp hm).symm
+
+theorem pt_mem_app_twoS_pt : (pt : V) ∈ˢ app (twoS V) pt :=
+  mem_app_of_mem_kpair twoS_ne_pt kpair_pt_singPt_mem_twoS (mem_sing.mpr rfl)
+
+theorem empty_mem_app_twoS_pt : (empty : V) ∈ˢ app (twoS V) pt :=
+  mem_app_of_mem_kpair twoS_ne_pt kpair_pt_singEmpty_mem_twoS (mem_sing.mpr rfl)
+
+example : sigmaPairsAppF (testS V) unitSet = sigmaPairs (unitSet : V) (fun j => app (testS V) j) :=
+  sigmaPairsAppF_eq
+
+example : piSetAppNF (testS V) unitSet = piSet (unitSet : V) (fun j => app (testS V) j) :=
+  piSetAppNF_eq_piSet
+
+example : (kpair pt pt : V) ∈ˢ sigmaPairsAppF (testS V) unitSet :=
+  mem_sigmaPairsAppF.mpr ⟨pt, pt_mem_unitSet, pt, by rw [app_testS_pt]; exact pt_mem_unitSet, rfl⟩
+
+-- the NF product at the NON-functional twoS: both fibre members pair up
+example : (kpair pt pt : V) ∈ˢ sigmaPairsAppF (twoS V) unitSet :=
+  mem_sigmaPairsAppF.mpr ⟨pt, pt_mem_unitSet, pt, pt_mem_app_twoS_pt, rfl⟩
+
+example : (kpair pt (empty : V) : V) ∈ˢ sigmaPairsAppF (twoS V) unitSet :=
+  mem_sigmaPairsAppF.mpr ⟨pt, pt_mem_unitSet, empty, empty_mem_app_twoS_pt, rfl⟩
+
+example : (sing (kpair pt pt) : V) ∈ˢ piSetAppNF (twoS V) unitSet := by
+  rw [mem_piSetAppNF]
+  constructor
+  · intro p hp
+    rw [mem_sing] at hp; subst hp
+    exact mem_sigmaPairsAppF.mpr ⟨pt, pt_mem_unitSet, pt, pt_mem_app_twoS_pt, rfl⟩
+  · intro x hx
+    rw [mem_unitSet_iff] at hx; subst hx
+    exact ⟨pt, mem_sing.mpr rfl, fun y' hy' => (kpair_inj (mem_sing.mp hy')).2⟩
+
+theorem twoS_mem_tg (hw : w ≠ 0) : twoS V ∈ˢ (tg w : V) := by
+  unfold twoS
+  exact (tg_isUniverse hw).upair_mem (empty_mem_tg w)
+    ((tg_isUniverse hw).kpair_mem (empty_mem_tg w) ((tg_isUniverse hw).pt_mem (empty_mem_tg w))
+      ((tg_isUniverse hw).sing_mem (empty_mem_tg w) ((tg_isUniverse hw).pt_mem (empty_mem_tg w))))
+    ((tg_isUniverse hw).kpair_mem (empty_mem_tg w) ((tg_isUniverse hw).pt_mem (empty_mem_tg w))
+      ((tg_isUniverse hw).sing_mem (empty_mem_tg w) (empty_mem_tg w)))
+
+example (hw : w ≠ 0) : sigmaPairsAppF (twoS V) unitSet ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).sigmaPairsAppF_mem (empty_mem_tg w) (twoS_mem_tg hw) (unitSet_mem_tg w)
+
+example (hw : w ≠ 0) : piSetAppNF (twoS V) unitSet ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).piSetAppNF_mem (empty_mem_tg w) (twoS_mem_tg hw) (unitSet_mem_tg w)
+
 end ConLeche.SetTheory.DefinableAppEx
