@@ -504,4 +504,28 @@ example : Form.Realize Mem (Form.snoc (Tower.appBoundParam (testS V) (tg 1 : V))
     Tower.appBoundF :=
   Tower.realize_appBoundF.mpr (by rw [app_testS_pt]; exact unitSet_mem_tg 1)
 
+/-- The recursion graph over a `tg 1`-closed step is a member of `tg 1`
+(clause-6 closure of `recGraph` via `IsUniverse.recGraph_mem`). -/
+theorem recGraph_iterStep_mem_tg1 :
+    recGraph (unitSet : V) (Tower.iterStepGraphF (empty : V) (tg 1 : V)) ∈ˢ (tg 1 : V) :=
+  IsUniverse.recGraph_mem (tg_isUniverse (Nat.succ_ne_zero 0)) (unitSet_mem_tg 1)
+    (omega_mem_tg_succ 0) (fun m hm u hu => by
+      rw [Tower.app_iterStepGraphF hm hu]
+      exact (tg_isUniverse (Nat.succ_ne_zero 0)).sigmaConstF_mem (empty_mem_tg 1)
+        (empty_mem_tg 1) hu)
+
+/-- The definable path set at a universe bound is a member of the universe. -/
+example : Tower.accPathsF (empty : V) (tg 1 : V) ∈ˢ (tg 1 : V) :=
+  Tower.natUnionF_mem_tg_pos (Nat.succ_ne_zero 0) recGraph_iterStep_mem_tg1
+
+/-- Same at base `unitSet`, with the step closure through
+`sigmaConstF_mem`. -/
+theorem accPathsF_unitSet_mem_tg1 : Tower.accPathsF (unitSet : V) (tg 1 : V) ∈ˢ (tg 1 : V) :=
+  Tower.natUnionF_mem_tg_pos (Nat.succ_ne_zero 0)
+    (IsUniverse.recGraph_mem (tg_isUniverse (Nat.succ_ne_zero 0)) (unitSet_mem_tg 1)
+      (omega_mem_tg_succ 0) (fun m hm u hu => by
+        rw [Tower.app_iterStepGraphF hm hu]
+        exact (tg_isUniverse (Nat.succ_ne_zero 0)).sigmaConstF_mem (empty_mem_tg 1)
+          (unitSet_mem_tg 1) hu))
+
 end ConLeche.SetTheory.DefinableAppEx

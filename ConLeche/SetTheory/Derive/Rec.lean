@@ -1658,4 +1658,123 @@ theorem natrecF_vnat_eq (z s : V) (f : Nat → V) (h0 : f 0 = z)
       show natrecF z s (vsucc (vnat n)) = f (n + 1)
       rw [natrecF_vsucc z s (vnat_mem_omega n), ih, hstep n]
 
+/-! ## Universe closure of the recursion graph
+
+`recGraph z s` is the `sUnion` of an `imageF` over `ω` (clause 6), so it
+stays in a universe `U` once every attempt stays in `U` — proved by
+definable induction on `ω` (`attemptMemF`), using that an attempt at
+`vsucc x` is the `binUnion` of the attempt at `x` with the single step
+pair. -/
+
+/-- Variable map `Fin 6 → Fin 7` reading the attempt body's
+`(e, z, s, pt, n, F)` out of `(e, z, s, pt, U, n, F)` (`4 ↦ 5`, `5 ↦ 6`). -/
+def attUMMap : Fin 6 → Fin 7 := fun i =>
+  match i.val with
+  | 0 => ⟨0, by omega⟩
+  | 1 => ⟨1, by omega⟩
+  | 2 => ⟨2, by omega⟩
+  | 3 => ⟨3, by omega⟩
+  | 4 => ⟨5, by omega⟩
+  | _ => ⟨6, by omega⟩
+
+/-- "Every attempt at `n` is a member of `U`" (variables `0 ↦ e`,
+`1 ↦ z`, `2 ↦ s`, `3 ↦ pt`, `4 ↦ U`, `5 ↦ n`; bound `6 ↦ F`). -/
+def attemptMemF : Form 6 :=
+  .all (.imp (Form.relabel attUMMap attemptBodyF)
+    (.mem ⟨6, by omega⟩ ⟨4, by omega⟩))
+
+theorem realize_attemptMemF {e z s U n : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) U) n)
+          attemptMemF ↔
+      ∀ f, IsAttemptE e z s n f → f ∈ˢ U := by
+  have hX : ∀ f : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) U) n) f)
+          ∘ attUMMap =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => e) z) s) pt) n) f := by
+    intro f
+    funext ⟨k, hk⟩
+    have hk6 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+    rcases hk6 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  simp only [attemptMemF, Form.realize_all, Form.realize_imp, Form.realize_relabel, hX,
+    realize_attemptBodyF, Form.realize_mem, Form.snoc_mk]
+  simp
+
+/-- **Universe closure of attempts**: in a universe `U` containing the
+base value `z` and `ω`, with every step value `app (app s m) u`
+(`m ∈ˢ ω`, `u ∈ˢ U`) in `U`, every attempt at every `n ∈ˢ ω` is a member of `U`
+— by definable induction on `ω` (`attemptMemF`). -/
+theorem _root_.ConLeche.IsUniverse.attempt_mem {U z s : V} (hU : IsUniverse (Mem (V := V)) U)
+    (hz : z ∈ˢ U) (ho : (omega : V) ∈ˢ U)
+    (hstep : ∀ m, m ∈ˢ (omega : V) → ∀ u, u ∈ˢ U → app (app s m) u ∈ˢ U)
+    {n f : V} (hn : n ∈ˢ (omega : V)) (hf : IsAttempt z s n f) : f ∈ˢ U := by
+  have h := omega_induction
+    (p := Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => (empty : V)) z) s) pt) U)
+    (φ := attemptMemF)
+    (by
+      rw [realize_attemptMemF]
+      intro f hf
+      obtain ⟨hfunc, hdom, hbase, -⟩ := hf
+      have hfeq : f = sing (kpair (empty : V) z) := by
+        apply SetTheory.ext
+        intro p
+        constructor
+        · intro hp
+          obtain ⟨⟨a, b, hab⟩, huniq⟩ := hfunc p hp
+          rw [hab] at hp
+          have ha : a = (empty : V) := by
+            rcases (hdom a).mpr ⟨b, hp⟩ with h | h
+            · exact absurd h (not_mem_empty a)
+            · exact h
+          rw [ha] at hp
+          have hbz : b = z := huniq empty b z hp hbase
+          rw [hab, ha, hbz]
+          exact mem_sing.mpr rfl
+        · intro hp
+          rw [mem_sing] at hp
+          rw [hp]
+          exact hbase
+      rw [hfeq]
+      exact hU.sing_mem hz (hU.kpair_mem hz (hU.empty_mem hz) hz))
+    (fun x hx hIH => by
+      rw [realize_attemptMemF] at hIH
+      rw [realize_attemptMemF]
+      intro f hf
+      have hvs : vsucc x ∈ˢ (omega : V) := vsucc_mem_omega hx
+      have hg : IsAttempt z s x (sepF f restrictF (fun _ => vsucc x)) := attempt_restrict hx hf
+      have hgU : sepF f restrictF (fun _ => vsucc x) ∈ˢ U := hIH _ hg
+      have heq : f = binUnion (sepF f restrictF (fun _ => vsucc x))
+          (sing (kpair (vsucc x)
+            (app (app s x) (app (sepF f restrictF (fun _ => vsucc x)) x)))) :=
+        attempt_unique hvs hf (attempt_vsucc hx hg)
+      rw [heq]
+      have hvsU : vsucc x ∈ˢ U := hU.transitive ho hvs
+      obtain ⟨hfunc, hdom, hbase, -⟩ := hg
+      have hg_ne : sepF f restrictF (fun _ => vsucc x) ≠ pt :=
+        fun h => ptTag_ne_kpair (empty : V) z ((mem_pt.mp (h ▸ hbase)).symm)
+      obtain ⟨y, hy⟩ := (hdom x).mp (Or.inr rfl)
+      have hxyU : kpair x y ∈ˢ U := hU.transitive hgU hy
+      have hyU : y ∈ˢ U :=
+        hU.transitive (hU.transitive hxyU (mem_upair_right (sing x) (upair x y)))
+          (mem_upair_right x y)
+      have happ : app (sepF f restrictF (fun _ => vsucc x)) x = y :=
+        app_eq_of_unique hg_ne hy (fun y' hy' => (hfunc (kpair x y') hy').2 x y' y hy' hy)
+      have hstepU : app (app s x) (app (sepF f restrictF (fun _ => vsucc x)) x) ∈ˢ U := by
+        rw [happ]; exact hstep x hx y hyU
+      exact hU.binUnion_mem hz hgU (hU.sing_mem hz (hU.kpair_mem hz hvsU hstepU)))
+    hn
+  exact realize_attemptMemF.mp h f hf
+
+/-- **Universe closure of the recursion graph**: in a universe `U`
+containing the base `z` and `ω`, with every step value `app (app s m) u`
+(`m ∈ˢ ω`, `u ∈ˢ U`) in `U`, the recursion graph `recGraph z s` is a
+member of `U` (clause 6 on the attempt relation, then `sUnion`). -/
+theorem _root_.ConLeche.IsUniverse.recGraph_mem {U z s : V} (hU : IsUniverse (Mem (V := V)) U)
+    (hz : z ∈ˢ U) (ho : (omega : V) ∈ˢ U)
+    (hstep : ∀ m, m ∈ˢ (omega : V) → ∀ u, u ∈ˢ U → app (app s m) u ∈ˢ U) :
+    recGraph z s ∈ˢ U := by
+  unfold recGraph
+  refine hU.sUnion_mem (hU.imageF_mem ho fun x hx y hy => ?_)
+  exact hU.attempt_mem hz ho hstep hx (realize_attemptRelF.mp hy)
+
 end ConLeche.SetTheory
