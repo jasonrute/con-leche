@@ -3,6 +3,7 @@ module
 public import ConLeche.SetTheory.Derive.Rec
 public import ConLeche.SetTheory.Derive.Quot
 public import ConLeche.SetTheory.Derive.Tg
+public import ConLeche.SetModel.Iter
 public import ConLeche.SetModel.UnionRec
 
 public section
@@ -361,5 +362,74 @@ example (hw : w ≠ 0) : recGraphF (graphAppF (testS V) unitSet) (unitSet : V) �
   (tg_isUniverse hw).recGraphF_mem (empty_mem_tg w)
     ((tg_isUniverse hw).graphAppF_mem (empty_mem_tg w) (testS_mem_tg hw) (unitSet_mem_tg w))
     (unitSet_mem_tg w)
+
+/-! ## The definable constant graphs (`constGraphF`, `sigmaConstGraphF`)
+
+`constGraphF c A = {⟨x, c⟩ : x ∈ˢ A}` and `sigmaConstGraphF A D =
+{⟨x, sigmaConstF A x⟩ : x ∈ˢ D}` — the first-order twins of the meta
+constant graphs, with beta, equality, and clause-6 closure, exercised
+over the one-point domain `unitSet`. -/
+
+example : (kpair pt unitSet : V) ∈ˢ constGraphF (unitSet : V) (unitSet : V) :=
+  mem_constGraphF.mpr ⟨pt, pt_mem_unitSet, rfl⟩
+
+example : app (constGraphF (unitSet : V) (unitSet : V)) pt = (unitSet : V) :=
+  app_constGraphF pt_mem_unitSet
+
+example : constGraphF (unitSet : V) (unitSet : V) = graph (fun _ => (unitSet : V)) (unitSet : V) :=
+  constGraphF_eq_graph _ _
+
+example (hw : w ≠ 0) : constGraphF (unitSet : V) (unitSet : V) ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).constGraphF_mem (empty_mem_tg w) (unitSet_mem_tg w) (unitSet_mem_tg w)
+
+example : (kpair pt (sigmaConstF (unitSet : V) pt) : V) ∈ˢ
+    sigmaConstGraphF (unitSet : V) (unitSet : V) :=
+  mem_sigmaConstGraphF.mpr ⟨pt, pt_mem_unitSet, rfl⟩
+
+example : app (sigmaConstGraphF (unitSet : V) (unitSet : V)) pt = sigmaConstF (unitSet : V) pt :=
+  app_sigmaConstGraphF pt_mem_unitSet
+
+example : sigmaConstGraphF (unitSet : V) (unitSet : V) =
+    graph (fun x => sigmaConstF (unitSet : V) x) (unitSet : V) :=
+  sigmaConstGraphF_eq_graph _ _
+
+example (hw : w ≠ 0) : sigmaConstGraphF (unitSet : V) (unitSet : V) ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).sigmaConstGraphF_mem (empty_mem_tg w) (unitSet_mem_tg w) (unitSet_mem_tg w)
+
+/-! ## The definable countable union (`natUnionF`) and the natFibre bridges
+
+Over `ω`, `natUnionF (constGraphF c omega)` collects `app (constGraphF c
+omega) d = c` for every `d ∈ˢ omega`, i.e. it is exactly `c`; the meta
+`natUnion (fun _ => c)` is contained via `natUnion_subset_natUnionF`
+(one-sided in general: at nonstandard `c ∈ˢ ω` the junk fibre `empty`
+differs from `app G c`).  On the standard-numeral domain
+`{vnat 0, vnat 1}` the two-sided `sigmaPairs` bridge holds. -/
+
+example (c x : V) : x ∈ˢ Tower.natUnionF (constGraphF c omega) ↔ x ∈ˢ c := by
+  rw [Tower.mem_natUnionF]
+  constructor
+  · rintro ⟨d, hd, hx⟩
+    rw [app_constGraphF hd] at hx
+    exact hx
+  · intro hx
+    exact ⟨vnat 0, vnat_mem_omega 0, by rw [app_constGraphF (vnat_mem_omega 0)]; exact hx⟩
+
+example (c : V) : Tower.natUnion (fun _ => c) ⊆ˢ Tower.natUnionF (constGraphF c omega) :=
+  Tower.natUnion_subset_natUnionF (fun i => app_constGraphF (vnat_mem_omega i))
+
+example (hw : w ≠ 0) : Tower.natUnionF (constGraphF (unitSet : V) omega) ∈ˢ (tg w : V) := by
+  obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
+  exact Tower.natUnionF_mem_tg_pos (Nat.succ_ne_zero w')
+    ((tg_isUniverse (Nat.succ_ne_zero w')).constGraphF_mem (empty_mem_tg _)
+      (unitSet_mem_tg _) (omega_mem_tg_succ w'))
+
+example : sigmaPairs (upair (vnat 0) (vnat 1) : V) (Tower.natFibre (fun _ => (empty : V))) =
+    sigmaPairsAppF (empty : V) (upair (vnat 0) (vnat 1)) :=
+  Tower.sigmaPairs_natFibre_eq_sigmaPairsAppF
+    (fun c hc => by
+      rcases mem_upair.mp hc with rfl | rfl
+      · exact ⟨0, rfl⟩
+      · exact ⟨1, rfl⟩)
+    (fun i => app_empty _)
 
 end ConLeche.SetTheory.DefinableAppEx

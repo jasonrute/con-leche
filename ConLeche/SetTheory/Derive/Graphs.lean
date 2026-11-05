@@ -607,6 +607,146 @@ theorem eq_of_mem_piSet_app_eq {A f g : V} {B B' : V → V}
   rw [← eq_graph_app_of_mem_piSet hf, ← eq_graph_app_of_mem_piSet hg]
   exact graph_congr h
 
+/-! ## Definable constant graphs and constant-product graphs
+
+`constGraphF c A` is the first-order twin of `graph (fun _ => c) A`, and
+`sigmaConstGraphF A D` of `graph (fun x => sigmaConstF A x) D` — both
+built from `graphF` with the definable relations `w = c` and
+`z = sigmaConstF A x`. -/
+
+/-- The constant relation `w = c` in the replacement convention
+(variables `0 ↦ x`, `1 ↦ w`, parameter `2 ↦ c`). -/
+def constRelF : Form 3 := .equal (⟨1, by omega⟩ : Fin 3) (⟨2, by omega⟩ : Fin 3)
+
+theorem realize_constRelF {x w c : V} :
+    Form.Realize Mem (Form.cons2 x w (fun _ => c)) constRelF ↔ w = c := by
+  simp [constRelF, Form.cons2]
+
+/-- The definable constant graph `{⟨x, c⟩ : x ∈ˢ A}` — the first-order
+twin of `graph (fun _ => c) A`. -/
+noncomputable def constGraphF (c A : V) : V :=
+  graphF constRelF (fun _ => c) A
+    (fun _ _ => ⟨c, realize_constRelF.mpr rfl, fun _ h => realize_constRelF.mp h⟩)
+
+theorem mem_constGraphF {c A z : V} :
+    z ∈ˢ constGraphF c A ↔ ∃ x, x ∈ˢ A ∧ z = kpair x c := by
+  unfold constGraphF
+  rw [mem_graphF]
+  constructor
+  · rintro ⟨x, hx, w, rfl, hw⟩
+    rw [realize_constRelF.mp hw]
+    exact ⟨x, hx, rfl⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, c, rfl, realize_constRelF.mpr rfl⟩
+
+/-- Beta on the definable constant graph. -/
+theorem app_constGraphF {c A x : V} (hx : x ∈ˢ A) : app (constGraphF c A) x = c :=
+  app_graphF (fun _ _ => ⟨c, realize_constRelF.mpr rfl, fun _ h => realize_constRelF.mp h⟩)
+    hx (realize_constRelF.mpr rfl)
+
+/-- The definable constant graph is the meta constant graph. -/
+theorem constGraphF_eq_graph (c A : V) : constGraphF c A = graph (fun _ => c) A := by
+  refine ext fun z => ?_
+  rw [mem_constGraphF, mem_graph]
+
+/-- Definable constant-graph closure (clause 6): the first-order twin of
+`image_mem` at `fun x => kpair x c`. -/
+theorem _root_.ConLeche.IsUniverse.constGraphF_mem {U c A : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hc : c ∈ˢ U) (hA : A ∈ˢ U) : constGraphF c A ∈ˢ U := by
+  unfold constGraphF
+  exact hU.graphF_mem hA fun x hx w hw => by
+    rw [realize_constRelF.mp hw]
+    exact hU.kpair_mem he (hU.transitive hA hx) hc
+
+/-- Variable map `Fin 3 → Fin 6`, `i ↦ i + 3` (reads `kpairEqF`'s
+`(z, x, y)` as `(w, u, y)` out of the context `(x, z, A, w, u, y)`). -/
+def scEqKMap : Fin 3 → Fin 6 := fun i => ⟨i.val + 3, by omega⟩
+
+/-- `z = sigmaConstF A x` in the replacement convention (variables
+`0 ↦ x`, `1 ↦ z`, parameter `2 ↦ A`): every member of `z` is a pair
+⟨u, y⟩ with `u ∈ˢ A`, `y ∈ˢ x`, and conversely. -/
+def sigmaConstEqF : Form 3 :=
+  .all (.iff (.mem ⟨3, by omega⟩ ⟨1, by omega⟩)
+    (.ex (.ex (.and (Form.relabel scEqKMap kpairEqF)
+      (.and (.mem ⟨4, by omega⟩ ⟨2, by omega⟩) (.mem ⟨5, by omega⟩ ⟨0, by omega⟩))))))
+
+theorem realize_sigmaConstEqF {x z A : V} :
+    Form.Realize Mem (Form.cons2 x z (fun _ => A)) sigmaConstEqF ↔ z = sigmaConstF A x := by
+  have hEq : (Form.cons2 x z (fun _ => A) : Fin 3 → V) =
+      Form.snoc (Form.snoc (fun _ => x) z) A := by
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hComp : ∀ w u y : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => x) z) A) w) u) y
+        ∘ scEqKMap) = Form.snoc (Form.snoc (fun _ => w) u) y := by
+    intro w u y
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  rw [hEq]
+  simp only [sigmaConstEqF, Form.realize_all, Form.realize_iff, Form.realize_ex,
+    Form.realize_and, Form.realize_relabel, hComp, realize_kpairEqF, Form.realize_mem,
+    Form.snoc_mk]
+  constructor
+  · intro h
+    refine SetTheory.ext fun w => ?_
+    rw [mem_sigmaConstF]
+    constructor
+    · intro hw
+      obtain ⟨u, y, h1, h2, h3⟩ := (h w).mp hw
+      exact ⟨u, h2, y, h3, h1⟩
+    · intro hq
+      obtain ⟨u, hu, y, hy, hEq⟩ := hq
+      rw [hEq]
+      exact (h (kpair u y)).mpr ⟨u, y, rfl, hu, hy⟩
+  · intro h w
+    rw [h]
+    show w ∈ˢ sigmaConstF A x ↔ ∃ u, ∃ y, w = kpair u y ∧ u ∈ˢ A ∧ y ∈ˢ x
+    rw [mem_sigmaConstF]
+    exact ⟨fun ⟨u, hu, y, hy, hEq⟩ => ⟨u, y, hEq, hu, hy⟩,
+      fun ⟨u, y, hEq, hu, hy⟩ => ⟨u, hu, y, hy, hEq⟩⟩
+
+/-- The definable constant-product graph `{⟨x, sigmaConstF A x⟩ : x ∈ˢ D}`
+— the first-order twin of `graph (fun x => sigmaConstF A x) D`. -/
+noncomputable def sigmaConstGraphF (A D : V) : V :=
+  graphF sigmaConstEqF (fun _ => A) D
+    (fun x _ => ⟨sigmaConstF A x, realize_sigmaConstEqF.mpr rfl,
+      fun _ h => realize_sigmaConstEqF.mp h⟩)
+
+theorem mem_sigmaConstGraphF {A D z : V} :
+    z ∈ˢ sigmaConstGraphF A D ↔ ∃ x, x ∈ˢ D ∧ z = kpair x (sigmaConstF A x) := by
+  unfold sigmaConstGraphF
+  rw [mem_graphF]
+  constructor
+  · rintro ⟨x, hx, w, rfl, hw⟩
+    rw [realize_sigmaConstEqF.mp hw]
+    exact ⟨x, hx, rfl⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, sigmaConstF A x, rfl, realize_sigmaConstEqF.mpr rfl⟩
+
+/-- Beta on the definable constant-product graph. -/
+theorem app_sigmaConstGraphF {A D y : V} (hy : y ∈ˢ D) :
+    app (sigmaConstGraphF A D) y = sigmaConstF A y :=
+  app_graphF (fun x _ => ⟨sigmaConstF A x, realize_sigmaConstEqF.mpr rfl,
+      fun _ h => realize_sigmaConstEqF.mp h⟩) hy (realize_sigmaConstEqF.mpr rfl)
+
+/-- The definable constant-product graph is the meta one. -/
+theorem sigmaConstGraphF_eq_graph (A D : V) :
+    sigmaConstGraphF A D = graph (fun x => sigmaConstF A x) D := by
+  refine ext fun z => ?_
+  rw [mem_sigmaConstGraphF, mem_graph]
+
+/-- Definable constant-product-graph closure (clause 6): the
+first-order twin of `image_mem` at `fun x => kpair x (sigmaConstF A x)`. -/
+theorem _root_.ConLeche.IsUniverse.sigmaConstGraphF_mem {U A D : V}
+    (hU : IsUniverse (Mem (V := V)) U) (he : (empty : V) ∈ˢ U) (hA : A ∈ˢ U) (hD : D ∈ˢ U) :
+    sigmaConstGraphF A D ∈ˢ U := by
+  unfold sigmaConstGraphF
+  exact hU.graphF_mem hD fun x hx w hw => by
+    rw [realize_sigmaConstEqF.mp hw]
+    exact hU.kpair_mem he (hU.transitive hD hx) (hU.sigmaConstF_mem he hA (hU.transitive hD hx))
+
 /- Opaque interface operator (see `Derive/Empty.lean`). -/
 attribute [irreducible] app
 
