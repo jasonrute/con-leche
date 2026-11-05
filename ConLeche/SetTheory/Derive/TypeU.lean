@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetTheory.Derive.Graphs
+import ConLeche.SetTheory.Derive.Rec
 public import ConLeche.SetTheory.Derive.Tg
 
 @[expose] public section
@@ -183,7 +184,8 @@ theorem strict_piSet {A : V} {B : V → V} : Strict (piSet A B) := by
   intro he
   have hz : (ptTag : V) ∈ˢ piSet A B := he ▸ ptTag_mem_pt
   have h1 := eq_graph_app_of_mem_piSet hz
-  have h2 : graph (fun x => app ptTag x) A ∈ˢ (pt : V) := by rw [h1]; exact ptTag_mem_pt
+  have h2 : graphAppF ptTag A ∈ˢ (pt : V) := by rw [graphAppF_eq, h1]; exact ptTag_mem_pt
+  rw [graphAppF_eq] at h2
   exact graph_not_mem_pt h2
 
 /-- A dependent pair set is strict: its members are pairs. -/

@@ -2,6 +2,7 @@ module
 
 public import ConLeche.SetTheory.Derive.Rec
 public import ConLeche.SetTheory.Derive.Tg
+public import ConLeche.SetModel.UnionRec
 
 public section
 
@@ -211,5 +212,18 @@ example (hw : w ≠ 0) : sigmaPairsAppF (twoS V) unitSet ∈ˢ (tg w : V) :=
 
 example (hw : w ≠ 0) : piSetAppNF (twoS V) unitSet ∈ˢ (tg w : V) :=
   (tg_isUniverse hw).piSetAppNF_mem (empty_mem_tg w) (twoS_mem_tg hw) (unitSet_mem_tg w)
+
+/-! ## The disjoint union's per-class fibre is the definable app-pair product -/
+
+/-- Inside `unionSet` the per-class fibre is `sigmaPairsAppF (X c) (Is c)`:
+the meta `sigmaPairs` image is gone from the family. -/
+example {Is X : Nat → V} (c : Nat) :
+    Tower.natFibre (fun c => sigmaPairsAppF (X c) (Is c)) (vnat c)
+      = sigmaPairsAppF (X c) (Is c) :=
+  Tower.natFibre_vnat _ _
+
+example {Is X : Nat → V} {i x : V} (hi : i ∈ˢ Is 0) (hx : x ∈ˢ app (X 0) i) :
+    tagged 0 i x ∈ˢ unionSet 1 Is X :=
+  tagged_mem_unionSet Nat.zero_lt_one hi hx
 
 end ConLeche.SetTheory.DefinableAppEx

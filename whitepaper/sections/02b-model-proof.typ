@@ -215,10 +215,10 @@ The point is no type, so no sort holds it.
 #real[
   Con-leche's sorts denote the same sets:
   #src("ConLeche/SetTheory/Derive/Univ.lean", 34, 35)[a sort's universe]
-  is #src("ConLeche/SetTheory/Derive/TypeU.lean", 249, 251)[the universe of types],
+  is #src("ConLeche/SetTheory/Derive/TypeU.lean", 250, 252)[the universe of types],
   read off the same notions of a
-  #src("ConLeche/SetTheory/Derive/TypeU.lean", 79, 80)[strict set] and a
-  #src("ConLeche/SetTheory/Derive/TypeU.lean", 82, 83)[type].
+  #src("ConLeche/SetTheory/Derive/TypeU.lean", 80, 81)[strict set] and a
+  #src("ConLeche/SetTheory/Derive/TypeU.lean", 83, 84)[type].
 ]
 
 This is the whole of the interpretation. Nothing had to be

@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetModel.TaggedSum
+public import ConLeche.SetTheory.Derive.Rec
 @[expose] public section
 
 /-!
@@ -40,7 +41,7 @@ theorem tagged_inj {c c' : Nat} {i x i' x' : V} (h : tagged c i x = tagged c' i'
 a tuple of families. -/
 noncomputable def unionSet (k : Nat) (Is : Nat → V) (X : Nat → V) : V :=
   sigmaPairs (sepF omega memPF (fun _ => vnat k))
-    (natFibre fun c => sigmaPairs (Is c) fun i => app (X c) i)
+    (natFibre fun c => sigmaPairsAppF (X c) (Is c))
 
 theorem mem_unionSet {k : Nat} {Is X : Nat → V} {u : V} :
     u ∈ˢ unionSet k Is X ↔
@@ -52,13 +53,13 @@ theorem mem_unionSet {k : Nat} {Is X : Nat → V} {u : V} :
     obtain ⟨-, htS⟩ := mem_sepF.mp ht
     obtain ⟨n, hn, rfl⟩ := mem_vnat_iff.mp (realize_memPF.mp htS)
     rw [natFibre_vnat] at hp
-    obtain ⟨i, hi, x, hx, rfl⟩ := mem_sigmaPairs.mp hp
+    obtain ⟨i, hi, x, hx, rfl⟩ := mem_sigmaPairsAppF.mp hp
     exact ⟨n, hn, i, hi, x, hx, rfl⟩
   · rintro ⟨c, hc, i, hi, x, hx, rfl⟩
     refine ⟨vnat c, mem_sepF.mpr ⟨vnat_mem_omega c,
       realize_memPF.mpr (mem_vnat_iff.mpr ⟨c, hc, rfl⟩)⟩, kpair i x, ?_, rfl⟩
     rw [natFibre_vnat]
-    exact mem_sigmaPairs.mpr ⟨i, hi, x, hx, rfl⟩
+    exact mem_sigmaPairsAppF.mpr ⟨i, hi, x, hx, rfl⟩
 
 theorem tagged_mem_unionSet {k : Nat} {Is X : Nat → V} {c : Nat} (hc : c < k) {i x : V}
     (hi : i ∈ˢ Is c) (hx : x ∈ˢ app (X c) i) : tagged c i x ∈ˢ unionSet k Is X :=

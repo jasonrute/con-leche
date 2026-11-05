@@ -1579,18 +1579,18 @@
     34  /-- **What `Sort n` means**: the universe of types `tyU n`. -/
     35  noncomputable def univ : Nat → V := tyU
 
-== ConLeche/SetTheory/Derive/TypeU.lean#L249-L251
-   249  /-- **The universe of types at level `n`**: the truth values at `0`,
-   250  above the members of the axiomatic level `tg n` that are types. -/
-   251  noncomputable def tyU (n : Nat) : V :=
+== ConLeche/SetTheory/Derive/TypeU.lean#L250-L252
+   250  open Classical in
+   251  /-- **The universe of types at level `n`**: the truth values at `0`,
+   252  above the members of the axiomatic level `tg n` that are types. -/
 
-== ConLeche/SetTheory/Derive/TypeU.lean#L79-L80
-    79  /-- A **strict** set: not the point, and the point is not a member. -/
-    80  def Strict (X : V) : Prop := X ≠ pt ∧ ¬ pt ∈ˢ X
+== ConLeche/SetTheory/Derive/TypeU.lean#L80-L81
+    80  /-- A **strict** set: not the point, and the point is not a member. -/
+    81  def Strict (X : V) : Prop := X ≠ pt ∧ ¬ pt ∈ˢ X
 
-== ConLeche/SetTheory/Derive/TypeU.lean#L82-L83
-    82  /-- A **type**: a truth value, or a strict set. -/
-    83  def IsTy (X : V) : Prop := X ∈ˢ univZero ∨ Strict X
+== ConLeche/SetTheory/Derive/TypeU.lean#L83-L84
+    83  /-- A **type**: a truth value, or a strict set. -/
+    84  def IsTy (X : V) : Prop := X ∈ˢ univZero ∨ Strict X
 
 == whitepaper/Fragment/Interp.lean#L242-L246
    242  /-- **The β-substitution lemma**: substituting for the innermost
