@@ -1635,4 +1635,27 @@ theorem _root_.ConLeche.IsUniverse.recGraphF_mem {U G D : V}
     recGraphF G D ∈ˢ U :=
   hU.sepF_mem (hU.sigmaPairsAppF_mem he hG hD)
 
+/-! ## Standard-numeral bridge for `natrecF`
+
+At the standard numerals `vnat n` the definable recursion graph agrees
+with any meta family `f : Nat → V` satisfying the same base and step
+equations.  At nonstandard members of `ω` the graph carries junk
+values, so the bridge is one-sided — standard numerals only. -/
+
+/-- If a meta family `f` has base value `z` and step
+`f (n + 1) = app (app s (vnat n)) (f n)`, then the definable recursion
+graph reads off `f` at every standard numeral. -/
+theorem natrecF_vnat_eq (z s : V) (f : Nat → V) (h0 : f 0 = z)
+    (hstep : ∀ n, f (n + 1) = app (app s (vnat n)) (f n)) :
+    ∀ n, natrecF z s (vnat n) = f n := by
+  intro n
+  induction n with
+  | zero =>
+      show natrecF z s (empty : V) = f 0
+      rw [h0]
+      exact natrecF_empty z s
+  | succ n ih =>
+      show natrecF z s (vsucc (vnat n)) = f (n + 1)
+      rw [natrecF_vsucc z s (vnat_mem_omega n), ih, hstep n]
+
 end ConLeche.SetTheory

@@ -822,6 +822,34 @@ theorem lfpTuple_mixT (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple 
 
 end MixGroup
 
+/-! ## The definable path set (`accPathsF`)
+
+The meta `accPaths A = natUnion (accPathsN A)` is internalized by the
+iteration graph `iterGraphF A (power (accPaths A))` of the stage-24
+toolkit in `SetModel/Iter.lean`: it reads off `accPathsN A` at every
+standard numeral, so the meta path set is contained in the definable
+one (one-sided bridge — at nonstandard `c ∈ˢ ω` the definable union
+may carry junk fibres). -/
+
+/-- Every finite stage is a subset of all paths. -/
+theorem accPathsN_subset_accPaths (A : V) (n : Nat) : accPathsN A n ⊆ˢ accPaths A :=
+  fun _ hx => mem_natUnion.mpr ⟨n, hx⟩
+
+/-- Every finite stage is a member of `power (accPaths A)`. -/
+theorem accPathsN_mem_power (A : V) (n : Nat) : accPathsN A n ∈ˢ power (accPaths A) :=
+  mem_power.mpr (accPathsN_subset_accPaths A n)
+
+/-- The definable iteration graph reads off `accPathsN` at the standard
+numerals (bound `B = power (accPaths A)`). -/
+theorem app_iterGraphF_vnat_accPathsN (A : V) :
+    ∀ n, app (Tower.iterGraphF A (power (accPaths A))) (vnat n) = accPathsN A n :=
+  Tower.iterGraphF_vnat_eq A (power (accPaths A)) (accPathsN A) rfl
+    (fun _ => rfl) (accPathsN_mem_power A)
+
+/-- The meta path set is contained in the definable path set. -/
+theorem accPaths_subset_accPathsF (A : V) :
+    accPaths A ⊆ˢ Tower.accPathsF A (power (accPaths A)) :=
+  Tower.natUnion_subset_natUnionF (app_iterGraphF_vnat_accPathsN A)
 
 end ConLeche.SetTheory
 

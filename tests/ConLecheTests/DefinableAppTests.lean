@@ -432,4 +432,76 @@ example : sigmaPairs (upair (vnat 0) (vnat 1) : V) (Tower.natFibre (fun _ => (em
       · exact ⟨1, rfl⟩)
     (fun i => app_empty _)
 
+/-! ## The definable iteration graph (`iterStepGraphF` / `iterGraphF` / `accPathsF`) -/
+
+/-- `sigmaConstF` at the empty base is empty. -/
+theorem sigmaConstF_empty (c : V) : sigmaConstF (empty : V) c = empty := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_sigmaConstF]
+  constructor
+  · rintro ⟨x, hx, _, _, _⟩
+    exact absurd hx (not_mem_empty x)
+  · intro hz
+    exact absurd hz (not_mem_empty z)
+
+/-- The meta family `unitSet, empty, empty, …` (the `accPathsN empty` shape). -/
+noncomputable def iterF : Nat → V
+  | 0 => unitSet
+  | _ + 1 => empty
+
+theorem iterF_succ (n : Nat) : iterF (n + 1) = sigmaConstF (empty : V) (iterF n) := by
+  show (empty : V) = sigmaConstF (empty : V) (iterF n)
+  rw [sigmaConstF_empty]
+
+theorem iterF_mem_tg1 (n : Nat) : iterF n ∈ˢ power (tg 1 : V) := by
+  rw [mem_power]
+  intro z hz
+  cases n with
+  | zero =>
+      have h0 : iterF 0 = (unitSet : V) := rfl
+      rw [h0, mem_unitSet_iff] at hz
+      rw [hz]
+      exact (tg_isUniverse (Nat.succ_ne_zero 0)).pt_mem (univChain_one_mem_tg_succ 0)
+  | succ n =>
+      have h1 : iterF (n + 1) = (empty : V) := rfl
+      rw [h1] at hz
+      exact absurd hz (not_mem_empty z)
+
+/-- The constant step graph beta-reduces at standard numerals. -/
+example : app (app (Tower.iterStepGraphF (unitSet : V) (tg 1 : V)) (vnat 0)) (unitSet : V) =
+    sigmaConstF (unitSet : V) unitSet :=
+  Tower.app_iterStepGraphF (vnat_mem_omega 0) (unitSet_mem_tg 1)
+
+/-- The iteration graph reads off `iterF` at every standard numeral. -/
+example (n : Nat) : app (Tower.iterGraphF (empty : V) (power (tg 1 : V))) (vnat n) = iterF n :=
+  Tower.iterGraphF_vnat_eq (empty : V) (power (tg 1 : V)) iterF rfl
+    (fun n => iterF_succ n) iterF_mem_tg1 n
+
+example : app (Tower.iterGraphF (empty : V) (power (tg 1 : V))) (vnat 0) = (unitSet : V) :=
+  Tower.iterGraphF_vnat_eq (empty : V) (power (tg 1 : V)) iterF rfl
+    (fun n => iterF_succ n) iterF_mem_tg1 0
+
+example : app (Tower.iterGraphF (empty : V) (power (tg 1 : V))) (vnat 2) = (empty : V) :=
+  Tower.iterGraphF_vnat_eq (empty : V) (power (tg 1 : V)) iterF rfl
+    (fun n => iterF_succ n) iterF_mem_tg1 2
+
+/-- The empty path is in the definable path set. -/
+example : (pt : V) ∈ˢ Tower.accPathsF (unitSet : V) (tg 1 : V) :=
+  Tower.pt_mem_accPathsF _ _
+
+/-- The iteration graph over `ω` stays in `tg 1` (definable induction). -/
+theorem iterGraphF_unitSet_mem_tg1 (c : V) (hc : c ∈ˢ omega) :
+    app (Tower.iterGraphF (unitSet : V) (tg 1 : V)) c ∈ˢ (tg 1 : V) :=
+  Tower.iterGraphF_app_mem (tg_isUniverse (Nat.succ_ne_zero 0)) (empty_mem_tg 1)
+    (unitSet_mem_tg 1) hc
+
+/-- Pair closure of the definable path set over a universe bound. -/
+example : kpair pt pt ∈ˢ Tower.accPathsF (unitSet : V) (tg 1 : V) :=
+  Tower.kpair_mem_accPathsF pt_mem_unitSet (Tower.pt_mem_accPathsF _ _) iterGraphF_unitSet_mem_tg1
+
+/-- `appBoundF` realizes `app G c ∈ˢ U` at a concrete graph. -/
+example : Form.Realize Mem (Form.snoc (Tower.appBoundParam (testS V) (tg 1 : V)) pt)
+    Tower.appBoundF :=
+  Tower.realize_appBoundF.mpr (by rw [app_testS_pt]; exact unitSet_mem_tg 1)
+
 end ConLeche.SetTheory.DefinableAppEx

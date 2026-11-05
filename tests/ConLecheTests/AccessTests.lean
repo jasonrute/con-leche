@@ -185,4 +185,23 @@ theorem rose_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (roseΦ w) L := b
 
 end Instances
 
+section IterGraphFEx
+
+variable {V : Type u} [SetTheory V]
+
+/-- The definable iteration graph reads off `accPathsN` at every standard numeral. -/
+example (A : V) (n : Nat) :
+    app (Tower.iterGraphF A (power (accPaths A))) (vnat n) = accPathsN A n :=
+  app_iterGraphF_vnat_accPathsN A n
+
+/-- Every finite stage is a member of `power (accPaths A)`. -/
+example (A : V) (n : Nat) : accPathsN A n ∈ˢ power (accPaths A) :=
+  accPathsN_mem_power A n
+
+/-- One-sided bridge: the meta path set is contained in the definable one. -/
+example (A : V) : accPaths A ⊆ˢ Tower.accPathsF A (power (accPaths A)) :=
+  accPaths_subset_accPathsF A
+
+end IterGraphFEx
+
 end ConLeche.SetTheory.AccessEx
