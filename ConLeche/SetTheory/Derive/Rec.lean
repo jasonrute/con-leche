@@ -359,6 +359,51 @@ theorem _root_.ConLeche.IsUniverse.piSetApp_mem {U S A : V} (hU : IsUniverse (Me
     hU.kpair_mem he (hU.transitive hA hx)
       (hU.transitive (hU.app_mem he hS) (realize_appMemRepF.mp hy))
 
+/-! ## The graph of `app g`, in the `graphF` convention -/
+
+/-- The definable graph of `app g` over `A`: `{<x, app g x> : x ∈ˢ A}`
+the first-order twin of `graph (fun x => app g x) A`. -/
+noncomputable def graphAppF (g A : V) : V :=
+  graphF appEqRepF (Form.snoc (fun _ => g) (pt : V)) A
+    (fun x _ => ⟨app g x, realize_appEqRepF.mpr rfl, fun _ hy => realize_appEqRepF.mp hy⟩)
+
+theorem mem_graphAppF {g A z : V} :
+    z ∈ˢ graphAppF g A ↔ ∃ x, x ∈ˢ A ∧ z = kpair x (app g x) := by
+  unfold graphAppF
+  rw [mem_graphF]
+  constructor
+  · rintro ⟨x, hx, w, rfl, hw⟩
+    exact ⟨x, hx, by rw [realize_appEqRepF.mp hw]⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, app g x, rfl, realize_appEqRepF.mpr rfl⟩
+
+/-- The meta-level `graph (fun x => app g x) A` is exactly the definable
+`graphAppF g A`. -/
+theorem graphAppF_eq {g A : V} : graphAppF g A = graph (fun x => app g x) A :=
+  ext fun z => by
+    rw [mem_graphAppF, mem_graph]
+
+/-- Beta on the definable app-graph. -/
+theorem app_graphAppF {g A a : V} (ha : a ∈ˢ A) : app (graphAppF g A) a = app g a := by
+  rw [graphAppF_eq]; exact app_graph ha
+
+/-- Definable graph-of-app closure (clause 6): the first-order twin of
+`image_mem` at the `fun x => kpair x (app g x)` family. -/
+theorem _root_.ConLeche.IsUniverse.graphAppF_mem {U g A : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hg : g ∈ˢ U) (hA : A ∈ˢ U) : graphAppF g A ∈ˢ U := by
+  unfold graphAppF
+  exact hU.graphF_mem hA fun x hx w hw => by
+    rw [realize_appEqRepF.mp hw]
+    exact hU.kpair_mem he (hU.transitive hA hx) (hU.app_mem he hg)
+
+/-- A definable app-graph lies in any function space whose fibres contain
+the applications: the first-order shape of `graph_mem_piSet` at an
+`app g`-family. -/
+theorem graphAppF_mem_piSet {g A : V} {B : V → V}
+    (h : ∀ x, x ∈ˢ A → app g x ∈ˢ B x) : graphAppF g A ∈ˢ piSet A B := by
+  rw [graphAppF_eq]
+  exact graph_mem_piSet h
+
 /-! ## Attempts at `ω`-recursion -/
 
 /-- Variable map `Fin 3 → Fin 4`, `0 → 2`, `1 → 1`, `2 → 3`

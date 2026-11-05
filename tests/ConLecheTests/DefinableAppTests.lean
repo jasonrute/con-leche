@@ -111,4 +111,25 @@ example (hw : w ≠ 0) : piSetApp (testS V) unitSet testS_hfun ∈ˢ (tg w : V) 
   (tg_isUniverse hw).piSetApp_mem (empty_mem_tg w) (testS_mem_tg hw) (unitSet_mem_tg w)
     testS_hfun
 
+/-! ## The definable graph of `app g` (`graphAppF`) -/
+
+example : (kpair pt unitSet : V) ∈ˢ graphAppF (testS V) unitSet :=
+  mem_graphAppF.mpr ⟨pt, pt_mem_unitSet, by rw [app_testS_pt]⟩
+
+example : graphAppF (testS V) unitSet = graph (fun x => app (testS V) x) unitSet :=
+  graphAppF_eq
+
+example : app (graphAppF (testS V) unitSet) pt = unitSet := by
+  rw [app_graphAppF pt_mem_unitSet, app_testS_pt]
+
+example : graphAppF (testS V) unitSet ∈ˢ piSet unitSet (fun _ => upair (empty : V) unitSet) :=
+  graphAppF_mem_piSet fun x hx => by
+    rw [mem_unitSet_iff] at hx
+    subst hx
+    rw [app_testS_pt]
+    exact mem_upair_right _ _
+
+example (hw : w ≠ 0) : graphAppF (testS V) unitSet ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).graphAppF_mem (empty_mem_tg w) (testS_mem_tg hw) (unitSet_mem_tg w)
+
 end ConLeche.SetTheory.DefinableAppEx
