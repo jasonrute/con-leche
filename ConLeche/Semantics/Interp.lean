@@ -1353,4 +1353,122 @@ theorem realize_consGraphEqF {w x ρ : W} :
     rw [h]
     exact hgoal
 
+
+
+variable {W : Type w} [SetTheory W]
+
+/-! ## Stage 45: the `letE` case of the definable interp step -/
+
+/-- Variable maps into the `letEStepF` bound context `(v, X, i, pt, c, ρ, p, a, b, k, v0, w, k2)`. -/
+def leMC : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨2, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+def leMR : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨5, by omega⟩ | 1 => ⟨2, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+def leMP : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨6, by omega⟩ | 1 => ⟨4, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+def leMA : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨7, by omega⟩ | 1 => ⟨6, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+def leMB : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨8, by omega⟩ | 1 => ⟨6, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+def leMK : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨9, by omega⟩ | 1 => ⟨7, by omega⟩ | 2 => ⟨5, by omega⟩ | _ => ⟨5, by omega⟩
+def leMV0 : Fin 4 → Fin 13 := fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨10, by omega⟩ | 2 => ⟨1, by omega⟩ | 3 => ⟨9, by omega⟩ | _ => ⟨9, by omega⟩
+def leMW : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨11, by omega⟩ | 1 => ⟨10, by omega⟩ | 2 => ⟨5, by omega⟩ | _ => ⟨5, by omega⟩
+def leMK2 : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨12, by omega⟩ | 1 => ⟨8, by omega⟩ | 2 => ⟨11, by omega⟩ | _ => ⟨11, by omega⟩
+def leMV : Fin 4 → Fin 13 := fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨0, by omega⟩ | 2 => ⟨1, by omega⟩ | 3 => ⟨12, by omega⟩ | _ => ⟨12, by omega⟩
+
+/-- The `letE` step of the definable interpretation (variables `0 ↦ v`,
+`1 ↦ X` (the current family graph), `2 ↦ i` (the index `kpair c ρ`),
+`3 ↦ pt`): `v = app X (kpair (ssnd (ssnd (sfst i)))
+(consGraph (app X (kpair (sfst (ssnd (sfst i))) (ssnd i))) (ssnd i)))`
+where `c = sfst i`, `ρ = ssnd i` — the body's code read at the
+environment extended by the value's value. -/
+def letEStepF : Form 4 :=
+  (.ex (.ex (.ex (.ex (.ex (.ex (.ex (.ex (.ex (.and (Form.relabel leMC sfstEqF) (.and (Form.relabel leMR ssndEqF) (.and (Form.relabel leMP ssndEqF) (.and (Form.relabel leMA sfstEqF) (.and (Form.relabel leMB ssndEqF) (.and (Form.relabel leMK kpairEqF) (.and (Form.relabel leMV0 appEqF) (.and (Form.relabel leMW consGraphEqF) (.and (Form.relabel leMK2 kpairEqF) (Form.relabel leMV appEqF)))))))))))))))))))
+
+theorem realize_letEStepF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : W)) letEStepF ↔
+      v = app X (kpair (ssnd (ssnd (sfst i)))
+        (consGraph (app X (kpair (sfst (ssnd (sfst i))) (ssnd i))) (ssnd i))) := by
+  have hMC: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMC =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => c) i) (pt : W) : Fin 3 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hMR: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMR =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => ρ) i) (pt : W) : Fin 3 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hMP: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMP =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => p) c) (pt : W) : Fin 3 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hMA: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMA =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => a) p) (pt : W) : Fin 3 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hMB: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMB =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => b) p) (pt : W) : Fin 3 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hMK: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMK =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => k) a) ρ : Fin 3 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hMV0: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMV0 =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) v0) X) k : Fin 4 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hMW: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMW =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => w) v0) ρ : Fin 3 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hMK2: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMK2 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => k2) b) w : Fin 3 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hMV: ∀ c ρ p a b k v0 w k2 : W,
+      ((Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) a) b) k) v0) w) k2)) ∘ leMV =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) v) X) k2 : Fin 4 → W) := by
+    intro c ρ p a b k v0 w k2; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [letEStepF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hMC, hMR, hMP, hMA, hMB, hMK, hMV0, hMW, hMK2, hMV,
+    realize_sfstEqF, realize_ssndEqF, realize_kpairEqF, realize_appEqF, realize_consGraphEqF]
+  clear hMC hMR hMP hMA hMB hMK hMV0 hMW hMK2 hMV
+  constructor
+  · rintro ⟨c, ρ, p, a, b, k, v0, w, k2, hC, hR, hP, hA, hB, hK, hV0, hW, hK2, hV⟩
+    rw [hV, hK2, hW, hV0, hK, hB, hA, hP, hC, hR]
+  · intro h
+    exact ⟨sfst i, ssnd i, ssnd (sfst i), sfst (ssnd (sfst i)), ssnd (ssnd (sfst i)),
+      kpair (sfst (ssnd (sfst i))) (ssnd i),
+      app X (kpair (sfst (ssnd (sfst i))) (ssnd i)),
+      consGraph (app X (kpair (sfst (ssnd (sfst i))) (ssnd i))) (ssnd i),
+      kpair (ssnd (ssnd (sfst i)))
+        (consGraph (app X (kpair (sfst (ssnd (sfst i))) (ssnd i))) (ssnd i)),
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, h⟩
+
+/-- The `letE val body` code reads the body's value at the environment
+extended by the value's value. -/
+theorem realize_letEStepF_tmCode {X ρ : W} (val body : ConLeche.Term.Term) :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+        app X (kpair (tmCode (W := W) body)
+          (consGraph (app X (kpair (tmCode (W := W) val) ρ)) ρ))) X)
+        (kpair (tmCode (W := W) (ConLeche.Term.Term.letE val body)) ρ)) (pt : W))
+      letEStepF :=
+  realize_letEStepF.mpr (by simp only [tmCode, sfst_kpair, ssnd_kpair])
+
 end ConLeche.Semantics

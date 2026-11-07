@@ -810,4 +810,24 @@ example : Form.Realize Mem
       ConLeche.Semantics.consGraphEqF :=
   ConLeche.Semantics.realize_consGraphEqF.mpr rfl
 
+
+/-! ## Stage 45: the `letE` case of the definable interp step -/
+
+example {v X i : V} (h : v = app X (kpair (ssnd (ssnd (sfst i)))
+    (ConLeche.Semantics.consGraph (app X (kpair (sfst (ssnd (sfst i))) (ssnd i))) (ssnd i)))) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : V))
+      ConLeche.Semantics.letEStepF :=
+  ConLeche.Semantics.realize_letEStepF.mpr h
+
+example (ρ : V) : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+      app (empty : V) (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 0))
+        (ConLeche.Semantics.consGraph
+          (app (empty : V) (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.prf)) ρ)) ρ))) (empty : V))
+      (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.letE ConLeche.Term.Term.prf
+        (ConLeche.Term.Term.bvar 0))) ρ)) (pt : V))
+    ConLeche.Semantics.letEStepF :=
+  ConLeche.Semantics.realize_letEStepF_tmCode (X := (empty : V)) (ρ := ρ)
+    ConLeche.Term.Term.prf (ConLeche.Term.Term.bvar 0)
+
 end ConLeche.SetTheory.DefinableAppEx
