@@ -879,4 +879,15 @@ example {a X b ρ : V} (h : ∀ x, x ∈ˢ a → app X (kpair b
   ConLeche.Semantics.realize_propAllF.mpr h
 
 
+
+/-! ## Stage 49: the `piSet` reader `piSetEqF` -/
+
+example {v a X b ρ : V} (h : v = piSet a (fun x => app X (kpair b
+    (ConLeche.Semantics.consGraph x ρ)))) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+      (fun _ => v) a) X) b) ρ) (pt : V))
+      ConLeche.Semantics.piSetEqF :=
+  ConLeche.Semantics.realize_piSetEqF.mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx
