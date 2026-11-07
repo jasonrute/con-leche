@@ -165,7 +165,7 @@ theorem psigmaV_mem (u v : Nat) :
     psigmaV V u v ∈ˢ piV (univ u : V) fun A =>
       piV (psigmaFibreSpace V v A) fun _ => (univ (Nat.max u v) : V) :=
   lamV_mem (fun _ hA => lamV_mem (fun _ hB =>
-      sigma_mem_univ hA fun _ hx => psigmaFibre_apply V hB hx)
+      sigma_mem_univ_app hA fun _ hx => psigmaFibre_apply V hB hx)
     fun _ _ => IsTy_univ _) fun _ _ => IsTy_piV
 
 /-- The pair former is the graph regime's at both binders: its domains
@@ -179,7 +179,7 @@ theorem psigmaV_eq_lamR (u v : Nat) :
         = lamR (Nat.max u v + 1) (psigmaFibreSpace V v A) fun B =>
           sigmaSet (Nat.max u v) A fun x => app B x := fun A hA =>
     lamV_eq_pos (Nat.succ_ne_zero _) (lamV_empty_mem_psigmaFibreSpace V v A)
-      (ne_pt_of_mem_univ (sigma_mem_univ hA fun _ hx =>
+      (ne_pt_of_mem_univ (sigma_mem_univ_app hA fun _ hx =>
         psigmaFibre_apply V (lamV_empty_mem_psigmaFibreSpace V v A) hx))
   rw [psigmaV, lamV_eq_pos (Nat.succ_ne_zero _) (empty_mem_univ u)
     (by rw [hin _ (empty_mem_univ u)]; exact lamR_ne_pt (Nat.succ_ne_zero _))]
@@ -213,7 +213,7 @@ theorem psigmaMkV_mem (u v : Nat) :
           sigmaSet (Nat.max u v) A fun x => app B x := by
   refine lamV_mem (fun A hA => lamV_mem (fun B hB => lamV_mem (fun a ha =>
     lamV_mem (fun b hb => ?_) fun _ _ =>
-      IsTy_of_mem_univ (sigma_mem_univ hA fun _ hx => psigmaFibre_apply V hB hx))
+      IsTy_of_mem_univ (sigma_mem_univ_app hA fun _ hx => psigmaFibre_apply V hB hx))
     fun _ _ => IsTy_piV) fun _ _ => IsTy_piV) fun _ _ => IsTy_piV
   split
   · rename_i hw
@@ -476,8 +476,8 @@ theorem ndTowerSet_mem_univ {r : Nat} {F : Nat → V} :
   | 0, _, _ => unitSetAt_mem_univ r
   | n + 1, s, hF => by
     show sigmaSet r (F s) (fun _ => ndTowerSet V r F (s + 1) n) ∈ˢ _
-    have h := sigma_mem_univ (u := r) (v := r) (hF s (by omega))
-      (fun _ _ => ndTowerSet_mem_univ n (s + 1) fun m hm => hF m (by omega))
+    have h := sigma_mem_univ_const (u := r) (v := r) (hF s (by omega))
+      (ndTowerSet_mem_univ n (s + 1) fun m hm => hF m (by omega))
     rwa [show Nat.max r r = r from Nat.max_self r] at h
 
 /-- **Regime** of the non-dependent tower: a truth value at `0`, strict

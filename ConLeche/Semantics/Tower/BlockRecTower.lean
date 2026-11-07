@@ -311,7 +311,7 @@ theorem psigmaV_uv_mem (u v : Nat) :
         fun _ => (univ (Nat.max u v) : V)) := by
   rw [psigmaV_eq_lamR]
   exact lamR_mem fun _ hA => lamR_mem fun _ hB =>
-    sigma_mem_univ hA (fun _ hx => psigmaFibre_apply V hB hx)
+    sigma_mem_univ_app hA (fun _ hx => psigmaFibre_apply V hB hx)
 
 /-- The chain's fibre λ. -/
 theorem sigChain_lam_mem {ρ : Nat → V} {T : Term} {Ts : List Term} {Q : Term}

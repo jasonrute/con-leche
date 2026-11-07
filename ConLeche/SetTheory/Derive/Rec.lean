@@ -538,6 +538,17 @@ theorem _root_.ConLeche.IsUniverse.sigmaPairsAppF_mem {U S A : V}
   rw [sigAppRelF_eq_kpairImage.mp hy]
   exact hU.kpairImage_mem he (hU.transitive hA hx) (hU.app_mem he hS)
 
+/-- Definable app-pair-product closure (clause 6) at the value level:
+the first-order twin of `sigmaPairs_mem` at an `app S`-family when only
+the values `app S x` are known to be members, not `S` itself. -/
+theorem _root_.ConLeche.IsUniverse.sigmaPairsAppF_val_mem {U S A : V}
+    (hU : IsUniverse (Mem (V := V)) U) (he : (empty : V) ∈ˢ U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → app S x ∈ˢ U) : sigmaPairsAppF S A ∈ˢ U := by
+  unfold sigmaPairsAppF
+  refine hU.sUnion_mem (hU.imageF_mem hA fun x hx y hy => ?_)
+  rw [sigAppRelF_eq_kpairImage.mp hy]
+  exact hU.kpairImage_mem he (hU.transitive hA hx) (hval x hx)
+
 /-- Definable functionality-free app function-space closure (clause 6):
 the first-order twin of `piSet_mem` at an `app S`-family. -/
 theorem _root_.ConLeche.IsUniverse.piSetAppNF_mem {U S A : V}
