@@ -901,4 +901,26 @@ example {a X b ρ : V} (h : ∀ x, x ∈ˢ a → ∃ y, y ∈ˢ app X (kpair b
   ConLeche.Semantics.realize_exAllF.mpr h
 
 
+
+/-! ## Stage 51: the `pi` case of the definable interp step -/
+
+example {v X i : V} (h : v = ConLeche.SetModel.piV (app X (kpair (sfst (ssnd (sfst i))) (ssnd i)))
+    (fun x => app X (kpair (ssnd (ssnd (sfst i)))
+      (ConLeche.Semantics.consGraph x (ssnd i))))) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : V))
+      ConLeche.Semantics.piStepF :=
+  ConLeche.Semantics.realize_piStepF.mpr h
+
+example (ρ : V) : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+      ConLeche.SetModel.piV (app (empty : V) (kpair (ConLeche.Semantics.tmCode ConLeche.Term.Term.prf) ρ))
+        (fun x => app (empty : V) (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 0))
+          (ConLeche.Semantics.consGraph x ρ)))) (empty : V))
+      (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.pi ConLeche.Term.Term.prf
+        (ConLeche.Term.Term.bvar 0))) ρ)) (pt : V))
+    ConLeche.Semantics.piStepF :=
+  ConLeche.Semantics.realize_piStepF_tmCode (X := (empty : V)) (ρ := ρ)
+    ConLeche.Term.Term.prf (ConLeche.Term.Term.bvar 0)
+
+
 end ConLeche.SetTheory.DefinableAppEx
