@@ -127,7 +127,7 @@ theorem sup_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (op1 supF) L := by
   have hU := tg_isUniverse (V := V) hw
   have hω : (omega : V) ∈ˢ (tg (w' + 1) : V) := omega_mem_tg_succ w'
   refine closed_of_acc hw (hU.sigmaConstF_mem (empty_mem_tg (w' + 1)) hω (unitSet_mem_tg (w' + 1)))
-    (maps_op1 fun X hX => nil_or_mem hw (hU.piSet_mem hω fun _ _ => hole1_mem hX Nat.zero_lt_one))
+    (maps_op1 fun X hX => nil_or_mem hw (hU.piSet_const_mem (empty_mem_tg (w' + 1)) hω (hole1_mem hX Nat.zero_lt_one)))
     (acc_op1 ?_)
   exact accRead_binUnion (accRead_const _ _) (accRead_kpairImage (accRead_pi fun _ _ =>
     accRead_hole Nat.zero_lt_one pt_mem_unitSet pt_mem_unitSet))

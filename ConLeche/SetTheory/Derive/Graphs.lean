@@ -750,4 +750,13 @@ theorem _root_.ConLeche.IsUniverse.sigmaConstGraphF_mem {U A D : V}
 /- Opaque interface operator (see `Derive/Empty.lean`). -/
 attribute [irreducible] app
 
+/-- Constant-fibre function-space closure (clause 6 via the subset
+clause): the first-order twin of `piSet_mem` at a constant family
+`fun _ => c`, using `sigmaPairs A (fun _ => c) = sigmaConstF A c`. -/
+theorem _root_.ConLeche.IsUniverse.piSet_const_mem {U A c : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hA : A ∈ˢ U) (hc : c ∈ˢ U) : piSet A (fun _ => c) ∈ˢ U := by
+  unfold piSet
+  rw [← sigmaConstF_eq]
+  exact hU.sepF_mem (hU.power_mem (hU.sigmaConstF_mem he hA hc))
+
 end ConLeche.SetTheory
