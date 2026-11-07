@@ -557,6 +557,16 @@ theorem _root_.ConLeche.IsUniverse.piSetAppNF_mem {U S A : V}
   unfold piSetAppNF
   exact hU.sepF_mem (hU.power_mem (hU.sigmaPairsAppF_mem he hS hA))
 
+/-- Definable functionality-free app function-space closure (clause 6)
+at the value level: the first-order twin of `piSet_mem` at an
+`app S`-family when only the values `app S x` are members, not `S`
+itself. -/
+theorem _root_.ConLeche.IsUniverse.piSetAppNF_val_mem {U S A : V}
+    (hU : IsUniverse (Mem (V := V)) U) (he : (empty : V) ∈ˢ U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → app S x ∈ˢ U) : piSetAppNF S A ∈ˢ U := by
+  unfold piSetAppNF
+  exact hU.sepF_mem (hU.power_mem (hU.sigmaPairsAppF_val_mem he hA hval))
+
 /-- Application reading at a functionality-free app function space. -/
 theorem app_mem_of_mem_piSetAppNF {S A f a : V} (hf : f ∈ˢ piSetAppNF S A) (ha : a ∈ˢ A) :
     app f a ∈ˢ app S a := by
