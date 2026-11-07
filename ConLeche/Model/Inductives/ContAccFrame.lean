@@ -714,7 +714,7 @@ accessible in the enclosing frame (`lfpP_acc_group`).  The stored
 container's own facts used are its clause's accessibility (`acc`, at
 its `Type`-valued level `w`: the sections' accessibility and
 monotonicity) and (W). -/
-theorem frameAccOut_of {w : Nat}
+theorem frameAccOut_of {w : Nat} (hwD : D.w (Level.substFn φ lps us) = w)
     {prog : List NestHole} (hhi : ctx.hiAt prog.length = hi)
     {Δh : List Term} {R₀ : FrameRel V} (hR₀ : HoleRelA mp.base2 φ w ctx prog hi Δh R₀)
     (hfit : ∀ ρ ρ', R₀ ρ ρ' →
@@ -726,183 +726,200 @@ theorem frameAccOut_of {w : Nat}
         (Level.substFn φ lps us) grp dsa hi g j) :
     FrameAccOut w ctx prog hi R₀ D (Level.substFn φ lps us) dsa (InGrp D grp) := by
   classical
-  haveI : Nonempty (Occ V) := ⟨(0, [], empty)⟩
-  obtain ⟨h, -, -, -⟩ := mp.lfp_ok D hD
-  have hkNN := h.kN
-  have hnP : ctx.nP ≤ hi := by rw [← hhi]; simp only [NestCtx.hiAt]; omega
-  -- the constructors' bounds, as functions
-  let TBt : Nat → Nat → (Nat → V) → V := fun g j =>
-    if hgj : InGrp D grp g ∧ j < D.nctors g then Classical.choose (hper g j hgj.1 hgj.2)
-    else fun _ => empty
-  have hTB : ∀ g j (hG : InGrp D grp g) (hj : j < D.nctors g),
-      (∀ σ, w ≠ 0 → TBt g j σ ∈ˢ (tg w : V)) ∧
-      (∀ σ σ', (∀ q, ParamPos (hi + grp.length) ctx.nP q → σ q = σ' q) → TBt g j σ = TBt g j σ') ∧
-      ∀ ρ ρ₀ Y, R₀ ρ ρ₀ → InTupleSpace (D.w (Level.substFn φ lps us)) D.N
-          (D.idx (Level.substFn φ lps us) (keyFrame dsa hi ρ)) Y →
-        ∀ t fs, D.HFits (Level.substFn φ lps us) (keyFrame dsa hi ρ)
-            (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)) Y) t g j fs →
-          ∃ (B : V) (gi : V → Occ V),
-            B ⊆ˢ TBt g j (frameVal D (Level.substFn φ lps us) grp dsa hi ρ Y) ∧
-            (∀ b, b ∈ˢ B → Adm (HoleQ ctx ((grpNews us ds hi grp).reverse ++ prog)
-                (hi + grp.length)) (gi b) ∧
-              Holds (frameVal D (Level.substFn φ lps us) grp dsa hi ρ Y) (gi b)) ∧
-            ∀ ρ' Y', R₀ ρ ρ' → InTupleSpace (D.w (Level.substFn φ lps us)) D.N
-                (D.idx (Level.substFn φ lps us) (keyFrame dsa hi ρ')) Y' →
-              (∀ b, b ∈ˢ B → Holds (frameVal D (Level.substFn φ lps us) grp dsa hi ρ' Y') (gi b)) →
-              D.HFits (Level.substFn φ lps us) (keyFrame dsa hi ρ')
-                (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ')) Y')
-                t g j fs := by
-    intro g j hG hj
-    have e : TBt g j = Classical.choose (hper g j hG hj) := by
-      simp only [TBt, dite_eq_left (show InGrp D grp g ∧ j < D.nctors g from ⟨hG, hj⟩)]
-    rw [e]
-    exact Classical.choose_spec (hper g j hG hj)
-  have hTBsz : ∀ g j σ, w ≠ 0 → TBt g j σ ∈ˢ (tg w : V) := by
-    intro g j σ hw
-    by_cases hgj : InGrp D grp g ∧ j < D.nctors g
-    · exact (hTB g j hgj.1 hgj.2).1 σ hw
-    · simp only [TBt, dite_eq_right hgj]; exact empty_mem_tg w
-  -- the frame valuations of two frames agreeing at the parameters agree at the parameters
-  have hpar : ∀ (ρ ρ' Y Y' : Nat → V), (∀ q, ParamPos hi ctx.nP q → ρ q = ρ' q) →
-      ∀ q, ParamPos (hi + grp.length) ctx.nP q →
-        frameVal D (Level.substFn φ lps us) grp dsa hi ρ Y q
-          = frameVal D (Level.substFn φ lps us) grp dsa hi ρ' Y' q := by
-    intro ρ ρ' Y Y' hag q hq
-    obtain ⟨hq1, hq2⟩ := hq
-    obtain ⟨r, rfl⟩ : ∃ r, q = r + grp.length := ⟨q - grp.length, by omega⟩
-    rw [frameVal_ge, frameVal_ge]
-    exact hag r ⟨by omega, by omega⟩
-  have hTBeq : ∀ g j (ρ ρ' Y Y' : Nat → V), (∀ q, ParamPos hi ctx.nP q → ρ q = ρ' q) →
-      TBt g j (frameVal D (Level.substFn φ lps us) grp dsa hi ρ Y)
-        = TBt g j (frameVal D (Level.substFn φ lps us) grp dsa hi ρ' Y') := by
-    intro g j ρ ρ' Y Y' hag
-    by_cases hgj : InGrp D grp g ∧ j < D.nctors g
-    · exact (hTB g j hgj.1 hgj.2).2.1 _ _ (hpar ρ ρ' Y Y' hag)
-    · simp only [TBt, dite_eq_right hgj]
-  -- the bound
-  let A0 : (Nat → V) → V := fun ρ =>
-    LfpDatum.finUnion (fun c => LfpDatum.finUnion (fun j => TBt c j (frameVal D (Level.substFn φ lps us) grp dsa hi ρ
-      (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)))) (D.nctors c)) D.N
-  have hA0 : ∀ ρ, w ≠ 0 → A0 ρ ∈ˢ (tg w : V) := fun ρ hw =>
-    LfpDatum.finUnion_mem hw fun c _ => LfpDatum.finUnion_mem hw fun j _ => hTBsz c j _ hw
-  -- the relation's tails and index sets
-  have hagree : ∀ ρ ρ', R₀ ρ ρ' → AgreeOff (holeP hi ctx.nP hi) ρ ρ' := by
-    intro ρ ρ' hr; have := hR₀.agree ρ ρ' hr; rwa [hhi] at this
-  have htail : ∀ ρ ρ', R₀ ρ ρ' → (fun j => ρ (j + hi)) = (fun j => ρ' (j + hi)) := by
-    intro ρ ρ' hr; funext j
-    exact hagree ρ ρ' hr (j + hi) fun hp => by have := hp.1; omega
-  have hIs : ∀ p p', R₀ p p' → ∀ m, InGrp D grp m →
-      D.idx (Level.substFn φ lps us) (keyFrame dsa hi p) m
-        = D.idx (Level.substFn φ lps us) (keyFrame dsa hi p') m :=
-    fun p p' hr m hm => grp_idx_eq mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hm
-      (hagree p p' hr)
-  -- the joint accessibility
-  have hacc : AccJointG (D.w (Level.substFn φ lps us)) D.N
-      (fun p => D.idx (Level.substFn φ lps us) (keyFrame dsa hi p)) (fun p => ∃ p₀, R₀ p p₀) R₀
-      (fun p o => Adm (HoleQ ctx prog hi) o ∧ Holds p o) (InGrp D grp)
-      (fun p Y => D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)
-        (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)) Y)) A0 := by
-    rintro p Y ⟨p₀, hp⟩ hY m hm hGm i hiI x hx
-    have hs := (hfit p p₀ hp).1
-    have hmixS := mixT_mem (G := InGrp D grp)
-      (C := D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)) (lfpTuple_mem _ _ _ _) hY
-    obtain ⟨j, fs, hf, rfl⟩ := (h.fibre _ _ hs _ hmixS m hm i hiI x).mp hx
-    have hj := hf.1
-    obtain ⟨-, -, hsup⟩ := hTB m j hGm hj
-    obtain ⟨B, gi, hB, hgi, htr⟩ := hsup p p₀ Y hp hY i fs hf
-    let item : V → Occ V ⊕ (Nat × V × V) := fun b =>
-      if (gi b).1 < grp.length then .inr (frameOcc D (Level.substFn φ lps us) grp (gi b))
-      else .inl ((gi b).1 - grp.length, (gi b).2)
-    -- a new-hole item off its fit is no occurrence, but it is held alike at
-    -- every related frame (`frame_item_nofit`): the support drops it
-    let NF : V → Prop := fun b => (gi b).1 < grp.length ∧ ¬ SpineFit (keyFrame dsa hi p)
-      (D.ids (frameOcc D (Level.substFn φ lps us) grp (gi b)).1 (Level.substFn φ lps us))
-      (gi b).2.1
-    refine ⟨sep B fun b => ¬ NF b, item, fun b hb => ?_, fun b hb => ?_, ?_⟩
-    · have hb' := hB b (sep_subset b hb)
-      rw [hTBeq m j p p Y (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p))
-        fun _ _ => rfl] at hb'
-      exact LfpDatum.subset_finUnion (f := fun c => LfpDatum.finUnion (fun j => TBt c j
-        (frameVal D (Level.substFn φ lps us) grp dsa hi p
-          (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)))) (D.nctors c)) hm _
-        (LfpDatum.subset_finUnion (f := fun j => TBt m j (frameVal D (Level.substFn φ lps us) grp dsa hi p
-          (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)))) hj _ hb')
-    · obtain ⟨hbB, hNF⟩ := mem_sep.mp hb
-      obtain ⟨hQ, hH⟩ := hgi b hbB
-      rcases frame_item_fwd mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hQ hH with
-        ⟨hlt, hGc, hin, -⟩ | ⟨hge, hQo, hHo⟩ | ⟨hlt, -, hnf⟩
-      · simp only [item, ite_eq_left hlt]; exact ⟨hGc, hin⟩
-      · simp only [item, ite_eq_right (show ¬ (gi b).1 < grp.length by omega)]; exact ⟨hQo, hHo⟩
-      · exact absurd ⟨hlt, hnf⟩ hNF
-    · rintro p' Y' hR' ⟨p₀', hp'⟩ hY' hitems
-      have hs' := (hfit p' p₀' hp').1
-      have hf' := htr p' Y' hR' hY' fun b hb => by
-        obtain ⟨hQ, hH⟩ := hgi b hb
-        by_cases hNF : NF b
-        · exact frame_item_nofit mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hNF.1
-            (hagree p p' hR') hY hY'
-            (by
-              rcases frame_item_fwd mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hQ hH
-                with ⟨-, -, -, hfit0⟩ | ⟨hge, -⟩ | ⟨-, hl, -⟩
-              · exact absurd (hfit0 p (fun _ _ => rfl)) hNF.2
-              · exact absurd hNF.1 (by omega)
-              · exact hl)
-            hNF.2 hH
-        have hib := hitems b (mem_sep.mpr ⟨hb, hNF⟩)
+  by_cases hw0 : w = 0
+  · subst hw0
+    sorry
+  · have hw : w ≠ 0 := hw0
+    haveI : Nonempty (Occ V) := ⟨(0, [], empty)⟩
+    obtain ⟨h, -, -, -⟩ := mp.lfp_ok D hD
+    have hkNN := h.kN
+    have hnP : ctx.nP ≤ hi := by rw [← hhi]; simp only [NestCtx.hiAt]; omega
+    -- the constructors' bounds, as functions
+    let TBt : Nat → Nat → (Nat → V) → V := fun g j =>
+      if hgj : InGrp D grp g ∧ j < D.nctors g then Classical.choose (hper g j hgj.1 hgj.2)
+      else fun _ => empty
+    have hTB : ∀ g j (hG : InGrp D grp g) (hj : j < D.nctors g),
+        (∀ σ, w ≠ 0 → TBt g j σ ∈ˢ (tg w : V)) ∧
+        (∀ σ σ', (∀ q, ParamPos (hi + grp.length) ctx.nP q → σ q = σ' q) → TBt g j σ = TBt g j σ') ∧
+        ∀ ρ ρ₀ Y, R₀ ρ ρ₀ → InTupleSpace (D.w (Level.substFn φ lps us)) D.N
+            (D.idx (Level.substFn φ lps us) (keyFrame dsa hi ρ)) Y →
+          ∀ t fs, D.HFits (Level.substFn φ lps us) (keyFrame dsa hi ρ)
+              (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)) Y) t g j fs →
+            ∃ (B : V) (gi : V → Occ V),
+              B ⊆ˢ TBt g j (frameVal D (Level.substFn φ lps us) grp dsa hi ρ Y) ∧
+              (∀ b, b ∈ˢ B → Adm (HoleQ ctx ((grpNews us ds hi grp).reverse ++ prog)
+                  (hi + grp.length)) (gi b) ∧
+                Holds (frameVal D (Level.substFn φ lps us) grp dsa hi ρ Y) (gi b)) ∧
+              ∀ ρ' Y', R₀ ρ ρ' → InTupleSpace (D.w (Level.substFn φ lps us)) D.N
+                  (D.idx (Level.substFn φ lps us) (keyFrame dsa hi ρ')) Y' →
+                (∀ b, b ∈ˢ B → Holds (frameVal D (Level.substFn φ lps us) grp dsa hi ρ' Y') (gi b)) →
+                D.HFits (Level.substFn φ lps us) (keyFrame dsa hi ρ')
+                  (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ')) Y')
+                  t g j fs := by
+      intro g j hG hj
+      have e : TBt g j = Classical.choose (hper g j hG hj) := by
+        simp only [TBt, dite_eq_left (show InGrp D grp g ∧ j < D.nctors g from ⟨hG, hj⟩)]
+      rw [e]
+      exact Classical.choose_spec (hper g j hG hj)
+    have hTBsz : ∀ g j σ, w ≠ 0 → TBt g j σ ∈ˢ (tg w : V) := by
+      intro g j σ hw
+      by_cases hgj : InGrp D grp g ∧ j < D.nctors g
+      · exact (hTB g j hgj.1 hgj.2).1 σ hw
+      · simp only [TBt, dite_eq_right hgj]; exact empty_mem_tg w
+    -- the frame valuations of two frames agreeing at the parameters agree at the parameters
+    have hpar : ∀ (ρ ρ' Y Y' : Nat → V), (∀ q, ParamPos hi ctx.nP q → ρ q = ρ' q) →
+        ∀ q, ParamPos (hi + grp.length) ctx.nP q →
+          frameVal D (Level.substFn φ lps us) grp dsa hi ρ Y q
+            = frameVal D (Level.substFn φ lps us) grp dsa hi ρ' Y' q := by
+      intro ρ ρ' Y Y' hag q hq
+      obtain ⟨hq1, hq2⟩ := hq
+      obtain ⟨r, rfl⟩ : ∃ r, q = r + grp.length := ⟨q - grp.length, by omega⟩
+      rw [frameVal_ge, frameVal_ge]
+      exact hag r ⟨by omega, by omega⟩
+    have hTBeq : ∀ g j (ρ ρ' Y Y' : Nat → V), (∀ q, ParamPos hi ctx.nP q → ρ q = ρ' q) →
+        TBt g j (frameVal D (Level.substFn φ lps us) grp dsa hi ρ Y)
+          = TBt g j (frameVal D (Level.substFn φ lps us) grp dsa hi ρ' Y') := by
+      intro g j ρ ρ' Y Y' hag
+      by_cases hgj : InGrp D grp g ∧ j < D.nctors g
+      · exact (hTB g j hgj.1 hgj.2).2.1 _ _ (hpar ρ ρ' Y Y' hag)
+      · simp only [TBt, dite_eq_right hgj]
+    -- the bound
+    let A0 : (Nat → V) → V := fun ρ =>
+      LfpDatum.finUnion (fun c => LfpDatum.finUnion (fun j => TBt c j (frameVal D (Level.substFn φ lps us) grp dsa hi ρ
+        (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)))) (D.nctors c)) D.N
+    have hA0 : ∀ ρ, w ≠ 0 → A0 ρ ∈ˢ (tg w : V) := fun ρ hw =>
+      LfpDatum.finUnion_mem hw fun c _ => LfpDatum.finUnion_mem hw fun j _ => hTBsz c j _ hw
+    -- the relation's tails and index sets
+    have hagree : ∀ ρ ρ', R₀ ρ ρ' → AgreeOff (holeP hi ctx.nP hi) ρ ρ' := by
+      intro ρ ρ' hr; have := hR₀.agree ρ ρ' hr; rwa [hhi] at this
+    have htail : ∀ ρ ρ', R₀ ρ ρ' → (fun j => ρ (j + hi)) = (fun j => ρ' (j + hi)) := by
+      intro ρ ρ' hr; funext j
+      exact hagree ρ ρ' hr (j + hi) fun hp => by have := hp.1; omega
+    have hIs : ∀ p p', R₀ p p' → ∀ m, InGrp D grp m →
+        D.idx (Level.substFn φ lps us) (keyFrame dsa hi p) m
+          = D.idx (Level.substFn φ lps us) (keyFrame dsa hi p') m :=
+      fun p p' hr m hm => grp_idx_eq mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hm
+        (hagree p p' hr)
+    -- the joint accessibility
+    have hacc : AccJointG (D.w (Level.substFn φ lps us)) D.N
+        (fun p => D.idx (Level.substFn φ lps us) (keyFrame dsa hi p)) (fun p => ∃ p₀, R₀ p p₀) R₀
+        (fun p o => Adm (HoleQ ctx prog hi) o ∧ Holds p o) (InGrp D grp)
+        (fun p Y => D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)
+          (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)) Y)) A0 := by
+      rintro p Y ⟨p₀, hp⟩ hY m hm hGm i hiI x hx
+      have hs := (hfit p p₀ hp).1
+      have hmixS := mixT_mem (G := InGrp D grp)
+        (C := D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)) (lfpTuple_mem _ _ _ _) hY
+      obtain ⟨j, fs, hf, rfl⟩ := (h.fibre _ _ hs _ hmixS m hm i hiI x).mp hx
+      have hj := hf.1
+      obtain ⟨-, -, hsup⟩ := hTB m j hGm hj
+      obtain ⟨B, gi, hB, hgi, htr⟩ := hsup p p₀ Y hp hY i fs hf
+      let item : V → Occ V ⊕ (Nat × V × V) := fun b =>
+        if (gi b).1 < grp.length then .inr (frameOcc D (Level.substFn φ lps us) grp (gi b))
+        else .inl ((gi b).1 - grp.length, (gi b).2)
+      -- a new-hole item off its fit is no occurrence, but it is held alike at
+      -- every related frame (`frame_item_nofit`): the support drops it
+      let NF : V → Prop := fun b => (gi b).1 < grp.length ∧ ¬ SpineFit (keyFrame dsa hi p)
+        (D.ids (frameOcc D (Level.substFn φ lps us) grp (gi b)).1 (Level.substFn φ lps us))
+        (gi b).2.1
+      refine ⟨sep B fun b => ¬ NF b, item, fun b hb => ?_, fun b hb => ?_, ?_⟩
+      · have hb' := hB b (sep_subset b hb)
+        rw [hTBeq m j p p Y (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p))
+          fun _ _ => rfl] at hb'
+        exact LfpDatum.subset_finUnion (f := fun c => LfpDatum.finUnion (fun j => TBt c j
+          (frameVal D (Level.substFn φ lps us) grp dsa hi p
+            (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)))) (D.nctors c)) hm _
+          (LfpDatum.subset_finUnion (f := fun j => TBt m j (frameVal D (Level.substFn φ lps us) grp dsa hi p
+            (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)))) hj _ hb')
+      · obtain ⟨hbB, hNF⟩ := mem_sep.mp hb
+        obtain ⟨hQ, hH⟩ := hgi b hbB
         rcases frame_item_fwd mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hQ hH with
-          ⟨hlt, -, -, hfit0⟩ | ⟨hge, -, -⟩ | ⟨hlt, -, hnf⟩
-        · simp only [item, ite_eq_left hlt] at hib
-          exact frame_item_bwd hlt (hfit0 p' (hagree p p' hR')) hib.2
-        · simp only [item, ite_eq_right (show ¬ (gi b).1 < grp.length by omega)] at hib
-          exact (holds_frameVal_ge hge).mpr hib.2
+          ⟨hlt, hGc, hin, -⟩ | ⟨hge, hQo, hHo⟩ | ⟨hlt, -, hnf⟩
+        · simp only [item, ite_eq_left hlt]; exact ⟨hGc, hin⟩
+        · simp only [item, ite_eq_right (show ¬ (gi b).1 < grp.length by omega)]; exact ⟨hQo, hHo⟩
         · exact absurd ⟨hlt, hnf⟩ hNF
-      have hmixS' := mixT_mem (G := InGrp D grp)
-        (C := D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p')) (lfpTuple_mem _ _ _ _) hY'
-      exact (h.fibre _ _ hs' _ hmixS' m hm i (by rw [← hIs p p' hR' m hGm]; exact hiI) _).mpr
-        ⟨j, fs, hf', rfl⟩
-  -- the stored container's accessibility at the key frame, and its monotonicity
-  have hDacc : ∀ p p₀, R₀ p p₀ → ∃ A', AccTuple (D.w (Level.substFn φ lps us)) D.N
-      (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p)) D.N
-      (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p))
-      (D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)) A' :=
-    fun p p₀ hp => (h.acc _ _ (hfit p p₀ hp).1).elim fun A hA => ⟨A, hA.2⟩
-  have hDmono : ∀ p p₀, R₀ p p₀ → MonoTuple (D.w (Level.substFn φ lps us)) D.N
-      (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p))
-      (D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)) :=
-    fun p p₀ hp => (hDacc p p₀ hp).elim fun _ hA => hA.monoTuple
-  have hDmaps : ∀ p p₀, R₀ p p₀ → MapsTuple (D.w (Level.substFn φ lps us)) D.N
-      (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p))
-      (D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)) :=
-    fun p p₀ hp => h.maps _ _ (hfit p p₀ hp).1
-  have hmain := lfpP_acc_group (O := Occ V) hIs
-    (fun p ⟨p₀, hp⟩ => ⟨_, mixT_isClosed (G := InGrp D grp)
-      (h.closed (hfit p p₀ hp).1) (hDmono p p₀ hp) (hDmaps p p₀ hp)⟩)
-    (fun p ⟨p₀, hp⟩ => mixT_mapsTuple (hDmaps p p₀ hp) (lfpTuple_mem _ _ _ _))
-    (fun p ⟨p₀, hp⟩ => (hDacc p p₀ hp).elim fun A' hA' =>
-      ⟨A', accTuple_mixT (G := InGrp D grp) hA' (lfpTuple_mem _ _ _ _)⟩) hacc
-  -- the carrier on the group is the mixed operator's least tuple
-  have hcarr : ∀ ρ ρ₀, R₀ ρ ρ₀ → ∀ c, InGrp D grp c →
-      lfpTuple (D.w (Level.substFn φ lps us)) D.N
-          (D.idx (Level.substFn φ lps us) (keyFrame dsa hi ρ))
-          (fun Y => D.Φ (Level.substFn φ lps us) (keyFrame dsa hi ρ)
-            (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)) Y)) c
-        = D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ) c := by
-    intro ρ ρ₀ hr c hc
-    exact lfpTuple_mixT (h.closed (hfit ρ ρ₀ hr).1) (hDmono ρ ρ₀ hr) (hDmaps ρ ρ₀ hr) c
-      (Nat.lt_of_lt_of_le hc.1 hkNN) hc
-  refine ⟨fun ρ => accPaths (A0 ρ), fun ρ hw => accPaths_mem hw (hA0 ρ hw), fun ρ ρ' hag => ?_, ?_⟩
-  · show accPaths (A0 ρ) = accPaths (A0 ρ')
-    have : A0 ρ = A0 ρ' := by
-      show LfpDatum.finUnion _ _ = LfpDatum.finUnion _ _
-      congr 1; funext c; congr 1; funext j
-      exact hTBeq c j ρ ρ' _ _ hag
-    rw [this]
-  · intro c hc ρ ρ₀ hr i hiI x hx
-    rw [← hcarr ρ ρ₀ hr c hc] at hx
-    obtain ⟨B, g, hB, hg', htr⟩ := hmain ρ ⟨ρ₀, hr⟩ c (Nat.lt_of_lt_of_le hc.1 hkNN) hc i hiI x hx
-    refine ⟨B, g, hB, hg', fun ρ' hr' hheld => ?_⟩
-    have hx' := htr ρ' hr' ⟨ρ, hR₀.symm ρ ρ' hr'⟩ fun b hb => ⟨(hg' b hb).1, hheld b hb⟩
-    rwa [hcarr ρ' ρ (hR₀.symm ρ ρ' hr') c hc] at hx'
+      · rintro p' Y' hR' ⟨p₀', hp'⟩ hY' hitems
+        have hs' := (hfit p' p₀' hp').1
+        have hf' := htr p' Y' hR' hY' fun b hb => by
+          obtain ⟨hQ, hH⟩ := hgi b hb
+          by_cases hNF : NF b
+          · exact frame_item_nofit mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hNF.1
+              (hagree p p' hR') hY hY'
+              (by
+                rcases frame_item_fwd mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hQ hH
+                  with ⟨-, -, -, hfit0⟩ | ⟨hge, -⟩ | ⟨-, hl, -⟩
+                · exact absurd (hfit0 p (fun _ _ => rfl)) hNF.2
+                · exact absurd hNF.1 (by omega)
+                · exact hl)
+              hNF.2 hH
+          have hib := hitems b (mem_sep.mpr ⟨hb, hNF⟩)
+          rcases frame_item_fwd mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hQ hH with
+            ⟨hlt, -, -, hfit0⟩ | ⟨hge, -, -⟩ | ⟨hlt, -, hnf⟩
+          · simp only [item, ite_eq_left hlt] at hib
+            exact frame_item_bwd hlt (hfit0 p' (hagree p p' hR')) hib.2
+          · simp only [item, ite_eq_right (show ¬ (gi b).1 < grp.length by omega)] at hib
+            exact (holds_frameVal_ge hge).mpr hib.2
+          · exact absurd ⟨hlt, hnf⟩ hNF
+        have hmixS' := mixT_mem (G := InGrp D grp)
+          (C := D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p')) (lfpTuple_mem _ _ _ _) hY'
+        exact (h.fibre _ _ hs' _ hmixS' m hm i (by rw [← hIs p p' hR' m hGm]; exact hiI) _).mpr
+          ⟨j, fs, hf', rfl⟩
+    -- the stored container's accessibility at the key frame, and its monotonicity
+    have hDacc : ∀ p p₀, R₀ p p₀ → ∃ A', AccTuple (D.w (Level.substFn φ lps us)) D.N
+        (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p)) D.N
+        (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p))
+        (D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)) A' :=
+      fun p p₀ hp => (h.acc _ _ (hfit p p₀ hp).1).elim fun A hA => ⟨A, hA.2⟩
+    have hDmono : ∀ p p₀, R₀ p p₀ → MonoTuple (D.w (Level.substFn φ lps us)) D.N
+        (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p))
+        (D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)) :=
+      fun p p₀ hp => (hDacc p p₀ hp).elim fun _ hA => hA.monoTuple
+    have hDmaps : ∀ p p₀, R₀ p p₀ → MapsTuple (D.w (Level.substFn φ lps us)) D.N
+        (D.idx (Level.substFn φ lps us) (keyFrame dsa hi p))
+        (D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)) :=
+      fun p p₀ hp => h.maps _ _ (hfit p p₀ hp).1
+    have hmain := lfpP_acc_group (O := Occ V) (P := Nat → V)
+      (w := D.w (Level.substFn φ lps us)) (kY := D.N)
+      (IsY := fun p => D.idx (Level.substFn φ lps us) (keyFrame dsa hi p))
+      (Sp := fun p => ∃ p₀, R₀ p p₀) (Rp := R₀)
+      (HasP := fun p o => Adm (HoleQ ctx prog hi) o ∧ Holds p o)
+      (G := InGrp D grp) (A := A0)
+      (Θ := fun p Y => D.Φ (Level.substFn φ lps us) (keyFrame dsa hi p)
+        (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi p)) Y))
+      (fun h => hw (hwD.symm.trans h : w = 0))
+      (fun p _ hw' => by
+        have h1 : A0 p ∈ˢ (tg w : V) :=
+          hA0 p (fun h => hw' (hwD.trans h : D.w (Level.substFn φ lps us) = 0))
+        rw [← hwD] at h1
+        exact h1) hIs
+      (fun p ⟨p₀, hp⟩ => ⟨_, mixT_isClosed (G := InGrp D grp)
+        (h.closed (hfit p p₀ hp).1) (hDmono p p₀ hp) (hDmaps p p₀ hp)⟩)
+      (fun p ⟨p₀, hp⟩ => mixT_mapsTuple (hDmaps p p₀ hp) (lfpTuple_mem _ _ _ _))
+      (fun p ⟨p₀, hp⟩ => (hDacc p p₀ hp).elim fun A' hA' =>
+        ⟨A', accTuple_mixT (G := InGrp D grp) hA' (lfpTuple_mem _ _ _ _)⟩) hacc
+    -- the carrier on the group is the mixed operator's least tuple
+    have hcarr : ∀ ρ ρ₀, R₀ ρ ρ₀ → ∀ c, InGrp D grp c →
+        lfpTuple (D.w (Level.substFn φ lps us)) D.N
+            (D.idx (Level.substFn φ lps us) (keyFrame dsa hi ρ))
+            (fun Y => D.Φ (Level.substFn φ lps us) (keyFrame dsa hi ρ)
+              (mixT (InGrp D grp) (D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ)) Y)) c
+          = D.carrier (Level.substFn φ lps us) (keyFrame dsa hi ρ) c := by
+      intro ρ ρ₀ hr c hc
+      exact lfpTuple_mixT (h.closed (hfit ρ ρ₀ hr).1) (hDmono ρ ρ₀ hr) (hDmaps ρ ρ₀ hr) c
+        (Nat.lt_of_lt_of_le hc.1 hkNN) hc
+    refine ⟨fun ρ => accPaths w (A0 ρ), fun ρ hw' => accPaths_mem hw' (hA0 ρ hw'), fun ρ ρ' hag => ?_, ?_⟩
+    · show accPaths w (A0 ρ) = accPaths w (A0 ρ')
+      have : A0 ρ = A0 ρ' := by
+        show LfpDatum.finUnion _ _ = LfpDatum.finUnion _ _
+        congr 1; funext c; congr 1; funext j
+        exact hTBeq c j ρ ρ' _ _ hag
+      rw [this]
+    · intro c hc ρ ρ₀ hr i hiI x hx
+      rw [← hcarr ρ ρ₀ hr c hc] at hx
+      obtain ⟨B, g, hB, hg', htr⟩ := hmain ρ ⟨ρ₀, hr⟩ c (Nat.lt_of_lt_of_le hc.1 hkNN) hc i hiI x hx
+      refine ⟨B, g, by rw [← hwD]; exact hB, hg', fun ρ' hr' hheld => ?_⟩
+      have hx' := htr ρ' hr' ⟨ρ, hR₀.symm ρ ρ' hr'⟩ fun b hb => ⟨(hg' b hb).1, hheld b hb⟩
+      rwa [hcarr ρ' ρ (hR₀.symm ρ ρ' hr') c hc] at hx'
 
 set_option maxHeartbeats 1600000 in
 /-- **A frame's constructors make it accessible** (the accessibility
@@ -963,7 +980,7 @@ theorem frameIterAcc (hin : RulesInputs V mp.base2 φ) {w : Nat}
       obtain ⟨ty, u, hty, hsort⟩ := hinf
       exact ⟨_, hfr, hC, hrd, gradedTy_of_sort hin hty hsort hfr hC.toCtxOk hrd⟩)
     hQ
-  refine frameAccOut_of mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hhi hR₀ hfit
+  refine frameAccOut_of mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hwD hhi hR₀ hfit
     fun g j hG hj => ?_
   obtain ⟨x, hxmem, hfc⟩ := grpCtor_found hcov hgc hG hj
   exact frameCtor_acc mp hD hnN hkN hfind hlps hnd hul hds hdsa hlenP hg hwD hhi hR₀ hfit hG hj

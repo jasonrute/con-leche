@@ -399,11 +399,8 @@ example (hw : w ≠ 0) : sigmaConstGraphF (unitSet : V) (unitSet : V) ∈ˢ (tg 
 /-! ## The definable countable union (`natUnionF`) and the natFibre bridges
 
 Over `ω`, `natUnionF (constGraphF c omega)` collects `app (constGraphF c
-omega) d = c` for every `d ∈ˢ omega`, i.e. it is exactly `c`; the meta
-`natUnion (fun _ => c)` is contained via `natUnion_subset_natUnionF`
-(one-sided in general: at nonstandard `c ∈ˢ ω` the junk fibre `empty`
-differs from `app G c`).  On the standard-numeral domain
-`{vnat 0, vnat 1}` the two-sided `sigmaPairs` bridge holds. -/
+omega) d = c` for every `d ∈ˢ omega`, i.e. it is exactly `c` (the meta
+`natUnion` was retired in stage 26). -/
 
 example (c x : V) : x ∈ˢ Tower.natUnionF (constGraphF c omega) ↔ x ∈ˢ c := by
   rw [Tower.mem_natUnionF]
@@ -414,23 +411,11 @@ example (c x : V) : x ∈ˢ Tower.natUnionF (constGraphF c omega) ↔ x ∈ˢ c 
   · intro hx
     exact ⟨vnat 0, vnat_mem_omega 0, by rw [app_constGraphF (vnat_mem_omega 0)]; exact hx⟩
 
-example (c : V) : Tower.natUnion (fun _ => c) ⊆ˢ Tower.natUnionF (constGraphF c omega) :=
-  Tower.natUnion_subset_natUnionF (fun i => app_constGraphF (vnat_mem_omega i))
-
 example (hw : w ≠ 0) : Tower.natUnionF (constGraphF (unitSet : V) omega) ∈ˢ (tg w : V) := by
   obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
   exact Tower.natUnionF_mem_tg_pos (Nat.succ_ne_zero w')
     ((tg_isUniverse (Nat.succ_ne_zero w')).constGraphF_mem (empty_mem_tg _)
       (unitSet_mem_tg _) (omega_mem_tg_succ w'))
-
-example : sigmaPairs (upair (vnat 0) (vnat 1) : V) (Tower.natFibre (fun _ => (empty : V))) =
-    sigmaPairsAppF (empty : V) (upair (vnat 0) (vnat 1)) :=
-  Tower.sigmaPairs_natFibre_eq_sigmaPairsAppF
-    (fun c hc => by
-      rcases mem_upair.mp hc with rfl | rfl
-      · exact ⟨0, rfl⟩
-      · exact ⟨1, rfl⟩)
-    (fun i => app_empty _)
 
 /-! ## The definable iteration graph (`iterStepGraphF` / `iterGraphF` / `accPathsF`) -/
 

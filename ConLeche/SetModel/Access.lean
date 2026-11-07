@@ -41,7 +41,6 @@ small}` has the universe's ordinals as its least fixed point.
 
 namespace ConLeche.SetTheory
 
-open ConLeche.SetTheory.Tower (natUnion mem_natUnion natUnion_mem_tg_pos)
 
 universe u
 
@@ -69,21 +68,41 @@ noncomputable def accPathsN (A : V) : Nat → V
   | 0 => unitSet
   | n + 1 => sigmaConstF A (accPathsN A n)
 
-/-- All finite paths over `A`. -/
-noncomputable def accPaths (A : V) : V := natUnion (accPathsN A)
+/-- All finite paths over `A` at level `w`: the definable path set
+`accPathsF A (tg w)` → the first-order twin of the meta
+`natUnion (accPathsN A)` (stage 26). -/
+noncomputable def accPaths (w : Nat) (A : V) : V := Tower.accPathsF A (tg w)
 
-theorem pt_mem_accPaths (A : V) : (pt : V) ∈ˢ accPaths A :=
-  mem_natUnion.mpr ⟨0, pt_mem_unitSet⟩
+theorem pt_mem_accPaths (w : Nat) (A : V) : (pt : V) ∈ˢ accPaths w A :=
+  Tower.pt_mem_accPathsF A (tg w)
 
-theorem kpair_mem_accPaths {A a p : V} (ha : a ∈ˢ A) (hp : p ∈ˢ accPaths A) :
-    kpair a p ∈ˢ accPaths A := by
-  obtain ⟨n, hn⟩ := mem_natUnion.mp hp
-  exact mem_natUnion.mpr ⟨n + 1, mem_sigmaConstF.mpr ⟨a, ha, p, hn, rfl⟩⟩
+/-- The definable iteration graph over `ω` stays in a positive axiomatic
+level containing `A` (stage 25's `IsUniverse.recGraph_mem`). -/
+theorem iterGraphF_mem_tg {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
+    Tower.iterGraphF A (tg w) ∈ˢ (tg w : V) := by
+  obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
+  have hU := tg_isUniverse (V := V) (Nat.succ_ne_zero w')
+  refine hU.recGraph_mem (z := unitSet) (s := Tower.iterStepGraphF A (tg (w' + 1)))
+    (hU.unitSet_mem (empty_mem_tg _)) (omega_mem_tg_succ w') ?_
+  intro m hm u hu
+  show app (app (constGraphF (sigmaConstGraphF A (tg (w' + 1))) omega) m) u ∈ˢ _
+  rw [app_constGraphF hm, app_sigmaConstGraphF hu]
+  exact hU.sigmaConstF_mem (empty_mem_tg _) hA hu
+
+theorem kpair_mem_accPaths {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) {a p : V}
+    (ha : a ∈ˢ A) (hp : p ∈ˢ accPaths w A) : kpair a p ∈ˢ accPaths w A :=
+  Tower.kpair_mem_accPathsF ha hp fun _ hc =>
+    Tower.iterGraphF_app_mem (tg_isUniverse hw) (empty_mem_tg w) hA hc
 
 theorem accPaths_mem {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
-    accPaths A ∈ˢ (tg w : V) := by
+    accPaths w A ∈ˢ (tg w : V) :=
+  Tower.natUnionF_mem_tg_pos hw (iterGraphF_mem_tg hw hA)
+
+/-- Every finite stage is a member of a positive axiomatic level
+containing `A`. -/
+theorem accPathsN_mem_tg {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) (n : Nat) :
+    accPathsN A n ∈ˢ (tg w : V) := by
   have hU := tg_isUniverse (V := V) hw
-  refine natUnion_mem_tg_pos hw fun n => ?_
   induction n with
   | zero => exact unitSet_mem_tg w
   | succ n ih => exact hU.sigmaConstF_mem (empty_mem_tg w) hA ih
@@ -125,7 +144,7 @@ noncomputable def pick (c : V) : BT V :=
 /-- **The limit tuple**: the union of the stages over all codes. -/
 noncomputable def limTup : Nat → V :=
   fun m => famOf (fun i => sUnion (image (fun c => app (stage Is Φ A (pick A c) m) i)
-    (power (accPaths A)))) (Is m)
+    (power (accPaths w A)))) (Is m)
 
 variable {w k Is Φ A}
 
@@ -143,13 +162,13 @@ theorem mem_code_node {f : V → BT V} {p : V} :
     · exact Or.inl h
     · exact Or.inr ⟨_, mem_image.mpr ⟨a, ha, rfl⟩, mem_kpairImage.mpr ⟨q, hq, rfl⟩⟩
 
-theorem code_sub : ∀ T : BT V, code A T ⊆ˢ accPaths A
+theorem code_sub (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) : ∀ T : BT V, code A T ⊆ˢ accPaths w A
   | .leaf => by simp only [code]; exact empty_subset _
   | .node f => by
     intro p hp
     rcases mem_code_node.mp hp with rfl | ⟨a, ha, q, hq, rfl⟩
-    · exact pt_mem_accPaths A
-    · exact kpair_mem_accPaths ha (code_sub (f a) q hq)
+    · exact pt_mem_accPaths w A
+    · exact kpair_mem_accPaths hw hA ha (code_sub hw hA (f a) q hq)
 
 /-- The stage depends on the tree only through its code. -/
 theorem stage_eq_of_code : ∀ T T' : BT V, code A T = code A T' →
@@ -204,8 +223,8 @@ theorem stage_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w 
     exact strictU_famUnion_mem hw hA fun a _ =>
       famSpace_app (stage_mem hw hA hmaps (f a) m hm) hi
 
-theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
-    y ∈ˢ app (limTup Is Φ A m) i ↔ ∃ T : BT V, y ∈ˢ app (stage Is Φ A T m) i := by
+theorem mem_limTup (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
+    y ∈ˢ app (limTup w Is Φ A m) i ↔ ∃ T : BT V, y ∈ˢ app (stage Is Φ A T m) i := by
   unfold limTup
   rw [app_famOf hi, mem_sUnion]
   constructor
@@ -213,14 +232,14 @@ theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
     obtain ⟨c, -, rfl⟩ := mem_image.mp hs
     exact ⟨_, hy⟩
   · rintro ⟨T, hT⟩
-    refine ⟨_, mem_image.mpr ⟨code A T, mem_power.mpr (code_sub T), rfl⟩, ?_⟩
+    refine ⟨_, mem_image.mpr ⟨code A T, mem_power.mpr (code_sub hw hA T), rfl⟩, ?_⟩
     have hex : ∃ T', code A T' = code A T := ⟨T, rfl⟩
     have : pick A (code A T) = Classical.choose hex := by unfold pick; exact dite_eq_left hex
     rw [this, stage_eq_of_code _ _ (Classical.choose_spec hex)]
     exact hT
 
 theorem limTup_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ) :
-    InTupleSpace w k Is (limTup Is Φ A) := by
+    InTupleSpace w k Is (limTup w Is Φ A) := by
   intro m hm
   refine famOf_mem_famSpace fun i hi => ?_
   exact strictU_famUnion_mem hw ((tg_isUniverse hw).power_mem (accPaths_mem hw hA)) fun c _ =>
@@ -242,12 +261,12 @@ maps the tuple space into itself and is `A`-accessible for a set `A` of
 the level has a closed tuple.  No monotonicity is used. -/
 theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
     (hacc : AccTuple w k Is k Is Φ A) : ∃ L, IsClosedTuple w k Is Φ L := by
-  refine ⟨limTup Is Φ A, limTup_mem hw hA hmaps, ?_⟩
+  refine ⟨limTup w Is Φ A, limTup_mem hw hA hmaps, ?_⟩
   intro m hm i hi x hx
   obtain ⟨B, g, hBA, hgL, hsupp⟩ := hacc _ (limTup_mem hw hA hmaps) m hm i hi x hx
   -- every support element lies in some stage: choose its tree
   have hT : ∀ a, a ∈ˢ B → ∃ T : BT V, (g a).2.2 ∈ˢ app (stage Is Φ A T (g a).1) (g a).2.1 :=
-    fun a ha => (mem_limTup (hgL a ha).2.1).mp (hgL a ha).2.2
+    fun a ha => (mem_limTup hw hA (hgL a ha).2.1).mp (hgL a ha).2.2
   classical
   let f : V → BT V := fun a => if h : a ∈ˢ B then Classical.choose (hT a h) else .leaf
   have hstage : x ∈ˢ app (stage Is Φ A (.node f) m) i := by
@@ -262,7 +281,7 @@ theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTupl
       have : f a = Classical.choose (hT a ha) := dite_eq_left ha
       rw [this]
       exact Classical.choose_spec (hT a ha)
-  exact (mem_limTup hi).mpr ⟨_, hstage⟩
+  exact (mem_limTup hw hA hi).mpr ⟨_, hstage⟩
 
 end Iter
 
@@ -550,11 +569,11 @@ If the joint operator `Θ` (parameter components first, then its own) is
 is `accPaths A`-accessible — no key, no wide operator, no container
 presentation.  (W) of each section and its monotonicity come from
 `closed_of_acc` / `AccTuple.monoTuple`. -/
-theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A ∈ˢ (tg w : V))
+theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hw : w ≠ 0) (hA : w ≠ 0 → A ∈ˢ (tg w : V))
     (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
       InTupleSpace w kY IsY (Θ (catT kX X Y)))
     (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :
-    AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths A) := by
+    AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths w A) := by
   -- (W) and monotonicity of every section
   have hcl : ∀ X, InTupleSpace w kX IsX X → ∃ L, IsClosedTuple w kY IsY (fun Y => Θ (catT kX X Y)) L :=
     fun X hX => AccW.closed ⟨A, hA, hacc.section hX⟩ fun Y hY => hmaps X Y hX hY
@@ -563,7 +582,7 @@ theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A �
   intro X hX
   -- the property proved by induction over the least tuple at `X`
   let P : Nat → V → V → Prop := fun m i y =>
-    ∃ (B : V) (g : V → Nat × V × V), B ⊆ˢ accPaths A ∧ (∀ a, a ∈ˢ B → InTup kX IsX X (g a)) ∧
+    ∃ (B : V) (g : V → Nat × V × V), B ⊆ˢ accPaths w A ∧ (∀ a, a ∈ˢ B → InTup kX IsX X (g a)) ∧
       ∀ X', InTupleSpace w kX IsX X' → (∀ a, a ∈ˢ B → InTup kX IsX X' (g a)) →
         y ∈ˢ app (lfpP w kX kY IsY Θ X' m) i
   have hind := lfpTuple_induction (hcl X hX) (hmono X hX) (fun Y hY => hmaps X Y hX hY) P ?_
@@ -574,14 +593,14 @@ theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A �
   obtain ⟨B0, g0, hB0, hg0, hs0⟩ := hacc _ (catT_mem hX hS) m hm i hi y hy
   -- the sub-support of every support position: a leaf in `X`, or `P`'s
   obtain ⟨Bf, gf, hsk⟩ := skolem_supp (S := B0)
-    (Q := fun a B g => B ⊆ˢ accPaths A ∧ (∀ q, q ∈ˢ B → InTup kX IsX X (g q)) ∧
+    (Q := fun a B g => B ⊆ˢ accPaths w A ∧ (∀ q, q ∈ˢ B → InTup kX IsX X (g q)) ∧
       ∀ X', InTupleSpace w kX IsX X' → (∀ q, q ∈ˢ B → InTup kX IsX X' (g q)) →
         InTup (kX + kY) (catT kX IsX IsY) (catT kX X' (lfpP w kX kY IsY Θ X')) (g0 a))
     (by
       intro a ha
       rcases inTup_catT.mp (hg0 a ha) with ⟨h1, h2⟩ | ⟨h1, h2⟩
       · refine ⟨unitSet, fun _ => g0 a, fun q hq => ?_, fun _ _ => h2, fun X' _ h' => ?_⟩
-        · rw [mem_unitSet_iff.mp hq]; exact pt_mem_accPaths A
+        · rw [mem_unitSet_iff.mp hq]; exact pt_mem_accPaths w A
         · exact inTup_catT.mpr (Or.inl ⟨h1, h' pt pt_mem_unitSet⟩)
       · obtain ⟨h2a, h2b, h2c⟩ := h2
         obtain ⟨B, g, hB, hg, hs⟩ := (mem_app_sepTuple_imp h2b h2c).2
@@ -590,7 +609,7 @@ theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A �
   refine ⟨sigmaPairs B0 Bf, fun p => gf (sfst p) (ssnd p), ?_, ?_, ?_⟩
   · intro p hp
     obtain ⟨a, ha, q, hq, rfl⟩ := mem_glue.mp hp
-    exact kpair_mem_accPaths (hB0 a ha) ((hsk a ha).1 q hq)
+    exact kpair_mem_accPaths hw (hA hw) (hB0 a ha) ((hsk a ha).1 q hq)
   · intro p hp
     obtain ⟨a, ha, q, hq, rfl⟩ := mem_glue.mp hp
     simp only [sfst_kpair, ssnd_kpair]
@@ -649,6 +668,7 @@ least tuple's laws read every component) — as in `lfpP_acc`. -/
 theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat → V}
     {Sp : P → Prop} {Rp : P → P → Prop} {HasP : P → O → Prop} {G : Nat → Prop}
     {Θ : P → (Nat → V) → Nat → V} {A : P → V}
+    (hw : w ≠ 0) (hAsz : ∀ p, Sp p → w ≠ 0 → A p ∈ˢ (tg w : V))
     (hIs : ∀ p p', Rp p p' → ∀ m, G m → IsY p m = IsY p' m)
     (hcl : ∀ p, Sp p → ∃ L, IsClosedTuple w kY (IsY p) (Θ p) L)
     (hmaps : ∀ p, Sp p → MapsTuple w kY (IsY p) (Θ p))
@@ -656,7 +676,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
     (hacc : AccJointG w kY IsY Sp Rp HasP G Θ A) :
     ∀ p, Sp p → ∀ m, m < kY → G m → ∀ i, i ∈ˢ IsY p m →
       ∀ x, x ∈ˢ app (lfpTuple w kY (IsY p) (Θ p) m) i →
-        ∃ (B : V) (g : V → O), B ⊆ˢ accPaths (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
+        ∃ (B : V) (g : V → O), B ⊆ˢ accPaths w (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
           ∀ p', Rp p p' → Sp p' → (∀ b, b ∈ˢ B → HasP p' (g b)) →
             x ∈ˢ app (lfpTuple w kY (IsY p') (Θ p') m) i := by
   have hmono : ∀ p, Sp p → MonoTuple w kY (IsY p) (Θ p) := fun p hp =>
@@ -664,7 +684,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
   intro p hp
   -- the property proved by induction over the least tuple at `p`
   let Q : Nat → V → V → Prop := fun m i y => G m →
-    ∃ (B : V) (g : V → O), B ⊆ˢ accPaths (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
+    ∃ (B : V) (g : V → O), B ⊆ˢ accPaths w (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
       ∀ p', Rp p p' → Sp p' → (∀ b, b ∈ˢ B → HasP p' (g b)) →
         y ∈ˢ app (lfpTuple w kY (IsY p') (Θ p') m) i
   have hind := lfpTuple_induction (hcl p hp) (hmono p hp) (hmaps p hp) Q ?_
@@ -675,7 +695,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
   obtain ⟨B0, g0, hB0, hg0, hs0⟩ := hacc p _ hp hS m hm hG i hi y hy
   -- the sub-support of every support position: a parameter item, or `Q`'s
   obtain ⟨Bf, gf, hsk⟩ := skolem_suppG (β := O) (S := B0)
-    (Q := fun a B g => B ⊆ˢ accPaths (A p) ∧ (∀ q, q ∈ˢ B → HasP p (g q)) ∧
+    (Q := fun a B g => B ⊆ˢ accPaths w (A p) ∧ (∀ q, q ∈ˢ B → HasP p (g q)) ∧
       ∀ p', Rp p p' → Sp p' → (∀ q, q ∈ˢ B → HasP p' (g q)) →
         ItemIn kY G HasP (IsY p') p' (lfpTuple w kY (IsY p') (Θ p')) (g0 a))
     (by
@@ -686,7 +706,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
       | inl o =>
         intro h0
         refine ⟨unitSet, fun _ => o, fun q hq => ?_, fun _ _ => h0, fun p' _ _ h' => ?_⟩
-        · rw [mem_unitSet_iff.mp hq]; exact pt_mem_accPaths (A p)
+        · rw [mem_unitSet_iff.mp hq]; exact pt_mem_accPaths w (A p)
         · exact h' pt pt_mem_unitSet
       | inr t =>
         rintro ⟨hGt, h1, h2, h3⟩
@@ -696,7 +716,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
   refine ⟨sigmaPairs B0 Bf, fun q => gf (sfst q) (ssnd q), ?_, ?_, ?_⟩
   · intro r hr
     obtain ⟨a, ha, q, hq, rfl⟩ := mem_glue.mp hr
-    exact kpair_mem_accPaths (hB0 a ha) ((hsk a ha).1 q hq)
+    exact kpair_mem_accPaths hw (hAsz p hp hw) (hB0 a ha) ((hsk a ha).1 q hq)
   · intro r hr
     obtain ⟨a, ha, q, hq, rfl⟩ := mem_glue.mp hr
     simp only [sfst_kpair, ssnd_kpair]
@@ -822,34 +842,31 @@ theorem lfpTuple_mixT (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple 
 
 end MixGroup
 
-/-! ## The definable path set (`accPathsF`)
+/-! ## Bridges to the finite stages (`accPathsN`)
 
-The meta `accPaths A = natUnion (accPathsN A)` is internalized by the
-iteration graph `iterGraphF A (power (accPaths A))` of the stage-24
-toolkit in `SetModel/Iter.lean`: it reads off `accPathsN A` at every
-standard numeral, so the meta path set is contained in the definable
-one (one-sided bridge — at nonstandard `c ∈ˢ ω` the definable union
-may carry junk fibres). -/
-
-/-- Every finite stage is a subset of all paths. -/
-theorem accPathsN_subset_accPaths (A : V) (n : Nat) : accPathsN A n ⊆ˢ accPaths A :=
-  fun _ hx => mem_natUnion.mpr ⟨n, hx⟩
-
-/-- Every finite stage is a member of `power (accPaths A)`. -/
-theorem accPathsN_mem_power (A : V) (n : Nat) : accPathsN A n ∈ˢ power (accPaths A) :=
-  mem_power.mpr (accPathsN_subset_accPaths A n)
+The levelled path set `accPaths w A = accPathsF A (tg w)` reads off the
+finite stages `accPathsN A` at every standard numeral, at any positive
+level with `A ∈ˢ tg w` (the iteration graph stays in `tg w` by
+`iterGraphF_mem_tg`, so the step equation applies at every `vsucc`). -/
 
 /-- The definable iteration graph reads off `accPathsN` at the standard
-numerals (bound `B = power (accPaths A)`). -/
-theorem app_iterGraphF_vnat_accPathsN (A : V) :
-    ∀ n, app (Tower.iterGraphF A (power (accPaths A))) (vnat n) = accPathsN A n :=
-  Tower.iterGraphF_vnat_eq A (power (accPaths A)) (accPathsN A) rfl
-    (fun _ => rfl) (accPathsN_mem_power A)
+numerals (bound `B = tg w`). -/
+theorem app_iterGraphF_vnat_accPathsN_tg {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
+    ∀ n, app (Tower.iterGraphF A (tg w)) (vnat n) = accPathsN A n :=
+  Tower.iterGraphF_vnat_eq A (tg w) (accPathsN A) rfl
+    (fun _ => rfl) (accPathsN_mem_tg hw hA)
 
-/-- The meta path set is contained in the definable path set. -/
-theorem accPaths_subset_accPathsF (A : V) :
-    accPaths A ⊆ˢ Tower.accPathsF A (power (accPaths A)) :=
-  Tower.natUnion_subset_natUnionF (app_iterGraphF_vnat_accPathsN A)
+/-- Every finite stage is a subset of the levelled path set. -/
+theorem accPathsN_subset_accPaths {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) (n : Nat) :
+    accPathsN A n ⊆ˢ accPaths w A :=
+  fun _ hx => Tower.mem_accPathsF.mpr ⟨vnat n, vnat_mem_omega n, by
+    rw [app_iterGraphF_vnat_accPathsN_tg hw hA n]; exact hx⟩
+
+/-- Every finite stage is a member of `power (accPaths w A)`. -/
+theorem accPathsN_mem_power {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) (n : Nat) :
+    accPathsN A n ∈ˢ power (accPaths w A) :=
+  mem_power.mpr (accPathsN_subset_accPaths hw hA n)
+
 
 end ConLeche.SetTheory
 

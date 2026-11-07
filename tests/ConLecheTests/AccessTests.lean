@@ -172,12 +172,12 @@ theorem rose_closed : ∃ L : Nat → V, IsClosedTuple w 1 is1 (roseΦ w) L := b
   have hU := tg_isUniverse (V := V) hw
   have hLA : (listA : V) ∈ˢ (tg w : V) := prodA_mem hw (unitSet_mem_tg w) (unitSet_mem_tg w)
   -- List is accessible in its parameter (the nested case)
-  have hP : AccTuple w 1 is1 1 is1 (lfpP w 1 1 is1 (listJ : (Nat → V) → Nat → V)) (accPaths listA) :=
-    lfpP_acc (fun _ => hLA) (listJ_maps hw) listJ_acc
+  have hP : AccTuple w 1 is1 1 is1 (lfpP w 1 1 is1 (listJ : (Nat → V) → Nat → V)) (accPaths w listA) :=
+    lfpP_acc hw (fun _ => hLA) (listJ_maps hw) listJ_acc
   have hPm : ∀ X : Nat → V, InTupleSpace w 1 is1 X →
       InTupleSpace w 1 is1 (lfpP w 1 1 is1 (listJ : (Nat → V) → Nat → V) X) :=
     fun X _ => lfpTuple_mem _ _ _ _
-  refine closed_of_acc hw (A := sigmaConstF unitSet (accPaths listA))
+  refine closed_of_acc hw (A := sigmaConstF unitSet (accPaths w listA))
     (hU.sigmaConstF_mem (empty_mem_tg w) (unitSet_mem_tg w) (accPaths_mem hw hLA))
     (maps_op1 fun X hX => tag_image_mem_strictU hw (hole1_mem (hPm X hX) Nat.zero_lt_one))
     (acc_op1 ?_)
@@ -189,18 +189,21 @@ section IterGraphFEx
 
 variable {V : Type u} [SetTheory V]
 
-/-- The definable iteration graph reads off `accPathsN` at every standard numeral. -/
-example (A : V) (n : Nat) :
-    app (Tower.iterGraphF A (power (accPaths A))) (vnat n) = accPathsN A n :=
-  app_iterGraphF_vnat_accPathsN A n
+/-- The definable iteration graph reads off `accPathsN` at every standard
+numeral (bound `tg w`). -/
+example {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) (n : Nat) :
+    app (Tower.iterGraphF A (tg w)) (vnat n) = accPathsN A n :=
+  app_iterGraphF_vnat_accPathsN_tg hw hA n
 
-/-- Every finite stage is a member of `power (accPaths A)`. -/
-example (A : V) (n : Nat) : accPathsN A n ∈ˢ power (accPaths A) :=
-  accPathsN_mem_power A n
+/-- Every finite stage is a subset of the levelled path set. -/
+example {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) (n : Nat) :
+    accPathsN A n ⊆ˢ accPaths w A :=
+  accPathsN_subset_accPaths hw hA n
 
-/-- One-sided bridge: the meta path set is contained in the definable one. -/
-example (A : V) : accPaths A ⊆ˢ Tower.accPathsF A (power (accPaths A)) :=
-  accPaths_subset_accPathsF A
+/-- Every finite stage is a member of `power (accPaths w A)`. -/
+example {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) (n : Nat) :
+    accPathsN A n ∈ˢ power (accPaths w A) :=
+  accPathsN_mem_power hw hA n
 
 end IterGraphFEx
 
