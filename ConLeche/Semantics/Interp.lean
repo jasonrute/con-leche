@@ -693,4 +693,78 @@ theorem app_consGraph_succ {x ρ : W} (hρ : ρ ≠ pt) (i : Nat) :
   unfold app
   rw [ite_eq_right consGraph_ne_pt, ite_eq_right hρ, hsep]
 
+
+/-! ## Stage 39: Form-level environment reading and the `bvar` step -/
+
+variable {W : Type w} [SetTheory W]
+
+theorem realize_appEqF_consGraph_zero {x ρ v : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => pt) v) (consGraph x ρ))
+      (vnat 0)) appEqF ↔ v = x := by
+  rw [realize_appEqF, app_consGraph_zero]
+
+theorem realize_appEqF_consGraph_succ {x ρ v : W} (hρ : ρ ≠ pt) (i : Nat) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => pt) v) (consGraph x ρ))
+      (vnat (i + 1))) appEqF ↔ v = app ρ (vnat i) := by
+  rw [realize_appEqF, app_consGraph_succ hρ i]
+
+/-- Variable map `Fin 3 → Fin 5`, `0 ↦ 4`, `1 ↦ 2`, `2 ↦ 3` (reads
+`ssndEqF`'s `(y, x, pt)` as `(u, c, pt)` out of `(v, ρ, c, pt, u)`). -/
+def bvarSndMap : Fin 3 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨4, by omega⟩
+  | 1 => ⟨2, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- Variable map `Fin 4 → Fin 5`, `0 ↦ 3`, `1 ↦ 0`, `2 ↦ 1`, `3 ↦ 4`
+(reads `appEqF`'s `(pt, v, g, u)` out of `(v, ρ, c, pt, u)`). -/
+def bvarAppMap : Fin 4 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨3, by omega⟩
+  | 1 => ⟨0, by omega⟩
+  | 2 => ⟨1, by omega⟩
+  | _ => ⟨4, by omega⟩
+
+/-- The `bvar` step of the definable interpretation (variables
+`0 ↦ v`, `1 ↦ ρ`, `2 ↦ c`, `3 ↦ pt`): `v = app ρ (ssnd c)` — the
+value of a `bvar i` code `c = kpair (vnat 0) (vnat i)` under the
+environment graph `ρ`. -/
+def bvarStepF : Form 4 :=
+  .ex (.and (Form.relabel bvarSndMap ssndEqF) (Form.relabel bvarAppMap appEqF))
+
+theorem realize_bvarStepF {v ρ c : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) ρ) c) (pt : W))
+      bvarStepF ↔ v = app ρ (ssnd c) := by
+  have hS : ∀ u : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) ρ) c) (pt : W)) u) ∘ bvarSndMap =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => u) c) (pt : W) : Fin 3 → W) := by
+    intro u
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hA : ∀ u : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) ρ) c) (pt : W)) u) ∘ bvarAppMap =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) v) ρ) u : Fin 4 → W) := by
+    intro u
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [bvarStepF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hS, hA, realize_ssndEqF, realize_appEqF]
+  clear hS hA
+  constructor
+  · rintro ⟨u, hu, hv⟩
+    have hu' : u = ssnd c := hu
+    rw [hu'] at hv
+    exact hv
+  · intro h
+    exact ⟨ssnd c, rfl, h⟩
+
+/-- The `bvar i` code reads off the environment graph: the value of
+`tmCode (bvar i)` under `ρ` is `app ρ (vnat i)`. -/
+theorem realize_bvarStepF_tmCode {ρ : W} (i : Nat) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => app ρ (vnat i)) ρ)
+      (tmCode (ConLeche.Term.Term.bvar i))) (pt : W)) bvarStepF :=
+  realize_bvarStepF.mpr (by rw [tmCode, ssnd_kpair])
+
 end ConLeche.Semantics

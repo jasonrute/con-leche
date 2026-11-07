@@ -667,4 +667,31 @@ example : app (ConLeche.Semantics.consGraph (W := V) (vnat 1) (sing (kpair (vnat
   rw [ConLeche.Semantics.app_consGraph_succ (W := V) hρ 0]
   exact app_eq_of_unique hρ (mem_sing.mpr rfl) (fun y hy => (kpair_inj (mem_sing.mp hy)).2)
 
+
+/-! ## Stage 39: Form-level env reading (`appEqF` at `consGraph`) and the `bvar` step -/
+
+example : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) (vnat (V := V) 1))
+      (ConLeche.Semantics.consGraph (W := V) (vnat (V := V) 1)
+        (sing (kpair (vnat (V := V) 0) (vnat (V := V) 2))))) (vnat (V := V) 0))
+    appEqF :=
+  ConLeche.Semantics.realize_appEqF_consGraph_zero.mpr rfl
+
+example : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) (vnat (V := V) 2))
+      (ConLeche.Semantics.consGraph (W := V) (vnat (V := V) 1)
+        (sing (kpair (vnat (V := V) 0) (vnat (V := V) 2))))) (vnat (V := V) 1))
+    appEqF := by
+  have hρ : sing (kpair (vnat (V := V) 0) (vnat (V := V) 2)) ≠ (pt : V) := fun h =>
+    ptTag_ne_kpair _ _ (mem_sing.mp (h.symm ▸ ptTag_mem_pt))
+  rw [ConLeche.Semantics.realize_appEqF_consGraph_succ (W := V) hρ 0]
+  exact (app_eq_of_unique hρ (mem_sing.mpr rfl) (fun y hy => (kpair_inj (mem_sing.mp hy)).2)).symm
+
+example : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ => app (sing (kpair (vnat (V := V) 0) (vnat (V := V) 2)))
+      (vnat (V := V) 0)) (sing (kpair (vnat (V := V) 0) (vnat (V := V) 2))))
+      (ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 0))) (pt : V))
+    ConLeche.Semantics.bvarStepF :=
+  ConLeche.Semantics.realize_bvarStepF_tmCode 0
+
 end ConLeche.SetTheory.DefinableAppEx
