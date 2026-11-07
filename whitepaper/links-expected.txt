@@ -5852,17 +5852,17 @@
     34  -/
 
 == ConLeche/SetModel/Access.lean#L571-L581
-   571  `closed_of_acc` / `AccTuple.monoTuple`. -/
-   572  theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hw : w ≠ 0) (hA : w ≠ 0 → A ∈ˢ (tg w : V))
-   573      (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
-   574        InTupleSpace w kY IsY (Θ (catT kX X Y)))
-   575      (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :
-   576      AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths w A) := by
-   577    -- (W) and monotonicity of every section
-   578    have hcl : ∀ X, InTupleSpace w kX IsX X → ∃ L, IsClosedTuple w kY IsY (fun Y => Θ (catT kX X Y)) L :=
-   579      fun X hX => AccW.closed ⟨A, hA, hacc.section hX⟩ fun Y hY => hmaps X Y hX hY
-   580    have hmono : ∀ X, InTupleSpace w kX IsX X → MonoTuple w kY IsY (fun Y => Θ (catT kX X Y)) :=
-   581      fun X hX => (hacc.section hX).monoTuple
+   571      fun X hX => AccW.closed ⟨A, hA, hacc.section hX⟩ fun Y hY => hmaps X Y hX hY
+   572    have hmono : ∀ X, InTupleSpace w kX IsX X → MonoTuple w kY IsY (fun Y => Θ (catT kX X Y)) :=
+   573      fun X hX => (hacc.section hX).monoTuple
+   574    intro X hX
+   575    -- the property proved by induction over the least tuple at `X`
+   576    let P : Nat → V → V → Prop := fun m i y =>
+   577      ∃ (B : V) (g : V → Nat × V × V), B ⊆ˢ accPaths w A ∧ (∀ a, a ∈ˢ B → InTup kX IsX X (g a)) ∧
+   578        ∀ X', InTupleSpace w kX IsX X' → (∀ a, a ∈ˢ B → InTup kX IsX X' (g a)) →
+   579          y ∈ˢ app (lfpP w kX kY IsY Θ X' m) i
+   580    have hind := lfpTuple_induction (hcl X hX) (hmono X hX) (fun Y hY => hmaps X Y hX hY) P ?_
+   581    · intro m hm i hi y hy
 
 == ConLeche/Semantics/Inductives/HoleMono.lean#L17-L23
     17  | `nestPos` case | lemma |

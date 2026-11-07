@@ -382,17 +382,9 @@ theorem accRead_binUnion {A : V} {G H : (Nat → V) → V} (hG : AccRead w kI Is
   · obtain ⟨B, g, hB, hg, hs⟩ := hH X hX x h
     exact ⟨B, g, hB, hg, fun X' hX' h' => mem_binUnion.mpr (Or.inr (hs X' hX' h'))⟩
 
-/-- **Images** (constructor tags, injections). -/
-theorem accRead_image {A : V} {G : (Nat → V) → V} (h : V → V) (hG : AccRead w kI IsI G A) :
-    AccRead w kI IsI (fun X => image h (G X)) A := by
-  intro X hX x hx
-  obtain ⟨y, hy, rfl⟩ := mem_image.mp hx
-  obtain ⟨B, g, hB, hg, hs⟩ := hG X hX y hy
-  exact ⟨B, g, hB, hg, fun X' hX' h' => mem_image.mpr ⟨y, hs X' hX' h', rfl⟩⟩
-
 /-- **Definable tag images** (constructor tags, injections): the
-definable `kpairImage a` of a readable set is readable — the
-first-order twin of `accRead_image` at the tag function `kpair a`. -/
+definable `kpairImage a` of a readable set is readable, at the
+tag function `kpair a`. -/
 theorem accRead_kpairImage {A : V} {G : (Nat → V) → V} {a : V} (hG : AccRead w kI IsI G A) :
     AccRead w kI IsI (fun X => kpairImage a (G X)) A := by
   intro X hX x hx
