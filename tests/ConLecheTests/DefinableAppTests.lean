@@ -642,4 +642,29 @@ example : ¬ Form.Realize Mem
   intro h
   exact absurd (vnat_inj (V := V) h) (by omega)
 
+
+/-! ## Stage 38: definable environment graphs (`consGraph`) -/
+
+example : Form.Realize Mem
+    (Form.snoc (fun _ => kpair (vnat (V := V) 0) (vnat (V := V) 2))
+      (kpair (vnat (V := V) 1) (vnat (V := V) 2)))
+    ConLeche.Semantics.consShiftF :=
+  ConLeche.Semantics.realize_consShiftF.mpr (Or.inl ⟨vnat (V := V) 0, vnat (V := V) 2, rfl, rfl⟩)
+
+example : kpair (vnat 1) (vnat 2) ∈ˢ
+    ConLeche.Semantics.consGraph (W := V) (vnat 1) (sing (kpair (vnat 0) (vnat 2))) :=
+  ConLeche.Semantics.mem_consGraph.mpr (Or.inr
+    ⟨kpair (vnat 0) (vnat 2), mem_sing.mpr rfl, Or.inl ⟨vnat 0, vnat 2, rfl, rfl⟩⟩)
+
+example : app (ConLeche.Semantics.consGraph (W := V) (vnat 1) (sing (kpair (vnat 0) (vnat 2))))
+    (vnat 0) = vnat 1 :=
+  ConLeche.Semantics.app_consGraph_zero
+
+example : app (ConLeche.Semantics.consGraph (W := V) (vnat 1) (sing (kpair (vnat 0) (vnat 2))))
+    (vnat 1) = vnat 2 := by
+  have hρ : sing (kpair (vnat 0) (vnat 2)) ≠ (pt : V) := fun h =>
+    ptTag_ne_kpair _ _ (mem_sing.mp (h.symm ▸ ptTag_mem_pt))
+  rw [ConLeche.Semantics.app_consGraph_succ (W := V) hρ 0]
+  exact app_eq_of_unique hρ (mem_sing.mpr rfl) (fun y hy => (kpair_inj (mem_sing.mp hy)).2)
+
 end ConLeche.SetTheory.DefinableAppEx

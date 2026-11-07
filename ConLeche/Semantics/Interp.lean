@@ -469,4 +469,228 @@ theorem realize_ssndEqF {W : Type w} [SetTheory W] {y x : W} :
           unfold ssnd; exact dite_eq_right hk
         rw [h2] at h; exact h
 
+
+/-! ## Stage 38: definable environment graphs (`consGraph`) -/
+
+variable {W : Type w} [SetTheory W]
+
+
+/-- `vsucc` is injective (regularity at the pair); local copy of
+`ConLeche.SetTheory.Tower.vsucc_inj` (`SetModel/Iter.lean`), not
+imported here. -/
+theorem vsucc_injW {a b : W} (h : vsucc a = vsucc b) : a = b :=
+  Classical.byContradiction fun hne => by
+  have ha : a ∈ˢ b := by
+    have h1 : a ∈ˢ vsucc a := self_mem_vsucc a
+    rw [h] at h1
+    rcases mem_vsucc.mp h1 with h' | h'
+    · exact h'
+    · exact absurd h' hne
+  have hb : b ∈ˢ a := by
+    have h1 : b ∈ˢ vsucc b := self_mem_vsucc b
+    rw [← h] at h1
+    rcases mem_vsucc.mp h1 with h' | h'
+    · exact h'
+    · exact absurd h'.symm hne
+  obtain ⟨y, hy, hmin⟩ := regularity (upair a b) ⟨a, mem_upair_left a b⟩
+  have hba : b ∈ˢ upair a b := mem_upair_right a b
+  have hab : a ∈ˢ upair a b := mem_upair_left a b
+  rcases mem_upair.mp hy with rfl | rfl
+  · exact hmin ⟨b, hb, hba⟩
+  · exact hmin ⟨a, ha, hab⟩
+
+/-- Variable map `Fin 2 → Fin 5`, `0 ↦ 4`, `1 ↦ 2` (reads `vsuccEqF`'s
+`(e, m)` out of `(z, w, m, y, e)`). -/
+def csVsMap : Fin 2 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨4, by omega⟩
+  | _ => ⟨2, by omega⟩
+
+/-- Variable map `Fin 3 → Fin 5`, `0 ↦ 0`, `1 ↦ 2`, `2 ↦ 3` (reads
+`kpairEqF`'s `(z, x, y)` as `(z, m, y)` out of `(z, w, m, y, e)`). -/
+def csKpMap1 : Fin 3 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨0, by omega⟩
+  | 1 => ⟨2, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- Variable map `Fin 3 → Fin 5`, `0 ↦ 1`, `1 ↦ 4`, `2 ↦ 3` (reads
+`kpairEqF`'s `(z, x, y)` as `(w, e, y)` out of `(z, w, m, y, e)`). -/
+def csKpMap2 : Fin 3 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨1, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- Variable map `Fin 3 → Fin 4`, `0 ↦ 0`, `1 ↦ 2`, `2 ↦ 3` (reads
+`kpairEqF`'s `(z, x, y)` as `(z, m, y)` out of `(z, w, m, y)`). -/
+def csKpMap0 : Fin 3 → Fin 4 := fun i =>
+  match i.val with
+  | 0 => ⟨0, by omega⟩
+  | 1 => ⟨2, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- The definable shift relation for extending an environment graph
+(variables `0 ↦ z`, `1 ↦ w`): `z = kpair m y` maps to
+`w = kpair (vsucc m) y`; a non-pair `z` maps to itself. -/
+def consShiftF : Form 2 :=
+  .or (.ex (.ex (.ex (.and (Form.relabel csVsMap vsuccEqF)
+      (.and (Form.relabel csKpMap1 kpairEqF) (Form.relabel csKpMap2 kpairEqF))))))
+    (.and (.not (.ex (.ex (Form.relabel csKpMap0 kpairEqF))))
+      (.equal ⟨0, by omega⟩ ⟨1, by omega⟩))
+
+theorem realize_consShiftF {z w : W} :
+    Form.Realize Mem (Form.snoc (fun _ => z) w) consShiftF ↔
+      (∃ m y, z = kpair m y ∧ w = kpair (vsucc m) y) ∨
+        ((¬ ∃ m y, z = kpair m y) ∧ w = z) := by
+  have hVS : ∀ m y e : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => z) w) m) y) e) ∘ csVsMap =
+        (Form.snoc (fun _ : Fin 1 => e) m : Fin 2 → W) := by
+    intro m y e
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hK1 : ∀ m y e : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => z) w) m) y) e) ∘ csKpMap1 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => z) m) y : Fin 3 → W) := by
+    intro m y e
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK2 : ∀ m y e : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => z) w) m) y) e) ∘ csKpMap2 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => w) e) y : Fin 3 → W) := by
+    intro m y e
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK0 : ∀ m y : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => z) w) m) y) ∘ csKpMap0 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => z) m) y : Fin 3 → W) := by
+    intro m y
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [consShiftF, Form.realize_or, Form.realize_and, Form.realize_not,
+    Form.realize_ex, Form.realize_equal, Form.realize_relabel, hVS, hK1, hK2, hK0,
+    realize_vsuccEqF, realize_kpairEqF, Form.snoc_mk]
+  clear hVS hK1 hK2 hK0
+  constructor
+  · rintro (⟨m, y, e, he, hz, hw⟩ | ⟨hnot, hw⟩)
+    · have he' : kpair e y = kpair (vsucc m) y := by rw [he]
+      exact Or.inl ⟨m, y, hz, hw.trans he'⟩
+    · exact Or.inr ⟨hnot, hw.symm⟩
+  · rintro (⟨m, y, hz, hw⟩ | ⟨hnot, hw⟩)
+    · exact Or.inl ⟨m, y, vsucc m, rfl, hz, hw⟩
+    · exact Or.inr ⟨hnot, hw.symm⟩
+
+omit [SetTheory W] in
+theorem cons2_nil_eq {z w : W} : Form.cons2 z w Form.nil = Form.snoc (fun _ => z) w := by
+  funext ⟨k, hk⟩
+  have hk2 : k = 0 ∨ k = 1 := by omega
+  rcases hk2 with rfl | rfl <;> rfl
+
+theorem consShiftF_fun (z : W) :
+    ∃ w, Form.Realize Mem (Form.cons2 z w Form.nil) consShiftF ∧
+      ∀ w', Form.Realize Mem (Form.cons2 z w' Form.nil) consShiftF → w' = w := by
+  by_cases h : ∃ m y, z = kpair m y
+  · obtain ⟨m, y, hm⟩ := h
+    refine ⟨kpair (vsucc m) y, ?_, ?_⟩
+    · rw [cons2_nil_eq]
+      exact (realize_consShiftF (z := z) (w := kpair (vsucc m) y)).mpr (Or.inl ⟨m, y, hm, rfl⟩)
+    · intro w' hw'
+      rw [cons2_nil_eq] at hw'
+      rcases (realize_consShiftF (z := z) (w := w')).mp hw' with ⟨m', y', hm', hw'⟩ | ⟨hnp, -⟩
+      · have hmm : kpair m y = kpair m' y' := hm.symm.trans hm'
+        obtain ⟨hm2, hy2⟩ := kpair_inj hmm
+        subst hm2; subst hy2
+        exact hw'
+      · exact absurd ⟨m, y, hm⟩ hnp
+  · refine ⟨z, ?_, ?_⟩
+    · rw [cons2_nil_eq]
+      exact (realize_consShiftF (z := z) (w := z)).mpr (Or.inr ⟨h, rfl⟩)
+    · intro w' hw'
+      rw [cons2_nil_eq] at hw'
+      rcases (realize_consShiftF (z := z) (w := w')).mp hw' with ⟨m, y, hm, -⟩ | ⟨-, hw'⟩
+      · exact absurd ⟨m, y, hm⟩ h
+      · exact hw'
+
+/-- Definable environment extension: the graph of `cons x ρ` read as
+`app _ (vnat i)`, built as the shifted image of `ρ` plus the new
+`0`-entry. -/
+noncomputable def consGraph (x ρ : W) : W :=
+  binUnion (sing (kpair (vnat 0) x)) (imageF consShiftF Form.nil ρ (fun z _ => consShiftF_fun z))
+
+theorem mem_consGraph {x ρ z : W} :
+    z ∈ˢ consGraph x ρ ↔
+      z = kpair (vnat 0) x ∨
+        ∃ z₀, z₀ ∈ˢ ρ ∧ ((∃ m y, z₀ = kpair m y ∧ z = kpair (vsucc m) y) ∨
+          ((¬ ∃ m y, z₀ = kpair m y) ∧ z = z₀)) := by
+  rw [show consGraph x ρ =
+      binUnion (sing (kpair (vnat 0) x)) (imageF consShiftF Form.nil ρ (fun z _ => consShiftF_fun z)) from rfl,
+    mem_binUnion, mem_sing, mem_imageF]
+  constructor
+  · rintro (rfl | ⟨z₀, hz₀, hψ⟩)
+    · exact Or.inl rfl
+    · rw [cons2_nil_eq] at hψ
+      exact Or.inr ⟨z₀, hz₀, (realize_consShiftF (z := z₀) (w := z)).mp hψ⟩
+  · rintro (rfl | ⟨z₀, hz₀, hψ⟩)
+    · exact Or.inl rfl
+    · refine Or.inr ⟨z₀, hz₀, ?_⟩
+      rw [cons2_nil_eq]
+      exact (realize_consShiftF (z := z₀) (w := z)).mpr hψ
+
+theorem consGraph_ne_pt {x ρ : W} : consGraph x ρ ≠ pt := by
+  intro h
+  have h1 : kpair (vnat 0) x ∈ˢ (pt : W) :=
+    h ▸ mem_binUnion.mpr (Or.inl (mem_sing.mpr rfl))
+  exact ptTag_ne_kpair (vnat 0) x (mem_pt.mp h1).symm
+
+theorem app_consGraph_zero {x ρ : W} : app (consGraph x ρ) (vnat 0) = x := by
+  refine app_eq_of_unique (consGraph_ne_pt (x := x) (ρ := ρ)) ?_ ?_
+  · exact mem_consGraph.mpr (Or.inl rfl)
+  · intro y hy
+    rcases mem_consGraph.mp hy with h0 | ⟨z₀, -, hψ⟩
+    · exact (kpair_inj h0).2
+    · rcases hψ with ⟨m, y', -, hw⟩ | ⟨hnp, hw⟩
+      · have h1 : (vnat 0 : W) = vsucc m := kpair_inj_left hw
+        have h3 : m ∈ˢ (vnat 0 : W) := h1.symm ▸ self_mem_vsucc m
+        exact absurd h3 (not_mem_empty m)
+      · exact absurd ⟨vnat 0, y, hw.symm⟩ hnp
+
+theorem app_consGraph_succ {x ρ : W} (hρ : ρ ≠ pt) (i : Nat) :
+    app (consGraph x ρ) (vnat (i + 1)) = app ρ (vnat i) := by
+  have key : ∀ y : W, kpair (vnat (i + 1)) y ∈ˢ consGraph x ρ ↔ kpair (vnat i) y ∈ˢ ρ := by
+    intro y
+    constructor
+    · intro hy
+      rcases mem_consGraph.mp hy with h0 | ⟨z₀, hz₀, hψ⟩
+      · exact absurd (kpair_inj_left h0) (fun h => Nat.succ_ne_zero i (vnat_inj (V := W) h))
+      · rcases hψ with ⟨m, y', hm, hw⟩ | ⟨hnp, hw⟩
+        · obtain ⟨h1, h2⟩ := kpair_inj hw
+          have h4 : vnat i = m :=
+            vsucc_injW ((show (vnat (i + 1) : W) = vsucc (vnat i) from rfl).symm.trans h1)
+          subst h4; subst h2
+          rw [← hm]; exact hz₀
+        · exact absurd ⟨vnat (i + 1), y, hw.symm⟩ hnp
+    · intro hy
+      exact mem_consGraph.mpr (Or.inr ⟨kpair (vnat i) y, hy,
+        Or.inl ⟨vnat i, y, rfl, rfl⟩⟩)
+  have hsep : sepF (sUnion (sUnion (consGraph x ρ))) kpairMemF
+        (Form.snoc (fun _ => vnat (i + 1)) (consGraph x ρ)) =
+      sepF (sUnion (sUnion ρ)) kpairMemF (Form.snoc (fun _ => vnat i) ρ) := by
+    apply ext fun y => ?_
+    rw [mem_appSep, mem_appSep]
+    constructor
+    · rintro ⟨-, h⟩
+      have h' := (key y).mp h
+      exact ⟨mem_sUnion.mpr ⟨upair (vnat i) y,
+        mem_sUnion.mpr ⟨kpair (vnat i) y, h', mem_upair_right _ _⟩, mem_upair_right _ _⟩, h'⟩
+    · rintro ⟨-, h⟩
+      have h' := (key y).mpr h
+      exact ⟨mem_sUnion.mpr ⟨upair (vnat (i + 1)) y,
+        mem_sUnion.mpr ⟨kpair (vnat (i + 1)) y, h', mem_upair_right _ _⟩, mem_upair_right _ _⟩, h'⟩
+  unfold app
+  rw [ite_eq_right consGraph_ne_pt, ite_eq_right hρ, hsep]
+
 end ConLeche.Semantics
