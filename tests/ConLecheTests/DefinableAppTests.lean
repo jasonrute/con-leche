@@ -614,4 +614,32 @@ example (t : ConLeche.Term.Term) :
     ConLeche.Semantics.tmCode (W := V) (.fst t) =
       kpair (vnat 8) (ConLeche.Semantics.tmCode (W := V) t) := rfl
 
+/-! ## Stage 36: definable pair projections (readers of the V-codes) -/
+
+example : Form.Realize Mem
+    (Form.snoc (Form.snoc (fun _ => vnat 1) (kpair (vnat 1) (vnat 2))) (pt : V))
+    ConLeche.Semantics.sfstEqF :=
+  ConLeche.Semantics.realize_sfstEqF.mpr (sfst_kpair _ _).symm
+
+example : Form.Realize Mem
+    (Form.snoc (Form.snoc (fun _ => vnat 2) (kpair (vnat 1) (vnat 2))) (pt : V))
+    ConLeche.Semantics.ssndEqF :=
+  ConLeche.Semantics.realize_ssndEqF.mpr (ssnd_kpair _ _).symm
+
+example : Form.Realize Mem
+    (Form.snoc (Form.snoc (fun _ => (pt : V)) (empty : V)) (pt : V))
+    ConLeche.Semantics.sfstEqF :=
+  ConLeche.Semantics.realize_sfstEqF.mpr (by
+    have h : ¬∃ a b, (empty : V) = kpair a b := fun hh =>
+      ConLeche.Semantics.kpair_ne_empty hh.choose hh.choose_spec.choose hh.choose_spec.choose_spec.symm
+    unfold sfst; rw [dite_eq_right h])
+
+example : ¬ Form.Realize Mem
+    (Form.snoc (Form.snoc (fun _ => vnat 1) (kpair (vnat 1) (vnat 2))) (pt : V))
+    ConLeche.Semantics.ssndEqF := by
+  rw [ConLeche.Semantics.realize_ssndEqF]
+  rw [ssnd_kpair]
+  intro h
+  exact absurd (vnat_inj (V := V) h) (by omega)
+
 end ConLeche.SetTheory.DefinableAppEx

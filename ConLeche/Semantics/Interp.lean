@@ -361,5 +361,112 @@ theorem tmCode_inj {W : Type w} [SetTheory W] : ∀ (t t' : Term),
       | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
       | rfl
 
+/-! ## Definable pair projections — the readers of the V-codes
+
+`sfstEqF`/`ssndEqF` internalize `y = sfst x` / `y = ssnd x` as first-order
+`Form`s (variables `0 ↦ y`, `1 ↦ x`, `2 ↦ pt`), so that decoding a code —
+reading its tag and its payload — is a first-order step of the definable
+interpretation over the V-codes. -/
+
+/-- Variable map `Fin 3 → Fin 5` for the two-existential unfolding of
+`kpairEqF` inside a `Form 3` with variables `(0 ↦ y, 1 ↦ x, 2 ↦ pt)`:
+`kpairEqF`'s `(z, a, b)` reads off `(x, ⟨4⟩, ⟨3⟩)`. -/
+def kpairProjMap : Fin 3 → Fin 5 := fun i =>
+  match i.val with
+  | 0 => ⟨1, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- `y = sfst x` as a formula (variables `0 ↦ y`, `1 ↦ x`, `2 ↦ pt`): `x` is
+a pair whose first component is `y`, or `x` is no pair and `y = pt`. -/
+def sfstEqF : Form 3 :=
+  .or (.ex (.ex (.and (Form.relabel kpairProjMap kpairEqF)
+      (.equal ⟨0, by omega⟩ ⟨4, by omega⟩))))
+    (.and (.not (.ex (.ex (Form.relabel kpairProjMap kpairEqF))))
+      (.equal ⟨0, by omega⟩ ⟨2, by omega⟩))
+
+/-- `y = ssnd x` as a formula (variables `0 ↦ y`, `1 ↦ x`, `2 ↦ pt`): `x` is
+a pair whose second component is `y`, or `x` is no pair and `y = pt`. -/
+def ssndEqF : Form 3 :=
+  .or (.ex (.ex (.and (Form.relabel kpairProjMap kpairEqF)
+      (.equal ⟨0, by omega⟩ ⟨3, by omega⟩))))
+    (.and (.not (.ex (.ex (Form.relabel kpairProjMap kpairEqF))))
+      (.equal ⟨0, by omega⟩ ⟨2, by omega⟩))
+
+theorem realize_sfstEqF {W : Type w} [SetTheory W] {y x : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ => y) x) (pt : W)) sfstEqF ↔
+      y = sfst x := by
+  have hK : ∀ v3 v4 : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => y) x) (pt : W)) v3) v4) ∘ kpairProjMap =
+        Form.snoc (Form.snoc (fun _ => x) v4) v3 := by
+    intro v3 v4
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [sfstEqF, Form.realize_or, Form.realize_and, Form.realize_not,
+    Form.realize_ex, Form.realize_equal, Form.realize_relabel, hK,
+    realize_kpairEqF, Form.snoc_mk]
+  clear hK
+  constructor
+  · rintro (⟨v3, v4, hx, hy⟩ | ⟨hnot, hy⟩)
+    · have hy' : y = v4 := hy
+      rw [hy', hx]; exact (sfst_kpair _ _).symm
+    · have hy' : y = (pt : W) := hy
+      have h' : ¬∃ a b, x = kpair a b := by
+        rintro ⟨a, b, hab⟩; exact hnot ⟨b, a, hab⟩
+      have h2 : sfst x = (pt : W) := by
+        unfold sfst; exact dite_eq_right h'
+      rw [hy', h2]
+  · intro h
+    by_cases hk : ∃ a b, x = kpair a b
+    · obtain ⟨a, b, hab⟩ := hk
+      left
+      refine ⟨b, a, hab, ?_⟩
+      rw [hab, sfst_kpair] at h
+      exact h
+    · right
+      refine ⟨?_, ?_⟩
+      · rintro ⟨v3, v4, hx'⟩; exact hk ⟨v4, v3, hx'⟩
+      · have h2 : sfst x = (pt : W) := by
+          unfold sfst; exact dite_eq_right hk
+        rw [h2] at h; exact h
+
+theorem realize_ssndEqF {W : Type w} [SetTheory W] {y x : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ => y) x) (pt : W)) ssndEqF ↔
+      y = ssnd x := by
+  have hK : ∀ v3 v4 : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => y) x) (pt : W)) v3) v4) ∘ kpairProjMap =
+        Form.snoc (Form.snoc (fun _ => x) v4) v3 := by
+    intro v3 v4
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [ssndEqF, Form.realize_or, Form.realize_and, Form.realize_not,
+    Form.realize_ex, Form.realize_equal, Form.realize_relabel, hK,
+    realize_kpairEqF, Form.snoc_mk]
+  clear hK
+  constructor
+  · rintro (⟨v3, v4, hx, hy⟩ | ⟨hnot, hy⟩)
+    · have hy' : y = v3 := hy
+      rw [hy', hx]; exact (ssnd_kpair _ _).symm
+    · have hy' : y = (pt : W) := hy
+      have h' : ¬∃ a b, x = kpair a b := by
+        rintro ⟨a, b, hab⟩; exact hnot ⟨b, a, hab⟩
+      have h2 : ssnd x = (pt : W) := by
+        unfold ssnd; exact dite_eq_right h'
+      rw [hy', h2]
+  · intro h
+    by_cases hk : ∃ a b, x = kpair a b
+    · obtain ⟨a, b, hab⟩ := hk
+      left
+      refine ⟨b, a, hab, ?_⟩
+      rw [hab, ssnd_kpair] at h
+      exact h
+    · right
+      refine ⟨?_, ?_⟩
+      · rintro ⟨v3, v4, hx'⟩; exact hk ⟨v4, v3, hx'⟩
+      · have h2 : ssnd x = (pt : W) := by
+          unfold ssnd; exact dite_eq_right hk
+        rw [h2] at h; exact h
 
 end ConLeche.Semantics
