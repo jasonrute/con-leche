@@ -1026,4 +1026,106 @@ theorem realize_sndStepF {v X i : W} :
   realize_unStepF (ssnd (V := W)) ssndEqF realize_ssndEqF sndStepF rfl
 
 
+/-! ## Stage 42: definable truth values — `unitSetF`, `eqvF` -/
+
+variable {W : Type w} [SetTheory W]
+
+
+/-- `v = sing pt` (variable `0 ↦ v`, variable `1 ↦ pt`):
+`pt ∈ˢ v ∧ ∀ z, z ∈ˢ v → z = pt`. -/
+def unitSetF : Form 2 :=
+  .and (.mem ⟨1, by omega⟩ ⟨0, by omega⟩)
+    (.all (.imp (.mem ⟨2, by omega⟩ ⟨0, by omega⟩) (.equal ⟨2, by omega⟩ ⟨1, by omega⟩)))
+
+theorem realize_unitSetF {v pt : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) pt) unitSetF ↔ v = sing pt := by
+  simp only [unitSetF, Form.realize_and, Form.realize_mem, Form.realize_all,
+    Form.realize_imp, Form.realize_equal, Form.snoc_mk]
+  constructor
+  · rintro ⟨h1, h2⟩
+    have h1' : pt ∈ˢ v := h1
+    have h2' : ∀ z : W, z ∈ˢ v → z = pt := h2
+    exact SetTheory.ext (V := W) fun z =>
+      ⟨fun hz => mem_sing.mpr (h2' z hz), fun hz => (mem_sing.mp hz) ▸ h1'⟩
+  · intro h
+    rw [h]
+    refine ⟨?_, ?_⟩
+    · show pt ∈ˢ sing pt
+      exact mem_sing.mpr rfl
+    · intro z hz
+      have hz' : z ∈ˢ sing pt := hz
+      exact mem_sing.mp hz'
+
+theorem realize_emptyF_eq {x : W} :
+    Form.Realize Mem (Form.snoc Form.nil x) emptyF ↔ x = empty := by
+  rw [realize_emptyF (V := W)]
+  constructor
+  · intro h
+    exact SetTheory.ext (V := W) fun z =>
+      ⟨fun hz => absurd hz (h z), fun hz => absurd hz (not_mem_empty z)⟩
+  · intro h w
+    rw [h]
+    exact not_mem_empty w
+
+theorem unitSet_eq_sing : (unitSet : W) = sing (pt : W) := by
+  unfold unitSet; rfl
+
+theorem eqv_eq_unitSet {x y : W} (h : x = y) : eqv x y = unitSet := by
+  unfold eqv; exact truthVal_eq_unitSet h
+
+theorem eqv_eq_empty {x y : W} (h : ¬ x = y) : eqv x y = empty := by
+  unfold eqv; exact truthVal_eq_empty h
+
+/-- Variable map `Fin 2 → Fin 4` reading `unitSetF`'s `(v, pt)` from `(v, x, y, pt)`. -/
+def eqvUsMap : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Variable map `Fin 1 → Fin 4` reading `emptyF`'s `v` from `(v, x, y, pt)`. -/
+def eqvEmap : Fin 1 → Fin 4 := fun _ => ⟨0, by omega⟩
+
+/-- `v = eqv x y` (variables `0 ↦ v`, `1 ↦ x`, `2 ↦ y`, `3 ↦ pt`):
+`(x = y ∧ v = sing pt) ∨ (x ≠ y ∧ v = empty)`. -/
+def eqvF : Form 4 :=
+  .or (.and (.equal ⟨1, by omega⟩ ⟨2, by omega⟩) (Form.relabel eqvUsMap unitSetF))
+    (.and (.not (.equal ⟨1, by omega⟩ ⟨2, by omega⟩)) (Form.relabel eqvEmap emptyF))
+
+theorem realize_eqvF {v x y : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) x) y) (pt : W)) eqvF ↔
+      v = eqv x y := by
+  have hUs : ∀ v x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) x) y) (pt : W)) ∘ eqvUsMap =
+        (Form.snoc (fun _ : Fin 1 => v) (pt : W) : Fin 2 → W) := by
+    intro v x y; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hE : ∀ v x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) x) y) (pt : W)) ∘ eqvEmap =
+        (Form.snoc Form.nil v : Fin 1 → W) := by
+    intro v x y; funext ⟨k, hk⟩
+    have hk1 : k = 0 := by omega
+    rcases hk1 with rfl; rfl
+  simp only [eqvF, Form.realize_or, Form.realize_and, Form.realize_equal, Form.realize_not,
+    Form.realize_relabel, hUs, hE, realize_unitSetF, realize_emptyF_eq]
+  constructor
+  · rintro (⟨h1, h2⟩ | ⟨h1, h2⟩)
+    · have h1' : x = y := h1
+      have h2' : v = sing (pt : W) := h2
+      rw [eqv_eq_unitSet h1', unitSet_eq_sing]
+      exact h2'
+    · have h1' : ¬ x = y := h1
+      have h2' : v = empty := h2
+      rw [eqv_eq_empty h1']
+      exact h2'
+  · intro h
+    by_cases hxy : x = y
+    · left
+      refine ⟨hxy, ?_⟩
+      rw [eqv_eq_unitSet hxy, unitSet_eq_sing] at h
+      exact h
+    · right
+      refine ⟨hxy, ?_⟩
+      rw [eqv_eq_empty hxy] at h
+      exact h
+
+
 end ConLeche.Semantics

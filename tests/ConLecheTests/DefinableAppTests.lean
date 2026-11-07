@@ -755,4 +755,25 @@ example (ρ : V) : Form.Realize Mem
     ConLeche.Semantics.prfStepF :=
   ConLeche.Semantics.realize_prfStepF.mpr rfl
 
+
+/-! ## Stage 42: definable truth values — `unitSetF`, `eqvF` -/
+
+example {v pt : V} (h : v = sing pt) :
+    Form.Realize Mem (Form.snoc (fun _ => v) pt) ConLeche.Semantics.unitSetF :=
+  ConLeche.Semantics.realize_unitSetF.mpr h
+
+example {x : V} (h : x = (empty : V)) :
+    Form.Realize Mem (Form.snoc Form.nil x) emptyF :=
+  ConLeche.Semantics.realize_emptyF_eq.mpr h
+
+example {x : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => (unitSet : V)) x) x) (pt : V))
+      ConLeche.Semantics.eqvF :=
+  ConLeche.Semantics.realize_eqvF.mpr (ConLeche.Semantics.eqv_eq_unitSet rfl).symm
+
+example {x y : V} (h : x ≠ y) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => (empty : V)) x) y) (pt : V))
+      ConLeche.Semantics.eqvF :=
+  ConLeche.Semantics.realize_eqvF.mpr (by rw [ConLeche.Semantics.eqv_eq_empty h])
+
 end ConLeche.SetTheory.DefinableAppEx
