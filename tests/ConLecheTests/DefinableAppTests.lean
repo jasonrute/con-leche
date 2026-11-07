@@ -830,4 +830,21 @@ example (ρ : V) : Form.Realize Mem
   ConLeche.Semantics.realize_letEStepF_tmCode (X := (empty : V)) (ρ := ρ)
     ConLeche.Term.Term.prf (ConLeche.Term.Term.bvar 0)
 
+
+/-! ## Stage 46: the `lam` readers — definable function graph and point-condition -/
+
+example {v a X b ρ : V} (h : v = graph (fun x => app X (kpair b
+    (ConLeche.Semantics.consGraph x ρ))) a) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+      (fun _ => v) a) X) b) ρ) (pt : V))
+      ConLeche.Semantics.lamGraphEqF :=
+  ConLeche.Semantics.realize_lamGraphEqF.mpr h
+
+example {a X b ρ : V} (h : ∀ x, x ∈ˢ a → app X (kpair b
+    (ConLeche.Semantics.consGraph x ρ)) = pt) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+      (fun _ => a) X) b) ρ) (pt : V))
+      ConLeche.Semantics.ptAllF :=
+  ConLeche.Semantics.realize_ptAllF.mpr h
+
 end ConLeche.SetTheory.DefinableAppEx

@@ -1471,4 +1471,146 @@ theorem realize_letEStepF_tmCode {X ρ : W} (val body : ConLeche.Term.Term) :
       letEStepF :=
   realize_letEStepF.mpr (by simp only [tmCode, sfst_kpair, ssnd_kpair])
 
+
+
+variable {W : Type w} [SetTheory W]
+
+/-! ## Stage 46: the `lam` readers — the definable function graph and the point-condition -/
+
+/-- Variable maps into the `lamGraphEqF` contexts. -/
+def lgZV : Fin 2 → Fin 7 := fun k => match k.val with | 0 => ⟨6, by omega⟩ | 1 => ⟨0, by omega⟩ | _ => ⟨0, by omega⟩
+def lgXA : Fin 2 → Fin 8 := fun k => match k.val with | 0 => ⟨7, by omega⟩ | 1 => ⟨1, by omega⟩ | _ => ⟨1, by omega⟩
+def lgW : Fin 3 → Fin 11 := fun k => match k.val with | 0 => ⟨8, by omega⟩ | 1 => ⟨7, by omega⟩ | 2 => ⟨4, by omega⟩ | _ => ⟨4, by omega⟩
+def lgK : Fin 3 → Fin 11 := fun k => match k.val with | 0 => ⟨9, by omega⟩ | 1 => ⟨3, by omega⟩ | 2 => ⟨8, by omega⟩ | _ => ⟨8, by omega⟩
+def lgV : Fin 4 → Fin 11 := fun k => match k.val with | 0 => ⟨5, by omega⟩ | 1 => ⟨10, by omega⟩ | 2 => ⟨2, by omega⟩ | 3 => ⟨9, by omega⟩ | _ => ⟨9, by omega⟩
+def lgZ : Fin 3 → Fin 11 := fun k => match k.val with | 0 => ⟨6, by omega⟩ | 1 => ⟨7, by omega⟩ | 2 => ⟨10, by omega⟩ | _ => ⟨10, by omega⟩
+
+/-- The graph reader for the `lam` body (variables `0 ↦ v`, `1 ↦ a`,
+`2 ↦ X`, `3 ↦ b`, `4 ↦ ρ`, `5 ↦ pt`): `v = graph (fun x => app X (kpair b (consGraph x ρ))) a`. -/
+def lamGraphEqF : Form 6 :=
+  .all (.iff (Form.relabel lgZV (.mem ⟨0, by omega⟩ ⟨1, by omega⟩)) (.ex (.and (Form.relabel lgXA (.mem ⟨0, by omega⟩ ⟨1, by omega⟩)) (.ex (.ex (.ex (.and (Form.relabel lgW consGraphEqF) (.and (Form.relabel lgK kpairEqF) (.and (Form.relabel lgV appEqF) (Form.relabel lgZ kpairEqF))))))))))
+
+theorem realize_lamGraphEqF {v a X b ρ : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+      (fun _ : Fin 1 => v) a) X) b) ρ) (pt : W)) lamGraphEqF ↔
+      v = graph (fun x => app X (kpair b (consGraph x ρ))) a := by
+  have hZV: ∀ z : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X) b) ρ) (pt : W)) z) ∘ lgZV =
+        (Form.snoc (fun _ : Fin 1 => z) v : Fin 2 → W) := by
+    intro z; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hXA: ∀ z x : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X) b) ρ) (pt : W)) z) x) ∘ lgXA =
+        (Form.snoc (fun _ : Fin 1 => x) a : Fin 2 → W) := by
+    intro z x; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hW: ∀ z x w k v0 : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X) b) ρ) (pt : W)) z) x) w) k) v0) ∘ lgW =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) ρ : Fin 3 → W) := by
+    intro z x w k v0; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK: ∀ z x w k v0 : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X) b) ρ) (pt : W)) z) x) w) k) v0) ∘ lgK =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => k) b) w : Fin 3 → W) := by
+    intro z x w k v0; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV: ∀ z x w k v0 : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X) b) ρ) (pt : W)) z) x) w) k) v0) ∘ lgV =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) v0) X) k : Fin 4 → W) := by
+    intro z x w k v0; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hZ: ∀ z x w k v0 : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X) b) ρ) (pt : W)) z) x) w) k) v0) ∘ lgZ =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => z) x) v0 : Fin 3 → W) := by
+    intro z x w k v0; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [lamGraphEqF, Form.realize_all, Form.realize_iff, Form.realize_ex,
+    Form.realize_and, Form.realize_relabel, Form.realize_mem,
+    hZV, hXA, hW, hK, hV, hZ,
+    realize_consGraphEqF, realize_kpairEqF, realize_appEqF]
+  clear hZV hXA hW hK hV hZ
+  constructor
+  · intro h
+    have hc : ∀ z : W, z ∈ˢ v ↔ ∃ x, x ∈ˢ a ∧ ∃ w k v0,
+        w = consGraph x ρ ∧ k = kpair b w ∧ v0 = app X k ∧ z = kpair x v0 := h
+    apply SetTheory.ext (V := W)
+    intro z
+    rw [hc z, mem_graph]
+    constructor
+    · rintro ⟨x, hx, w, k, v0, hw, hk, hv0, hz⟩
+      exact ⟨x, hx, by rw [hz, hv0, hk, hw]⟩
+    · rintro ⟨x, hx, hz⟩
+      exact ⟨x, hx, consGraph x ρ, kpair b (consGraph x ρ),
+        app X (kpair b (consGraph x ρ)), rfl, rfl, rfl, hz⟩
+  · intro h
+    rw [h]
+    intro z
+    have hg : z ∈ˢ graph (fun x => app X (kpair b (consGraph x ρ))) a ↔
+        ∃ x, x ∈ˢ a ∧ ∃ w k v0,
+          w = consGraph x ρ ∧ k = kpair b w ∧ v0 = app X k ∧ z = kpair x v0 := by
+      rw [mem_graph]
+      constructor
+      · rintro ⟨x, hx, hz⟩
+        exact ⟨x, hx, consGraph x ρ, kpair b (consGraph x ρ),
+          app X (kpair b (consGraph x ρ)), rfl, rfl, rfl, hz⟩
+      · rintro ⟨x, hx, w, k, v0, hw, hk, hv0, hz⟩
+        exact ⟨x, hx, by rw [hz, hv0, hk, hw]⟩
+    exact hg
+
+/-- Variable maps into the `ptAllF` contexts. -/
+def paXA : Fin 2 → Fin 6 := fun k => match k.val with | 0 => ⟨5, by omega⟩ | 1 => ⟨0, by omega⟩ | _ => ⟨0, by omega⟩
+def paW : Fin 3 → Fin 8 := fun k => match k.val with | 0 => ⟨6, by omega⟩ | 1 => ⟨5, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+def paK : Fin 3 → Fin 8 := fun k => match k.val with | 0 => ⟨7, by omega⟩ | 1 => ⟨2, by omega⟩ | 2 => ⟨6, by omega⟩ | _ => ⟨6, by omega⟩
+def paV : Fin 4 → Fin 8 := fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨4, by omega⟩ | 2 => ⟨1, by omega⟩ | 3 => ⟨7, by omega⟩ | _ => ⟨7, by omega⟩
+
+/-- The point-condition reader for `lam` (variables `0 ↦ a`, `1 ↦ X`,
+`2 ↦ b`, `3 ↦ ρ`, `4 ↦ pt`): `∀ x ∈ˢ a, app X (kpair b (consGraph x ρ)) = pt`. -/
+def ptAllF : Form 5 :=
+  .all (.imp (Form.relabel paXA (.mem ⟨0, by omega⟩ ⟨1, by omega⟩)) (.ex (.ex (.and (Form.relabel paW consGraphEqF) (.and (Form.relabel paK kpairEqF) (Form.relabel paV appEqF))))))
+
+theorem realize_ptAllF {a X b ρ : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+      (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) ptAllF ↔
+      ∀ x, x ∈ˢ a → app X (kpair b (consGraph x ρ)) = pt := by
+  have hXA: ∀ x : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) x) ∘ paXA =
+        (Form.snoc (fun _ : Fin 1 => x) a : Fin 2 → W) := by
+    intro x; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hW: ∀ x w k : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) x) w) k) ∘ paW =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) ρ : Fin 3 → W) := by
+    intro x w k; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK: ∀ x w k : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) x) w) k) ∘ paK =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => k) b) w : Fin 3 → W) := by
+    intro x w k; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV: ∀ x w k : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) x) w) k) ∘ paV =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) pt) X) k : Fin 4 → W) := by
+    intro x w k; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [ptAllF, Form.realize_all, Form.realize_imp, Form.realize_ex,
+    Form.realize_and, Form.realize_relabel, Form.realize_mem,
+    hXA, hW, hK, hV, realize_consGraphEqF, realize_kpairEqF, realize_appEqF]
+  clear hXA hW hK hV
+  constructor
+  · rintro h x hx
+    obtain ⟨w, k, hw, hk, hv⟩ := h x hx
+    rw [hv, hk, hw]
+  · intro h x hx
+    exact ⟨consGraph x ρ, kpair b (consGraph x ρ), rfl, rfl, (h x hx).symm⟩
+
 end ConLeche.Semantics
