@@ -1741,4 +1741,75 @@ theorem realize_lamStepF_tmCode {X ρ : W} (A b : ConLeche.Term.Term) :
       lamStepF :=
   realize_lamStepF.mpr (by simp only [tmCode, sfst_kpair, ssnd_kpair])
 
+/-! ## Stage 48: the `pi` proposition-condition reader `propAllF` -/
+
+/-- Variable maps into the `propAllF` contexts. -/
+def prXA : Fin 2 → Fin 6 := fun k => match k.val with | 0 => ⟨5, by omega⟩ | 1 => ⟨0, by omega⟩ | _ => ⟨0, by omega⟩
+def prW : Fin 3 → Fin 9 := fun k => match k.val with | 0 => ⟨6, by omega⟩ | 1 => ⟨5, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+def prK : Fin 3 → Fin 9 := fun k => match k.val with | 0 => ⟨7, by omega⟩ | 1 => ⟨2, by omega⟩ | 2 => ⟨6, by omega⟩ | _ => ⟨6, by omega⟩
+def prV : Fin 4 → Fin 9 := fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨8, by omega⟩ | 2 => ⟨1, by omega⟩ | 3 => ⟨7, by omega⟩ | _ => ⟨7, by omega⟩
+def prY : Fin 2 → Fin 10 := fun k => match k.val with | 0 => ⟨9, by omega⟩ | 1 => ⟨8, by omega⟩ | _ => ⟨8, by omega⟩
+
+/-- The proposition-condition reader for `pi` (variables `0 ↦ a`, `1 ↦ X`,
+`2 ↦ b`, `3 ↦ ρ`, `4 ↦ pt`): `∀ x ∈ˢ a, app X (kpair b (consGraph x ρ)) ∈ˢ univZero`,
+internalized via `mem_univZero`/`mem_unitSet_iff` as
+`∀ x ∈ˢ a, ∀ y ∈ˢ app X (kpair b (consGraph x ρ)), y = pt`. -/
+def propAllF : Form 5 :=
+  .all (.imp (Form.relabel prXA (.mem ⟨0, by omega⟩ ⟨1, by omega⟩)) (.ex (.ex (.ex (.and (Form.relabel prW consGraphEqF) (.and (Form.relabel prK kpairEqF) (.and (Form.relabel prV appEqF) (.all (.imp (Form.relabel prY (.mem ⟨0, by omega⟩ ⟨1, by omega⟩)) (.equal ⟨9, by omega⟩ ⟨4, by omega⟩))))))))))
+
+theorem realize_propAllF {a X b ρ : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+      (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) propAllF ↔
+      ∀ x, x ∈ˢ a → app X (kpair b (consGraph x ρ)) ∈ˢ (univZero : W) := by
+  have hXA: ∀ x : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) x) ∘ prXA =
+        (Form.snoc (fun _ : Fin 1 => x) a : Fin 2 → W) := by
+    intro x; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hW: ∀ x w k v0 : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) x) w) k) v0) ∘ prW =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) ρ : Fin 3 → W) := by
+    intro x w k v0; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK: ∀ x w k v0 : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) x) w) k) v0) ∘ prK =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => k) b) w : Fin 3 → W) := by
+    intro x w k v0; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV: ∀ x w k v0 : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) x) w) k) v0) ∘ prV =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) v0) X) k : Fin 4 → W) := by
+    intro x w k v0; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hY: ∀ x w k v0 y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => a) X) b) ρ) (pt : W)) x) w) k) v0) y) ∘ prY =
+        (Form.snoc (fun _ : Fin 1 => y) v0 : Fin 2 → W) := by
+    intro x w k v0 y; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [propAllF, Form.realize_all, Form.realize_imp, Form.realize_ex,
+    Form.realize_and, Form.realize_relabel, Form.realize_mem, Form.realize_equal,
+    Form.snoc_mk,
+    hXA, hW, hK, hV, hY, realize_consGraphEqF, realize_kpairEqF, realize_appEqF]
+  clear hXA hW hK hV hY
+  constructor
+  · rintro h x hx
+    obtain ⟨w, k, v0, hw, hk, hv, hall⟩ := h x hx
+    rw [mem_univZero]
+    show ∀ y, y ∈ˢ app X (kpair b (consGraph x ρ)) → y ∈ˢ (unitSet : W)
+    intro y hy
+    rw [mem_unitSet_iff]
+    apply hall y
+    rw [hv, hk, hw]
+    exact hy
+  · intro h x hx
+    refine ⟨consGraph x ρ, kpair b (consGraph x ρ), app X (kpair b (consGraph x ρ)), rfl, rfl, rfl, fun y hy => ?_⟩
+    have hsub := (mem_univZero.mp (h x hx)) y hy
+    rwa [mem_unitSet_iff] at hsub
+
+
 end ConLeche.Semantics

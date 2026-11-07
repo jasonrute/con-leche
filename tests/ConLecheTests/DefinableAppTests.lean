@@ -868,4 +868,15 @@ example (ρ : V) : Form.Realize Mem
   ConLeche.Semantics.realize_lamStepF_tmCode (X := (empty : V)) (ρ := ρ)
     ConLeche.Term.Term.prf (ConLeche.Term.Term.bvar 0)
 
+
+/-! ## Stage 48: the `pi` proposition-condition reader `propAllF` -/
+
+example {a X b ρ : V} (h : ∀ x, x ∈ˢ a → app X (kpair b
+    (ConLeche.Semantics.consGraph x ρ)) ∈ˢ (univZero : V)) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+      (fun _ => a) X) b) ρ) (pt : V))
+      ConLeche.Semantics.propAllF :=
+  ConLeche.Semantics.realize_propAllF.mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx
