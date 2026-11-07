@@ -767,4 +767,136 @@ theorem realize_bvarStepF_tmCode {ρ : W} (i : Nat) :
       (tmCode (ConLeche.Term.Term.bvar i))) (pt : W)) bvarStepF :=
   realize_bvarStepF.mpr (by rw [tmCode, ssnd_kpair])
 
+
+/-! ## Stage 40: the `app` case of the definable interp step -/
+
+variable {W : Type w} [SetTheory W]
+
+
+/-- Variable maps into the `appStepF` bound context `(v, X, i, pt, c, ρ, p, f, a, kf, ka, vf, va)`. -/
+def asMC : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+def asMR : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨5, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+def asMP : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨6, by omega⟩ | 1 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+def asMF : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨7, by omega⟩ | 1 => ⟨6, by omega⟩ | _ => ⟨3, by omega⟩
+def asMA : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨8, by omega⟩ | 1 => ⟨6, by omega⟩ | _ => ⟨3, by omega⟩
+def asMK1 : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨9, by omega⟩ | 1 => ⟨7, by omega⟩ | _ => ⟨5, by omega⟩
+def asMK2 : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨10, by omega⟩ | 1 => ⟨8, by omega⟩ | _ => ⟨5, by omega⟩
+def asMV1 : Fin 4 → Fin 13 := fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨11, by omega⟩ | 2 => ⟨1, by omega⟩ | _ => ⟨9, by omega⟩
+def asMV2 : Fin 4 → Fin 13 := fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨12, by omega⟩ | 2 => ⟨1, by omega⟩ | _ => ⟨10, by omega⟩
+def asMV : Fin 4 → Fin 13 := fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨0, by omega⟩ | 2 => ⟨11, by omega⟩ | _ => ⟨12, by omega⟩
+
+/-- The `app` step of the definable interpretation (variables `0 ↦ v`,
+`1 ↦ X` (the current family graph), `2 ↦ i` (the index `kpair c ρ`),
+`3 ↦ pt`): `v = app (app X (kpair (sfst (ssnd c)) ρ))
+(app X (kpair (ssnd (ssnd c)) ρ))` where `c = sfst i`, `ρ = ssnd i`. -/
+def appStepF : Form 4 :=
+  .ex (.ex (.ex (.ex (.ex (.ex (.ex (.ex (.ex
+    (.and (Form.relabel asMC sfstEqF)
+    (.and (Form.relabel asMR ssndEqF)
+    (.and (Form.relabel asMP ssndEqF)
+    (.and (Form.relabel asMF sfstEqF)
+    (.and (Form.relabel asMA ssndEqF)
+    (.and (Form.relabel asMK1 kpairEqF)
+    (.and (Form.relabel asMK2 kpairEqF)
+    (.and (Form.relabel asMV1 appEqF)
+    (.and (Form.relabel asMV2 appEqF)
+          (Form.relabel asMV appEqF))))))))))))))))))
+
+theorem realize_appStepF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : W)) appStepF ↔
+      v = app (app X (kpair (sfst (ssnd (sfst i))) (ssnd i)))
+        (app X (kpair (ssnd (ssnd (sfst i))) (ssnd i))) := by
+  have hC : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMC =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => c) i) (pt : W) : Fin 3 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hR : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMR =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => ρ) i) (pt : W) : Fin 3 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hP : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMP =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => p) c) (pt : W) : Fin 3 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hF : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMF =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => f) p) (pt : W) : Fin 3 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hA : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMA =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => a) p) (pt : W) : Fin 3 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK1 : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMK1 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => kf) f) ρ : Fin 3 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK2 : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMK2 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => ka) a) ρ : Fin 3 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV1 : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMV1 =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) vf) X) kf : Fin 4 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hV2 : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMV2 =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) va) X) ka : Fin 4 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hV : ∀ c ρ p f a kf ka vf va : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) f) a) kf) ka) vf) va) ∘ asMV =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) v) vf) va : Fin 4 → W) := by
+    intro c ρ p f a kf ka vf va; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [appStepF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hC, hR, hP, hF, hA, hK1, hK2, hV1, hV2, hV,
+    realize_sfstEqF, realize_ssndEqF, realize_kpairEqF, realize_appEqF]
+  clear hC hR hP hF hA hK1 hK2 hV1 hV2 hV
+  constructor
+  · rintro ⟨c, ρ, p, f, a, kf, ka, vf, va, hC, hR, hP, hF, hA, hK1, hK2, hV1, hV2, hV⟩
+    have hC' : c = sfst i := hC
+    have hR' : ρ = ssnd i := hR
+    have hP' : p = ssnd c := hP
+    have hF' : f = sfst p := hF
+    have hA' : a = ssnd p := hA
+    have hK1' : kf = kpair f ρ := hK1
+    have hK2' : ka = kpair a ρ := hK2
+    have hV1' : vf = app X kf := hV1
+    have hV2' : va = app X ka := hV2
+    have hV' : v = app vf va := hV
+    rw [hV', hV1', hV2', hK1', hK2', hF', hA', hP', hC', hR']
+  · intro h
+    exact ⟨sfst i, ssnd i, ssnd (sfst i), sfst (ssnd (sfst i)), ssnd (ssnd (sfst i)),
+      kpair (sfst (ssnd (sfst i))) (ssnd i), kpair (ssnd (ssnd (sfst i))) (ssnd i),
+      app X (kpair (sfst (ssnd (sfst i))) (ssnd i)), app X (kpair (ssnd (ssnd (sfst i))) (ssnd i)),
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, h⟩
+
 end ConLeche.Semantics
