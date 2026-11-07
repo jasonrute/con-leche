@@ -591,4 +591,27 @@ example (h : ConLeche.Semantics.vnatListCode (W := V) [1] =
   have := ConLeche.Semantics.vnatListCode_inj h
   simp at this
 
+/-! ## Stage 35: V-codes for terms -/
+
+example : ConLeche.Semantics.tmCode (W := V) (.bvar 3) = kpair (vnat 0) (vnat 3) := rfl
+
+example : ConLeche.Semantics.tmCode (W := V) (.const .nat [0, 2]) =
+    kpair (vnat 2) (kpair (kpair (vnat 0) (empty : V)) (Tower.mkTower [vnat 0, vnat 2])) := rfl
+
+example : ConLeche.Semantics.tmCode (W := V) (.app (.bvar 0) .prf) =
+    kpair (vnat 3) (kpair (kpair (vnat 0) (vnat 0)) (kpair (vnat 10) (empty : V))) := rfl
+
+example (h : ConLeche.Semantics.tmCode (W := V) (.bvar 1) =
+    ConLeche.Semantics.tmCode (W := V) (.bvar 2)) : False := by
+  have := ConLeche.Semantics.tmCode_inj _ _ h
+  simp at this
+
+example (h : ConLeche.Semantics.tmCode (W := V) (.bvar 1) =
+    ConLeche.Semantics.tmCode (W := V) (.sort 1)) : False :=
+  ConLeche.Term.Term.noConfusion (ConLeche.Semantics.tmCode_inj _ _ h)
+
+example (t : ConLeche.Term.Term) :
+    ConLeche.Semantics.tmCode (W := V) (.fst t) =
+      kpair (vnat 8) (ConLeche.Semantics.tmCode (W := V) t) := rfl
+
 end ConLeche.SetTheory.DefinableAppEx

@@ -275,5 +275,91 @@ theorem bconstCode_inj {W : Type w} [SetTheory W] {c c' : Term.BConst} (h : bcon
     | (obtain ⟨h1, -⟩ := kpair_inj h; have htag := vnat_inj (V := W) h1; omega)
     | (obtain ⟨-, h2⟩ := kpair_inj h; rw [vnat_inj (V := W) h2])
 
+/-- Codes of terms: `kpair` of a numeral constructor tag and the coded
+payload (a `kpair` of the coded immediate arguments, `empty` off `prf`). -/
+noncomputable def tmCode {W : Type w} [SetTheory W] : Term → W
+  | .bvar i => kpair (vnat 0) (vnat i)
+  | .sort u => kpair (vnat 1) (vnat u)
+  | .const c us => kpair (vnat 2) (kpair (bconstCode c) (vnatListCode us))
+  | .app f a => kpair (vnat 3) (kpair (tmCode (W := W) f) (tmCode (W := W) a))
+  | .lam ty body => kpair (vnat 4) (kpair (tmCode (W := W) ty) (tmCode (W := W) body))
+  | .pi ty body => kpair (vnat 5) (kpair (tmCode (W := W) ty) (tmCode (W := W) body))
+  | .letE val body => kpair (vnat 6) (kpair (tmCode (W := W) val) (tmCode (W := W) body))
+  | .eqE lhs rhs => kpair (vnat 7) (kpair (tmCode (W := W) lhs) (tmCode (W := W) rhs))
+  | .fst e => kpair (vnat 8) (tmCode (W := W) e)
+  | .snd e => kpair (vnat 9) (tmCode (W := W) e)
+  | .prf => kpair (vnat 10) (empty : W)
+
+theorem tmCode_inj {W : Type w} [SetTheory W] : ∀ (t t' : Term),
+    tmCode (W := W) t = tmCode (W := W) t' → t = t' := by
+  intro t
+  induction t with
+  | bvar i =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; rw [vnat_inj (V := W) hp])
+  | sort u =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; rw [vnat_inj (V := W) hp])
+  | const c us =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; obtain ⟨hc, hu⟩ := kpair_inj hp; rw [bconstCode_inj hc, vnatListCode_inj hu])
+  | app f a ihf iha =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; obtain ⟨hf, ha⟩ := kpair_inj hp; rw [ihf _ hf, iha _ ha])
+  | lam ty body ihty ihbody =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; obtain ⟨hty, hb⟩ := kpair_inj hp; rw [ihty _ hty, ihbody _ hb])
+  | pi ty body ihty ihbody =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; obtain ⟨hty, hb⟩ := kpair_inj hp; rw [ihty _ hty, ihbody _ hb])
+  | letE val body ihval ihbody =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; obtain ⟨hv, hb⟩ := kpair_inj hp; rw [ihval _ hv, ihbody _ hb])
+  | eqE lhs rhs ihl ihr =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; obtain ⟨hl, hr⟩ := kpair_inj hp; rw [ihl _ hl, ihr _ hr])
+  | fst e ihe =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; rw [ihe _ hp])
+  | snd e ihe =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | (obtain ⟨-, hp⟩ := kpair_inj h; rw [ihe _ hp])
+  | prf =>
+    intro t' h
+    cases t' <;> simp only [tmCode] at h
+    all_goals first
+      | (have htag := vnat_inj (V := W) (kpair_inj_left h); omega)
+      | rfl
+
 
 end ConLeche.Semantics
