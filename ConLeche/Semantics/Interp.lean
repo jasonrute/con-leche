@@ -1128,4 +1128,135 @@ theorem realize_eqvF {v x y : W} :
       exact h
 
 
+/-! ## Stage 43: the `eqE` case of the definable interp step -/
+
+variable {W : Type w} [SetTheory W]
+
+
+/-- Variable maps into the bound context `(v, X, i, pt, c, ρ, p, p1, p2, k1, k2, x, y)`. -/
+def eC : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+def eR : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨5, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+def eP : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨6, by omega⟩ | 1 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+def eP1 : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨7, by omega⟩ | 1 => ⟨6, by omega⟩ | _ => ⟨3, by omega⟩
+def eP2 : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨8, by omega⟩ | 1 => ⟨6, by omega⟩ | _ => ⟨3, by omega⟩
+def eK1 : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨9, by omega⟩ | 1 => ⟨7, by omega⟩ | _ => ⟨5, by omega⟩
+def eK2 : Fin 3 → Fin 13 := fun k => match k.val with | 0 => ⟨10, by omega⟩ | 1 => ⟨8, by omega⟩ | _ => ⟨5, by omega⟩
+def eX : Fin 4 → Fin 13 := fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨11, by omega⟩ | 2 => ⟨1, by omega⟩ | _ => ⟨9, by omega⟩
+def eY : Fin 4 → Fin 13 := fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨12, by omega⟩ | 2 => ⟨1, by omega⟩ | _ => ⟨10, by omega⟩
+def eV : Fin 4 → Fin 13 := fun k => match k.val with | 0 => ⟨0, by omega⟩ | 1 => ⟨11, by omega⟩ | 2 => ⟨12, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The `eqE` step of the definable interpretation (variables `0 ↦ v`, `1 ↦ X`,
+`2 ↦ i = kpair c ρ`, `3 ↦ pt`): `v = eqv (app X (kpair p1 ρ)) (app X (kpair p2 ρ))`
+where `c = sfst i`, `ρ = ssnd i`, `p = ssnd c`, `p1 = sfst p`, `p2 = ssnd p`. -/
+def eqEStepF : Form 4 :=
+  .ex ( .ex ( .ex ( .ex ( .ex ( .ex ( .ex ( .ex ( .ex
+    (.and (Form.relabel eC sfstEqF)
+    (.and (Form.relabel eR ssndEqF)
+    (.and (Form.relabel eP ssndEqF)
+    (.and (Form.relabel eP1 sfstEqF)
+    (.and (Form.relabel eP2 ssndEqF)
+    (.and (Form.relabel eK1 kpairEqF)
+    (.and (Form.relabel eK2 kpairEqF)
+    (.and (Form.relabel eX appEqF)
+    (.and (Form.relabel eY appEqF)
+          (Form.relabel eV eqvF))))))))))))))))))
+
+theorem realize_eqEStepF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : W)) eqEStepF ↔
+      v = eqv (app X (kpair (sfst (ssnd (sfst i))) (ssnd i)))
+        (app X (kpair (ssnd (ssnd (sfst i))) (ssnd i))) := by
+  have hC : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eC =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => c) i) (pt : W) : Fin 3 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hR : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eR =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => ρ) i) (pt : W) : Fin 3 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hP : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eP =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => p) c) (pt : W) : Fin 3 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hP1 : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eP1 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => p1) p) (pt : W) : Fin 3 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hP2 : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eP2 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => p2) p) (pt : W) : Fin 3 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK1 : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eK1 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => k1) p1) ρ : Fin 3 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK2 : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eK2 =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => k2) p2) ρ : Fin 3 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hX : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eX =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : W)) x) X) k1 : Fin 4 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hY : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eY =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : W)) y) X) k2 : Fin 4 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hV : ∀ c ρ p p1 p2 k1 k2 x y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) p1) p2) k1) k2) x) y) ∘ eV =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) x) y) (pt : W) : Fin 4 → W) := by
+    intro c ρ p p1 p2 k1 k2 x y; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [eqEStepF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hC, hR, hP, hP1, hP2, hK1, hK2, hX, hY, hV,
+    realize_sfstEqF, realize_ssndEqF, realize_kpairEqF, realize_appEqF, realize_eqvF]
+  clear hC hR hP hP1 hP2 hK1 hK2 hX hY hV
+  constructor
+  · rintro ⟨c, ρ, p, p1, p2, k1, k2, x, y, hC, hR, hP, hP1, hP2, hK1, hK2, hX, hY, hV⟩
+    have hC' : c = sfst i := hC
+    have hR' : ρ = ssnd i := hR
+    have hP' : p = ssnd c := hP
+    have hP1' : p1 = sfst p := hP1
+    have hP2' : p2 = ssnd p := hP2
+    have hK1' : k1 = kpair p1 ρ := hK1
+    have hK2' : k2 = kpair p2 ρ := hK2
+    have hX' : x = app X k1 := hX
+    have hY' : y = app X k2 := hY
+    have hV' : v = eqv x y := hV
+    rw [hV', hX', hY', hK1', hK2', hP1', hP2', hP', hC', hR']
+  · intro h
+    exact ⟨sfst i, ssnd i, ssnd (sfst i), sfst (ssnd (sfst i)), ssnd (ssnd (sfst i)),
+      kpair (sfst (ssnd (sfst i))) (ssnd i), kpair (ssnd (ssnd (sfst i))) (ssnd i),
+      app X (kpair (sfst (ssnd (sfst i))) (ssnd i)), app X (kpair (ssnd (ssnd (sfst i))) (ssnd i)),
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, h⟩
+
+
 end ConLeche.Semantics

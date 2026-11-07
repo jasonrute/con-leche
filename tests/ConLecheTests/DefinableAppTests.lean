@@ -776,4 +776,25 @@ example {x y : V} (h : x ≠ y) :
       ConLeche.Semantics.eqvF :=
   ConLeche.Semantics.realize_eqvF.mpr (by rw [ConLeche.Semantics.eqv_eq_empty h])
 
+
+/-! ## Stage 43: the `eqE` case of the definable interp step -/
+
+example {X i : V} : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+      eqv (app X (kpair (sfst (ssnd (sfst i))) (ssnd i)))
+        (app X (kpair (ssnd (ssnd (sfst i))) (ssnd i)))) X) i) (pt : V))
+    ConLeche.Semantics.eqEStepF :=
+  ConLeche.Semantics.realize_eqEStepF.mpr rfl
+
+example (ρ : V) : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+      eqv (app (empty : V) (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 0)) ρ))
+        (app (empty : V) (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 0)) ρ)))
+      (empty : V))
+      (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.eqE (ConLeche.Term.Term.bvar 0)
+        (ConLeche.Term.Term.bvar 0))) ρ)) (pt : V))
+    ConLeche.Semantics.eqEStepF := by
+  rw [ConLeche.Semantics.realize_eqEStepF]
+  simp only [ConLeche.Semantics.tmCode, sfst_kpair, ssnd_kpair]
+
 end ConLeche.SetTheory.DefinableAppEx
