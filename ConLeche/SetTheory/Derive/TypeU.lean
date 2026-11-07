@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetTheory.Derive.Graphs
+import ConLeche.SetTheory.Derive.Rec
 public import ConLeche.SetTheory.Derive.Tg
 
 @[expose] public section
@@ -38,19 +39,41 @@ variable {V : Type u} [SetTheory V]
 
 /-! ## The point is not a natural number -/
 
-/-- `pt ∉ ω`: every nonzero von Neumann numeral has `∅` as a member,
-and the point's one member `ptTag` is not `∅` (it has `∅` as a member). -/
+/-- `x ≠ pt` as a formula (parameter `0 → pt`, bound `1 → x`). -/
+def nePtF : Form 2 := .not (.equal ⟨1, by omega⟩ ⟨0, by omega⟩)
+
+theorem realize_nePtF {x : V} :
+    Form.Realize Mem (Form.snoc (fun _ => pt) x) nePtF ↔ x ≠ pt := by
+  simp only [nePtF, Form.realize_not, Form.realize_equal, Form.snoc_mk]
+  simp
+
+/-- The von Neumann successor is never the point: `x ∈ˢ vsucc x = pt`
+forces `x = ptTag`, whose member `∅` then lies in `pt`, impossible. -/
+theorem vsucc_ne_pt (x : V) : vsucc x ≠ pt := by
+  intro hEq
+  have hx : x ∈ˢ vsucc x := (mem_vsucc (z := x) (n := x)).mpr (Or.inr rfl)
+  rw [hEq] at hx
+  have hx1 : x = ptTag := mem_pt.mp hx
+  have he0 : (empty : V) ∈ˢ ptTag := empty_mem_ptTag
+  rw [← hx1] at he0
+  have he2 : (empty : V) ∈ˢ vsucc x := (mem_vsucc (z := (empty : V)) (n := x)).mpr (Or.inl he0)
+  rw [hEq] at he2
+  have he3 : (empty : V) ∈ˢ ptTag := empty_mem_ptTag
+  rw [mem_pt.mp he2] at he3
+  exact not_mem_self _ he3
+
+/-- `pt ∉ ω`: the definable property `x ≠ pt` holds at `∅`
+(`pt_ne_empty`) and is closed under `vsucc` (`vsucc_ne_pt`), so it holds
+on all of `ω` by `omega_induction`. -/
 theorem pt_not_mem_omega : ¬ (pt : V) ∈ˢ omega := by
   intro h
-  obtain ⟨k, hk⟩ := mem_omega_iff.mp h
-  match k, hk with
-  | 0, hk => exact pt_ne_empty hk
-  | k + 1, hk =>
-    have h0 : (vnat 0 : V) ∈ˢ pt := hk ▸ vnat_mem_vnat_of_lt (Nat.succ_pos k)
-    have h1 : (empty : V) = ptTag := mem_pt.mp h0
-    have h2 := empty_mem_ptTag (V := V)
-    rw [← h1] at h2
-    exact not_mem_empty _ h2
+  have h := omega_induction
+    (p := fun _ => pt)
+    (φ := nePtF)
+    (by rw [realize_nePtF]; exact pt_ne_empty.symm)
+    (fun x _ _ => by rw [realize_nePtF]; exact vsucc_ne_pt x)
+    h
+  exact (realize_nePtF.mp h) rfl
 
 /-! ## Strict sets, types, fibres -/
 
@@ -72,7 +95,8 @@ open Classical in
 /-- **The strict universe**: the truth values at `0`, the strict
 members of the axiomatic level `tg n` above (the fibre space of the
 least fixed points). -/
-noncomputable def strictU (n : Nat) : V := if n = 0 then tg 0 else sep (tg n) Strict
+noncomputable def strictU (n : Nat) : V :=
+  if n = 0 then tg 0 else sepF (tg n) strictF (fun _ => pt)
 
 theorem strictU_zero : (strictU 0 : V) = univZero := by
   unfold strictU; rw [ite_eq_left rfl, tg_zero]
@@ -82,7 +106,8 @@ theorem mem_strictU_zero {T : V} : T ∈ˢ (strictU 0 : V) ↔ T ∈ˢ univZero 
 
 theorem mem_strictU_pos {n : Nat} (hn : n ≠ 0) {T : V} :
     T ∈ˢ (strictU n : V) ↔ T ∈ˢ tg n ∧ Strict T := by
-  unfold strictU; rw [ite_eq_right hn]; exact mem_sep
+  unfold strictU; rw [ite_eq_right hn, mem_sepF, realize_strictF]
+  exact ⟨fun h => ⟨h.1, h.2⟩, fun h => ⟨h.1, h.2⟩⟩
 
 theorem strictU_subset_tg (n : Nat) : (strictU n : V) ⊆ˢ tg n := by
   by_cases hn : n = 0
@@ -159,7 +184,8 @@ theorem strict_piSet {A : V} {B : V → V} : Strict (piSet A B) := by
   intro he
   have hz : (ptTag : V) ∈ˢ piSet A B := he ▸ ptTag_mem_pt
   have h1 := eq_graph_app_of_mem_piSet hz
-  have h2 : graph (fun x => app ptTag x) A ∈ˢ (pt : V) := by rw [h1]; exact ptTag_mem_pt
+  have h2 : graphAppF ptTag A ∈ˢ (pt : V) := by rw [graphAppF_eq, h1]; exact ptTag_mem_pt
+  rw [graphAppF_eq] at h2
   exact graph_not_mem_pt h2
 
 /-- A dependent pair set is strict: its members are pairs. -/
@@ -169,6 +195,16 @@ theorem strict_sigmaPairs {A : V} {B : V → V} : Strict (sigmaPairs A B) :=
     exact ⟨x, y, rfl⟩
 
 theorem IsTy_of_strict {X : V} (h : Strict X) : IsTy X := Or.inr h
+
+/-- A numeral is strict: it is not the point (its member `∅` would then
+lie in the point), and the point is not among its members (they are all
+smaller numerals). -/
+theorem strict_vnat (k : Nat) : Strict (vnat k : V) :=
+  ⟨fun h => pt_not_mem_omega (by rw [← h]; exact vnat_mem_omega k),
+    fun h => pt_not_mem_omega (vnat_subset_omega k pt h)⟩
+
+/-- A numeral is a type. -/
+theorem IsTy_vnat (k : Nat) : IsTy (vnat k : V) := IsTy_of_strict (strict_vnat k)
 
 /-- **Every set is a member of some type** (task #342, L5): `{pt}` for the
 point, `{y}` for a set that is neither the point nor its tag, and
@@ -214,18 +250,20 @@ theorem unitSet_mem_strictU_zero : (unitSet : V) ∈ˢ strictU 0 :=
 open Classical in
 /-- **The universe of types at level `n`**: the truth values at `0`,
 above the members of the axiomatic level `tg n` that are types. -/
-noncomputable def tyU (n : Nat) : V := if n = 0 then tg 0 else sep (tg n) IsTy
+noncomputable def tyU (n : Nat) : V :=
+  if n = 0 then tg 0 else sepF (tg n) tyF (Form.snoc (fun _ => univZero) pt)
 
 theorem tyU_zero : (tyU 0 : V) = univZero := by
   unfold tyU; rw [ite_eq_left rfl, tg_zero]
 
 /-- Membership, uniformly in the level: at `0` every truth value is a
-type, so `tyU 0` is `sep (tg 0) IsTy` too. -/
+type, so `tyU 0` is the same definable separation too. -/
 theorem mem_tyU {n : Nat} {T : V} : T ∈ˢ (tyU n : V) ↔ T ∈ˢ tg n ∧ IsTy T := by
   by_cases hn : n = 0
   · subst hn; rw [tyU_zero, tg_zero]
     exact ⟨fun h => ⟨h, Or.inl h⟩, fun h => h.1⟩
-  · unfold tyU; rw [ite_eq_right hn]; exact mem_sep
+  · unfold tyU; rw [ite_eq_right hn, mem_sepF, realize_tyF]
+    exact ⟨fun h => ⟨h.1, h.2⟩, fun h => ⟨h.1, h.2⟩⟩
 
 theorem mem_tg_of_mem_tyU {n : Nat} {T : V} (h : T ∈ˢ (tyU n : V)) : T ∈ˢ tg n :=
   (mem_tyU.mp h).1
@@ -276,7 +314,7 @@ theorem tyU_mem_tg_succ (n : Nat) : (tyU n : V) ∈ˢ tg (n + 1) := by
   by_cases hn : n = 0
   · subst hn; rw [tyU_zero]; exact univZero_mem_tg_succ 0
   · unfold tyU; rw [ite_eq_right hn]
-    exact (tg_isUniverse (Nat.succ_ne_zero n)).sep_mem (tg_mem_tg n)
+    exact (tg_isUniverse (Nat.succ_ne_zero n)).mem_of_subset_mem (tg_mem_tg n) sepF_subset
 
 /-- `Sort n : Sort (n+1)`. -/
 theorem tyU_mem_tyU_succ (n : Nat) : (tyU n : V) ∈ˢ tyU (n + 1) :=

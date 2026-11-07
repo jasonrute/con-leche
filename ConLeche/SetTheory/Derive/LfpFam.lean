@@ -328,6 +328,27 @@ theorem strictU_famUnion_mem {w : Nat} (hw : w ≠ 0) {A : V} {F : V → V} (hA 
     obtain ⟨a, ha, rfl⟩ := mem_image.mp hy
     exact ((mem_strictU_pos hw).mp (hF a ha)).2.2 hpy
 
+/-- **Definable twin of `strictU_famUnion_mem` (clause 6)**: a union of
+strict types of a positive level, indexed by a definable functional
+relation over a set of the axiomatic level, is strict. -/
+theorem strictU_famUnionF_mem {w : Nat} (hw : w ≠ 0) {A : V} {n : Nat} {ψ : Form (n + 2)}
+    {p : Fin n → V}
+    {hfun : ∀ a, a ∈ˢ A → ∃ y, Form.Realize Mem (Form.cons2 a y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 a y' p) ψ → y' = y}
+    (hA : A ∈ˢ (tg w : V))
+    (hF : ∀ a, a ∈ˢ A → ∀ y, Form.Realize Mem (Form.cons2 a y p) ψ → y ∈ˢ (strictU w : V)) :
+    sUnion (imageF ψ p A hfun) ∈ˢ (strictU w : V) := by
+  refine (mem_strictU_pos hw).mpr ⟨(tg_isUniverse hw).famUnionF_mem hA fun a ha y hy =>
+    ((mem_strictU_pos hw).mp (hF a ha y hy)).1, fun he => ?_, fun hp => ?_⟩
+  · have : (ptTag : V) ∈ˢ sUnion (imageF ψ p A hfun) := he ▸ ptTag_mem_pt
+    obtain ⟨y, hy, hty⟩ := mem_sUnion.mp this
+    obtain ⟨a, ha, hy'⟩ := (mem_imageF hfun).mp hy
+    exact ((mem_strictU_pos hw).mp (hF a ha y hy')).2.1
+      (eq_pt_of_subset_pt (fun z hz => he ▸ mem_sUnion.mpr ⟨_, hy, hz⟩) hty)
+  · obtain ⟨y, hy, hpy⟩ := mem_sUnion.mp hp
+    obtain ⟨a, ha, hy'⟩ := (mem_imageF hfun).mp hy
+    exact ((mem_strictU_pos hw).mp (hF a ha y hy')).2.2 hpy
+
 /-! ## Families of a level -/
 
 /-- The family space over `I`: families into the strict universe

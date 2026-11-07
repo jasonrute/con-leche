@@ -311,7 +311,7 @@ theorem psigmaV_uv_mem (u v : Nat) :
         fun _ => (univ (Nat.max u v) : V)) := by
   rw [psigmaV_eq_lamR]
   exact lamR_mem fun _ hA => lamR_mem fun _ hB =>
-    sigma_mem_univ hA (fun _ hx => psigmaFibre_apply V hB hx)
+    sigma_mem_univ_app hA (fun _ hx => psigmaFibre_apply V hB hx)
 
 /-- The chain's fibre λ. -/
 theorem sigChain_lam_mem {ρ : Nat → V} {T : Term} {Ts : List Term} {Q : Term}
@@ -1381,7 +1381,7 @@ theorem famCandG_hCand (D : GraphFamData V ℓ K rP rds concl ρ R)
       xs.length = (pdoms c).length →
       SpineFit (chainFrame K (famCandG D) ρ) (pdoms c ++ fdoms c j) (xs ++ fs) →
       (D.kit xs).st (dOf xs c j fs)
-          (graph (fun v => (D.kit xs).recAt v) ((D.kit xs).pred (dOf xs c j fs)))
+          (recGraphF (D.kit xs).G ((D.kit xs).pred (dOf xs c j fs)))
         = interp V
             (consList ((ihs c j).map (interp V (consList (xs ++ fs) (chainFrame K (famCandG D) ρ))))
               (consList (xs ++ fs) (chainFrame K (famCandG D) ρ))) (Rb c j)) :

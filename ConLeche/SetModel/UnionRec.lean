@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetModel.TaggedSum
+public import ConLeche.SetTheory.Derive.Rec
 @[expose] public section
 
 /-!
@@ -39,8 +40,8 @@ theorem tagged_inj {c c' : Nat} {i x i' x' : V} (h : tagged c i x = tagged c' i'
 /-- **The disjoint union** of the values of the first `k` components of
 a tuple of families. -/
 noncomputable def unionSet (k : Nat) (Is : Nat → V) (X : Nat → V) : V :=
-  sigmaPairs (sep omega fun c => ∃ n, n < k ∧ c = vnat n)
-    (natFibre fun c => sigmaPairs (Is c) fun i => app (X c) i)
+  sigmaPairs (sepF omega memPF (fun _ => vnat k))
+    (natFibre fun c => sigmaPairsAppF (X c) (Is c))
 
 theorem mem_unionSet {k : Nat} {Is X : Nat → V} {u : V} :
     u ∈ˢ unionSet k Is X ↔
@@ -49,14 +50,16 @@ theorem mem_unionSet {k : Nat} {Is X : Nat → V} {u : V} :
   rw [mem_sigmaPairs]
   constructor
   · rintro ⟨t, ht, p, hp, rfl⟩
-    obtain ⟨-, n, hn, rfl⟩ := mem_sep.mp ht
+    obtain ⟨-, htS⟩ := mem_sepF.mp ht
+    obtain ⟨n, hn, rfl⟩ := mem_vnat_iff.mp (realize_memPF.mp htS)
     rw [natFibre_vnat] at hp
-    obtain ⟨i, hi, x, hx, rfl⟩ := mem_sigmaPairs.mp hp
+    obtain ⟨i, hi, x, hx, rfl⟩ := mem_sigmaPairsAppF.mp hp
     exact ⟨n, hn, i, hi, x, hx, rfl⟩
   · rintro ⟨c, hc, i, hi, x, hx, rfl⟩
-    refine ⟨vnat c, mem_sep.mpr ⟨vnat_mem_omega c, c, hc, rfl⟩, kpair i x, ?_, rfl⟩
+    refine ⟨vnat c, mem_sepF.mpr ⟨vnat_mem_omega c,
+      realize_memPF.mpr (mem_vnat_iff.mpr ⟨c, hc, rfl⟩)⟩, kpair i x, ?_, rfl⟩
     rw [natFibre_vnat]
-    exact mem_sigmaPairs.mpr ⟨i, hi, x, hx, rfl⟩
+    exact mem_sigmaPairsAppF.mpr ⟨i, hi, x, hx, rfl⟩
 
 theorem tagged_mem_unionSet {k : Nat} {Is X : Nat → V} {c : Nat} (hc : c < k) {i x : V}
     (hi : i ∈ˢ Is c) (hx : x ∈ˢ app (X c) i) : tagged c i x ∈ˢ unionSet k Is X :=

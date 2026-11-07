@@ -76,6 +76,81 @@ Nothing beyond Carneiro's hypothesis was needed: `ℵ₀ < κ` is used only
 to make `κ.ord` a limit ordinal (for `powerset y ∈ V_ κ`), regularity
 and strong limitness exactly as described above.
 
+`ConLecheBridge/FirstOrderZFC.lean`:
+
+* `LSet` — the first-order language of pure set theory `L = {∈}` via
+  Mathlib's `FirstOrder.Language` (one binary relation symbol, no
+  function symbols), with the membership atom `memF` and the
+  structure-level predicate `Mem M`.
+
+* `ZFC : LSet.Theory` — ZFC as a first-order theory in `LSet`: the
+  seven axioms as `Sentence`s (`extensionality`, `emptySet`,
+  `pairing`, `unionAxiom`, `powerSet`, `infinity`, `foundation`) plus
+  the separation and replacement **schemas** as sets of sentences
+  (`sepSchema`, `repSchema`, one sentence per formula with
+  parameters).
+
+* `inacc n` — the sentence "there exist `n` nested Grothendieck
+  universes" `U₀ ∈ U₁ ∈ … ∈ Uₙ₋₁`, each `Uᵢ` satisfying the
+  first-order universe clauses `isUnivFO` (the clauses of
+  `ConLeche.IsUniverse` except the meta-level fibre-replacement
+  clause); `ZFCInacc := ZFC ∪ Set.range inacc` is ZFC +
+  `{n inaccessibles | n ∈ ω}`, with `n` inaccessibles encoded as `n`
+  nested universes — the form the `SetTheory` interface consumes
+  (`univChain`).
+
+* Extraction theorems `ext_of_ZFC`, `pairing_of_ZFC`, `union_of_ZFC`,
+  `power_of_ZFC`, `regularity_of_ZFC`: the corresponding `SetTheory`
+  fields of a model `M ⊨ ZFC`, proved from the axiom sentences via
+  `hZFC.realize_of_mem`.
+
+* **Definable replacement, axiom-free** — `ConLeche.SetTheory.Form`
+  (in the Mathlib-free `ConLeche` package) is the internal type of
+  first-order `L = {∈}` formulas; `toBF`/`realize_toBF` embed it into
+  Mathlib's `LSet.BoundedFormula`, and `toParam`/`realize_toParam` turn
+  its free variables into parameters.  `repl_of_ZFC` reads one instance
+  of `repSchema` off `M ⊨ ZFC` (each `repInst` is standard ZF
+  replacement, with the functionality antecedent `∀z ∈ A, ∃!y, φ(z,y,p)`),
+  and
+  `replF_of_ZFC_model (hZFC : M ⊨ ZFC) (n) (φ : ConLeche.Form (n + 2))
+  (p : Fin n → M) (a : M) (hfun : ∀ x ∈ a, ∃! y, Form.Realize (Mem M)
+  (Form.cons2 x y p) φ) : ∃ b, ∀ y, Mem M y b ↔ ∃ x, Mem M x a ∧
+  Form.Realize (Mem M) (Form.cons2 x y p) φ` is the full **definable**
+  replacement scheme, proved with NO bridge axiom (axiom pin
+  `#guard_msgs in #print axioms`: only `propext`, `Classical.choice`,
+  `Quot.sound`).  This is exactly the new `SetTheory.replF` field
+  (`ConLeche/SetTheory/Core.lean`), supplied axiom-free by both bridge
+  instances (`setTheory_of_ZFC_model` from `repSchema`,
+  `setTheoryOfChain` from `ZFSet.image` under
+  `Classical.allZFSetDefinable`), with the derived definable
+  separation/image `sepF`/`imageF` in `ConLeche/SetTheory/Derive/Sep.lean`.
+  Removing the `replScheme_of_ZFC_model` bridge axiom means migrating
+  the `SetTheory.repl` (`sep`/`image`) call sites to this `Form`-based
+  scheme.
+
+* `setTheory_of_ZFC_model (hZFC : M ⊨ ZFC) (hInacc : ∀ n, M ⊨ inacc n) :
+  ConLeche.SetTheory M` — turns a first-order model of
+  `ZFCInacc` into ConLeche's `SetTheory` interface.
+
+* `no_False_declaration_first_order` — **the main theorem restated in
+  first-order ZFC**: if `M ⊨ ZFC + {n inaccessibles | n ∈ ω}`,
+  con-leche cannot accept a file declaring a theorem of type `False`.
+  Proved by `setTheory_of_ZFC_model` + `ConLeche.no_False_declaration`;
+  the same instance restates `ConLeche.model_exists`.
+
+* Two documented **bridge axioms** close the gap between a first-order
+  theory in `L = {∈}` and the meta-level `SetTheory` scheme (the same
+  gap as the `AXIOM_AUDIT.md` axioms in
+  `jasonrute/lean-intended-semantics`):
+  `replScheme_of_ZFC_model` (the meta-level scheme over all
+  `p : M → M → Prop`; the definable scheme `replF_of_ZFC_model` above is
+  already a theorem) and `exists_univChain_of_inacc` (extracting a
+  coherent ω-chain of universes with the meta-level clause-5
+  replacement from the `inacc n` sentences).  Axiom pin
+  (`#guard_msgs in #print axioms`):
+  `propext`, `Classical.choice`, `Quot.sound`, plus the two bridge
+  axioms — nothing else.
+
 ## The converse
 
 The briefing for this task expected the converse to fail, with `H(κ)`

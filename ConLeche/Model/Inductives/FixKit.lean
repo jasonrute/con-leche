@@ -531,10 +531,10 @@ theorem mkAppN_wellDenoted_of_pt :
     refine mkAppN_wellDenoted_of_pt (f := .app f a) ?_ ?_
       (fun b hb => hargs b (List.mem_cons_of_mem _ hb))
     · rw [WellDenoted_app]
-      refine ⟨hf, ha, 0, image (fun _ => interp V ρ a) unitSet, fun _ => unitSet, ?_, ?_, ?_,
+      refine ⟨hf, ha, 0, sing (interp V ρ a), fun _ => unitSet, ?_, ?_, ?_,
         fun h => absurd rfl h⟩
       · rw [hpt]; exact pt_mem_piR_zero_of fun _ _ => pt_mem_unitSet
-      · exact mem_image.mpr ⟨pt, pt_mem_unitSet, rfl⟩
+      · exact mem_sing.mpr rfl
       · intro _ _ _; rw [← univ_zero]; exact unitSet_mem_univ 0
     · rw [interp_app, hpt, app_pt]
 
@@ -802,15 +802,17 @@ theorem wellDenoted_proj1_sum {w : Nat} (hw : w ≠ 0) {ρ' ρ : Nat → V} {Fs 
   · rw [nat_max_self]; exact hval
   · obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
     exact omega_mem_univ_succ w'
-  · intro k hk
-    obtain ⟨j, rfl, hfib⟩ := natFibre_of_mem _ hk
-    rw [hfib]
-    cases j with
-    | zero =>
-      rw [sumFibre_of_getElem? rfl]
-      exact towerSet_mem_univ _ (boundS_teleOfFields.mpr hb)
-    | succ j =>
-      rw [sumFibre_of_ge (by simp)]
+  · intro k _
+    rcases natFibre_cases (sumFibre w ρ' [Fs ++ [idxEqAV []]]) k with ⟨j, rfl, hfib⟩ | hempty
+    · rw [hfib]
+      cases j with
+      | zero =>
+        rw [sumFibre_of_getElem? rfl]
+        exact towerSet_mem_univ _ (boundS_teleOfFields.mpr hb)
+      | succ j =>
+        rw [sumFibre_of_ge (by simp)]
+        exact empty_mem_univ w
+    · rw [hempty]
       exact empty_mem_univ w
 
 /-- `.snd` of the point is graded (the squash regime). -/

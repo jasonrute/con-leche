@@ -96,6 +96,10 @@ theorem univ_mem_univ (n : Nat) : (univ n : V) ∈ˢ univ (n + 1) := tyU_mem_tyU
 theorem omega_mem_univ_succ (n : Nat) : (omega : V) ∈ˢ univ (n + 1) :=
   mem_univ_of_mem_strictU (omega_mem_strictU_succ n)
 
+/-- A numeral is a member of every positive universe. -/
+theorem vnat_mem_univ {w : Nat} (hw : w ≠ 0) (k : Nat) : (vnat k : V) ∈ˢ (univ w : V) :=
+  mem_univ_of_tg_strict (vnat_mem_tg hw k) (strict_vnat k)
+
 theorem empty_mem_univ (n : Nat) : (empty : V) ∈ˢ univ n :=
   mem_univ_of_mem_strictU (empty_mem_strictU n)
 

@@ -169,19 +169,21 @@ The numeral has already decided the regime, so membership in a
 positive-regime function space is *by definition* graph-hood: no consumer
 dispatches on "graph or proof point". -/
 
-/-- **The prized inversion.**  A member of a graph-regime function space is a
-graph whose domain is exactly the function space's domain, whose applications
+/-- **The prized inversion.**  A member of a graph-regime function space is the
+definable app-graph of its own applications (`graphAppF`, equal to the meta
+`graph (fun x => app f x) A` by `graphAppF_eq`) whose domain is exactly the
+function space's domain, whose applications
 land pointwise in the fibres, which is never the proof point, and which
 applies to the canonical junk `∅` off the domain.  Every clause is by
 definition of `piSet`; nothing about `B` is used. -/
 theorem mem_piR_pos {v : Nat} {A f : V} {B : V → V} (hv : v ≠ 0)
     (hf : f ∈ˢ piR v A B) :
-    graph (fun x => app f x) A = f ∧
+    graphAppF f A = f ∧
     (∀ x, x ∈ˢ A → app f x ∈ˢ B x) ∧
     (∀ a, ¬ a ∈ˢ A → app f a = empty) ∧
     f ≠ pt := by
   rw [piR_pos hv] at hf
-  exact ⟨eq_graph_app_of_mem_piSet hf, fun x hx => app_mem_of_mem_piSet hf hx,
+  exact ⟨eq_graphAppF_of_mem_piSet hf, fun x hx => app_mem_of_mem_piSet hf hx,
     fun a ha => app_off_dom_of_mem_piSet hf ha, ne_pt_of_mem_piSet hf⟩
 
 /-- **Domain uniqueness, unconditional.**  A graph determines its own
@@ -422,6 +424,60 @@ theorem piV_mem_univ {u v : Nat} {A : V} {B : V → V}
       exact mem_univ_of_tg_strict ((tg_isUniverse hw).piSet_mem
         (tg_mono (Nat.le_max_left u v) A (mem_tg_of_mem_univ hA))
         (fun x hx => tg_mono (Nat.le_max_right u v) _ (mem_tg_of_mem_univ (hB x hx))))
+        strict_piSet
+
+/-- **`∀`-formation in the universes at a constant family**
+(clause 6 via `piSet_const_mem`): the first-order twin of `piV_mem_univ`
+at `B = fun _ => c`. -/
+theorem piV_mem_univ_const {u v : Nat} {A c : V}
+    (hA : A ∈ˢ (univ u : V)) (hc : c ∈ˢ (univ v : V)) :
+    piV A (fun _ => c) ∈ˢ (univ (if v = 0 then 0 else Nat.max u v) : V) := by
+  by_cases hv : v = 0
+  · subst hv
+    have hp : propN A (fun _ => c) = 0 :=
+      propN_eq_zero.mpr fun x hx => univ_zero (V := V) ▸ hc
+    rw [ite_eq_left rfl, univ_zero]
+    unfold piV; rw [hp]; exact piR_zero_mem_univZero
+  · have hw : (Nat.max u v : Nat) ≠ 0 :=
+      fun h => hv (Nat.le_zero.mp (h ▸ Nat.le_max_right u v))
+    rw [ite_eq_right hv]
+    unfold piV
+    by_cases hp : propN A (fun _ => c) = 0
+    · rw [hp]
+      have h0 : piR 0 A (fun _ => c) ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact piR_zero_mem_univZero
+      exact univ_mono (Nat.zero_le _) _ h0
+    · rw [piR_pos hp]
+      exact mem_univ_of_tg_strict ((tg_isUniverse hw).piSet_const_mem (empty_mem_tg _)
+        (tg_mono (Nat.le_max_left u v) A (mem_tg_of_mem_univ hA))
+        (tg_mono (Nat.le_max_right u v) c (mem_tg_of_mem_univ hc)))
+        strict_piSet
+
+/-- **`∀`-formation in the universes at an `app S`-family** (clause 6
+via `piSetAppNF_val_mem`): the first-order twin of `piV_mem_univ` at
+`B = fun j => app S j`, with member values `app S x`. -/
+theorem piV_mem_univ_app {u v : Nat} {A S : V}
+    (hA : A ∈ˢ (univ u : V)) (hS : ∀ x, x ∈ˢ A → app S x ∈ˢ (univ v : V)) :
+    piV A (fun j => app S j) ∈ˢ (univ (if v = 0 then 0 else Nat.max u v) : V) := by
+  by_cases hv : v = 0
+  · subst hv
+    have hp : propN A (fun j => app S j) = 0 :=
+      propN_eq_zero.mpr fun x hx => univ_zero (V := V) ▸ hS x hx
+    rw [ite_eq_left rfl, univ_zero]
+    unfold piV; rw [hp]; exact piR_zero_mem_univZero
+  · have hw : (Nat.max u v : Nat) ≠ 0 :=
+      fun h => hv (Nat.le_zero.mp (h ▸ Nat.le_max_right u v))
+    rw [ite_eq_right hv]
+    unfold piV
+    by_cases hp : propN A (fun j => app S j) = 0
+    · rw [hp]
+      have h0 : piR 0 A (fun j => app S j) ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact piR_zero_mem_univZero
+      exact univ_mono (Nat.zero_le _) _ h0
+    · rw [piR_pos hp]
+      exact mem_univ_of_tg_strict
+        (by rw [← piSetAppNF_eq_piSet]
+            exact (tg_isUniverse hw).piSetAppNF_val_mem (empty_mem_tg _)
+              (tg_mono (Nat.le_max_left u v) A (mem_tg_of_mem_univ hA))
+              (fun x hx => tg_mono (Nat.le_max_right u v) _ (mem_tg_of_mem_univ (hS x hx))))
         strict_piSet
 
 /-- Where every fibre is a truth value the function space is the

@@ -17,8 +17,9 @@ number of constructors other than one**: a value is the pair of a
     inj i a    = spair (vnat i) a
 
 `natFibre f` is the fibre function over `ω`: `f i` at `vnat i`, junk
-(`empty`) off the numerals — never consulted there, since every member
-of `ω` is a unique numeral (`mem_omega_iff`/`vnat_inj`).
+(`empty`) off the numerals — never consulted there: a member of the
+fibre forces the tag to be a numeral (`natFibre_eq_of_mem`), and the junk
+case is handled outright (`natFibre_cases`).
 
 Both regimes ride one definition: `sigmaSet` reads `w` only through
 its zero test, so at `w = 0` the carrier is the truth value "some
@@ -50,12 +51,24 @@ theorem natFibre_vnat (f : Nat → V) (i : Nat) : natFibre f (vnat i) = f i := b
   congr 1
   exact (vnat_inj (Classical.choose_spec (⟨i, rfl⟩ : ∃ i', (vnat i : V) = vnat i'))).symm
 
-/-- Every member of `ω` is a numeral, at which the fibre is the
-named set. -/
-theorem natFibre_of_mem (f : Nat → V) {k : V} (hk : k ∈ˢ (omega : V)) :
+/-- Either `k` is a standard numeral, at which the fibre is the named
+set, or the fibre is the junk `∅`.  No enumeration of `ω`
+needed: the case split is on the defining `if`. -/
+theorem natFibre_cases (f : Nat → V) (k : V) :
+    (∃ i, k = vnat i ∧ natFibre f k = f i) ∨ natFibre f k = (empty : V) := by
+  by_cases h : ∃ i, k = vnat i
+  · obtain ⟨i, hi⟩ := h
+    exact Or.inl ⟨i, hi, by rw [hi]; exact natFibre_vnat f i⟩
+  · exact Or.inr (by unfold natFibre; exact dite_eq_right h)
+
+/-- A member of the fibre at `k` forces `k` to be a standard numeral
+(the junk fibre is empty), at which the fibre is the named set. -/
+theorem natFibre_eq_of_mem (f : Nat → V) {k a : V} (ha : a ∈ˢ natFibre f k) :
     ∃ i, k = vnat i ∧ natFibre f k = f i := by
-  obtain ⟨i, rfl⟩ := mem_omega_iff.mp hk
-  exact ⟨i, rfl, natFibre_vnat f i⟩
+  rcases natFibre_cases f k with h | h
+  · exact h
+  · rw [h] at ha
+    exact absurd ha (not_mem_empty a)
 
 /-- **The tagged sum carrier.** -/
 noncomputable def sumSet (w : Nat) (f : Nat → V) : V :=
@@ -88,8 +101,8 @@ a fitting payload. -/
 theorem sumSet_elim {w : Nat} (hw : w ≠ 0) {f : Nat → V} {x : V}
     (hx : x ∈ˢ sumSet w f) : ∃ i a, a ∈ˢ f i ∧ x = inj i a := by
   unfold sumSet at hx
-  obtain ⟨k, a, hk, ha, -, hpos⟩ := mem_sigma_elim hx
-  obtain ⟨i, rfl, hfib⟩ := natFibre_of_mem f hk
+  obtain ⟨k, a, -, ha, -, hpos⟩ := mem_sigma_elim hx
+  obtain ⟨i, rfl, hfib⟩ := natFibre_eq_of_mem f ha
   rw [hfib] at ha
   exact ⟨i, a, ha, hpos hw⟩
 
@@ -98,8 +111,8 @@ and some constructor's tower is inhabited. -/
 theorem sumSet_zero_elim {f : Nat → V} {x : V} (hx : x ∈ˢ sumSet 0 f) :
     x = pt ∧ ∃ i a, a ∈ˢ f i := by
   unfold sumSet at hx
-  obtain ⟨k, a, hk, ha, hz, -⟩ := mem_sigma_elim hx
-  obtain ⟨i, rfl, hfib⟩ := natFibre_of_mem f hk
+  obtain ⟨k, a, -, ha, hz, -⟩ := mem_sigma_elim hx
+  obtain ⟨i, rfl, hfib⟩ := natFibre_eq_of_mem f ha
   rw [hfib] at ha
   exact ⟨hz rfl, i, a, ha⟩
 
@@ -119,10 +132,12 @@ theorem sumSet_mem_univ {w : Nat} (hw : w ≠ 0) {f : Nat → V}
     (hf : ∀ i, f i ∈ˢ (univ w : V)) : sumSet w f ∈ˢ (univ w : V) := by
   obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
   have hω : (omega : V) ∈ˢ univ (w' + 1) := omega_mem_univ_succ w'
-  have h := sigma_mem_univ (u := w' + 1) (v := w' + 1) (B := natFibre f) hω (fun k hk => by
-    obtain ⟨i, rfl, hfib⟩ := natFibre_of_mem f hk
-    rw [hfib]
-    exact hf i)
+  have h := sigma_mem_univ (u := w' + 1) (v := w' + 1) (B := natFibre f) hω (fun k _ => by
+    rcases natFibre_cases f k with ⟨i, rfl, hfib⟩ | hempty
+    · rw [hfib]
+      exact hf i
+    · rw [hempty]
+      exact empty_mem_univ _)
   rwa [show Nat.max (w' + 1) (w' + 1) = w' + 1 from Nat.max_self _] at h
 
 /-- **Formation** (squash regime), unconditional. -/

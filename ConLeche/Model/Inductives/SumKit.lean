@@ -150,6 +150,7 @@ theorem spineFit_of_wellDenoted_lams {b : Term} :
     have hv : v ≠ 0 := by
       rintro rfl; exact hfne (eq_pt_of_mem_piR_zero hfm)
     have hg := (mem_piR_pos hv hfm).1
+    rw [graphAppF_eq] at hg
     rw [lamV_eq_graph hfne] at hg
     have hA : A = interp V σ d := graph_eq_dom hg
     rw [hA] at ham
