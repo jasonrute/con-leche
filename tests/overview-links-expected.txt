@@ -909,8 +909,8 @@
    387  /-- `I → Sort w`, the family space, as the value reading has it. -/
    388  noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piV I fun _ => univ w
 
-== ConLeche/SetModel/Access.lean#L243
-   243  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
+== ConLeche/SetModel/Access.lean#L262
+   262  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
 
 == ConLeche/Model/Inductives/DeclBlockStep.lean#L70-L75
     70  theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}

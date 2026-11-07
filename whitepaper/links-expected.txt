@@ -3993,15 +3993,15 @@
    314  context's sort (the block's level). -/
    315  theorem blockAcc_of_run {μ : ConLeche.CheckMode} (hμ : μ.isVerified = true) {F : Nat}
 
-== ConLeche/SetModel/Access.lean#L56-L63
-    56  /-- **`A`-accessibility** of an operator from `kI`-tuples over `IsI` to
-    57  `kO`-tuples over `IsO`. -/
-    58  def AccTuple (w kI : Nat) (IsI : Nat → V) (kO : Nat) (IsO : Nat → V)
-    59      (Φ : (Nat → V) → Nat → V) (A : V) : Prop :=
-    60    ∀ X, InTupleSpace w kI IsI X → ∀ m, m < kO → ∀ i, i ∈ˢ IsO m → ∀ x, x ∈ˢ app (Φ X m) i →
-    61      ∃ (B : V) (g : V → Nat × V × V), B ⊆ˢ A ∧ (∀ a, a ∈ˢ B → InTup kI IsI X (g a)) ∧
-    62        ∀ X', InTupleSpace w kI IsI X' → (∀ a, a ∈ˢ B → InTup kI IsI X' (g a)) →
-    63          x ∈ˢ app (Φ X' m) i
+== ConLeche/SetModel/Access.lean#L55-L62
+    55  /-- **`A`-accessibility** of an operator from `kI`-tuples over `IsI` to
+    56  `kO`-tuples over `IsO`. -/
+    57  def AccTuple (w kI : Nat) (IsI : Nat → V) (kO : Nat) (IsO : Nat → V)
+    58      (Φ : (Nat → V) → Nat → V) (A : V) : Prop :=
+    59    ∀ X, InTupleSpace w kI IsI X → ∀ m, m < kO → ∀ i, i ∈ˢ IsO m → ∀ x, x ∈ˢ app (Φ X m) i →
+    60      ∃ (B : V) (g : V → Nat × V × V), B ⊆ˢ A ∧ (∀ a, a ∈ˢ B → InTup kI IsI X (g a)) ∧
+    61        ∀ X', InTupleSpace w kI IsI X' → (∀ a, a ∈ˢ B → InTup kI IsI X' (g a)) →
+    62          x ∈ˢ app (Φ X' m) i
 
 == ConLeche/Model/Env/BlockLfp.lean#L511-L515
    511  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
@@ -4039,12 +4039,12 @@
    302  theorem closed_of_acc (hn : n ≠ 0) (hA : A ∈ˢ (univ n : V)) (hmaps : MapsFam n Φ)
    303      (hacc : AccFam n Φ A) : ∃ L, IsClosedFam n Φ L := by
 
-== ConLeche/SetModel/Access.lean#L240-L244
-   240  /-- **(W) from accessibility.**  At a positive level, an operator that
-   241  maps the tuple space into itself and is `A`-accessible for a set `A` of
-   242  the level has a closed tuple.  No monotonicity is used. -/
-   243  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
-   244      (hacc : AccTuple w k Is k Is Φ A) : ∃ L, IsClosedTuple w k Is Φ L := by
+== ConLeche/SetModel/Access.lean#L259-L263
+   259  /-- **(W) from accessibility.**  At a positive level, an operator that
+   260  maps the tuple space into itself and is `A`-accessible for a set `A` of
+   261  the level has a closed tuple.  No monotonicity is used. -/
+   262  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
+   263      (hacc : AccTuple w k Is k Is Φ A) : ∃ L, IsClosedTuple w k Is Φ L := by
 
 == whitepaper/Fragment/Access.lean#L163-L198
    163  /-- Lean-level well-founded trees branching over the sets: a leaf, or
@@ -4295,13 +4295,13 @@
    394    fitAcc : ∀ (ψ : Name → Nat) (ρp : Nat → V), Sat V (D.params ψ).reverse ρp →
    395      ∃ A, (D.w ψ ≠ 0 → A ∈ˢ (tg (D.w ψ) : V)) ∧ D.FitAcc ψ ρp A
 
-== ConLeche/SetModel/Access.lean#L298-L303
-   298  theorem AccW.closed {w k : Nat} {Is : Nat → V} {Φ : (Nat → V) → Nat → V}
-   299      (h : AccW w k Is Φ) (hmaps : MapsTuple w k Is Φ) : ∃ L, IsClosedTuple w k Is Φ L := by
-   300    by_cases hw : w = 0
-   301    · subst hw; exact closedTuple_zero hmaps
-   302    · obtain ⟨A, hA, hacc⟩ := h
-   303      exact closed_of_acc hw (hA hw) hmaps hacc
+== ConLeche/SetModel/Access.lean#L317-L322
+   317  theorem AccW.closed {w k : Nat} {Is : Nat → V} {Φ : (Nat → V) → Nat → V}
+   318      (h : AccW w k Is Φ) (hmaps : MapsTuple w k Is Φ) : ∃ L, IsClosedTuple w k Is Φ L := by
+   319    by_cases hw : w = 0
+   320    · subst hw; exact closedTuple_zero hmaps
+   321    · obtain ⟨A, hA, hacc⟩ := h
+   322      exact closed_of_acc hw (hA hw) hmaps hacc
 
 == ConLeche/Model/Env/BlockLfp.lean#L511-L515
    511  /-- **The operator is monotone**, from its accessibility (`AccW.mono`). -/
@@ -5851,18 +5851,18 @@
     33  container is empty (`LfpClause.injNePt`).
     34  -/
 
-== ConLeche/SetModel/Access.lean#L551-L561
-   551  presentation.  (W) of each section and its monotonicity come from
-   552  `closed_of_acc` / `AccTuple.monoTuple`. -/
-   553  theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A ∈ˢ (tg w : V))
-   554      (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
-   555        InTupleSpace w kY IsY (Θ (catT kX X Y)))
-   556      (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :
-   557      AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths A) := by
-   558    -- (W) and monotonicity of every section
-   559    have hcl : ∀ X, InTupleSpace w kX IsX X → ∃ L, IsClosedTuple w kY IsY (fun Y => Θ (catT kX X Y)) L :=
-   560      fun X hX => AccW.closed ⟨A, hA, hacc.section hX⟩ fun Y hY => hmaps X Y hX hY
-   561    have hmono : ∀ X, InTupleSpace w kX IsX X → MonoTuple w kY IsY (fun Y => Θ (catT kX X Y)) :=
+== ConLeche/SetModel/Access.lean#L571-L581
+   571  `closed_of_acc` / `AccTuple.monoTuple`. -/
+   572  theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hw : w ≠ 0) (hA : w ≠ 0 → A ∈ˢ (tg w : V))
+   573      (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
+   574        InTupleSpace w kY IsY (Θ (catT kX X Y)))
+   575      (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :
+   576      AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths w A) := by
+   577    -- (W) and monotonicity of every section
+   578    have hcl : ∀ X, InTupleSpace w kX IsX X → ∃ L, IsClosedTuple w kY IsY (fun Y => Θ (catT kX X Y)) L :=
+   579      fun X hX => AccW.closed ⟨A, hA, hacc.section hX⟩ fun Y hY => hmaps X Y hX hY
+   580    have hmono : ∀ X, InTupleSpace w kX IsX X → MonoTuple w kY IsY (fun Y => Θ (catT kX X Y)) :=
+   581      fun X hX => (hacc.section hX).monoTuple
 
 == ConLeche/Semantics/Inductives/HoleMono.lean#L17-L23
     17  | `nestPos` case | lemma |

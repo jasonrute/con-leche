@@ -534,7 +534,7 @@ which holds in both cases, is used here only for monotonicity.
   and #src("ConLeche/Semantics/Inductives/HoleAcc.lean", 321, 324)[accessible with the bound ${pt}$]
   (the recursive field). Assembled along the fields, that is
   #src("ConLeche/Model/Inductives/BlockAccRunCont.lean", 310, 315)[the fit's accessibility, for both kinds of family, with a bound in the universe for a type-valued one]
-  (#src("ConLeche/SetModel/Access.lean", 56, 63)[the notion above]), and
+  (#src("ConLeche/SetModel/Access.lean", 55, 62)[the notion above]), and
   #src("ConLeche/Model/Env/BlockLfp.lean", 511, 515)[the operator's monotonicity] follows from it, as in the fragment.
   The fragment's simplification is to take the field kinds from the
   specification instead of the run. The universe bound on the fields the real proof records
@@ -554,7 +554,7 @@ member of $cal(U)_n$ and $Phi(L) subset.eq L$ fibrewise.
   Let $n >= 1$. An operator $Phi$ on families that maps families in
   $cal(U)_n$ to families in $cal(U)_n$ and is accessible with a bound
   $A in cal(U)_n$ #src("whitepaper/Fragment/Access.lean", 292, 303)[has a closed family] in $cal(U)_n$
-  (#src("ConLeche/SetModel/Access.lean", 240, 244)[as in con-leche]).
+  (#src("ConLeche/SetModel/Access.lean", 259, 263)[as in con-leche]).
 ] <thm:closed-of-acc>
 
 #proof[
@@ -644,7 +644,7 @@ every constructor denotes the point.
   its fit is accessible, for both kinds of family
   (#src("ConLeche/Model/Env/BlockLfp.lean", 388, 395)[the operator]).
   So it has a closed family
-  (#src("ConLeche/SetModel/Access.lean", 298, 303)[the constant family at a proposition, and from accessibility for a type-valued family])
+  (#src("ConLeche/SetModel/Access.lean", 317, 322)[the constant family at a proposition, and from accessibility for a type-valued family])
   and is
   #src("ConLeche/Model/Env/BlockLfp.lean", 511, 515)[monotone]\;
   its fibres are the tagged tuples of fitting fields

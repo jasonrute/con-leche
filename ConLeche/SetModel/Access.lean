@@ -729,6 +729,133 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
     have := h' (kpair a q) (mem_sigmaPairs.mpr ⟨a, ha, q, hq, rfl⟩)
     simpa only [sfst_kpair, ssnd_kpair] using this
 
+
+/-- **The container case at a frame's group, function-cons paths**: the
+twin of `lfpP_acc_group` whose bound is the definable function-cons path
+set `Tower.pathSetF (A p)` — a single power set, so NO level bound is
+needed (this is the `w = 0` escape: `tg 0 = univZero` contains no bound).
+The glue conses each support head `a` onto its sub-support path `q`
+(`Tower.consF`), and the item map reads a path's head and tail back off
+(`Tower.app_consF_empty`, `Tower.tailF_consF`). -/
+theorem lfpP_acc_group_paths {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat → V}
+    {Sp : P → Prop} {Rp : P → P → Prop} {HasP : P → O → Prop} {G : Nat → Prop}
+    {Θ : P → (Nat → V) → Nat → V} {A : P → V}
+    (hIs : ∀ p p', Rp p p' → ∀ m, G m → IsY p m = IsY p' m)
+    (hcl : ∀ p, Sp p → ∃ L, IsClosedTuple w kY (IsY p) (Θ p) L)
+    (hmaps : ∀ p, Sp p → MapsTuple w kY (IsY p) (Θ p))
+    (hsacc : ∀ p, Sp p → ∃ A', AccTuple w kY (IsY p) kY (IsY p) (Θ p) A')
+    (hacc : AccJointG w kY IsY Sp Rp HasP G Θ A) :
+    ∀ p, Sp p → ∀ m, m < kY → G m → ∀ i, i ∈ˢ IsY p m →
+      ∀ x, x ∈ˢ app (lfpTuple w kY (IsY p) (Θ p) m) i →
+        ∃ (B : V) (g : V → O), B ⊆ˢ Tower.pathSetF (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
+          ∀ p', Rp p p' → Sp p' → (∀ b, b ∈ˢ B → HasP p' (g b)) →
+            x ∈ˢ app (lfpTuple w kY (IsY p') (Θ p') m) i := by
+  have hmono : ∀ p, Sp p → MonoTuple w kY (IsY p) (Θ p) := fun p hp =>
+    (hsacc p hp).elim fun _ h => h.monoTuple
+  intro p hp
+  -- the property proved by induction over the least tuple at `p`
+  let Q : Nat → V → V → Prop := fun m i y => G m →
+    ∃ (B : V) (g : V → O), B ⊆ˢ Tower.pathSetF (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
+      ∀ p', Rp p p' → Sp p' → (∀ b, b ∈ˢ B → HasP p' (g b)) →
+        y ∈ˢ app (lfpTuple w kY (IsY p') (Θ p') m) i
+  have hind := lfpTuple_induction (hcl p hp) (hmono p hp) (hmaps p hp) Q ?_
+  · intro m hm hG i hi y hy
+    exact hind m hm i hi y hy hG
+  intro m hm i hi y hy hG
+  have hS := sepTuple_mem w kY (IsY p) (Θ p) Q
+  obtain ⟨B0, g0, hB0, hg0, hs0⟩ := hacc p _ hp hS m hm hG i hi y hy
+  -- the sub-support of every support position: a parameter item, or `Q`'s
+  obtain ⟨Bf, gf, hsk⟩ := skolem_suppG (β := O) (S := B0)
+    (Q := fun a B g => B ⊆ˢ Tower.pathSetF (A p) ∧ (∀ q, q ∈ˢ B → HasP p (g q)) ∧
+      ∀ p', Rp p p' → Sp p' → (∀ q, q ∈ˢ B → HasP p' (g q)) →
+        ItemIn kY G HasP (IsY p') p' (lfpTuple w kY (IsY p') (Θ p')) (g0 a))
+    (by
+      intro a ha
+      have h0 := hg0 a ha
+      revert h0
+      cases g0 a with
+      | inl o =>
+        intro h0
+        refine ⟨sing (Tower.emptyPathF (A p)), fun _ => o, fun q hq => ?_, fun _ _ => h0,
+          fun p' _ _ h' => ?_⟩
+        · rw [mem_sing.mp hq]; exact Tower.emptyPathF_mem_pathSetF (A p)
+        · exact h' _ (mem_sing.mpr rfl)
+      | inr t =>
+        rintro ⟨hGt, h1, h2, h3⟩
+        obtain ⟨B, g, hB, hg, hs⟩ := (mem_app_sepTuple_imp h2 h3).2 hGt
+        exact ⟨B, g, hB, hg, fun p' hR hp' h' =>
+          ⟨hGt, h1, hIs p p' hR t.1 hGt ▸ h2, hs p' hR hp' h'⟩⟩)
+  -- the glued support: cons each support head onto its sub-support path
+  have key : ∀ s, s ∈ˢ sigmaPairs B0 Bf → ssnd s ∈ˢ Tower.pathSetF (A p) := by
+    intro s hs
+    obtain ⟨a, ha, q, hq, rfl⟩ := mem_sigmaPairs.mp hs
+    simpa only [ssnd_kpair] using (hsk a ha).1 q hq
+  classical
+  let B : V := image (fun s => if h : s ∈ˢ sigmaPairs B0 Bf then
+      Tower.consF (sfst s) (ssnd s) (key s h) else Tower.emptyPathF (A p)) (sigmaPairs B0 Bf)
+  have hB : B ⊆ˢ Tower.pathSetF (A p) := by
+    intro z hz
+    obtain ⟨s, hs, rfl⟩ := mem_image.mp hz
+    rw [dite_eq_left hs]
+    obtain ⟨a, ha, q, hq, rfl⟩ := mem_sigmaPairs.mp hs
+    simp only [sfst_kpair, ssnd_kpair]
+    have hkey : q ∈ˢ Tower.pathSetF (A p) := by
+      have h1 := key (kpair a q) hs
+      simpa only [ssnd_kpair] using h1
+    have h2 := Tower.consF_mem_pathSetF (hB0 a ha) hkey
+    simpa only [sfst_kpair, ssnd_kpair] using h2
+  refine ⟨B, fun b => gf (app b (empty : V))
+      (if h : b ∈ˢ Tower.pathSetF (A p) then Tower.tailF b h else Tower.emptyPathF (A p)), hB, ?_, ?_⟩
+  · intro b hb
+    obtain ⟨s, hs, rfl⟩ := mem_image.mp hb
+    rw [dite_eq_left hs]
+    obtain ⟨a, ha, q, hq, rfl⟩ := mem_sigmaPairs.mp hs
+    simp only [sfst_kpair, ssnd_kpair]
+    have hkey : q ∈ˢ Tower.pathSetF (A p) := by
+      have h1 := key (kpair a q) hs
+      simpa only [ssnd_kpair] using h1
+    have hcm : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) := by
+      have h2 := Tower.consF_mem_pathSetF (hB0 a ha) hkey
+      simpa only [sfst_kpair, ssnd_kpair] using h2
+    have happ : app (Tower.consF a q hkey) (empty : V) = a := Tower.app_consF_empty hkey
+    have htail : (if h : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) then
+        Tower.tailF (Tower.consF a q hkey) h else Tower.emptyPathF (A p)) = q := by
+      rw [dite_eq_left hcm]
+      exact Tower.tailF_consF (hB0 a ha) hkey
+    show HasP p (gf (app (Tower.consF a q hkey) (empty : V))
+      (if h : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) then
+        Tower.tailF (Tower.consF a q hkey) h else Tower.emptyPathF (A p)))
+    rw [happ, htail]
+    exact (hsk a ha).2.1 q hq
+  · intro p' hR hp' h'
+    have hL' := lfpTuple_mem w kY (IsY p') (Θ p')
+    have hi' : i ∈ˢ IsY p' m := hIs p p' hR m hG ▸ hi
+    refine lfpTuple_closed (hcl p' hp') (hmono p' hp') (hmaps p' hp') m hm i hi' y ?_
+    refine hs0 p' _ hR hp' hL' fun a ha => (hsk a ha).2.2 p' hR hp' fun q hq => ?_
+    have hkey : q ∈ˢ Tower.pathSetF (A p) := by
+      have h1 := key (kpair a q) (mem_sigmaPairs.mpr ⟨a, ha, q, hq, rfl⟩)
+      simpa only [ssnd_kpair] using h1
+    have hcm : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) := by
+      have h2 := Tower.consF_mem_pathSetF (hB0 a ha) hkey
+      simpa only [sfst_kpair, ssnd_kpair] using h2
+    have happ : app (Tower.consF a q hkey) (empty : V) = a := Tower.app_consF_empty hkey
+    have htail : (if h : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) then
+        Tower.tailF (Tower.consF a q hkey) h else Tower.emptyPathF (A p)) = q := by
+      rw [dite_eq_left hcm]
+      exact Tower.tailF_consF (hB0 a ha) hkey
+    have hb : (if h : kpair a q ∈ˢ sigmaPairs B0 Bf then
+        Tower.consF (sfst (kpair a q)) (ssnd (kpair a q)) (key (kpair a q) h)
+        else Tower.emptyPathF (A p)) ∈ˢ B :=
+      mem_image.mpr ⟨kpair a q, mem_sigmaPairs.mpr ⟨a, ha, q, hq, rfl⟩, rfl⟩
+    have h0 := h' _ hb
+    rw [dite_eq_left (mem_sigmaPairs.mpr ⟨a, ha, q, hq, rfl⟩)] at h0
+    simp only [sfst_kpair, ssnd_kpair] at h0
+    have h0' : HasP p' (gf (app (Tower.consF a q hkey) (empty : V))
+        (if h : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) then
+          Tower.tailF (Tower.consF a q hkey) h else Tower.emptyPathF (A p))) := h0
+    rw [happ, htail] at h0'
+    exact h0'
+
 end ParamGroup
 
 /-! ## The group's section of a least tuple (Bekić at a group) -/
