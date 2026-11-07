@@ -456,8 +456,8 @@ theorem famComp_mem_univ {k : Nat} {us : List Nat} {Is : V}
   have hproj : projS m Is ∈ˢ (univ (lv us m) : V) := by
     have := projS_mem_ndTowerSet V (tupleIdxSort_ne_zero us) k 0 hIs m hm
     rwa [Nat.zero_add] at this
-  have h := piV_mem_univ (u := lv us m) (v := lv us k + 1) hproj
-    (fun _ _ => univ_mem_univ (lv us k))
+  have h := piV_mem_univ_const (u := lv us m) (v := lv us k + 1) hproj
+    (univ_mem_univ (lv us k))
   rw [ite_eq_right (Nat.succ_ne_zero _)] at h
   refine univ_mono ?_ _ h
   refine Nat.max_le_of_le_of_le ?_ ?_

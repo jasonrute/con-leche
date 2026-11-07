@@ -79,7 +79,7 @@ theorem famTyAV_facts {u w : Nat} {ρp : Nat → V} {Ids : List Term} (h : IdxOk
     rw [interp_pi, hv]
     rfl
   · unfold lfpFamSpace
-    have := piV_mem_univ (u := u) (v := w + 1) hu (fun _ _ => univ_mem_univ w)
+    have := piV_mem_univ_const (u := u) (v := w + 1) hu (univ_mem_univ w)
     rwa [ite_eq_right (Nat.succ_ne_zero w)] at this
   · unfold famTyAV
     rw [WellDenoted_pi]

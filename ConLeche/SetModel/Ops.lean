@@ -426,6 +426,32 @@ theorem piV_mem_univ {u v : Nat} {A : V} {B : V → V}
         (fun x hx => tg_mono (Nat.le_max_right u v) _ (mem_tg_of_mem_univ (hB x hx))))
         strict_piSet
 
+/-- **`∀`-formation in the universes at a constant family**
+(clause 6 via `piSet_const_mem`): the first-order twin of `piV_mem_univ`
+at `B = fun _ => c`. -/
+theorem piV_mem_univ_const {u v : Nat} {A c : V}
+    (hA : A ∈ˢ (univ u : V)) (hc : c ∈ˢ (univ v : V)) :
+    piV A (fun _ => c) ∈ˢ (univ (if v = 0 then 0 else Nat.max u v) : V) := by
+  by_cases hv : v = 0
+  · subst hv
+    have hp : propN A (fun _ => c) = 0 :=
+      propN_eq_zero.mpr fun x hx => univ_zero (V := V) ▸ hc
+    rw [ite_eq_left rfl, univ_zero]
+    unfold piV; rw [hp]; exact piR_zero_mem_univZero
+  · have hw : (Nat.max u v : Nat) ≠ 0 :=
+      fun h => hv (Nat.le_zero.mp (h ▸ Nat.le_max_right u v))
+    rw [ite_eq_right hv]
+    unfold piV
+    by_cases hp : propN A (fun _ => c) = 0
+    · rw [hp]
+      have h0 : piR 0 A (fun _ => c) ∈ˢ (univ 0 : V) := by rw [univ_zero]; exact piR_zero_mem_univZero
+      exact univ_mono (Nat.zero_le _) _ h0
+    · rw [piR_pos hp]
+      exact mem_univ_of_tg_strict ((tg_isUniverse hw).piSet_const_mem (empty_mem_tg _)
+        (tg_mono (Nat.le_max_left u v) A (mem_tg_of_mem_univ hA))
+        (tg_mono (Nat.le_max_right u v) c (mem_tg_of_mem_univ hc)))
+        strict_piSet
+
 /-- Where every fibre is a truth value the function space is the
 truth-value regime's. -/
 theorem piV_eq_zero {A : V} {B : V → V} (h : ∀ x, x ∈ˢ A → B x ∈ˢ (univZero : V)) :
