@@ -899,4 +899,131 @@ theorem realize_appStepF {v X i : W} :
       app X (kpair (sfst (ssnd (sfst i))) (ssnd i)), app X (kpair (ssnd (ssnd (sfst i))) (ssnd i)),
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, h⟩
 
+/-! ## Stage 41: the unary (`fst`/`snd`) and `prf` cases of the definable interp step -/
+
+variable {W : Type w} [SetTheory W]
+
+
+/-- Variable maps into the bound context `(v, X, i, pt, c, ρ, p, k, w)`. -/
+def unC : Fin 3 → Fin 9 := fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+def unR : Fin 3 → Fin 9 := fun k => match k.val with | 0 => ⟨5, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+def unP : Fin 3 → Fin 9 := fun k => match k.val with | 0 => ⟨6, by omega⟩ | 1 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+def unK : Fin 3 → Fin 9 := fun k => match k.val with | 0 => ⟨7, by omega⟩ | 1 => ⟨6, by omega⟩ | _ => ⟨5, by omega⟩
+def unW : Fin 4 → Fin 9 := fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨8, by omega⟩ | 2 => ⟨1, by omega⟩ | _ => ⟨7, by omega⟩
+def unV : Fin 3 → Fin 9 := fun k => match k.val with | 0 => ⟨0, by omega⟩ | 1 => ⟨8, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The `fst` step of the definable interpretation (variables `0 ↦ v`,
+`1 ↦ X`, `2 ↦ i = kpair c ρ`, `3 ↦ pt`): `v = sfst (app X (kpair (ssnd c) ρ))`. -/
+def fstStepF : Form 4 :=
+  .ex (.ex (.ex (.ex (.ex
+    (.and (Form.relabel unC sfstEqF)
+    (.and (Form.relabel unR ssndEqF)
+    (.and (Form.relabel unP ssndEqF)
+    (.and (Form.relabel unK kpairEqF)
+    (.and (Form.relabel unW appEqF)
+          (Form.relabel unV sfstEqF))))))))))
+
+/-- The `snd` step: `v = ssnd (app X (kpair (ssnd c) ρ))`. -/
+def sndStepF : Form 4 :=
+  .ex (.ex (.ex (.ex (.ex
+    (.and (Form.relabel unC sfstEqF)
+    (.and (Form.relabel unR ssndEqF)
+    (.and (Form.relabel unP ssndEqF)
+    (.and (Form.relabel unK kpairEqF)
+    (.and (Form.relabel unW appEqF)
+          (Form.relabel unV ssndEqF))))))))))
+
+/-- The `prf` step: `v = pt`. -/
+def prfStepF : Form 4 := .equal ⟨0, by omega⟩ ⟨3, by omega⟩
+
+theorem realize_prfStepF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : W)) prfStepF ↔
+      v = pt := by
+  simp only [prfStepF, Form.realize_equal, Form.snoc_mk]
+  constructor <;> intro h <;> exact h
+
+theorem realize_unStepF {v X i : W} (op : W → W) (opF : Form 3) (hop : ∀ {y x : W},
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ => y) x) (pt : W)) opF ↔ y = op x)
+    (stepF : Form 4)
+    (hstep : stepF = .ex (.ex (.ex (.ex (.ex
+      (.and (Form.relabel unC sfstEqF)
+      (.and (Form.relabel unR ssndEqF)
+      (.and (Form.relabel unP ssndEqF)
+      (.and (Form.relabel unK kpairEqF)
+      (.and (Form.relabel unW appEqF)
+            (Form.relabel unV opF))))))))))) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : W)) stepF ↔
+      v = op (app X (kpair (ssnd (sfst i)) (ssnd i))) := by
+  have hC : ∀ c ρ p k w : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) k) w) ∘ unC =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => c) i) (pt : W) : Fin 3 → W) := by
+    intro c ρ p k w; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hR : ∀ c ρ p k w : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) k) w) ∘ unR =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => ρ) i) (pt : W) : Fin 3 → W) := by
+    intro c ρ p k w; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hP : ∀ c ρ p k w : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) k) w) ∘ unP =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => p) c) (pt : W) : Fin 3 → W) := by
+    intro c ρ p k w; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK : ∀ c ρ p k w : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) k) w) ∘ unK =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => k) p) ρ : Fin 3 → W) := by
+    intro c ρ p k w; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hW : ∀ c ρ p k w : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) k) w) ∘ unW =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) w) X) k : Fin 4 → W) := by
+    intro c ρ p k w; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hV : ∀ c ρ p k w : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ρ) p) k) w) ∘ unV =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : W) : Fin 3 → W) := by
+    intro c ρ p k w; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  rw [hstep]
+  simp only [Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hC, hR, hP, hK, hW, hV,
+    realize_sfstEqF, realize_ssndEqF, realize_kpairEqF, realize_appEqF, hop]
+  clear hC hR hP hK hW hV
+  constructor
+  · rintro ⟨c, ρ, p, k, w, hC, hR, hP, hK, hW, hV⟩
+    have hC' : c = sfst i := hC
+    have hR' : ρ = ssnd i := hR
+    have hP' : p = ssnd c := hP
+    have hK' : k = kpair p ρ := hK
+    have hW' : w = app X k := hW
+    have hV' : v = op w := hV
+    rw [hV', hW', hK', hP', hC', hR']
+  · intro h
+    exact ⟨sfst i, ssnd i, ssnd (sfst i), kpair (ssnd (sfst i)) (ssnd i),
+      app X (kpair (ssnd (sfst i)) (ssnd i)),
+      rfl, rfl, rfl, rfl, rfl, h⟩
+
+theorem realize_fstStepF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : W)) fstStepF ↔
+      v = sfst (app X (kpair (ssnd (sfst i)) (ssnd i))) :=
+  realize_unStepF (sfst (V := W)) sfstEqF realize_sfstEqF fstStepF rfl
+
+theorem realize_sndStepF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : W)) sndStepF ↔
+      v = ssnd (app X (kpair (ssnd (sfst i)) (ssnd i))) :=
+  realize_unStepF (ssnd (V := W)) ssndEqF realize_ssndEqF sndStepF rfl
+
+
 end ConLeche.Semantics

@@ -714,4 +714,45 @@ example (ρ : V) : Form.Realize Mem
   rw [ConLeche.Semantics.realize_appStepF]
   simp only [ConLeche.Semantics.tmCode, sfst_kpair, ssnd_kpair]
 
+
+/-! ## Stage 41: the unary (`fst`/`snd`) and `prf` cases of the definable interp step -/
+
+example {X i : V} : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+      sfst (app X (kpair (ssnd (sfst i)) (ssnd i)))) X) i) (pt : V))
+    ConLeche.Semantics.fstStepF :=
+  ConLeche.Semantics.realize_fstStepF.mpr rfl
+
+example {X i : V} : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+      ssnd (app X (kpair (ssnd (sfst i)) (ssnd i)))) X) i) (pt : V))
+    ConLeche.Semantics.sndStepF :=
+  ConLeche.Semantics.realize_sndStepF.mpr rfl
+
+example (ρ : V) : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+      sfst (app (empty : V) (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 0)) ρ)))
+      (empty : V))
+      (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.fst (ConLeche.Term.Term.bvar 0))) ρ))
+      (pt : V))
+    ConLeche.Semantics.fstStepF := by
+  rw [ConLeche.Semantics.realize_fstStepF]
+  simp only [ConLeche.Semantics.tmCode, sfst_kpair, ssnd_kpair]
+
+example (ρ : V) : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+      ssnd (app (empty : V) (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 0)) ρ)))
+      (empty : V))
+      (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.snd (ConLeche.Term.Term.bvar 0))) ρ))
+      (pt : V))
+    ConLeche.Semantics.sndStepF := by
+  rw [ConLeche.Semantics.realize_sndStepF]
+  simp only [ConLeche.Semantics.tmCode, sfst_kpair, ssnd_kpair]
+
+example (ρ : V) : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) (empty : V))
+      (kpair (ConLeche.Semantics.tmCode ConLeche.Term.Term.prf) ρ)) (pt : V))
+    ConLeche.Semantics.prfStepF :=
+  ConLeche.Semantics.realize_prfStepF.mpr rfl
+
 end ConLeche.SetTheory.DefinableAppEx
