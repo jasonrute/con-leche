@@ -847,4 +847,25 @@ example {a X b ρ : V} (h : ∀ x, x ∈ˢ a → app X (kpair b
       ConLeche.Semantics.ptAllF :=
   ConLeche.Semantics.realize_ptAllF.mpr h
 
+
+/-! ## Stage 47: the `lam` case of the definable interp step -/
+
+example {v X i : V} (h : v = ConLeche.SetModel.lamV (app X (kpair (sfst (ssnd (sfst i))) (ssnd i)))
+    (fun x => app X (kpair (ssnd (ssnd (sfst i)))
+      (ConLeche.Semantics.consGraph x (ssnd i))))) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ => v) X) i) (pt : V))
+      ConLeche.Semantics.lamStepF :=
+  ConLeche.Semantics.realize_lamStepF.mpr h
+
+example (ρ : V) : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ =>
+      ConLeche.SetModel.lamV (app (empty : V) (kpair (ConLeche.Semantics.tmCode ConLeche.Term.Term.prf) ρ))
+        (fun x => app (empty : V) (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 0))
+          (ConLeche.Semantics.consGraph x ρ)))) (empty : V))
+      (kpair (ConLeche.Semantics.tmCode (ConLeche.Term.Term.lam ConLeche.Term.Term.prf
+        (ConLeche.Term.Term.bvar 0))) ρ)) (pt : V))
+    ConLeche.Semantics.lamStepF :=
+  ConLeche.Semantics.realize_lamStepF_tmCode (X := (empty : V)) (ρ := ρ)
+    ConLeche.Term.Term.prf (ConLeche.Term.Term.bvar 0)
+
 end ConLeche.SetTheory.DefinableAppEx
