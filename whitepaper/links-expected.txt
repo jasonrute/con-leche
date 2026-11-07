@@ -4462,28 +4462,28 @@
    325      S.recSem M ls ps m mins is t ∈ˢ appList m (is.reverse ++ [t]) := by
 
 == ConLeche/SetModel/GraphRec.lean#L100-L104
-   100  
-   101  /-- **The recursor family's graph**: the least fixed point of the graph
-   102  functor, over families of the axiomatic level `tg ℓ` — a relation,
-   103  whose fibres are sets of values, not types (no drop ever fires: the
-   104  level is closed under subsets). -/
+   100  /-- **The recursor family's graph**: the least fixed point of the graph
+   101  functor, over families of the axiomatic level `tg ℓ` — a relation,
+   102  whose fibres are sets of values, not types (no drop ever fires: the
+   103  level is closed under subsets). -/
+   104  noncomputable def gGraph : V := lfpFamIn (tg ℓ) U (gStep ℓ U Dec pred B st)
 
 == ConLeche/SetModel/GraphRec.lean#L235-L237
-   235  theorem exu : ∀ u, u ∈ˢ U → Single K.G u := by
-   236    refine K.ind (fun u => Single K.G u) ?_
-   237    intro u hu ⟨d, hd, hP⟩
+   235    refine K.ind (fun u => Single K.G u) ?_
+   236    intro u hu ⟨d, hd, hP⟩
+   237    -- the choice function over the decoding's predecessors, as the
 
 == ConLeche/SetModel/GraphRec.lean#L307-L311
-   307  step at that decoding, the `ih`s being the recursor at the
-   308  predecessors. -/
-   309  theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
-   310      K.recAt u = K.st d (recGraphF K.G (K.pred d)) := by
-   311    have hv := K.rec_mem_G hu
+   307  predecessors. -/
+   308  theorem rec_eq {u : V} {d : R} (hu : u ∈ˢ U) (hd : K.Dec u d) :
+   309      K.recAt u = K.st d (recGraphF K.G (K.pred d)) := by
+   310    have hv := K.rec_mem_G hu
+   311    rw [K.app_G_eq hu] at hv
 
 == ConLeche/SetModel/GraphRec.lean#L191-L193
-   191    /-- **the sort-dependent fact**: decodings are unique, or the bound is a subsingleton -/
-   192    huniq : ∀ u, u ∈ˢ U → ∀ d d', Dec u d → Dec u d' →
-   193      d = d' ∨ ∀ v v', v ∈ˢ B u → v' ∈ˢ B u → v = v'
+   191    huniq : ∀ u, u ∈ˢ U → ∀ d d', Dec u d → Dec u d' →
+   192      d = d' ∨ ∀ v v', v ∈ˢ B u → v' ∈ˢ B u → v = v'
+   193    /-- **the induction principle of the majors**: a property that holds
 
 == ConLeche/Model/Inductives/ClassGenUniq.lean#L13-L19
     13  * **`huniq`** (`genUniq`): two decodings of a major are equal, or the

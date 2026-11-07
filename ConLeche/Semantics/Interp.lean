@@ -178,4 +178,102 @@ theorem interp_mkAppN_foldl (ρ : Nat → V) :
     rw [Term.mkAppN_cons, interp_mkAppN_foldl ρ (.app f e) es]
     rfl
 
+/-! ## V-codes for the erased syntax (definable-semantics foundation,
+bridge-axiom track)
+
+`bconstCode`/`vnatListCode` encode the syntax alphabet and level lists as
+values of `V`: a `kpair` of a numeral constructor tag and a coded payload
+(`Tower.mkTower` of numeral codes for lists).  Every code is `kpair`-shaped,
+so injectivity reduces to `kpair_inj` + `vnat_inj`. -/
+
+/-- A Kuratowski pair is never the empty set. -/
+theorem kpair_ne_empty {W : Type w} [SetTheory W] (a b : W) : kpair a b ≠ (empty : W) := by
+  intro h
+  have hm : sing a ∈ˢ kpair a b := mem_upair_left (sing a) (upair a b)
+  exact not_mem_empty (sing a) (h ▸ hm)
+
+/-- The list tupler is injective without a length hypothesis (a right-nested
+`kpair` tower over the empty terminator). -/
+theorem mkTower_inj_full {W : Type w} [SetTheory W] {as bs : List W} (h : Tower.mkTower as = Tower.mkTower bs) :
+    as = bs := by
+  induction as generalizing bs with
+  | nil =>
+    cases bs with
+    | nil => rfl
+    | cons b bs =>
+      simp only [Tower.mkTower, spair] at h
+      exact absurd h.symm (kpair_ne_empty b (Tower.mkTower bs))
+  | cons a as ih =>
+    cases bs with
+    | nil =>
+      simp only [Tower.mkTower, spair] at h
+      exact absurd h (kpair_ne_empty a (Tower.mkTower as))
+    | cons b bs =>
+      simp only [Tower.mkTower, spair] at h
+      obtain ⟨h1, h2⟩ := kpair_inj h
+      rw [h1, ih h2]
+
+/-- Codes of natural-number lists: the tupler over the numeral codes. -/
+noncomputable def vnatListCode {W : Type w} [SetTheory W] (ns : List Nat) : W :=
+  Tower.mkTower (ns.map (vnat (V := W)))
+
+theorem map_vnat_inj {W : Type w} [SetTheory W] : ∀ (ns ms : List Nat),
+    ns.map (vnat (V := W)) = ms.map (vnat (V := W)) → ns = ms := by
+  intro ns
+  induction ns with
+  | nil =>
+    intro ms h
+    cases ms with
+    | nil => rfl
+    | cons m ms => simp at h
+  | cons n ns ih =>
+    intro ms h
+    cases ms with
+    | nil => simp at h
+    | cons m ms =>
+      simp only [List.map_cons] at h
+      have h1 : vnat (V := W) n = vnat (V := W) m := by
+        have h' := congrArg (fun l => l.head?) h
+        simpa using h'
+      have h2 : ns.map (vnat (V := W)) = ms.map (vnat (V := W)) := by
+        have h' := congrArg List.tail h
+        simpa using h'
+      rw [vnat_inj (V := W) h1, ih ms h2]
+
+theorem vnatListCode_inj {W : Type w} [SetTheory W] {ns ms : List Nat}
+    (h : vnatListCode (W := W) ns = vnatListCode (W := W) ms) : ns = ms := by
+  have h' : Tower.mkTower (ns.map (vnat (V := W))) = Tower.mkTower (ms.map (vnat (V := W))) := h
+  exact map_vnat_inj _ _ (mkTower_inj_full h')
+
+/-- Codes of the built-in constants: `kpair` of a numeral constructor tag
+and the coded argument (`empty` off `lfpTuple`). -/
+noncomputable def bconstCode {W : Type w} [SetTheory W] : Term.BConst → W
+  | .nat => kpair (vnat 0) (empty : W)
+  | .natZero => kpair (vnat 1) (empty : W)
+  | .natSucc => kpair (vnat 2) (empty : W)
+  | .natRec => kpair (vnat 3) (empty : W)
+  | .punit => kpair (vnat 4) (empty : W)
+  | .punitUnit => kpair (vnat 5) (empty : W)
+  | .psigma => kpair (vnat 6) (empty : W)
+  | .psigmaMk => kpair (vnat 7) (empty : W)
+  | .empty => kpair (vnat 8) (empty : W)
+  | .emptyRec => kpair (vnat 9) (empty : W)
+  | .quot => kpair (vnat 10) (empty : W)
+  | .quotMk => kpair (vnat 11) (empty : W)
+  | .quotLift => kpair (vnat 12) (empty : W)
+  | .quotInd => kpair (vnat 13) (empty : W)
+  | .quotSound => kpair (vnat 14) (empty : W)
+  | .propext => kpair (vnat 15) (empty : W)
+  | .choice => kpair (vnat 16) (empty : W)
+  | .lfpFam => kpair (vnat 17) (empty : W)
+  | .lfpTuple k => kpair (vnat 18) (vnat k)
+
+theorem bconstCode_inj {W : Type w} [SetTheory W] {c c' : Term.BConst} (h : bconstCode (W := W) c = bconstCode (W := W) c') : c = c' := by
+  cases c <;> cases c' <;> simp only [bconstCode] at h
+  all_goals first
+    | rfl
+    | (obtain ⟨h1, -⟩ := kpair_inj h; have htag := vnat_inj (V := W) h1; omega)
+    | (obtain ⟨-, h2⟩ := kpair_inj h; rw [vnat_inj (V := W) h2])
+
+
 end ConLeche.Semantics

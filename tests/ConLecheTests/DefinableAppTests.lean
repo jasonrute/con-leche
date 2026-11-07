@@ -6,6 +6,7 @@ public import ConLeche.SetTheory.Derive.Tg
 public import ConLeche.SetModel.Iter
 public import ConLeche.SetModel.UnionRec
 import ConLeche.SetModel.Ops
+import ConLeche.Semantics.Interp
 
 public section
 
@@ -565,5 +566,29 @@ example : SetModel.piV (omega : V) (fun _ => (univ 0 : V)) ∈ˢ (univ (if 1 = 0
 example : SetModel.piV (unitSet : V) (fun j => app (testS V) j) ∈ˢ (univ (if 1 = 0 then 0 else Nat.max 1 1) : V) :=
   SetModel.piV_mem_univ_app (u := 1) (v := 1) (unitSet_mem_univ 1) fun j hj => by
     rw [mem_unitSet_iff] at hj; subst hj; rw [app_testS_pt]; exact unitSet_mem_univ 1
+
+/-! ## Stage 34: V-codes for the erased syntax -/
+
+example : ConLeche.Semantics.bconstCode (W := V) .nat = kpair (vnat 0) (empty : V) := rfl
+
+example : ConLeche.Semantics.bconstCode (W := V) (.lfpTuple 2) = kpair (vnat 18) (vnat 2) := rfl
+
+example (h : ConLeche.Semantics.bconstCode (W := V) .nat =
+    ConLeche.Semantics.bconstCode (W := V) .natZero) : False :=
+  ConLeche.Term.BConst.noConfusion (ConLeche.Semantics.bconstCode_inj h)
+
+example (k k' : Nat) (h : ConLeche.Semantics.bconstCode (W := V) (.lfpTuple k) =
+    ConLeche.Semantics.bconstCode (W := V) (.lfpTuple k')) : k = k' := by
+  have := ConLeche.Semantics.bconstCode_inj h
+  cases this
+  rfl
+
+example : ConLeche.Semantics.vnatListCode (W := V) [1, 2] =
+    Tower.mkTower [vnat 1, vnat 2] := rfl
+
+example (h : ConLeche.Semantics.vnatListCode (W := V) [1] =
+    ConLeche.Semantics.vnatListCode (W := V) [1, 2]) : False := by
+  have := ConLeche.Semantics.vnatListCode_inj h
+  simp at this
 
 end ConLeche.SetTheory.DefinableAppEx
