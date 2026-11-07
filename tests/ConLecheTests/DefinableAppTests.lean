@@ -797,4 +797,17 @@ example (ρ : V) : Form.Realize Mem
   rw [ConLeche.Semantics.realize_eqEStepF]
   simp only [ConLeche.Semantics.tmCode, sfst_kpair, ssnd_kpair]
 
+
+/-! ## Stage 44: the Form-level reader `consGraphEqF` for `consGraph` -/
+
+example {w x ρ : V} (h : w = ConLeche.Semantics.consGraph x ρ) :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ => w) x) ρ)
+      ConLeche.Semantics.consGraphEqF :=
+  ConLeche.Semantics.realize_consGraphEqF.mpr h
+
+example : Form.Realize Mem
+    (Form.snoc (Form.snoc (fun _ => ConLeche.Semantics.consGraph (empty : V) (empty : V)) (empty : V)) (empty : V))
+      ConLeche.Semantics.consGraphEqF :=
+  ConLeche.Semantics.realize_consGraphEqF.mpr rfl
+
 end ConLeche.SetTheory.DefinableAppEx

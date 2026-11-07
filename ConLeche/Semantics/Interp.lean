@@ -1259,4 +1259,98 @@ theorem realize_eqEStepF {v X i : W} :
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, h⟩
 
 
+
+
+variable {W : Type w} [SetTheory W]
+
+/-! ## Stage 44: the Form-level reader `consGraphEqF` for `consGraph` -/
+
+/-- Variable maps for `consGraphEqF` (base vars `0 ↦ w`, `1 ↦ x`, `2 ↦ ρ`). -/
+def cgZMap : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨3, by omega⟩ | _ => ⟨0, by omega⟩
+def cgEmptyMap : Fin 1 → Fin 5 := fun _ => ⟨4, by omega⟩
+def cgKpMap : Fin 3 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨4, by omega⟩ | _ => ⟨1, by omega⟩
+def cgMMap : Fin 2 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | _ => ⟨2, by omega⟩
+def cgShiftMap : Fin 2 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- `w = consGraph x ρ` (variables `0 ↦ w`, `1 ↦ x`, `2 ↦ ρ`):
+`∀ z, z ∈ˢ w ↔ (∃ e, e = ∅ ∧ z = kpair e x) ∨ (∃ z₀ ∈ˢ ρ, consShiftF z₀ z)`. -/
+def consGraphEqF : Form 3 :=
+  .all (.iff (Form.relabel cgZMap (.mem ⟨0, by omega⟩ ⟨1, by omega⟩))
+    (.or
+      (.ex (.and (Form.relabel cgEmptyMap emptyF) (Form.relabel cgKpMap kpairEqF)))
+      (.ex (.and (Form.relabel cgMMap (.mem ⟨0, by omega⟩ ⟨1, by omega⟩))
+        (Form.relabel cgShiftMap consShiftF)))))
+
+theorem realize_consGraphEqF {w x ρ : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) ρ) consGraphEqF ↔
+      w = consGraph x ρ := by
+  have hZ : ∀ w x ρ z : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) ρ) z) ∘ cgZMap =
+        (Form.snoc (fun _ : Fin 1 => z) w : Fin 2 → W) := by
+    intro w x ρ z; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hE : ∀ w x ρ z e : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) ρ) z) e) ∘ cgEmptyMap =
+        (Form.snoc Form.nil e : Fin 1 → W) := by
+    intro w x ρ z e; funext ⟨k, hk⟩
+    have hk1 : k = 0 := by omega
+    rcases hk1 with rfl; rfl
+  have hK : ∀ w x ρ z e : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) ρ) z) e) ∘ cgKpMap =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => z) e) x : Fin 3 → W) := by
+    intro w x ρ z e; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hM : ∀ w x ρ z z₀ : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) ρ) z) z₀) ∘ cgMMap =
+        (Form.snoc (fun _ : Fin 1 => z₀) ρ : Fin 2 → W) := by
+    intro w x ρ z z₀; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hS : ∀ w x ρ z z₀ : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) ρ) z) z₀) ∘ cgShiftMap =
+        (Form.snoc (fun _ : Fin 1 => z₀) z : Fin 2 → W) := by
+    intro w x ρ z z₀; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [consGraphEqF, Form.realize_all, Form.realize_iff, Form.realize_or,
+    Form.realize_ex, Form.realize_and, Form.realize_relabel, Form.realize_mem,
+    hZ, hE, hK, hM, hS, realize_emptyF_eq, realize_kpairEqF, realize_consShiftF]
+  clear hZ hE hK hM hS
+  constructor
+  · intro h
+    refine SetTheory.ext (V := W) fun z => ?_
+    have hz : z ∈ˢ w ↔ (∃ e : W, e = empty ∧ z = kpair e x) ∨
+        (∃ z₀ : W, z₀ ∈ˢ ρ ∧ ((∃ m y : W, z₀ = kpair m y ∧ z = kpair (vsucc m) y) ∨
+          (¬ ∃ m y : W, z₀ = kpair m y) ∧ z = z₀)) := h z
+    rw [mem_consGraph]
+    constructor
+    · intro hw
+      rcases hz.mp hw with ⟨e, he, hze⟩ | ⟨z₀, hz₀, hs⟩
+      · left; rw [he] at hze; exact hze
+      · right; exact ⟨z₀, hz₀, hs⟩
+    · intro hw
+      rcases hw with rfl | ⟨z₀, hz₀, hs⟩
+      · exact hz.mpr (Or.inl ⟨empty, rfl, rfl⟩)
+      · exact hz.mpr (Or.inr ⟨z₀, hz₀, hs⟩)
+  · intro h z
+    have hgoal : z ∈ˢ consGraph x ρ ↔ ((∃ e : W, e = empty ∧ z = kpair e x) ∨
+        (∃ z₀ : W, z₀ ∈ˢ ρ ∧ ((∃ m y : W, z₀ = kpair m y ∧ z = kpair (vsucc m) y) ∨
+          (¬ ∃ m y : W, z₀ = kpair m y) ∧ z = z₀))) := by
+      rw [mem_consGraph]
+      constructor
+      · rintro (rfl | ⟨z₀, hz₀, hs⟩)
+        · exact Or.inl ⟨empty, rfl, rfl⟩
+        · exact Or.inr ⟨z₀, hz₀, hs⟩
+      · rintro (⟨e, he, hze⟩ | ⟨z₀, hz₀, hs⟩)
+        · left; rw [he] at hze; exact hze
+        · right; exact ⟨z₀, hz₀, hs⟩
+    rw [h]
+    exact hgoal
+
 end ConLeche.Semantics
