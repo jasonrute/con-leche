@@ -327,6 +327,26 @@ theorem _root_.ConLeche.IsUniverse.appImageF_mem {U g A : V} (hU : IsUniverse (M
     rw [realize_appEqRepF.mp hz]
     exact hU.app_mem he hg
 
+/-- Definable application-image closure (clause 6) at the value level:
+the first-order twin of `image_mem` at `app g` when only the values
+`app g x` are members, not `g` itself. -/
+theorem _root_.ConLeche.IsUniverse.appImageF_val_mem {U g A : V}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → app g x ∈ˢ U) : appImageF g A ∈ˢ U := by
+  unfold appImageF
+  exact hU.imageF_mem hA fun x hx z hz => by
+    rw [realize_appEqRepF.mp hz]
+    exact hval x hx
+
+/-- Definable union-of-app-image closure (clause 6) at the value level:
+the first-order twin of `famUnion_mem` at `F = app g` with member
+values `app g x`. -/
+theorem _root_.ConLeche.IsUniverse.sUnion_appImageF_val_mem {U g A : V}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → app g x ∈ˢ U) : sUnion (image (app g) A) ∈ˢ U := by
+  rw [image_app_eq]
+  exact hU.sUnion_mem (hU.appImageF_val_mem hA hval)
+
 /-- The definable function space with fibres `app S j` over `A`: the
 first-order twin of `piSet A (fun j => app S j)`, available when `S`
 is single-valued on `A`. -/
@@ -395,6 +415,17 @@ theorem _root_.ConLeche.IsUniverse.graphAppF_mem {U g A : V} (hU : IsUniverse (M
   exact hU.graphF_mem hA fun x hx w hw => by
     rw [realize_appEqRepF.mp hw]
     exact hU.kpair_mem he (hU.transitive hA hx) (hU.app_mem he hg)
+
+/-- Definable graph-of-app closure (clause 6) at the value level: the
+first-order twin of `image_mem` at `fun x => kpair x (app g x)` when
+only the values `app g x` are members, not `g` itself. -/
+theorem _root_.ConLeche.IsUniverse.graphAppF_val_mem {U g A : V}
+    (hU : IsUniverse (Mem (V := V)) U) (he : (empty : V) ∈ˢ U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → app g x ∈ˢ U) : graphAppF g A ∈ˢ U := by
+  unfold graphAppF
+  exact hU.graphF_mem hA fun x hx w hw => by
+    rw [realize_appEqRepF.mp hw]
+    exact hU.kpair_mem he (hU.transitive hA hx) (hval x hx)
 
 /-- A definable app-graph lies in any function space whose fibres contain
 the applications: the first-order shape of `graph_mem_piSet` at an
