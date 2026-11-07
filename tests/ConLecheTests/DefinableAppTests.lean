@@ -890,4 +890,15 @@ example {v a X b ρ : V} (h : v = piSet a (fun x => app X (kpair b
   ConLeche.Semantics.realize_piSetEqF.mpr h
 
 
+
+/-! ## Stage 50: the `pi` existential-fibre reader `exAllF` -/
+
+example {a X b ρ : V} (h : ∀ x, x ∈ˢ a → ∃ y, y ∈ˢ app X (kpair b
+    (ConLeche.Semantics.consGraph x ρ))) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+      (fun _ => a) X) b) ρ) (pt : V))
+      ConLeche.Semantics.exAllF :=
+  ConLeche.Semantics.realize_exAllF.mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx
