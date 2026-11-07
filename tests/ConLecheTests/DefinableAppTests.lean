@@ -5,6 +5,7 @@ public import ConLeche.SetTheory.Derive.Quot
 public import ConLeche.SetTheory.Derive.Tg
 public import ConLeche.SetModel.Iter
 public import ConLeche.SetModel.UnionRec
+import ConLeche.SetModel.Ops
 
 public section
 
@@ -512,5 +513,57 @@ theorem accPathsF_unitSet_mem_tg1 : Tower.accPathsF (unitSet : V) (tg 1 : V) ∈
         rw [Tower.app_iterStepGraphF hm hu]
         exact (tg_isUniverse (Nat.succ_ne_zero 0)).sigmaConstF_mem (empty_mem_tg 1)
           (unitSet_mem_tg 1) hu))
+
+/-! ## Value-level clause-6 twins (stages 28–31)
+
+`sigmaPairsAppF_val_mem`, `piSetAppNF_val_mem`, `appImageF_val_mem`,
+`graphAppF_val_mem`, `sUnion_appImageF_val_mem`: clause-6 closure at
+`app S`-families when only the VALUES `app S x` are members of `U`,
+not the graph `S` itself — exercised at the non-functional `twoS`
+over `unitSet`. -/
+
+theorem app_twoS_pt_mem_tg (hw : w ≠ 0) : app (twoS V) pt ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).app_mem (empty_mem_tg w) (twoS_mem_tg hw)
+
+theorem twoS_val_tg (hw : w ≠ 0) :
+    ∀ x, x ∈ˢ (unitSet : V) → app (twoS V) x ∈ˢ (tg w : V) := by
+  intro x hx
+  rw [mem_unitSet_iff] at hx
+  subst hx
+  exact app_twoS_pt_mem_tg hw
+
+example (hw : w ≠ 0) : sigmaPairsAppF (twoS V) unitSet ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).sigmaPairsAppF_val_mem (empty_mem_tg w) (unitSet_mem_tg w) (twoS_val_tg hw)
+
+example (hw : w ≠ 0) : piSetAppNF (twoS V) unitSet ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).piSetAppNF_val_mem (empty_mem_tg w) (unitSet_mem_tg w) (twoS_val_tg hw)
+
+example (hw : w ≠ 0) : appImageF (twoS V) unitSet ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).appImageF_val_mem (unitSet_mem_tg w) (twoS_val_tg hw)
+
+example (hw : w ≠ 0) : sUnion (image (app (twoS V)) (unitSet : V)) ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).sUnion_appImageF_val_mem (unitSet_mem_tg w) (twoS_val_tg hw)
+
+example (hw : w ≠ 0) : graphAppF (twoS V) unitSet ∈ˢ (tg w : V) :=
+  (tg_isUniverse hw).graphAppF_val_mem (empty_mem_tg w) (unitSet_mem_tg w) (twoS_val_tg hw)
+
+/-! ## Universe-level clause-6 formation (stages 28–30)
+
+`sigma_mem_univ_const` / `sigma_mem_univ_app` and
+`piV_mem_univ_const` / `piV_mem_univ_app` at small concrete levels. -/
+
+example : sigmaSet (Nat.max 1 1) (omega : V) (fun _ => (univ 0 : V)) ∈ˢ (univ (Nat.max 1 1) : V) :=
+  sigma_mem_univ_const (omega_mem_univ_succ 0) (univ_mem_univ 0)
+
+example : sigmaSet (Nat.max 1 1) (unitSet : V) (fun j => app (testS V) j) ∈ˢ (univ (Nat.max 1 1) : V) :=
+  sigma_mem_univ_app (unitSet_mem_univ 1) fun j hj => by
+    rw [mem_unitSet_iff] at hj; subst hj; rw [app_testS_pt]; exact unitSet_mem_univ 1
+
+example : SetModel.piV (omega : V) (fun _ => (univ 0 : V)) ∈ˢ (univ (if 1 = 0 then 0 else Nat.max 1 1) : V) :=
+  SetModel.piV_mem_univ_const (u := 1) (v := 1) (omega_mem_univ_succ 0) (univ_mem_univ 0)
+
+example : SetModel.piV (unitSet : V) (fun j => app (testS V) j) ∈ˢ (univ (if 1 = 0 then 0 else Nat.max 1 1) : V) :=
+  SetModel.piV_mem_univ_app (u := 1) (v := 1) (unitSet_mem_univ 1) fun j hj => by
+    rw [mem_unitSet_iff] at hj; subst hj; rw [app_testS_pt]; exact unitSet_mem_univ 1
 
 end ConLeche.SetTheory.DefinableAppEx
