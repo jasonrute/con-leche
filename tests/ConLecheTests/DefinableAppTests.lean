@@ -1070,4 +1070,14 @@ example {v cc uc : V}
   ConLeche.Semantics.constValueEasyF_apply hR hcc huc
 
 
+
+example {v X i : V} {c : Term.BConst} {us : List Nat}
+    (hR : Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V))
+      ConLeche.Semantics.constStepF)
+    (hi : i = (ConLeche.Semantics.tmCode (Term.Term.const c us) : V)) :
+    v = ConLeche.SetModel.bval V c us :=
+  ConLeche.Semantics.constStepF_apply hR hi
+
+
 end ConLeche.SetTheory.DefinableAppEx

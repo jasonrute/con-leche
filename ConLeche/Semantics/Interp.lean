@@ -3587,4 +3587,115 @@ theorem constValueEasyF_apply {v cc uc : W} {c : Term.BConst} {us : List Nat}
     exact unitAtVnatF_apply _
       ((realize_unitAtVnatF (v := v) (w := vnat (us.getD 0 0))).mpr hQ) rfl
 
+/-! ## Stage 72: the `const` case of the definable interp step `constStepF` -/
+
+/-- Map of `ssndEqF`'s `(y, x, pt)` into the bound context
+`(v, X, i, pt, c)`: `y ↦ c`, `x ↦ i`, `pt ↦ pt`. -/
+def csS : Fin 3 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `sfstEqF`'s `(y, x, pt)` into `(v, X, i, pt, c, cc)`:
+`y ↦ cc`, `x ↦ c`, `pt ↦ pt`. -/
+def csF : Fin 3 → Fin 6 :=
+  fun k => match k.val with | 0 => ⟨5, by omega⟩ | 1 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `ssndEqF`'s `(y, x, pt)` into `(v, X, i, pt, c, cc, uc)`:
+`y ↦ uc`, `x ↦ c`, `pt ↦ pt`. -/
+def csN : Fin 3 → Fin 7 :=
+  fun k => match k.val with | 0 => ⟨6, by omega⟩ | 1 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `kpairEqF`'s `(z, x, y)` into `(v, X, i, pt, c, cc, uc)`:
+`z ↦ c`, `x ↦ cc`, `y ↦ uc`. -/
+def csK : Fin 3 → Fin 7 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨5, by omega⟩ | _ => ⟨6, by omega⟩
+
+/-- Map of `constValueEasyF`'s `(v, cc, uc, pt)` into
+`(v, X, i, pt, c, cc, uc)`: `v ↦ v`, `cc ↦ cc`, `uc ↦ uc`, `pt ↦ pt`. -/
+def csV : Fin 4 → Fin 7 :=
+  fun k => match k.val with
+    | 0 => ⟨0, by omega⟩ | 1 => ⟨5, by omega⟩ | 2 => ⟨6, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The `const` case body (variables `0 ↦ v`, `1 ↦ X`, `2 ↦ i`, `3 ↦ pt`):
+decode `ssnd i = kpair (sfst (ssnd i)) (ssnd (ssnd i))` and read the
+easy-`bval` value at `cc = sfst (ssnd i)`, `uc = ssnd (ssnd i)`. -/
+def constBodyF : Form 4 :=
+  .ex (.and (Form.relabel csS ssndEqF)
+  (.ex (.and (Form.relabel csF sfstEqF)
+  (.ex (.and (Form.relabel csN ssndEqF)
+  (.and (Form.relabel csK kpairEqF)
+    (Form.relabel csV constValueEasyF)))))))
+
+/-- The `const` step of the definable interpretation (variables
+`0 ↦ v`, `1 ↦ X`, `2 ↦ i`, `3 ↦ pt`): the `tagDisjF 2` guard paired with
+`constBodyF` — for `i = kpair (vnat 2) y` the payload `y = ssnd i` is a
+`kpair cc uc` and `constValueEasyF` reads `v` at `(cc, uc)`. -/
+def constStepF : Form 4 := .and (tagDisjF 2) constBodyF
+
+theorem realize_constStepF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+        constStepF ↔
+      (∃ y, i = kpair (vnat 2 : W) y) ∧
+      (∃ c, c = ssnd i ∧ ∃ cc, cc = sfst c ∧ ∃ uc, uc = ssnd c ∧ (c = kpair cc uc ∧
+        Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc)
+          (pt : W)) constValueEasyF)) := by
+  have hM : ∀ y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) y) ∘
+          tagDispatchMap =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => i) y) (pt : W) : Fin 3 → W) := by
+    intro y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hS : ∀ c : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c) ∘ csS =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => c) i) (pt : W) : Fin 3 → W) := by
+    intro c; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hF : ∀ c cc : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) c)
+          cc) ∘ csF =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => cc) c) (pt : W) : Fin 3 → W) := by
+    intro c cc; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hN : ∀ c cc uc : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i)
+            (pt : W)) c) cc) uc) ∘ csN =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => uc) c) (pt : W) : Fin 3 → W) := by
+    intro c cc uc; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hK : ∀ c cc uc : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i)
+            (pt : W)) c) cc) uc) ∘ csK =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => c) cc) uc : Fin 3 → W) := by
+    intro c cc uc; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV : ∀ c cc uc : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i)
+            (pt : W)) c) cc) uc) ∘ csV =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W) : Fin 4 → W) := by
+    intro c cc uc; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [constStepF, constBodyF, tagDisjF, Form.realize_and, Form.realize_ex,
+    Form.realize_relabel, hM, hS, hF, hN, hK, hV,
+    realize_vnatKpairEqF, realize_ssndEqF, realize_sfstEqF, realize_kpairEqF]
+
+/-- The `const` step at a concrete code: `i = tmCode (.const c us)` forces
+`cc = bconstCode c`, `uc = vnatListCode us`, hence (via
+`constValueEasyF_apply`) `v = bval W c us`. -/
+theorem constStepF_apply {v X i : W} {c : Term.BConst} {us : List Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+      constStepF)
+    (hi : i = (tmCode (Term.Term.const c us) : W)) :
+    v = bval W c us := by
+  rcases (realize_constStepF.mp hR).2 with ⟨c0, hc0, cc, hcc, uc, huc, _, hR'⟩
+  have hcc' : cc = (bconstCode c : W) := by
+    rw [hcc, hc0, hi, tmCode, ssnd_kpair, sfst_kpair]
+  have huc' : uc = (vnatListCode us : W) := by
+    rw [huc, hc0, hi, tmCode, ssnd_kpair, ssnd_kpair]
+  exact constValueEasyF_apply hR' hcc' huc'
+
 end ConLeche.Semantics
