@@ -759,4 +759,38 @@ theorem _root_.ConLeche.IsUniverse.piSet_const_mem {U A c : V} (hU : IsUniverse 
   rw [← sigmaConstF_eq]
   exact hU.sepF_mem (hU.power_mem (hU.sigmaConstF_mem he hA hc))
 
+/-! ## Stage 77: the meta-to-definable bridge lemmas -/
+
+/-- If `f` is definable on `A` by `φ` with parameters `p`, then
+`graph f A = graphF φ p A hfun`. -/
+theorem graph_eq_graphF {f : V → V} {A : V} {n : Nat} {φ : Form (n + 2)} {p : Fin n → V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z)
+    (h : ∀ x w, x ∈ˢ A → (Form.Realize Mem (Form.cons2 x w p) φ ↔ w = f x)) :
+    graph f A = graphF φ p A hfun := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_graph, mem_graphF hfun]
+  constructor
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, f x, rfl, (h x (f x) hx).mpr rfl⟩
+  · rintro ⟨x, hx, w, rfl, hφ⟩
+    exact ⟨x, hx, by rw [(h x w hx).mp hφ]⟩
+
+/-- If `B` is definable on `A` by `φ` with parameters `p`, then
+`sigmaPairs A B = sigmaPairsF φ p A hfun`. -/
+theorem sigmaPairs_eq_sigmaPairsF {A : V} {B : V → V} {n : Nat} {φ : Form (n + 2)}
+    {p : Fin n → V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z)
+    (h : ∀ x y, x ∈ˢ A → (y ∈ˢ B x ↔ Form.Realize Mem (Form.cons2 x y p) φ)) :
+    sigmaPairs A B = sigmaPairsF φ p A hfun := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_sigmaPairs, mem_sigmaPairsF hfun]
+  constructor
+  · rintro ⟨x, hx, y, hy, rfl⟩
+    exact ⟨x, hx, y, rfl, (h x y hx).mp hy⟩
+  · rintro ⟨x, hx, y, rfl, hφ⟩
+    exact ⟨x, hx, y, (h x y hx).mpr hφ, rfl⟩
+
+
 end ConLeche.SetTheory

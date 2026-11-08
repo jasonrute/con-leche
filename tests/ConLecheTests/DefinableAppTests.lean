@@ -1146,4 +1146,35 @@ example {v X i : V}
   ConLeche.Semantics.interpStepF2_apply_sortZero hR hi
 
 
+
+example {a : V} {p : V → Prop} {n : Nat} {φ : Form (n + 1)} {q : Fin n → V}
+    (h : ∀ z, p z ↔ Form.Realize Mem (Form.snoc q z) φ) :
+    sep a p = sepF a φ q :=
+  sep_eq_sepF h
+
+
+example {f : V → V} {a : V} {n : Nat} {ψ : Form (n + 2)} {p : Fin n → V}
+    (hfun : ∀ x, x ∈ˢ a → ∃ y, Form.Realize Mem (Form.cons2 x y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ → y' = y)
+    (h : ∀ x y, x ∈ˢ a → (Form.Realize Mem (Form.cons2 x y p) ψ ↔ y = f x)) :
+    image f a = imageF ψ p a hfun :=
+  image_eq_imageF hfun h
+
+
+example {f : V → V} {A : V} {n : Nat} {φ : Form (n + 2)} {p : Fin n → V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z)
+    (h : ∀ x w, x ∈ˢ A → (Form.Realize Mem (Form.cons2 x w p) φ ↔ w = f x)) :
+    graph f A = graphF φ p A hfun :=
+  graph_eq_graphF hfun h
+
+
+example {A : V} {B : V → V} {n : Nat} {φ : Form (n + 2)} {p : Fin n → V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z)
+    (h : ∀ x y, x ∈ˢ A → (y ∈ˢ B x ↔ Form.Realize Mem (Form.cons2 x y p) φ)) :
+    sigmaPairs A B = sigmaPairsF φ p A hfun :=
+  sigmaPairs_eq_sigmaPairsF hfun h
+
+
 end ConLeche.SetTheory.DefinableAppEx

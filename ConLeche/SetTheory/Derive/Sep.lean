@@ -235,4 +235,31 @@ theorem imageF_congr {n : Nat} {ψ ψ' : Form (n + 2)} {p : Fin n → V} {a : V}
     exact ⟨fun ⟨x, hx, hψ⟩ => ⟨x, hx, (h x z hx).mp hψ⟩,
            fun ⟨x, hx, hψ'⟩ => ⟨x, hx, (h x z hx).mpr hψ'⟩⟩
 
+/-! ## Stage 77: the meta-to-definable bridge lemmas -/
+
+/-- If the meta predicate `p` is definable by `φ` with parameters `q`,
+then `sep a p = sepF a φ q`. -/
+theorem sep_eq_sepF {a : V} {p : V → Prop} {n : Nat} {φ : Form (n + 1)} {q : Fin n → V}
+    (h : ∀ z, p z ↔ Form.Realize Mem (Form.snoc q z) φ) :
+    sep a p = sepF a φ q := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_sep, mem_sepF]
+  exact ⟨fun ⟨hz, hp⟩ => ⟨hz, (h z).mp hp⟩, fun ⟨hz, hφ⟩ => ⟨hz, (h z).mpr hφ⟩⟩
+
+/-- If `f` is definable on `a` by `ψ` with parameters `p`, then
+`image f a = imageF ψ p a hfun`. -/
+theorem image_eq_imageF {f : V → V} {a : V} {n : Nat} {ψ : Form (n + 2)} {p : Fin n → V}
+    (hfun : ∀ x, x ∈ˢ a → ∃ y, Form.Realize Mem (Form.cons2 x y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ → y' = y)
+    (h : ∀ x y, x ∈ˢ a → (Form.Realize Mem (Form.cons2 x y p) ψ ↔ y = f x)) :
+    image f a = imageF ψ p a hfun := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_image, mem_imageF hfun]
+  constructor
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, (h x (f x) hx).mpr rfl⟩
+  · rintro ⟨x, hx, hψ⟩
+    exact ⟨x, hx, (h x z hx).mp hψ⟩
+
+
 end ConLeche.SetTheory
