@@ -1109,4 +1109,22 @@ example {v X i : V}
   ConLeche.Semantics.realize_interpStepF2.mpr (Or.inr (Or.inl hR'))
 
 
+
+example {X : V} :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => ConLeche.SetModel.bval V Term.BConst.punit [3]) X)
+        (ConLeche.Semantics.tmCode (Term.Term.const Term.BConst.punit [3]))) (pt : V))
+      ConLeche.Semantics.interpStepF2 :=
+  ConLeche.Semantics.realize_interpStepF2_const_tmCode (c := Term.BConst.punit) (us := [3])
+    (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl rfl))))))
+
+
+example {X : V} :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (univ 0 : V)) X)
+        (ConLeche.Semantics.tmCode (Term.Term.sort 0))) (pt : V))
+      ConLeche.Semantics.interpStepF2 :=
+  ConLeche.Semantics.realize_interpStepF2_sortZero_tmCode
+
+
 end ConLeche.SetTheory.DefinableAppEx

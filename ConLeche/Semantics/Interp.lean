@@ -3795,4 +3795,81 @@ theorem realize_interpStepF2 {v X i : W} :
   simp only [interpStepF2, Form.realize_or, realize_interpStepF, realize_constStepF,
     realize_sortZeroStepF]
 
+/-! ## Stage 75: `tmCode` corollaries — `realize_constStepF_tmCode` and the
+`interpStepF2` entries for `const` (easy cases) and `sort 0` -/
+
+/-- The `const` step realizes at a concrete easy-case code: for the seven
+`univChain`-free `BConst` cases, `tmCode (.const c us)` steps to
+`v = bval W c us`. -/
+theorem realize_constStepF_tmCode {X : W} {c : Term.BConst} {us : List Nat}
+    (hEasy : c = .natZero ∨ c = .empty ∨ c = .quotInd ∨ c = .quotSound ∨ c = .propext ∨
+      c = .punit ∨ c = .punitUnit) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => bval W c us) X)
+      (tmCode (Term.Term.const c us))) (pt : W)) constStepF := by
+  refine realize_constStepF.mpr
+    ⟨⟨kpair (bconstCode c : W) (vnatListCode us : W), rfl⟩, ?_⟩
+  refine ⟨kpair (bconstCode c : W) (vnatListCode us : W), by rw [tmCode, ssnd_kpair],
+    bconstCode c, by rw [sfst_kpair], vnatListCode us, by rw [ssnd_kpair], rfl, ?_⟩
+  refine realize_constValueEasyF.mpr ?_
+  rcases hEasy with rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact Or.inl ⟨rfl, by simp only [bval]; unfold natzero; rfl⟩
+  · exact Or.inr (Or.inl ⟨rfl, by simp only [bval]⟩)
+  · exact Or.inr (Or.inr (Or.inl ⟨rfl, by simp only [bval]⟩))
+  · exact Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, by simp only [bval]⟩)))
+  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, by simp only [bval]⟩))))
+  · refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, ?_⟩)))))
+    refine (realize_vnatListNthQF 0 (qf := unitSetAtVnatF)
+      (Q := fun v w => (w = (empty : W) ∧ v = sing (pt : W)) ∨
+        (¬ w = (empty : W) ∧ v = sing (empty : W)))
+      (fun v w => realize_unitSetAtVnatF) us rfl).mpr ?_
+    generalize hk : us.getD 0 0 = k
+    rcases k with _ | k
+    · left
+      constructor
+      · rfl
+      · have hl : Term.lv us 0 = 0 := hk
+        show (unitSetAt (Term.lv us 0) : W) = sing (pt : W)
+        rw [hl, unitSetAt_zero, unitSet_eq_sing]
+    · right
+      constructor
+      · exact vsucc_ne_empty _
+      · have hl : Term.lv us 0 = k + 1 := hk
+        show (unitSetAt (Term.lv us 0) : W) = sing (empty : W)
+        rw [hl, unitSetAt_pos (Nat.succ_ne_zero k)]
+  · refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨rfl, ?_⟩)))))
+    refine (realize_vnatListNthQF 0 (qf := unitAtVnatF)
+      (Q := fun v w => (w = (empty : W) ∧ v = (pt : W)) ∨
+        (¬ w = (empty : W) ∧ v = (empty : W)))
+      (fun v w => realize_unitAtVnatF) us rfl).mpr ?_
+    generalize hk : us.getD 0 0 = k
+    rcases k with _ | k
+    · left
+      constructor
+      · rfl
+      · have hl : Term.lv us 0 = 0 := hk
+        show (unitAt (Term.lv us 0) : W) = (pt : W)
+        rw [hl, unitAt_zero]
+    · right
+      constructor
+      · exact vsucc_ne_empty _
+      · have hl : Term.lv us 0 = k + 1 := hk
+        show (unitAt (Term.lv us 0) : W) = (empty : W)
+        rw [hl, unitAt_pos (Nat.succ_ne_zero k)]
+
+/-- The `interpStepF2` entry for an easy `const` code: the step realizes at
+`v = bval W c us`, `i = tmCode (.const c us)`. -/
+theorem realize_interpStepF2_const_tmCode {X : W} {c : Term.BConst} {us : List Nat}
+    (hEasy : c = .natZero ∨ c = .empty ∨ c = .quotInd ∨ c = .quotSound ∨ c = .propext ∨
+      c = .punit ∨ c = .punitUnit) :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => bval W c us) X)
+      (tmCode (Term.Term.const c us))) (pt : W)) interpStepF2 :=
+  realize_interpStepF2.mpr (Or.inr (Or.inl (realize_constStepF_tmCode hEasy)))
+
+/-- The `interpStepF2` entry for the `sort 0` code: the step realizes at
+`v = univ 0`, `i = tmCode (.sort 0)`. -/
+theorem realize_interpStepF2_sortZero_tmCode {X : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (univ 0 : W)) X)
+      (tmCode (Term.Term.sort 0))) (pt : W)) interpStepF2 :=
+  realize_interpStepF2.mpr (Or.inr (Or.inr realize_sortZeroStepF_tmCode))
+
 end ConLeche.Semantics
