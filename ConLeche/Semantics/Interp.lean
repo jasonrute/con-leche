@@ -2214,4 +2214,47 @@ theorem realize_vnatEqF (t : Nat) {x : W} :
       exact ⟨vnat t, rfl, h⟩
 
 
+/-! ## Stage 53: the tmCode tag reader `vnatKpairEqF` -/
+
+/-- Variable map for the `vnatEqF t` conjunct (its vars `0 ↦ x`, `1 ↦ pt`)
+into the `vnatKpairEqF` bound context `(z, y, pt, x)`. -/
+def vnatKpairVnatMap : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨2, by omega⟩
+
+/-- Variable map for the `kpairEqF` conjunct (its vars `0 ↦ z`, `1 ↦ x`, `2 ↦ y`)
+into the `vnatKpairEqF` bound context `(z, y, pt, x)`. -/
+def vnatKpairKpairMap : Fin 3 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | 1 => ⟨3, by omega⟩ | 2 => ⟨1, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- The tmCode tag reader (variables `0 ↦ z`, `1 ↦ y`, `2 ↦ pt`): `z = kpair (vnat t) y`,
+by an existentially bound `x` with `x = vnat t` (`vnatEqF t`) and `z = kpair x y` (`kpairEqF`). -/
+def vnatKpairEqF (t : Nat) : Form 3 :=
+  .ex (.and (Form.relabel vnatKpairVnatMap (vnatEqF t))
+    (Form.relabel vnatKpairKpairMap kpairEqF))
+
+theorem realize_vnatKpairEqF (t : Nat) {z y : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => z) y) (pt : W)) (vnatKpairEqF t) ↔
+      z = kpair (vnat t : W) y := by
+  have hA : ∀ x : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => z) y) (pt : W)) x) ∘ vnatKpairVnatMap =
+        (Form.snoc (fun _ : Fin 1 => x) (pt : W) : Fin 2 → W) := by
+    intro x; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hB : ∀ x : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => z) y) (pt : W)) x) ∘ vnatKpairKpairMap =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => z) x) y := by
+    intro x; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [vnatKpairEqF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hA, hB, realize_vnatEqF, realize_kpairEqF]
+  constructor
+  · rintro ⟨x, hx, hz⟩
+    rw [hx] at hz
+    exact hz
+  · intro h
+    exact ⟨vnat t, rfl, h⟩
+
+
 end ConLeche.Semantics

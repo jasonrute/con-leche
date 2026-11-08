@@ -928,4 +928,10 @@ example {x : V} (h : x = vnat 3) : Form.Realize Mem
   (ConLeche.Semantics.realize_vnatEqF 3).mpr h
 
 
+example {z y : V} (h : z = kpair (vnat 5) y) : Form.Realize Mem
+    (Form.snoc (Form.snoc (fun _ : Fin 1 => z) y) (pt : V))
+    (ConLeche.Semantics.vnatKpairEqF 5) :=
+  (ConLeche.Semantics.realize_vnatKpairEqF 5).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx
