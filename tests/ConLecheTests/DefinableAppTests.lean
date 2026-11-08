@@ -1211,4 +1211,27 @@ example {v cc uc : V} :
   ConLeche.Semantics.realize_constValueNatF
 
 
+example {v cc uc : V} {c : Term.BConst} {us : List Nat}
+    (hR : Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : V))
+      ConLeche.Semantics.constValueF)
+    (hcc : cc = (ConLeche.Semantics.bconstCode c : V))
+    (huc : uc = (ConLeche.Semantics.vnatListCode us : V)) :
+    v = ConLeche.SetModel.bval V c us :=
+  ConLeche.Semantics.constValueF_apply hR hcc huc
+
+
+example {v cc uc : V} :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : V))
+      ConLeche.Semantics.constValueF ↔
+      Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : V))
+        ConLeche.Semantics.constValueEasyF ∨
+      Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : V))
+        ConLeche.Semantics.constValueNatF :=
+  ConLeche.Semantics.realize_constValueF
+
+
 end ConLeche.SetTheory.DefinableAppEx

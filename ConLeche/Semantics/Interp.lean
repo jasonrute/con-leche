@@ -4097,4 +4097,31 @@ theorem constValueNatF_apply {v cc uc : W} {c : Term.BConst} {us : List Nat}
     have hb : bval W .natSucc us = natSuccV W := by simp only [bval]
     rw [hb]; exact hv
 
+
+
+/-! ## Stage 81: the combined `bval` value reader `constValueF` (9 of 19 cases) -/
+
+/-- The combined `bval` value reader (variables `0 ↦ v`, `1 ↦ cc`, `2 ↦ uc`,
+`3 ↦ pt`): the disjunction of the seven `univChain`-free easy cases
+(`constValueEasyF`) and the two `omega`-based cases (`constValueNatF`). -/
+def constValueF : Form 4 := .or constValueEasyF constValueNatF
+
+theorem realize_constValueF {v cc uc : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W))
+        constValueF ↔
+      Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W))
+          constValueEasyF ∨
+      Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W))
+          constValueNatF := by
+  simp only [constValueF, Form.realize_or]
+
+theorem constValueF_apply {v cc uc : W} {c : Term.BConst} {us : List Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W))
+      constValueF)
+    (hcc : cc = (bconstCode c : W)) (huc : uc = (vnatListCode us : W)) :
+    v = bval W c us := by
+  rcases realize_constValueF.mp hR with h | h
+  · exact constValueEasyF_apply h hcc huc
+  · exact constValueNatF_apply h hcc huc
+
 end ConLeche.Semantics
