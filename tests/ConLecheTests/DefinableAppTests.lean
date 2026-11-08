@@ -1333,4 +1333,16 @@ example {v : V} (h : Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : V))
   ConLeche.Semantics.realize_unitSetEqF.mp h
 
 
+
+/-! ## Stage 93 example: the swapped triple-application image `app3sImageF` -/
+
+example {F m i A : V} :
+    image (fun a => app (app (app F a) m) i) A = app3sImageF F m i A :=
+  image_app3s_eq
+
+example {F m i A z : V} (h : z ∈ˢ app3sImageF F m i A) :
+    ∃ a, a ∈ˢ A ∧ z = app (app (app F a) m) i :=
+  mem_app3sImageF.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx

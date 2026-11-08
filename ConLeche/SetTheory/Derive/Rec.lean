@@ -2039,4 +2039,60 @@ theorem image_app3_eq {F a m A : V} :
     image (fun x => app (app (app F a) m) x) A = app3ImageF F a m A :=
   ext fun z => by rw [mem_image, mem_app3ImageF]
 
+
+/-! ## Stage 93: the definable swapped triple-application image `app3sImageF` -/
+
+/-- Variable map `Fin 6 → Fin 6`, `0 ↦ 5`, `1 ↦ 1`, `2 ↦ 2`,
+`3 ↦ 0`, `4 ↦ 3`, `5 ↦ 4` (reads `app3EqF`'s `(pt, v, F, a, m, i)` out of the
+`imageF` convention `(a, v, F, m, i, pt)`). -/
+def app3sRepMap : Fin 6 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨5, by omega⟩ | 1 => ⟨1, by omega⟩ | 2 => ⟨2, by omega⟩
+  | 3 => ⟨0, by omega⟩ | 4 => ⟨3, by omega⟩ | _ => ⟨4, by omega⟩
+
+/-- `v = app (app (app F a) m) i` in the swapped `imageF` convention
+(variables `0 ↦ a`, `1 ↦ v`, parameters `F`, `m`, `i`, `pt`). -/
+def app3sEqRepF : Form 6 := Form.relabel app3sRepMap app3EqF
+
+theorem realize_app3sEqRepF {a v F m i : V} :
+    Form.Realize Mem
+        (Form.cons2 a v
+          (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => F) m) i) (pt : V)))
+        app3sEqRepF ↔
+      v = app (app (app F a) m) i := by
+  have hcomp : (Form.cons2 a v
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => F) m) i) (pt : V)) :
+      Fin 6 → V) ∘ app3sRepMap =
+      Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v)
+        F) a) m) i := by
+    funext ⟨k, hk⟩
+    have hk6 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+    rcases hk6 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  simp only [app3sEqRepF, Form.realize_relabel, hcomp, realize_app3EqF]
+
+/-- The definable image under `fun a => app (app (app F a) m) i`:
+`{app (app (app F a) m) i | a ∈ˢ A}`. -/
+noncomputable def app3sImageF (F m i A : V) : V :=
+  imageF app3sEqRepF
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => F) m) i) (pt : V)) A
+    (fun a _ => ⟨app (app (app F a) m) i, realize_app3sEqRepF.mpr rfl,
+      fun _ hy => realize_app3sEqRepF.mp hy⟩)
+
+theorem mem_app3sImageF {F m i A z : V} :
+    z ∈ˢ app3sImageF F m i A ↔ ∃ a, a ∈ˢ A ∧ z = app (app (app F a) m) i := by
+  unfold app3sImageF
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨a, ha, h⟩
+    exact ⟨a, ha, realize_app3sEqRepF.mp h⟩
+  · rintro ⟨a, ha, rfl⟩
+    exact ⟨a, ha, realize_app3sEqRepF.mpr rfl⟩
+
+/-- The meta-level `image (fun a => app (app (app F a) m) i) A` is exactly
+the definable `app3sImageF F m i A`. -/
+theorem image_app3s_eq {F m i A : V} :
+    image (fun a => app (app (app F a) m) i) A = app3sImageF F m i A :=
+  ext fun z => by rw [mem_image, mem_app3sImageF]
+
+
 end ConLeche.SetTheory
