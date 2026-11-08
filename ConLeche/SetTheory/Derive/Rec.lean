@@ -1878,4 +1878,56 @@ theorem realize_app2EqF {v g a b : V} :
   · rintro ⟨w, hw, hv⟩; rw [hv, hw]
   · intro h; exact ⟨app g a, rfl, h⟩
 
+
+
+/-! ## Stage 83: the definable double-application image `app2ImageF` -/
+
+/-- Variable map `Fin 5 → Fin 5`, `0 ↦ 4`, `1 ↦ 1`, `2 ↦ 2`, `3 ↦ 3`, `4 ↦ 0`
+(reads `app2EqF`'s `(pt, v, g, a, b)` out of the `imageF` convention
+`(x, v, g, a, pt)`). -/
+def app2RepMap : Fin 5 → Fin 5 :=
+  fun k => match k.val with
+  | 0 => ⟨4, by omega⟩ | 1 => ⟨1, by omega⟩ | 2 => ⟨2, by omega⟩
+  | 3 => ⟨3, by omega⟩ | _ => ⟨0, by omega⟩
+
+/-- `v = app (app g a) x` in the `imageF` convention (variables `0 ↦ x`,
+`1 ↦ v`, parameters `g`, `a`, `pt`). -/
+def app2EqRepF : Form 5 := Form.relabel app2RepMap app2EqF
+
+theorem realize_app2EqRepF {x v g a : V} :
+    Form.Realize Mem
+        (Form.cons2 x v (Form.snoc (Form.snoc (fun _ : Fin 1 => g) a) (pt : V)))
+        app2EqRepF ↔
+      v = app (app g a) x := by
+  have hcomp : (Form.cons2 x v (Form.snoc (Form.snoc (fun _ : Fin 1 => g) a) (pt : V)) :
+      Fin 5 → V) ∘ app2RepMap =
+      Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v) g) a) x := by
+    funext ⟨k, hk⟩
+    have hk5 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 := by omega
+    rcases hk5 with rfl | rfl | rfl | rfl | rfl <;> rfl
+  simp only [app2EqRepF, Form.realize_relabel, hcomp, realize_app2EqF]
+
+/-- The definable image under `fun x => app (app g a) x`:
+`{app (app g a) x | x ∈ˢ A}`. -/
+noncomputable def app2ImageF (g a A : V) : V :=
+  imageF app2EqRepF (Form.snoc (Form.snoc (fun _ : Fin 1 => g) a) (pt : V)) A
+    (fun x _ => ⟨app (app g a) x, realize_app2EqRepF.mpr rfl,
+      fun _ hy => realize_app2EqRepF.mp hy⟩)
+
+theorem mem_app2ImageF {g a A z : V} :
+    z ∈ˢ app2ImageF g a A ↔ ∃ x, x ∈ˢ A ∧ z = app (app g a) x := by
+  unfold app2ImageF
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    exact ⟨x, hx, realize_app2EqRepF.mp h⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, realize_app2EqRepF.mpr rfl⟩
+
+/-- The meta-level `image (fun x => app (app g a) x) A` is exactly the
+definable `app2ImageF g a A`. -/
+theorem image_app2_eq {g a A : V} :
+    image (fun x => app (app g a) x) A = app2ImageF g a A :=
+  ext fun z => by rw [mem_image, mem_app2ImageF]
+
 end ConLeche.SetTheory
