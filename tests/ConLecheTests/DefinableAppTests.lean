@@ -1421,4 +1421,12 @@ example {v F m i A : V} (h : Form.Realize Mem
     sUnionApp3sImageEqF) : v = sUnionApp3sImageF F m i A :=
   realize_sUnionApp3sImageEqF.mp h
 
+
+/-! ## Stage 102 example: the `constGraphF` equality reader -/
+
+example {v c A : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) c) A) (pt : V))
+    constGraphEqF) : v = constGraphF c A :=
+  realize_constGraphEqF.mp h
+
 end ConLeche.SetTheory.DefinableAppEx

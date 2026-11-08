@@ -2522,4 +2522,51 @@ theorem realize_sUnionApp3sImageEqF {v F m i A : V} :
     exact mem_sUnionApp3sImageF'
 
 
+
+/-! ## Stage 102: the `constGraphF` equality reader `constGraphEqF` -/
+
+/-- Map of the `kpairEqF` conjunct (vars `0 ↦ z'`, `1 ↦ x'`, `2 ↦ y'`)
+into the bound context `(v, c, A, pt, z, x)`: `0 ↦ 4`, `1 ↦ 5`, `2 ↦ 1`
+(reads `z = kpair x c`). -/
+def cgKpMap : Fin 3 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨4, by omega⟩ | 1 => ⟨5, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- The `constGraphF` equality reader (variables `0 ↦ v`, `1 ↦ c`,
+`2 ↦ A`, `3 ↦ pt`): `v = constGraphF c A`, by extensionality +
+`mem_constGraphF`, with `z = kpair x c` read by `kpairEqF`. -/
+def constGraphEqF : Form 4 :=
+  .all (.iff (.mem ⟨4, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨5, by omega⟩ ⟨2, by omega⟩)
+      (Form.relabel cgKpMap kpairEqF))))
+
+theorem realize_constGraphEqF {v c A : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) c) A) (pt : V))
+        constGraphEqF ↔
+      v = constGraphF c A := by
+  have hKp : ∀ z x : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) c) A) (pt : V)) z) x)
+          (Form.relabel cgKpMap kpairEqF) ↔ z = kpair x c := by
+    intro z x
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) c) A) (pt : V)) z) x : Fin 6 → V) ∘ cgKpMap =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => z) x) c := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_kpairEqF
+  simp only [constGraphEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hKp, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_constGraphF (c := c) (A := A)).symm
+  · intro h z
+    rw [h]
+    exact mem_constGraphF
+
+
 end ConLeche.SetTheory
