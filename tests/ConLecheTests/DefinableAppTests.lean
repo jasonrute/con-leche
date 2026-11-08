@@ -1267,4 +1267,21 @@ example {v F a m i : V} :
   realize_app3EqF
 
 
+example {F a m A z : V} :
+    z ∈ˢ app3ImageF F a m A ↔ ∃ x, x ∈ˢ A ∧ z = app (app (app F a) m) x :=
+  mem_app3ImageF
+
+example {F a m A : V} :
+    image (fun x => app (app (app F a) m) x) A = app3ImageF F a m A :=
+  image_app3_eq
+
+example {x v F a m : V} :
+    Form.Realize Mem
+      (Form.cons2 x v
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => F) a) m) (pt : V)))
+      app3EqRepF ↔
+      v = app (app (app F a) m) x :=
+  realize_app3EqRepF
+
+
 end ConLeche.SetTheory.DefinableAppEx

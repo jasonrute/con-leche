@@ -1981,4 +1981,60 @@ theorem realize_app3EqF {v F a m i : V} :
   · rintro ⟨w, hw, hv⟩; rw [hv, hw]
   · intro h; exact ⟨app (app F a) m, rfl, h⟩
 
+
+
+/-! ## Stage 85: the definable triple-application image `app3ImageF` -/
+
+/-- Variable map `Fin 6 → Fin 6`, `0 ↦ 5`, `1 ↦ 1`, `2 ↦ 2`, `3 ↦ 3`,
+`4 ↦ 4`, `5 ↦ 0` (reads `app3EqF`'s `(pt, v, F, a, m, i)` out of the
+`imageF` convention `(x, v, F, a, m, pt)`). -/
+def app3RepMap : Fin 6 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨5, by omega⟩ | 1 => ⟨1, by omega⟩ | 2 => ⟨2, by omega⟩
+  | 3 => ⟨3, by omega⟩ | 4 => ⟨4, by omega⟩ | _ => ⟨0, by omega⟩
+
+/-- `v = app (app (app F a) m) x` in the `imageF` convention (variables
+`0 ↦ x`, `1 ↦ v`, parameters `F`, `a`, `m`, `pt`). -/
+def app3EqRepF : Form 6 := Form.relabel app3RepMap app3EqF
+
+theorem realize_app3EqRepF {x v F a m : V} :
+    Form.Realize Mem
+        (Form.cons2 x v
+          (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => F) a) m) (pt : V)))
+        app3EqRepF ↔
+      v = app (app (app F a) m) x := by
+  have hcomp : (Form.cons2 x v
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => F) a) m) (pt : V)) :
+      Fin 6 → V) ∘ app3RepMap =
+      Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v)
+        F) a) m) x := by
+    funext ⟨k, hk⟩
+    have hk6 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+    rcases hk6 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+  simp only [app3EqRepF, Form.realize_relabel, hcomp, realize_app3EqF]
+
+/-- The definable image under `fun x => app (app (app F a) m) x`:
+`{app (app (app F a) m) x | x ∈ˢ A}`. -/
+noncomputable def app3ImageF (F a m A : V) : V :=
+  imageF app3EqRepF
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => F) a) m) (pt : V)) A
+    (fun x _ => ⟨app (app (app F a) m) x, realize_app3EqRepF.mpr rfl,
+      fun _ hy => realize_app3EqRepF.mp hy⟩)
+
+theorem mem_app3ImageF {F a m A z : V} :
+    z ∈ˢ app3ImageF F a m A ↔ ∃ x, x ∈ˢ A ∧ z = app (app (app F a) m) x := by
+  unfold app3ImageF
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    exact ⟨x, hx, realize_app3EqRepF.mp h⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, realize_app3EqRepF.mpr rfl⟩
+
+/-- The meta-level `image (fun x => app (app (app F a) m) x) A` is exactly
+the definable `app3ImageF F a m A`. -/
+theorem image_app3_eq {F a m A : V} :
+    image (fun x => app (app (app F a) m) x) A = app3ImageF F a m A :=
+  ext fun z => by rw [mem_image, mem_app3ImageF]
+
 end ConLeche.SetTheory
