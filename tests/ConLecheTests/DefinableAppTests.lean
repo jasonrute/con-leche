@@ -1325,4 +1325,12 @@ example {v a X : V} (h : Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 =
   ConLeche.Semantics.realize_kpairImageEqF.mp h
 
 
+
+/-! ## Stage 92 example: the `unitSet` equality reader -/
+
+example {v : V} (h : Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : V))
+    ConLeche.Semantics.unitSetEqF) : v = (unitSet : V) :=
+  ConLeche.Semantics.realize_unitSetEqF.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx

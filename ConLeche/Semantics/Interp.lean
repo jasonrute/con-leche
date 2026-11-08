@@ -4234,4 +4234,25 @@ theorem realize_kpairImageEqF {v a X : W} :
     exact mem_kpairImage
 
 
+
+/-! ## Stage 92: the `unitSet` equality reader `unitSetEqF` -/
+
+/-- The `unitSet` equality reader (variables `0 ↦ v`, `1 ↦ pt`):
+`v = unitSet`, by extensionality + `mem_unitSet_iff`. -/
+def unitSetEqF : Form 2 :=
+  .all (.iff (.mem ⟨2, by omega⟩ ⟨0, by omega⟩) (.equal ⟨2, by omega⟩ ⟨1, by omega⟩))
+
+theorem realize_unitSetEqF {v : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : W)) unitSetEqF ↔
+      v = (unitSet : W) := by
+  simp only [unitSetEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_equal, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_unitSet_iff (z := z)).symm
+  · intro h z
+    rw [h]
+    exact mem_unitSet_iff
+
+
 end ConLeche.Semantics
