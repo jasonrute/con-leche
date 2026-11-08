@@ -1301,4 +1301,12 @@ example {a z : V} (h : z ∈ˢ sUnion a) : ∃ y, y ∈ˢ a ∧ z ∈ˢ y :=
   mem_sUnion.mp h
 
 
+
+/-! ## Stage 89 example: the `binUnion` equality reader -/
+
+example {v a b : V} (h : Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) b)
+    ConLeche.Semantics.binUnionEqF) : v = binUnion a b :=
+  ConLeche.Semantics.realize_binUnionEqF.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx

@@ -4146,4 +4146,26 @@ theorem realize_sUnionEqF {v a : W} :
     exact mem_sUnion
 
 
+
+/-! ## Stage 89: the `binUnion` equality reader `binUnionEqF` -/
+
+/-- The `binUnion` equality reader (variables `0 ↦ v`, `1 ↦ a`, `2 ↦ b`):
+`v = binUnion a b`, by extensionality + `mem_binUnion`. -/
+def binUnionEqF : Form 3 :=
+  .all (.iff (.mem ⟨3, by omega⟩ ⟨0, by omega⟩)
+    (.or (.mem ⟨3, by omega⟩ ⟨1, by omega⟩) (.mem ⟨3, by omega⟩ ⟨2, by omega⟩)))
+
+theorem realize_binUnionEqF {v a b : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) b) binUnionEqF ↔
+      v = binUnion a b := by
+  simp only [binUnionEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_or, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_binUnion (a := a) (b := b)).symm
+  · intro h z
+    rw [h]
+    exact mem_binUnion
+
+
 end ConLeche.Semantics
