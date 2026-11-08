@@ -2259,4 +2259,68 @@ theorem realize_graphAppEqF {v g A : V} :
     exact key z
 
 
+
+/-! ## Stage 97: the `sigmaPairsAppF` equality reader `sigmaPairsAppEqF` -/
+
+/-- Map of the `appMemF` conjunct (vars `0 ↦ w`, `1 ↦ g`, `2 ↦ u`, `3 ↦ pt`)
+into the bound context `(v, S, A, pt, z, x, y)`: `0 ↦ 6`, `1 ↦ 1`, `2 ↦ 5`,
+`3 ↦ 3`. -/
+def spAppMap : Fin 4 → Fin 7 :=
+  fun k => match k.val with
+  | 0 => ⟨6, by omega⟩ | 1 => ⟨1, by omega⟩ | 2 => ⟨5, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- The `sigmaPairsAppF` equality reader (variables `0 ↦ v`, `1 ↦ S`,
+`2 ↦ A`, `3 ↦ pt`): `v = sigmaPairsAppF S A`, by extensionality +
+`mem_sigmaPairsAppF`, with `y ∈ app S x` read by `appMemF` and
+`z = kpair x y` by `kpairEqF`. -/
+def sigmaPairsAppEqF : Form 4 :=
+  .all (.iff (.mem ⟨4, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨5, by omega⟩ ⟨2, by omega⟩)
+      (.ex (.and (Form.relabel spAppMap appMemF) (Form.relabel gaKpMap kpairEqF))))))
+
+theorem realize_sigmaPairsAppEqF {v S A : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) S) A) (pt : V))
+        sigmaPairsAppEqF ↔
+      v = sigmaPairsAppF S A := by
+  have hApp : ∀ z x y : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) S) A) (pt : V)) z) x) y)
+          (Form.relabel spAppMap appMemF) ↔ y ∈ˢ app S x := by
+    intro z x y
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) S) A) (pt : V)) z) x) y : Fin 7 → V) ∘ spAppMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => y) S) x) (pt : V) := by
+      funext ⟨k, hk⟩
+      have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+      rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_appMemF
+  have hKp : ∀ z x y : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) S) A) (pt : V)) z) x) y)
+          (Form.relabel gaKpMap kpairEqF) ↔ z = kpair x y := by
+    intro z x y
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) S) A) (pt : V)) z) x) y : Fin 7 → V) ∘ gaKpMap =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => z) x) y := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_kpairEqF
+  simp only [sigmaPairsAppEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hApp, hKp, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_sigmaPairsAppF (S := S) (A := A)).symm
+  · intro h z
+    rw [h]
+    exact mem_sigmaPairsAppF
+
+
 end ConLeche.SetTheory
