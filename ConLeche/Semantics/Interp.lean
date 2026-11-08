@@ -2375,4 +2375,127 @@ theorem realize_vnatListEqF (ns : List Nat) {x : W} :
       exact ⟨vnat n, rfl, vnatListCode ns, h, rfl⟩
 
 
+/-! ## Stage 57: the built-in-constant code reader `bconstCodeEqF` -/
+
+/-- Map of the tag's `vnatEqF t` conjunct (vars `0 ↦ a`, `1 ↦ pt`) into the
+outer bound context `(x, pt, a)`. -/
+def bcPairA : Fin 2 → Fin 3 :=
+  fun k => match k.val with | 0 => ⟨2, by omega⟩ | 1 => ⟨1, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- Map of the `kpairEqF` conjunct (vars `0 ↦ x`, `1 ↦ a`, `2 ↦ y`) into the
+inner bound context `(x, pt, a, y)`. -/
+def bcPairK : Fin 3 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | 1 => ⟨2, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of the `emptyF` payload conjunct (var `0 ↦ y`) into the inner bound
+context `(x, pt, a, y)`. -/
+def bcPairE : Fin 1 → Fin 4 := fun _ => ⟨3, by omega⟩
+
+/-- Map of the `vnatEqF k` payload conjunct (vars `0 ↦ y`, `1 ↦ pt`) into the
+inner bound context `(x, pt, a, y)`. -/
+def bcPairV : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨1, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- Reader (variables `0 ↦ x`, `1 ↦ pt`): `x = kpair (vnat t) empty`. -/
+def vnatKpairEmptyF (t : Nat) : Form 2 :=
+  .ex (.and (Form.relabel bcPairA (vnatEqF t))
+    (.ex (.and (Form.relabel bcPairK kpairEqF) (Form.relabel bcPairE emptyF))))
+
+/-- Reader (variables `0 ↦ x`, `1 ↦ pt`): `x = kpair (vnat t) (vnat k)`. -/
+def vnatKpairVnatF (t k : Nat) : Form 2 :=
+  .ex (.and (Form.relabel bcPairA (vnatEqF t))
+    (.ex (.and (Form.relabel bcPairK kpairEqF) (Form.relabel bcPairV (vnatEqF k)))))
+
+theorem realize_vnatKpairEmptyF (t : Nat) {x : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => x) (pt : W)) (vnatKpairEmptyF t) ↔
+      x = kpair (vnat t : W) (empty : W) := by
+  have hA : ∀ a : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) ∘ bcPairA =
+        (Form.snoc (fun _ : Fin 1 => a) (pt : W) : Fin 2 → W) := by
+    intro a; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hK : ∀ a y : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) y) ∘ bcPairK =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => x) a) y := by
+    intro a y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hE : ∀ a y : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) y) ∘ bcPairE =
+        Form.snoc Form.nil y := by
+    intro a y; funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  simp only [vnatKpairEmptyF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hA, hK, hE, realize_vnatEqF, realize_kpairEqF, realize_emptyF_eq]
+  constructor
+  · rintro ⟨a, ha, y, hx, hy⟩
+    rw [ha] at hx; rw [hy] at hx
+    exact hx
+  · intro h
+    exact ⟨vnat t, rfl, empty, h, rfl⟩
+
+theorem realize_vnatKpairVnatF (t k : Nat) {x : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => x) (pt : W)) (vnatKpairVnatF t k) ↔
+      x = kpair (vnat t : W) (vnat k : W) := by
+  have hA : ∀ a : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) ∘ bcPairA =
+        (Form.snoc (fun _ : Fin 1 => a) (pt : W) : Fin 2 → W) := by
+    intro a; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hK : ∀ a y : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) y) ∘ bcPairK =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => x) a) y := by
+    intro a y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV : ∀ a y : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) y) ∘ bcPairV =
+        (Form.snoc (fun _ : Fin 1 => y) (pt : W) : Fin 2 → W) := by
+    intro a y; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [vnatKpairVnatF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hA, hK, hV, realize_vnatEqF, realize_kpairEqF]
+  constructor
+  · rintro ⟨a, ha, y, hx, hy⟩
+    rw [ha] at hx; rw [hy] at hx
+    exact hx
+  · intro h
+    exact ⟨vnat t, rfl, vnat k, h, rfl⟩
+
+/-- The built-in-constant code reader (variables `0 ↦ x`, `1 ↦ pt`):
+`x = bconstCode c`, by cases on the constructor. -/
+def bconstCodeEqF : Term.BConst → Form 2
+  | .nat => vnatKpairEmptyF 0
+  | .natZero => vnatKpairEmptyF 1
+  | .natSucc => vnatKpairEmptyF 2
+  | .natRec => vnatKpairEmptyF 3
+  | .punit => vnatKpairEmptyF 4
+  | .punitUnit => vnatKpairEmptyF 5
+  | .psigma => vnatKpairEmptyF 6
+  | .psigmaMk => vnatKpairEmptyF 7
+  | .empty => vnatKpairEmptyF 8
+  | .emptyRec => vnatKpairEmptyF 9
+  | .quot => vnatKpairEmptyF 10
+  | .quotMk => vnatKpairEmptyF 11
+  | .quotLift => vnatKpairEmptyF 12
+  | .quotInd => vnatKpairEmptyF 13
+  | .quotSound => vnatKpairEmptyF 14
+  | .propext => vnatKpairEmptyF 15
+  | .choice => vnatKpairEmptyF 16
+  | .lfpFam => vnatKpairEmptyF 17
+  | .lfpTuple k => vnatKpairVnatF 18 k
+
+theorem realize_bconstCodeEqF (c : Term.BConst) {x : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => x) (pt : W)) (bconstCodeEqF c) ↔
+      x = (bconstCode c : W) := by
+  cases c <;> simp only [bconstCodeEqF, bconstCode]
+  <;> first
+    | exact realize_vnatKpairEmptyF _
+    | exact realize_vnatKpairVnatF _ _
+
+
 end ConLeche.Semantics

@@ -949,4 +949,10 @@ example {x : V} (h : x = ConLeche.Semantics.vnatListCode [1, 2]) : Form.Realize 
   (ConLeche.Semantics.realize_vnatListEqF [1, 2]).mpr h
 
 
+example {x : V} (h : x = ConLeche.Semantics.bconstCode ConLeche.Term.BConst.propext) :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => x) (pt : V))
+      (ConLeche.Semantics.bconstCodeEqF ConLeche.Term.BConst.propext) :=
+  (ConLeche.Semantics.realize_bconstCodeEqF ConLeche.Term.BConst.propext).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx
