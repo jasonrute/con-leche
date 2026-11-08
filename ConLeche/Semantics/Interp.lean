@@ -3330,4 +3330,145 @@ theorem realize_vnatListNthF (j k : Nat) (us : List Nat) {x : W} (hx : x = vnatL
         · intro h
           exact ⟨vnat u, vnatListCode us, rfl, (ih us).mpr h⟩
 
+
+/-! ## Stage 70: the generic list-code `j`-th-element application `vnatListNthQF` -/
+
+/-- Map of the `emptyF`-on-`x` conjunct (var `0 ↦ x`) into the context `(x, v, pt)`. -/
+def nthEX : Fin 1 → Fin 3 := fun _ => ⟨0, by omega⟩
+
+/-- Map of the `emptyF`-on-`w` conjunct (var `0 ↦ w`) into the bound context `(x, v, pt, w)`. -/
+def nthQE : Fin 1 → Fin 4 := fun _ => ⟨3, by omega⟩
+
+/-- Map of the `qf` conjunct (vars `0 ↦ v`, `1 ↦ w`, `2 ↦ pt`) into the
+bound context `(x, v, pt, w)`. -/
+def nthQ0 : Fin 3 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨1, by omega⟩ | 1 => ⟨3, by omega⟩ | _ => ⟨2, by omega⟩
+
+/-- Map of the `kpairEqF` conjunct (vars `0 ↦ x`, `1 ↦ w`, `2 ↦ r`) into the
+bound context `(x, v, pt, w, r)`. -/
+def nthQK : Fin 3 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | 1 => ⟨3, by omega⟩ | 2 => ⟨4, by omega⟩ | _ => ⟨4, by omega⟩
+
+/-- Map of the `qf` conjunct (vars `0 ↦ v`, `1 ↦ w`, `2 ↦ pt`) into the
+bound context `(x, v, pt, w, r)`. -/
+def nthQV : Fin 3 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨1, by omega⟩ | 1 => ⟨3, by omega⟩ | _ => ⟨2, by omega⟩
+
+/-- Map of the recursive `vnatListNthQF j qf` conjunct (vars `0 ↦ r`, `1 ↦ v`, `2 ↦ pt`)
+into the bound context `(x, v, pt, w, r)`. -/
+def nthQR : Fin 3 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨1, by omega⟩ | _ => ⟨2, by omega⟩
+
+/-- The generic list-code `j`-th-element application (variables `0 ↦ x`, `1 ↦ v`,
+`2 ↦ pt`): `x = vnatListCode us` and `Q v (vnat (us.getD j 0))`, where `qf`
+realizes `Q` on `(v, w)` — recursion on `j`; the empty list applies `qf` at
+`w = empty` (the `getD` default `0`), guarded by `x = empty`. -/
+def vnatListNthQF : Nat → Form 3 → Form 3
+  | 0, qf => .or (.and (Form.relabel nthEX emptyF)
+      (.ex (.and (Form.relabel nthQE emptyF) (Form.relabel nthQ0 qf))))
+    (.ex (.ex (.and (Form.relabel nthQK kpairEqF) (Form.relabel nthQV qf))))
+  | j + 1, qf => .or (.and (Form.relabel nthEX emptyF)
+      (.ex (.and (Form.relabel nthQE emptyF) (Form.relabel nthQ0 qf))))
+    (.ex (.ex (.and (Form.relabel nthQK kpairEqF) (Form.relabel nthQR (vnatListNthQF j qf)))))
+
+theorem realize_vnatListNthQF (j : Nat) {qf : Form 3} {Q : W → W → Prop}
+    (hqf : ∀ v w : W,
+      Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : W)) qf ↔ Q v w)
+    (us : List Nat) {x v : W} (hx : x = vnatListCode us) :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => x) v) (pt : W))
+        (vnatListNthQF j qf) ↔
+      Q v (vnat (us.getD j 0)) := by
+  subst hx
+  have hEX : ∀ x v : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => x) v) (pt : W)) ∘ nthEX =
+        Form.snoc Form.nil x := by
+    intro x v; funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  have hQE : ∀ x v w : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) v) (pt : W)) w) ∘ nthQE =
+        Form.snoc Form.nil w := by
+    intro x v w; funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  have hQ0 : ∀ x v w : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) v) (pt : W)) w) ∘ nthQ0 =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : W) := by
+    intro x v w; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hQK : ∀ x v w r : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) v) (pt : W)) w) r) ∘ nthQK =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => x) w) r := by
+    intro x v w r; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hQV : ∀ x v w r : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) v) (pt : W)) w) r) ∘ nthQV =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : W) := by
+    intro x v w r; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hQR : ∀ x v w r : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) v) (pt : W)) w) r) ∘ nthQR =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => r) v) (pt : W) := by
+    intro x v w r; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  induction j generalizing us with
+  | zero =>
+    simp only [vnatListNthQF, Form.realize_or, Form.realize_and, Form.realize_ex,
+      Form.realize_relabel, hEX, hQE, hQ0, hQK, hQV, realize_emptyF_eq, realize_kpairEqF, hqf]
+    cases us with
+    | nil =>
+      rw [vnatListCode_nil]
+      have h0d : ([] : List Nat).getD 0 0 = 0 := rfl
+      rw [h0d]
+      constructor
+      · rintro (⟨-, w, hw, hQ⟩ | ⟨w, r, hk, -⟩)
+        · rw [hw] at hQ
+          exact hQ
+        · exact absurd hk.symm (kpair_ne_empty _ _)
+      · intro h
+        exact Or.inl ⟨rfl, empty, rfl, h⟩
+    | cons u us =>
+      rw [vnatListCode_cons]
+      have hget : (u :: us).getD 0 0 = u := rfl
+      rw [hget]
+      constructor
+      · rintro (⟨h, -, -, -⟩ | ⟨w, r, hk, hQ⟩)
+        · exact absurd h (kpair_ne_empty _ _)
+        · obtain ⟨h1, -⟩ := kpair_inj hk
+          rw [← h1] at hQ
+          exact hQ
+      · intro h
+        exact Or.inr ⟨vnat u, vnatListCode us, rfl, h⟩
+  | succ j ih =>
+    simp only [vnatListNthQF, Form.realize_or, Form.realize_and, Form.realize_ex,
+      Form.realize_relabel, hEX, hQE, hQ0, hQK, hQR, realize_emptyF_eq, realize_kpairEqF, hqf]
+    cases us with
+    | nil =>
+      rw [vnatListCode_nil]
+      have h0d : ([] : List Nat).getD (j + 1) 0 = 0 := rfl
+      rw [h0d]
+      constructor
+      · rintro (⟨-, w, hw, hQ⟩ | ⟨w, r, hk, -⟩)
+        · rw [hw] at hQ
+          exact hQ
+        · exact absurd hk.symm (kpair_ne_empty _ _)
+      · intro h
+        exact Or.inl ⟨rfl, empty, rfl, h⟩
+    | cons u us =>
+      rw [vnatListCode_cons]
+      have hget : (u :: us).getD (j + 1) 0 = us.getD j 0 := rfl
+      rw [hget]
+      constructor
+      · rintro (⟨h, -, -, -⟩ | ⟨w, r, hk, hr⟩)
+        · exact absurd h (kpair_ne_empty _ _)
+        · obtain ⟨-, h2⟩ := kpair_inj hk
+          rw [← h2] at hr
+          exact (ih us).mp hr
+      · intro h
+        exact Or.inr ⟨vnat u, vnatListCode us, rfl, (ih us).mpr h⟩
+
 end ConLeche.Semantics

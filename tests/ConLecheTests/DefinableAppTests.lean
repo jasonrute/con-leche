@@ -1037,4 +1037,18 @@ example {x : V} (us : List Nat) (hx : x = ConLeche.Semantics.vnatListCode us) :
   (ConLeche.Semantics.realize_vnatListNthF 0 (us.getD 0 0) us hx).mpr rfl
 
 
+example {x v : V} (us : List Nat) (hx : x = ConLeche.Semantics.vnatListCode us)
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => x) v) (pt : V))
+      (ConLeche.Semantics.vnatListNthQF 0 ConLeche.Semantics.unitSetAtVnatF)) :
+    v = ConLeche.SetTheory.unitSetAt (us.getD 0 0) := by
+  have hQ := (ConLeche.Semantics.realize_vnatListNthQF 0
+    (qf := ConLeche.Semantics.unitSetAtVnatF)
+    (Q := fun v w => (w = (empty : V) ∧ v = sing (pt : V)) ∨
+      (¬ w = (empty : V) ∧ v = sing (empty : V)))
+    (fun v w => ConLeche.Semantics.realize_unitSetAtVnatF) us hx).mp hR
+  exact ConLeche.Semantics.unitSetAtVnatF_apply (us.getD 0 0)
+    ((ConLeche.Semantics.realize_unitSetAtVnatF (v := v)
+      (w := ConLeche.SetTheory.vnat (us.getD 0 0))).mpr hQ) rfl
+
+
 end ConLeche.SetTheory.DefinableAppEx
