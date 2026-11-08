@@ -2654,4 +2654,90 @@ theorem realize_kpairCodeF {pf qf : Form 2} {P Q : W → Prop}
     exact ⟨p, hp, q, hr, hq⟩
 
 
+/-! ## Stage 60: the recursive tmCode reader `tmCodeEqF` -/
+
+/-- The tmCode reader (variables `0 ↦ x`, `1 ↦ pt`): `x = tmCode t`,
+by recursion on the term — each constructor is a numeral tag
+(`vnatEqF`) over a coded payload (`kpairEqF`, `vnatEqF`,
+`bconstCodeEqF`/`vnatListEqF`, or the recursive `tmCodeEqF`). -/
+def tmCodeEqF : Term.Term → Form 2
+  | .bvar i => vnatKpairVnatF 0 i
+  | .sort u => vnatKpairVnatF 1 u
+  | .const c us => constCodeF c us
+  | .app f a => vnatKpairPF 3 (kpairCodeF (tmCodeEqF f) (tmCodeEqF a))
+  | .lam ty body => vnatKpairPF 4 (kpairCodeF (tmCodeEqF ty) (tmCodeEqF body))
+  | .pi ty body => vnatKpairPF 5 (kpairCodeF (tmCodeEqF ty) (tmCodeEqF body))
+  | .letE val body => vnatKpairPF 6 (kpairCodeF (tmCodeEqF val) (tmCodeEqF body))
+  | .eqE lhs rhs => vnatKpairPF 7 (kpairCodeF (tmCodeEqF lhs) (tmCodeEqF rhs))
+  | .fst e => vnatKpairPF 8 (tmCodeEqF e)
+  | .snd e => vnatKpairPF 9 (tmCodeEqF e)
+  | .prf => vnatKpairEmptyF 10
+
+theorem realize_tmCodeEqF (t : Term.Term) {x : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => x) (pt : W)) (tmCodeEqF t) ↔
+      x = (tmCode t : W) := by
+  induction t generalizing x with
+  | bvar i => exact realize_vnatKpairVnatF 0 i
+  | sort u => exact realize_vnatKpairVnatF 1 u
+  | const c us => exact realize_constCodeF c us
+  | prf => exact realize_vnatKpairEmptyF 10
+  | app f a ihf iha =>
+    have h := realize_vnatKpairPF 3 (pf := kpairCodeF (tmCodeEqF f) (tmCodeEqF a))
+      (P := fun r => ∃ p q, r = kpair p q ∧ p = (tmCode f : W) ∧ q = (tmCode a : W))
+      (fun r => realize_kpairCodeF (fun p => ihf (x := p)) (fun q => iha (x := q)) (r := r)) (x := x)
+    rw [show (tmCode (Term.Term.app f a) : W) =
+        kpair (vnat 3 : W) (kpair (tmCode f : W) (tmCode a : W)) from rfl]
+    exact h.trans ⟨fun ⟨r, hx, p, q, hr, hp, hq⟩ => by
+        rw [hr] at hx; rw [hp, hq] at hx; exact hx,
+      fun h => ⟨kpair (tmCode f : W) (tmCode a : W), h, tmCode f, tmCode a, rfl, rfl, rfl⟩⟩
+  | lam ty body iht ihb =>
+    have h := realize_vnatKpairPF 4 (pf := kpairCodeF (tmCodeEqF ty) (tmCodeEqF body))
+      (P := fun r => ∃ p q, r = kpair p q ∧ p = (tmCode ty : W) ∧ q = (tmCode body : W))
+      (fun r => realize_kpairCodeF (fun p => iht (x := p)) (fun q => ihb (x := q)) (r := r)) (x := x)
+    rw [show (tmCode (Term.Term.lam ty body) : W) =
+        kpair (vnat 4 : W) (kpair (tmCode ty : W) (tmCode body : W)) from rfl]
+    exact h.trans ⟨fun ⟨r, hx, p, q, hr, hp, hq⟩ => by
+        rw [hr] at hx; rw [hp, hq] at hx; exact hx,
+      fun h => ⟨kpair (tmCode ty : W) (tmCode body : W), h, tmCode ty, tmCode body, rfl, rfl, rfl⟩⟩
+  | pi ty body iht ihb =>
+    have h := realize_vnatKpairPF 5 (pf := kpairCodeF (tmCodeEqF ty) (tmCodeEqF body))
+      (P := fun r => ∃ p q, r = kpair p q ∧ p = (tmCode ty : W) ∧ q = (tmCode body : W))
+      (fun r => realize_kpairCodeF (fun p => iht (x := p)) (fun q => ihb (x := q)) (r := r)) (x := x)
+    rw [show (tmCode (Term.Term.pi ty body) : W) =
+        kpair (vnat 5 : W) (kpair (tmCode ty : W) (tmCode body : W)) from rfl]
+    exact h.trans ⟨fun ⟨r, hx, p, q, hr, hp, hq⟩ => by
+        rw [hr] at hx; rw [hp, hq] at hx; exact hx,
+      fun h => ⟨kpair (tmCode ty : W) (tmCode body : W), h, tmCode ty, tmCode body, rfl, rfl, rfl⟩⟩
+  | letE val body ihv ihb =>
+    have h := realize_vnatKpairPF 6 (pf := kpairCodeF (tmCodeEqF val) (tmCodeEqF body))
+      (P := fun r => ∃ p q, r = kpair p q ∧ p = (tmCode val : W) ∧ q = (tmCode body : W))
+      (fun r => realize_kpairCodeF (fun p => ihv (x := p)) (fun q => ihb (x := q)) (r := r)) (x := x)
+    rw [show (tmCode (Term.Term.letE val body) : W) =
+        kpair (vnat 6 : W) (kpair (tmCode val : W) (tmCode body : W)) from rfl]
+    exact h.trans ⟨fun ⟨r, hx, p, q, hr, hp, hq⟩ => by
+        rw [hr] at hx; rw [hp, hq] at hx; exact hx,
+      fun h => ⟨kpair (tmCode val : W) (tmCode body : W), h, tmCode val, tmCode body, rfl, rfl, rfl⟩⟩
+  | eqE lhs rhs ihl ihr =>
+    have h := realize_vnatKpairPF 7 (pf := kpairCodeF (tmCodeEqF lhs) (tmCodeEqF rhs))
+      (P := fun r => ∃ p q, r = kpair p q ∧ p = (tmCode lhs : W) ∧ q = (tmCode rhs : W))
+      (fun r => realize_kpairCodeF (fun p => ihl (x := p)) (fun q => ihr (x := q)) (r := r)) (x := x)
+    rw [show (tmCode (Term.Term.eqE lhs rhs) : W) =
+        kpair (vnat 7 : W) (kpair (tmCode lhs : W) (tmCode rhs : W)) from rfl]
+    exact h.trans ⟨fun ⟨r, hx, p, q, hr, hp, hq⟩ => by
+        rw [hr] at hx; rw [hp, hq] at hx; exact hx,
+      fun h => ⟨kpair (tmCode lhs : W) (tmCode rhs : W), h, tmCode lhs, tmCode rhs, rfl, rfl, rfl⟩⟩
+  | fst e ihe =>
+    have h := realize_vnatKpairPF 8 (pf := tmCodeEqF e) (P := fun r => r = (tmCode e : W))
+      (fun r => ihe (x := r)) (x := x)
+    rw [show (tmCode (Term.Term.fst e) : W) = kpair (vnat 8 : W) (tmCode e) from rfl]
+    exact h.trans ⟨fun ⟨r, hx, hr⟩ => by rw [hr] at hx; exact hx,
+      fun h => ⟨tmCode e, h, rfl⟩⟩
+  | snd e ihe =>
+    have h := realize_vnatKpairPF 9 (pf := tmCodeEqF e) (P := fun r => r = (tmCode e : W))
+      (fun r => ihe (x := r)) (x := x)
+    rw [show (tmCode (Term.Term.snd e) : W) = kpair (vnat 9 : W) (tmCode e) from rfl]
+    exact h.trans ⟨fun ⟨r, hx, hr⟩ => by rw [hr] at hx; exact hx,
+      fun h => ⟨tmCode e, h, rfl⟩⟩
+
+
 end ConLeche.Semantics

@@ -969,4 +969,12 @@ example {x : V} (h : x = kpair (vnat 7) (vnat 2)) : Form.Realize Mem
     ⟨vnat 2, h, rfl⟩
 
 
+example {x : V} (h : x = ConLeche.Semantics.tmCode (ConLeche.Term.Term.app
+    (ConLeche.Term.Term.bvar 0) (ConLeche.Term.Term.prf))) : Form.Realize Mem
+    (Form.snoc (fun _ : Fin 1 => x) (pt : V))
+    (ConLeche.Semantics.tmCodeEqF (ConLeche.Term.Term.app
+      (ConLeche.Term.Term.bvar 0) (ConLeche.Term.Term.prf))) :=
+  (ConLeche.Semantics.realize_tmCodeEqF _).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx
