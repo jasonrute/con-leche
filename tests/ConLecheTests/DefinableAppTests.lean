@@ -1009,4 +1009,10 @@ example {v : V} (h : v = ptTag) : Form.Realize Mem
   (ConLeche.Semantics.realize_ptTagEqF).mpr h
 
 
+example {v : V} (h : v = (pt : V)) : Form.Realize Mem
+    (Form.snoc (fun _ : Fin 1 => v) (pt : V))
+    ConLeche.Semantics.ptEqF :=
+  (ConLeche.Semantics.realize_ptEqF).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx

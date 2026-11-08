@@ -3005,4 +3005,44 @@ theorem realize_ptTagEqF {v : W} :
   · intro h
     exact ⟨empty, rfl, sing (sing empty), rfl, h⟩
 
+
+/-! ## Stage 66: the proof-point reader `ptEqF` -/
+
+/-- Map of the `ptTagEqF` conjunct (vars `0 ↦ t`, `1 ↦ pt`) into the bound context `(v, pt, t)`. -/
+def ptTagInto : Fin 2 → Fin 3 :=
+  fun k => match k.val with | 0 => ⟨2, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- Map of the `singEqF` conjunct (vars `0 ↦ v`, `1 ↦ t`) into the bound context `(v, pt, t)`. -/
+def ptSingS : Fin 2 → Fin 3 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | _ => ⟨2, by omega⟩
+
+/-- The proof-point reader (variables `0 ↦ v`, `1 ↦ pt`): `v = pt`,
+i.e. `v = sing ptTag`, via an existential `t = ptTag` with `v = sing t`. -/
+def ptEqF : Form 2 :=
+  .ex (.and (Form.relabel ptTagInto ptTagEqF) (Form.relabel ptSingS singEqF))
+
+theorem realize_ptEqF {v : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : W)) ptEqF ↔ v = (pt : W) := by
+  have hT : ∀ t : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) t) ∘ ptTagInto =
+        (Form.snoc (fun _ : Fin 1 => t) (pt : W) : Fin 2 → W) := by
+    intro t; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hS : ∀ t : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) t) ∘ ptSingS =
+        (Form.snoc (fun _ : Fin 1 => v) t : Fin 2 → W) := by
+    intro t; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [ptEqF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hT, hS, realize_ptTagEqF, realize_singEqF]
+  rw [show (pt : W) = sing (ptTag : W) from by unfold pt; rfl]
+  constructor
+  · rintro ⟨t, ht, hv⟩
+    rw [ht] at hv
+    exact hv
+  · intro h
+    exact ⟨ptTag, rfl, h⟩
+
 end ConLeche.Semantics
