@@ -2257,4 +2257,26 @@ theorem realize_vnatKpairEqF (t : Nat) {z y : W} :
     exact ⟨vnat t, rfl, h⟩
 
 
+/-! ## Stage 54: the power-set reader `powerEqF` -/
+
+/-- The power-set reader (variables `0 ↦ v`, `1 ↦ a`, `2 ↦ pt`):
+`v = power a`, via extensionality + `mem_power` —
+`∀ z, z ∈ˢ v ↔ (∀ w, w ∈ˢ z → w ∈ˢ a)`. -/
+def powerEqF : Form 3 :=
+  .all (.iff (.mem ⟨3, by omega⟩ ⟨0, by omega⟩)
+    (.all (.imp (.mem ⟨4, by omega⟩ ⟨3, by omega⟩) (.mem ⟨4, by omega⟩ ⟨1, by omega⟩))))
+
+theorem realize_powerEqF {v a : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) (pt : W)) powerEqF ↔
+      v = power a := by
+  simp only [powerEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_imp, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans mem_power.symm
+  · intro h z
+    rw [h]
+    exact mem_power
+
+
 end ConLeche.Semantics

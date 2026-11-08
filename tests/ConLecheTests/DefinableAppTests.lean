@@ -934,4 +934,9 @@ example {z y : V} (h : z = kpair (vnat 5) y) : Form.Realize Mem
   (ConLeche.Semantics.realize_vnatKpairEqF 5).mpr h
 
 
+example {v a : V} (h : v = power a) : Form.Realize Mem
+    (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) (pt : V)) ConLeche.Semantics.powerEqF :=
+  (ConLeche.Semantics.realize_powerEqF).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx
