@@ -1080,4 +1080,22 @@ example {v X i : V} {c : Term.BConst} {us : List Nat}
   ConLeche.Semantics.constStepF_apply hR hi
 
 
+
+example {X : V} :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (univ 0 : V)) X)
+        (ConLeche.Semantics.tmCode (Term.Term.sort 0))) (pt : V))
+      ConLeche.Semantics.sortZeroStepF :=
+  ConLeche.Semantics.realize_sortZeroStepF_tmCode
+
+
+example {v X i : V}
+    (hR : Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V))
+      ConLeche.Semantics.sortZeroStepF)
+    (hi : i = (ConLeche.Semantics.tmCode (Term.Term.sort 0) : V)) :
+    v = (univ 0 : V) :=
+  ConLeche.Semantics.sortZeroStepF_apply hR hi
+
+
 end ConLeche.SetTheory.DefinableAppEx

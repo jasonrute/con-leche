@@ -3698,4 +3698,79 @@ theorem constStepF_apply {v X i : W} {c : Term.BConst} {us : List Nat}
     rw [huc, hc0, hi, tmCode, ssnd_kpair, ssnd_kpair]
   exact constValueEasyF_apply hR' hcc' huc'
 
+/-! ## Stage 73: the `sort 0` case of the definable interp step `sortZeroStepF` -/
+
+/-- Map of `ssndEqF`'s `(y, x, pt)` into the bound context `(v, X, i, pt, u)`:
+`y ↦ u`, `x ↦ i`, `pt ↦ pt`. -/
+def szN : Fin 3 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `vnatEqF t`'s `(x, pt)` into `(v, X, i, pt, u)`: `x ↦ u`, `pt ↦ pt`. -/
+def szV : Fin 2 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `univZeroEqF`'s `(v, pt)` into `(v, X, i, pt, u)`: `v ↦ v`, `pt ↦ pt`. -/
+def szU : Fin 2 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The `sort 0` step of the definable interpretation (variables
+`0 ↦ v`, `1 ↦ X`, `2 ↦ i`, `3 ↦ pt`): the `tagDisjF 1` guard paired with
+`ssnd i = vnat 0 ∧ v = univZero` — the value of `tmCode (.sort 0)` is
+`univ 0 = univZero`. -/
+def sortZeroStepF : Form 4 :=
+  .and (tagDisjF 1)
+    (.ex (.and (Form.relabel szN ssndEqF)
+      (.and (Form.relabel szV (vnatEqF 0)) (Form.relabel szU univZeroEqF))))
+
+theorem realize_sortZeroStepF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+        sortZeroStepF ↔
+      (∃ y, i = kpair (vnat 1 : W) y) ∧
+      (∃ u, u = ssnd i ∧ u = vnat 0 ∧ v = (univZero : W)) := by
+  have hM : ∀ y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) y) ∘
+          tagDispatchMap =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => i) y) (pt : W) : Fin 3 → W) := by
+    intro y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hN : ∀ u : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) u) ∘ szN =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => u) i) (pt : W) : Fin 3 → W) := by
+    intro u; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV : ∀ u : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) u) ∘ szV =
+        (Form.snoc (fun _ : Fin 1 => u) (pt : W) : Fin 2 → W) := by
+    intro u; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hU : ∀ u : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) u) ∘ szU =
+        (Form.snoc (fun _ : Fin 1 => v) (pt : W) : Fin 2 → W) := by
+    intro u; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [sortZeroStepF, tagDisjF, Form.realize_and, Form.realize_ex, Form.realize_relabel,
+    hM, hN, hV, hU, realize_vnatKpairEqF, realize_ssndEqF, realize_vnatEqF,
+    realize_univZeroEqF]
+
+/-- The `sort 0` step at a concrete code: `i = tmCode (.sort 0)` forces
+`v = univ 0`. -/
+theorem sortZeroStepF_apply {v X i : W}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+      sortZeroStepF)
+    (_hi : i = (tmCode (Term.Term.sort 0) : W)) :
+    v = (univ 0 : W) := by
+  rcases (realize_sortZeroStepF.mp hR).2 with ⟨u, _, _, hv⟩
+  exact hv.trans univ_zero.symm
+
+/-- The `sort 0` code realizes the step at `v = univ 0`. -/
+theorem realize_sortZeroStepF_tmCode {X : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (univ 0 : W)) X)
+      (tmCode (Term.Term.sort 0))) (pt : W)) sortZeroStepF :=
+  realize_sortZeroStepF.mpr
+    ⟨⟨vnat 0, rfl⟩, ⟨vnat 0, by rw [tmCode, ssnd_kpair], rfl, univ_zero⟩⟩
+
 end ConLeche.Semantics
