@@ -923,4 +923,9 @@ example (ρ : V) : Form.Realize Mem
     ConLeche.Term.Term.prf (ConLeche.Term.Term.bvar 0)
 
 
+example {x : V} (h : x = vnat 3) : Form.Realize Mem
+    (Form.snoc (fun _ : Fin 1 => x) (pt : V)) (ConLeche.Semantics.vnatEqF 3) :=
+  (ConLeche.Semantics.realize_vnatEqF 3).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx

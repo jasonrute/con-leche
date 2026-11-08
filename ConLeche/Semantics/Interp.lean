@@ -2166,4 +2166,52 @@ theorem realize_piStepF_tmCode {X ρ : W} (A b : ConLeche.Term.Term) :
   realize_piStepF.mpr (by simp only [tmCode, sfst_kpair, ssnd_kpair])
 
 
+/-! ## Stage 52: the numeral reader `vnatEqF` -/
+
+/-- Variable maps into the `vnatEqF` bound context `(x, pt, y)`. -/
+def vnatEqLift : Fin 2 → Fin 3 := fun k => match k.val with | 0 => ⟨2, by omega⟩ | 1 => ⟨1, by omega⟩ | _ => ⟨1, by omega⟩
+def vsuccSwap : Fin 2 → Fin 3 := fun k => match k.val with | 0 => ⟨2, by omega⟩ | 1 => ⟨0, by omega⟩ | _ => ⟨0, by omega⟩
+
+/-- The numeral reader (variables `0 ↦ x`, `1 ↦ pt`): `x = vnat t`,
+by recursion on `t` — `vnat 0 = empty` via `emptyF`,
+`vnat (t+1) = vsucc (vnat t)` via `vsuccF`. -/
+def vnatEqF : Nat → Form 2
+  | 0 => Form.relabel (fun _ : Fin 1 => ⟨0, by omega⟩) emptyF
+  | t + 1 => .ex (.and (Form.relabel vnatEqLift (vnatEqF t)) (Form.relabel vsuccSwap vsuccF))
+
+theorem realize_vnatEqF (t : Nat) {x : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => x) (pt : W)) (vnatEqF t) ↔ x = (vnat t : W) := by
+  induction t generalizing x with
+  | zero =>
+    have hm : (Form.snoc (fun _ : Fin 1 => x) (pt : W)) ∘ (fun _ : Fin 1 => ⟨0, by omega⟩) =
+        Form.snoc Form.nil x := by
+      funext ⟨k, hk⟩
+      have hk0 : k = 0 := by omega
+      subst hk0; rfl
+    simp only [vnatEqF, Form.realize_relabel, hm, realize_emptyF_eq]
+    exact Iff.rfl
+  | succ t ih =>
+    have hL : ∀ y : W,
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) y) ∘ vnatEqLift =
+          (Form.snoc (fun _ : Fin 1 => y) (pt : W) : Fin 2 → W) := by
+      intro y; funext ⟨k, hk⟩
+      have hk2 : k = 0 ∨ k = 1 := by omega
+      rcases hk2 with rfl | rfl <;> rfl
+    have hS : ∀ y : W,
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) y) ∘ vsuccSwap =
+          Form.cons2 y x Form.nil := by
+      intro y; funext ⟨k, hk⟩
+      have hk2 : k = 0 ∨ k = 1 := by omega
+      rcases hk2 with rfl | rfl <;> rfl
+    simp only [vnatEqF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+      hL, hS, ih, realize_vsuccF]
+    rw [show (vnat (t + 1) : W) = vsucc (vnat t) from rfl]
+    constructor
+    · rintro ⟨y, hy, hx⟩
+      rw [hy] at hx
+      exact hx
+    · intro h
+      exact ⟨vnat t, rfl, h⟩
+
+
 end ConLeche.Semantics
