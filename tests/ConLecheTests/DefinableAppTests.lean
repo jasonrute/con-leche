@@ -1413,4 +1413,12 @@ example {v F a m A : V} (h : Form.Realize Mem
     app3ImageEqF) : v = app3ImageF F a m A :=
   realize_app3ImageEqF.mp h
 
+
+/-! ## Stage 101 example: the `sUnionApp3sImageF` equality reader -/
+
+example {v F m i A : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) F) m) i) A) (pt : V))
+    sUnionApp3sImageEqF) : v = sUnionApp3sImageF F m i A :=
+  realize_sUnionApp3sImageEqF.mp h
+
 end ConLeche.SetTheory.DefinableAppEx

@@ -2470,4 +2470,56 @@ theorem realize_app3ImageEqF {v F a m A : V} :
     exact mem_app3ImageF
 
 
+
+/-! ## Stage 101: the `sUnionApp3sImageF` equality reader `sUnionApp3sImageEqF` -/
+
+/-- Map of the `app3EqF` conjunct (vars `0 ↦ pt`, `1 ↦ v'`, `2 ↦ F`,
+`3 ↦ a`, `4 ↦ m`, `5 ↦ i`) into the bound context `(v, F, m, i, A, pt, z, a, s)`:
+`0 ↦ 5`, `1 ↦ 8`, `2 ↦ 1`, `3 ↦ 7`, `4 ↦ 2`, `5 ↦ 3`. -/
+def suA3Map : Fin 6 → Fin 9 :=
+  fun k => match k.val with
+  | 0 => ⟨5, by omega⟩ | 1 => ⟨8, by omega⟩ | 2 => ⟨1, by omega⟩
+  | 3 => ⟨7, by omega⟩ | 4 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The `sUnionApp3sImageF` equality reader (variables `0 ↦ v`, `1 ↦ F`,
+`2 ↦ m`, `3 ↦ i`, `4 ↦ A`, `5 ↦ pt`): `v = sUnionApp3sImageF F m i A`, by
+extensionality + `mem_sUnionApp3sImageF'`, with `s = app (app (app F a) m) i`
+read by `app3EqF`. -/
+def sUnionApp3sImageEqF : Form 6 :=
+  .all (.iff (.mem ⟨6, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨7, by omega⟩ ⟨4, by omega⟩)
+      (.ex (.and (Form.relabel suA3Map app3EqF) (.mem ⟨6, by omega⟩ ⟨8, by omega⟩))))))
+
+theorem realize_sUnionApp3sImageEqF {v F m i A : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) F) m) i) A) (pt : V))
+        sUnionApp3sImageEqF ↔
+      v = sUnionApp3sImageF F m i A := by
+  have hApp : ∀ z a s : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) F) m) i) A) (pt : V)) z) a) s)
+          (Form.relabel suA3Map app3EqF) ↔ s = app (app (app F a) m) i := by
+    intro z a s
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) F) m) i) A) (pt : V)) z) a) s : Fin 9 → V) ∘ suA3Map =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+          (fun _ : Fin 1 => (pt : V)) s) F) a) m) i := by
+      funext ⟨k, hk⟩
+      have hk6 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+      rcases hk6 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_app3EqF
+  simp only [sUnionApp3sImageEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hApp, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z =>
+      (h z).trans (mem_sUnionApp3sImageF' (F := F) (m := m) (i := i) (A := A)).symm
+  · intro h z
+    rw [h]
+    exact mem_sUnionApp3sImageF'
+
+
 end ConLeche.SetTheory
