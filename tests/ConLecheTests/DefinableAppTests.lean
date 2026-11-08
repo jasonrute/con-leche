@@ -1015,4 +1015,12 @@ example {v : V} (h : v = (pt : V)) : Form.Realize Mem
   (ConLeche.Semantics.realize_ptEqF).mpr h
 
 
+example {v w : V} (k : Nat)
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : V))
+      ConLeche.Semantics.unitSetAtVnatF)
+    (hw : w = ConLeche.SetTheory.vnat k) :
+    v = ConLeche.SetTheory.unitSetAt k :=
+  ConLeche.Semantics.unitSetAtVnatF_apply k hR hw
+
+
 end ConLeche.SetTheory.DefinableAppEx

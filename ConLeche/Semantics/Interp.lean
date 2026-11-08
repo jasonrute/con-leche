@@ -3045,4 +3045,64 @@ theorem realize_ptEqF {v : W} :
   · intro h
     exact ⟨ptTag, rfl, h⟩
 
+
+/-! ## Stage 67: the `unitSetAt`-of-a-numeral reader `unitSetAtVnatF` -/
+
+/-- Map of the `emptyF` conjunct (var `0 ↦ w`) into the context `(v, w, pt)`. -/
+def usatE : Fin 1 → Fin 3 := fun _ => ⟨1, by omega⟩
+
+/-- Map of the `unitSetF` conjunct (vars `0 ↦ v`, `1 ↦ pt`) into the context `(v, w, pt)`. -/
+def usatU : Fin 2 → Fin 3 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | _ => ⟨2, by omega⟩
+
+/-- Map of the `singEmptyF` conjunct (var `0 ↦ v`) into the context `(v, w, pt)`. -/
+def usatS : Fin 1 → Fin 3 := fun _ => ⟨0, by omega⟩
+
+/-- The `unitSetAt`-of-a-numeral reader (variables `0 ↦ v`, `1 ↦ w`, `2 ↦ pt`):
+`(w = empty ∧ v = sing pt) ∨ (w ≠ empty ∧ v = sing empty)` — the two cases of
+`unitSetAt k = if k = 0 then unitSet else sing empty` at the numeral `w = vnat k`
+(`unitSet = sing pt`). -/
+def unitSetAtVnatF : Form 3 :=
+  .or (.and (Form.relabel usatE emptyF) (Form.relabel usatU unitSetF))
+    (.and (.not (Form.relabel usatE emptyF)) (Form.relabel usatS singEmptyF))
+
+theorem realize_unitSetAtVnatF {v w : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : W)) unitSetAtVnatF ↔
+      (w = (empty : W) ∧ v = sing (pt : W)) ∨ (¬ w = (empty : W) ∧ v = sing (empty : W)) := by
+  have hE : (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : W)) ∘ usatE =
+      Form.snoc Form.nil w := by
+    funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  have hU : (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : W)) ∘ usatU =
+      (Form.snoc (fun _ : Fin 1 => v) (pt : W) : Fin 2 → W) := by
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hS : (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : W)) ∘ usatS =
+      Form.snoc Form.nil v := by
+    funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  simp only [unitSetAtVnatF, Form.realize_or, Form.realize_and, Form.realize_not,
+    Form.realize_relabel, hE, hU, hS, realize_emptyF_eq, realize_unitSetF, realize_singEmptyF]
+
+theorem unitSetAtVnatF_apply {v w : W} (k : Nat)
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) (pt : W))
+      unitSetAtVnatF)
+    (hw : w = (vnat k : W)) : v = (unitSetAt k : W) := by
+  rcases realize_unitSetAtVnatF.mp hR with ⟨h0, hv⟩ | ⟨hne, hv⟩
+  · have hk0 : k = 0 :=
+      vnat_inj (V := W) (hw.symm.trans (h0.trans (show (empty : W) = vnat 0 from rfl)))
+    subst hk0
+    rw [unitSetAt_zero, unitSet_eq_sing]
+    exact hv
+  · have hk : k ≠ 0 := by
+      intro h
+      subst h
+      exact hne (hw.trans (show (vnat 0 : W) = empty from rfl))
+    obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hk
+    rw [unitSetAt_pos (Nat.succ_ne_zero n)]
+    exact hv
+
 end ConLeche.Semantics
