@@ -944,4 +944,9 @@ example {v : V} (h : v = univZero) : Form.Realize Mem
   (ConLeche.Semantics.realize_univZeroEqF).mpr h
 
 
+example {x : V} (h : x = ConLeche.Semantics.vnatListCode [1, 2]) : Form.Realize Mem
+    (Form.snoc (fun _ : Fin 1 => x) (pt : V)) (ConLeche.Semantics.vnatListEqF [1, 2]) :=
+  (ConLeche.Semantics.realize_vnatListEqF [1, 2]).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx

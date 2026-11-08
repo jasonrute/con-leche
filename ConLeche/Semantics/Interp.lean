@@ -2306,4 +2306,73 @@ theorem realize_univZeroEqF {v : W} :
     exact key z
 
 
+/-! ## Stage 56: the numeral-list-code reader `vnatListEqF` -/
+
+/-- Map of the `vnatEqF n` conjunct (vars `0 ↦ a`, `1 ↦ pt`) into the
+`vnatListEqF (n :: ns)` bound context `(x, pt, a)`. -/
+def vnatListA : Fin 2 → Fin 3 :=
+  fun k => match k.val with | 0 => ⟨2, by omega⟩ | 1 => ⟨1, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- Map of the `kpairEqF` conjunct (vars `0 ↦ z`, `1 ↦ x'`, `2 ↦ y'`) into the
+inner bound context `(x, pt, a, y)`. -/
+def vnatListK : Fin 3 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | 1 => ⟨2, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of the `vnatListEqF ns` conjunct (vars `0 ↦ y`, `1 ↦ pt`) into the
+inner bound context `(x, pt, a, y)`. -/
+def vnatListR : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨3, by omega⟩ | 1 => ⟨1, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- The numeral-list-code reader (variables `0 ↦ x`, `1 ↦ pt`): `x = vnatListCode ns`,
+by recursion on `ns` — `vnatListCode [] = mkTower [] = empty` via `emptyF`;
+`vnatListCode (n :: ns) = kpair (vnat n) (vnatListCode ns)` via
+`vnatEqF n` + `kpairEqF` + the induction hypothesis. -/
+def vnatListEqF : List Nat → Form 2
+  | [] => Form.relabel (fun _ : Fin 1 => ⟨0, by omega⟩) emptyF
+  | n :: ns => .ex (.and (Form.relabel vnatListA (vnatEqF n))
+      (.ex (.and (Form.relabel vnatListK kpairEqF) (Form.relabel vnatListR (vnatListEqF ns)))))
+
+theorem realize_vnatListEqF (ns : List Nat) {x : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => x) (pt : W)) (vnatListEqF ns) ↔
+      x = (vnatListCode ns : W) := by
+  induction ns generalizing x with
+  | nil =>
+    have hm : (Form.snoc (fun _ : Fin 1 => x) (pt : W)) ∘ (fun _ : Fin 1 => ⟨0, by omega⟩) =
+        Form.snoc Form.nil x := by
+      funext ⟨k, hk⟩
+      have hk0 : k = 0 := by omega
+      subst hk0; rfl
+    simp only [vnatListEqF, Form.realize_relabel, hm, realize_emptyF_eq]
+    exact Iff.rfl
+  | cons n ns ih =>
+    have hA : ∀ a : W,
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) ∘ vnatListA =
+          (Form.snoc (fun _ : Fin 1 => a) (pt : W) : Fin 2 → W) := by
+      intro a; funext ⟨k, hk⟩
+      have hk2 : k = 0 ∨ k = 1 := by omega
+      rcases hk2 with rfl | rfl <;> rfl
+    have hK : ∀ a y : W,
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) y) ∘ vnatListK =
+          Form.snoc (Form.snoc (fun _ : Fin 1 => x) a) y := by
+      intro a y; funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    have hR : ∀ a y : W,
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) y) ∘ vnatListR =
+          (Form.snoc (fun _ : Fin 1 => y) (pt : W) : Fin 2 → W) := by
+      intro a y; funext ⟨k, hk⟩
+      have hk2 : k = 0 ∨ k = 1 := by omega
+      rcases hk2 with rfl | rfl <;> rfl
+    simp only [vnatListEqF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+      hA, hK, hR, realize_vnatEqF, realize_kpairEqF, ih]
+    rw [show (vnatListCode (n :: ns) : W) = kpair (vnat n : W) (vnatListCode ns) from by
+      simp only [vnatListCode, List.map_cons, Tower.mkTower, spair]]
+    constructor
+    · rintro ⟨a, ha, y, hx, hy⟩
+      rw [ha] at hx; rw [hy] at hx
+      exact hx
+    · intro h
+      exact ⟨vnat n, rfl, vnatListCode ns, h, rfl⟩
+
+
 end ConLeche.Semantics
