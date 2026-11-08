@@ -2180,4 +2180,83 @@ theorem image_app2s_eq {g m A : V} :
   ext fun z => by rw [mem_image, mem_app2sImageF]
 
 
+
+/-! ## Stage 96: the `graphAppF` equality reader `graphAppEqF` -/
+
+/-- Map of the `appEqF` conjunct (vars `0 ↦ pt`, `1 ↦ v'`, `2 ↦ g`, `3 ↦ u`)
+into the bound context `(v, g, A, pt, z, x, y)`: `0 ↦ 3`, `1 ↦ 6`, `2 ↦ 1`,
+`3 ↦ 5`. -/
+def gaAppMap : Fin 4 → Fin 7 :=
+  fun k => match k.val with
+  | 0 => ⟨3, by omega⟩ | 1 => ⟨6, by omega⟩ | 2 => ⟨1, by omega⟩
+  | _ => ⟨5, by omega⟩
+
+/-- Map of the `kpairEqF` conjunct (vars `0 ↦ z'`, `1 ↦ x'`, `2 ↦ y'`) into the
+bound context `(v, g, A, pt, z, x, y)`: `0 ↦ 4`, `1 ↦ 5`, `2 ↦ 6`. -/
+def gaKpMap : Fin 3 → Fin 7 :=
+  fun k => match k.val with
+  | 0 => ⟨4, by omega⟩ | 1 => ⟨5, by omega⟩ | _ => ⟨6, by omega⟩
+
+/-- The `graphAppF` equality reader (variables `0 ↦ v`, `1 ↦ g`,
+`2 ↦ A`, `3 ↦ pt`): `v = graphAppF g A`, by extensionality +
+`mem_graphAppF`, with `y = app g x` read by `appEqF` and
+`z = kpair x y` by `kpairEqF`. -/
+def graphAppEqF : Form 4 :=
+  .all (.iff (.mem ⟨4, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨5, by omega⟩ ⟨2, by omega⟩)
+      (.ex (.and (Form.relabel gaAppMap appEqF) (Form.relabel gaKpMap kpairEqF))))))
+
+theorem realize_graphAppEqF {v g A : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) g) A) (pt : V))
+        graphAppEqF ↔
+      v = graphAppF g A := by
+  have hApp : ∀ z x y : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) g) A) (pt : V)) z) x) y)
+          (Form.relabel gaAppMap appEqF) ↔ y = app g x := by
+    intro z x y
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) g) A) (pt : V)) z) x) y : Fin 7 → V) ∘ gaAppMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) y) g) x := by
+      funext ⟨k, hk⟩
+      have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+      rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_appEqF
+  have hKp : ∀ z x y : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) g) A) (pt : V)) z) x) y)
+          (Form.relabel gaKpMap kpairEqF) ↔ z = kpair x y := by
+    intro z x y
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) g) A) (pt : V)) z) x) y : Fin 7 → V) ∘ gaKpMap =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => z) x) y := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_kpairEqF
+  have key : ∀ z : V, z ∈ˢ graphAppF g A ↔
+      ∃ x : V, x ∈ˢ A ∧ ∃ y : V, y = app g x ∧ z = kpair x y := by
+    intro z
+    rw [mem_graphAppF]
+    constructor
+    · rintro ⟨x, hx, hz⟩
+      exact ⟨x, hx, app g x, rfl, hz⟩
+    · rintro ⟨x, hx, y, hy, hz⟩
+      exact ⟨x, hx, hz.trans (congrArg (kpair x) hy)⟩
+  simp only [graphAppEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hApp, hKp, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (key z).symm
+  · intro h z
+    rw [h]
+    exact key z
+
+
 end ConLeche.SetTheory

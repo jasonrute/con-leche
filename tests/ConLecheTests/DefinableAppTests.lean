@@ -1369,4 +1369,13 @@ example {g m A z : V} (h : z ∈ˢ app2sImageF g m A) :
   mem_app2sImageF.mp h
 
 
+
+/-! ## Stage 96 example: the `graphAppF` equality reader -/
+
+example {v g A : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) g) A) (pt : V))
+    graphAppEqF) : v = graphAppF g A :=
+  realize_graphAppEqF.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx
