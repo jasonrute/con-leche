@@ -1437,4 +1437,12 @@ example {v g m A : V} (h : Form.Realize Mem
     app2sImageEqF) : v = app2sImageF g m A :=
   realize_app2sImageEqF.mp h
 
+
+/-! ## Stage 104 example: the `piSetAppNF` equality reader -/
+
+example {v S A : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) S) A) (pt : V))
+    piSetAppNFEqF) : v = piSetAppNF S A :=
+  realize_piSetAppNFEqF.mp h
+
 end ConLeche.SetTheory.DefinableAppEx

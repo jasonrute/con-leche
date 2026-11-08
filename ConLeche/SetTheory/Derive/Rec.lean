@@ -2618,4 +2618,150 @@ theorem realize_app2sImageEqF {v g m A : V} :
     exact mem_app2sImageF
 
 
+
+/-! ## Stage 104: the `piSetAppNF` equality reader `piSetAppNFEqF` -/
+
+/-- Map of the `appMemF` conjunct (vars `0 ↦ w`, `1 ↦ g`, `2 ↦ u`,
+`3 ↦ pt`) into the bound context `(v, S, A, pt, z, w, x, y)`:
+`0 ↦ 7`, `1 ↦ 1`, `2 ↦ 6`, `3 ↦ 3` (reads `y ∈ˢ app S x`). -/
+def psAmMap : Fin 4 → Fin 8 :=
+  fun k => match k.val with
+  | 0 => ⟨7, by omega⟩ | 1 => ⟨1, by omega⟩ | 2 => ⟨6, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- Map of the `kpairEqF` conjunct (vars `0 ↦ z'`, `1 ↦ x'`, `2 ↦ y'`)
+into the bound context `(v, S, A, pt, z, w, x, y)`: `0 ↦ 5`, `1 ↦ 6`,
+`2 ↦ 7` (reads `w = kpair x y`). -/
+def psKp1Map : Fin 3 → Fin 8 :=
+  fun k => match k.val with
+  | 0 => ⟨5, by omega⟩ | 1 => ⟨6, by omega⟩ | _ => ⟨7, by omega⟩
+
+/-- Map of the `kpairEqF` conjunct into the bound context `(v, S, A, pt, z, x, y, p)`:
+`0 ↦ 7`, `1 ↦ 5`, `2 ↦ 6` (reads `p = kpair x y`). -/
+def psKp2Map : Fin 3 → Fin 8 :=
+  fun k => match k.val with
+  | 0 => ⟨7, by omega⟩ | 1 => ⟨5, by omega⟩ | _ => ⟨6, by omega⟩
+
+/-- Map of the `kpairEqF` conjunct into the bound context
+`(v, S, A, pt, z, x, y, y', p')`: `0 ↦ 8`, `1 ↦ 5`, `2 ↦ 7`
+(reads `p' = kpair x y'`). -/
+def psKp3Map : Fin 3 → Fin 9 :=
+  fun k => match k.val with
+  | 0 => ⟨8, by omega⟩ | 1 => ⟨5, by omega⟩ | _ => ⟨7, by omega⟩
+
+/-- The `piSetAppNF` equality reader (variables `0 ↦ v`, `1 ↦ S`,
+`2 ↦ A`, `3 ↦ pt`): `v = piSetAppNF S A`, by extensionality +
+`mem_piSetAppNF` + `mem_sigmaPairsAppF`, with `y ∈ˢ app S x` read by
+`appMemF` and the `kpair` equalities by `kpairEqF`. -/
+def piSetAppNFEqF : Form 4 :=
+  .all (.iff (.mem ⟨4, by omega⟩ ⟨0, by omega⟩)
+    (.and
+      (.all (.imp (.mem ⟨5, by omega⟩ ⟨4, by omega⟩)
+        (.ex (.and (.mem ⟨6, by omega⟩ ⟨2, by omega⟩)
+          (.ex (.and (Form.relabel psAmMap appMemF) (Form.relabel psKp1Map kpairEqF)))))))
+      (.all (.imp (.mem ⟨5, by omega⟩ ⟨2, by omega⟩)
+        (.ex (.and
+          (.ex (.and (Form.relabel psKp2Map kpairEqF) (.mem ⟨7, by omega⟩ ⟨4, by omega⟩)))
+          (.all (.imp
+            (.ex (.and (Form.relabel psKp3Map kpairEqF) (.mem ⟨8, by omega⟩ ⟨4, by omega⟩)))
+            (.equal ⟨7, by omega⟩ ⟨6, by omega⟩)))))))))
+
+theorem realize_piSetAppNFEqF {v S A : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) S) A) (pt : V))
+        piSetAppNFEqF ↔
+      v = piSetAppNF S A := by
+  have hAm : ∀ z w x y : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) S) A) (pt : V)) z) w) x) y)
+          (Form.relabel psAmMap appMemF) ↔ y ∈ˢ app S x := by
+    intro z w x y
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) S) A) (pt : V)) z) w) x) y : Fin 8 → V) ∘ psAmMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => y) S) x) (pt : V) := by
+      funext ⟨k, hk⟩
+      have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+      rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_appMemF
+  have hKp1 : ∀ z w x y : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) S) A) (pt : V)) z) w) x) y)
+          (Form.relabel psKp1Map kpairEqF) ↔ w = kpair x y := by
+    intro z w x y
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) S) A) (pt : V)) z) w) x) y : Fin 8 → V) ∘ psKp1Map =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => w) x) y := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_kpairEqF
+  have hKp2 : ∀ z x y p : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) S) A) (pt : V)) z) x) y) p)
+          (Form.relabel psKp2Map kpairEqF) ↔ p = kpair x y := by
+    intro z x y p
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) S) A) (pt : V)) z) x) y) p : Fin 8 → V) ∘ psKp2Map =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => p) x) y := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_kpairEqF
+  have hKp3 : ∀ z x y y' p' : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) S) A) (pt : V)) z) x) y) y') p')
+          (Form.relabel psKp3Map kpairEqF) ↔ p' = kpair x y' := by
+    intro z x y y' p'
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) S) A) (pt : V)) z) x) y) y') p' : Fin 9 → V) ∘ psKp3Map =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => p') x) y' := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_kpairEqF
+  have key : ∀ z : V, z ∈ˢ piSetAppNF S A ↔
+      (∀ w, w ∈ˢ z → ∃ x, x ∈ˢ A ∧ ∃ y, y ∈ˢ app S x ∧ w = kpair x y) ∧
+      (∀ x, x ∈ˢ A → ∃ y, (∃ p, p = kpair x y ∧ p ∈ˢ z) ∧
+        ∀ y', (∃ p', p' = kpair x y' ∧ p' ∈ˢ z) → y' = y) := by
+    intro z
+    rw [mem_piSetAppNF]
+    constructor
+    · rintro ⟨hsub, hfun⟩
+      constructor
+      · intro w hw
+        exact mem_sigmaPairsAppF.mp (hsub w hw)
+      · intro x hx
+        obtain ⟨y, hky, huniq⟩ := hfun x hx
+        exact ⟨y, ⟨kpair x y, rfl, hky⟩,
+          fun y' h => huniq y' (by obtain ⟨p', hp', hz'⟩ := h; rw [← hp']; exact hz')⟩
+    · rintro ⟨hsub, hfun⟩
+      constructor
+      · intro w hw
+        exact mem_sigmaPairsAppF.mpr (hsub w hw)
+      · intro x hx
+        obtain ⟨y, ⟨p, hp, hz⟩, huniq⟩ := hfun x hx
+        exact ⟨y, by rw [← hp]; exact hz,
+          fun y' hy' => huniq y' ⟨kpair x y', rfl, hy'⟩⟩
+  simp only [piSetAppNFEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, Form.realize_imp, Form.realize_equal,
+    hAm, hKp1, hKp2, hKp3, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (key z).symm
+  · intro h z
+    rw [h]
+    exact key z
+
+
 end ConLeche.SetTheory
