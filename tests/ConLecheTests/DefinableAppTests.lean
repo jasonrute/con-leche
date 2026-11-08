@@ -1051,4 +1051,23 @@ example {x v : V} (us : List Nat) (hx : x = ConLeche.Semantics.vnatListCode us)
       (w := ConLeche.SetTheory.vnat (us.getD 0 0))).mpr hQ) rfl
 
 
+
+example {cc uc : V}
+    (hcc : cc = (ConLeche.Semantics.bconstCode Term.BConst.natZero : V)) :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (empty : V)) cc) uc) (pt : V))
+      ConLeche.Semantics.constValueEasyF :=
+  ConLeche.Semantics.realize_constValueEasyF.mpr (Or.inl ⟨hcc, rfl⟩)
+
+
+example {v cc uc : V}
+    (hR : Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : V))
+      ConLeche.Semantics.constValueEasyF)
+    (hcc : cc = (ConLeche.Semantics.bconstCode Term.BConst.punit : V))
+    (huc : uc = ConLeche.Semantics.vnatListCode [0]) :
+    v = ConLeche.SetModel.bval V Term.BConst.punit [0] :=
+  ConLeche.Semantics.constValueEasyF_apply hR hcc huc
+
+
 end ConLeche.SetTheory.DefinableAppEx

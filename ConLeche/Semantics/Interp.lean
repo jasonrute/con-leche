@@ -3471,4 +3471,120 @@ theorem realize_vnatListNthQF (j : Nat) {qf : Form 3} {Q : W → W → Prop}
       · intro h
         exact Or.inr ⟨vnat u, vnatListCode us, rfl, (ih us).mpr h⟩
 
+/-! ## Stage 71: the easy `bval` value reader `constValueEasyF` -/
+
+/-- Map of the `bconstCodeEqF c` conjunct (vars `0 ↦ cc`, `1 ↦ pt`) into the
+context `(v, cc, uc, pt)`. -/
+def cveC : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨1, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of the `emptyF` conjunct (var `0 ↦ v`) into the context `(v, cc, uc, pt)`. -/
+def cveE : Fin 1 → Fin 4 := fun _ => ⟨0, by omega⟩
+
+/-- Map of the `ptEqF` conjunct (vars `0 ↦ v`, `1 ↦ pt`) into the context `(v, cc, uc, pt)`. -/
+def cveP : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of the `vnatListNthQF 0 qf` conjunct (vars `0 ↦ uc`, `1 ↦ v`, `2 ↦ pt`) into the
+context `(v, cc, uc, pt)`. -/
+def cveN : Fin 3 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨2, by omega⟩ | 1 => ⟨0, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The easy `bval` value reader (variables `0 ↦ v`, `1 ↦ cc`, `2 ↦ uc`, `3 ↦ pt`):
+the disjunction over the seven `univChain`-free constant cases —
+`natZero`/`empty` (`v = empty`), `quotInd`/`quotSound`/`propext` (`v = pt`),
+`punit` (`v = unitSetAt (lv us 0)` via `vnatListNthQF 0 unitSetAtVnatF` on `uc`),
+`punitUnit` (via `unitAtVnatF`) — each guarded by `cc = bconstCode c`. -/
+def constValueEasyF : Form 4 :=
+  .or (.and (Form.relabel cveC (bconstCodeEqF .natZero)) (Form.relabel cveE emptyF))
+  (.or (.and (Form.relabel cveC (bconstCodeEqF .empty)) (Form.relabel cveE emptyF))
+  (.or (.and (Form.relabel cveC (bconstCodeEqF .quotInd)) (Form.relabel cveP ptEqF))
+  (.or (.and (Form.relabel cveC (bconstCodeEqF .quotSound)) (Form.relabel cveP ptEqF))
+  (.or (.and (Form.relabel cveC (bconstCodeEqF .propext)) (Form.relabel cveP ptEqF))
+  (.or (.and (Form.relabel cveC (bconstCodeEqF .punit))
+        (Form.relabel cveN (vnatListNthQF 0 unitSetAtVnatF)))
+        (.and (Form.relabel cveC (bconstCodeEqF .punitUnit))
+          (Form.relabel cveN (vnatListNthQF 0 unitAtVnatF))))))))
+
+theorem realize_constValueEasyF {v cc uc : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W))
+        constValueEasyF ↔
+      (cc = (bconstCode .natZero : W) ∧ v = (empty : W)) ∨
+      (cc = (bconstCode .empty : W) ∧ v = (empty : W)) ∨
+      (cc = (bconstCode .quotInd : W) ∧ v = (pt : W)) ∨
+      (cc = (bconstCode .quotSound : W) ∧ v = (pt : W)) ∨
+      (cc = (bconstCode .propext : W) ∧ v = (pt : W)) ∨
+      (cc = (bconstCode .punit : W) ∧
+        Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => uc) v) (pt : W))
+          (vnatListNthQF 0 unitSetAtVnatF)) ∨
+      (cc = (bconstCode .punitUnit : W) ∧
+        Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => uc) v) (pt : W))
+          (vnatListNthQF 0 unitAtVnatF)) := by
+  have hC : ∀ v cc uc : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W)) ∘ cveC =
+        (Form.snoc (fun _ : Fin 1 => cc) (pt : W) : Fin 2 → W) := by
+    intro v cc uc; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hE : ∀ v cc uc : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W)) ∘ cveE =
+        Form.snoc Form.nil v := by
+    intro v cc uc; funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  have hP : ∀ v cc uc : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W)) ∘ cveP =
+        (Form.snoc (fun _ : Fin 1 => v) (pt : W) : Fin 2 → W) := by
+    intro v cc uc; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hN : ∀ v cc uc : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W)) ∘ cveN =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => uc) v) (pt : W) := by
+    intro v cc uc; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [constValueEasyF, Form.realize_or, Form.realize_and, Form.realize_relabel,
+    hC, hE, hP, hN, realize_bconstCodeEqF, realize_emptyF_eq, realize_ptEqF]
+
+theorem constValueEasyF_apply {v cc uc : W} {c : Term.BConst} {us : List Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W))
+      constValueEasyF)
+    (hcc : cc = (bconstCode c : W)) (huc : uc = (vnatListCode us : W)) :
+    v = bval W c us := by
+  rcases realize_constValueEasyF.mp hR with
+    ⟨h, hv⟩ | ⟨h, hv⟩ | ⟨h, hv⟩ | ⟨h, hv⟩ | ⟨h, hv⟩ | ⟨h, hN⟩ | ⟨h, hN⟩
+  · have hc : c = .natZero := bconstCode_inj (hcc.symm.trans h)
+    subst hc
+    have hb : bval W .natZero us = (empty : W) := by simp only [bval]; unfold natzero; rfl
+    rw [hb]; exact hv
+  · have hc : c = .empty := bconstCode_inj (hcc.symm.trans h)
+    subst hc
+    exact hv
+  · have hc : c = .quotInd := bconstCode_inj (hcc.symm.trans h)
+    subst hc
+    exact hv
+  · have hc : c = .quotSound := bconstCode_inj (hcc.symm.trans h)
+    subst hc
+    exact hv
+  · have hc : c = .propext := bconstCode_inj (hcc.symm.trans h)
+    subst hc
+    exact hv
+  · have hc : c = .punit := bconstCode_inj (hcc.symm.trans h)
+    subst hc
+    have hQ := (realize_vnatListNthQF 0 (qf := unitSetAtVnatF)
+      (Q := fun v w => (w = (empty : W) ∧ v = sing (pt : W)) ∨
+        (¬ w = (empty : W) ∧ v = sing (empty : W)))
+      (fun v w => realize_unitSetAtVnatF) us huc).mp hN
+    exact unitSetAtVnatF_apply _
+      ((realize_unitSetAtVnatF (v := v) (w := vnat (us.getD 0 0))).mpr hQ) rfl
+  · have hc : c = .punitUnit := bconstCode_inj (hcc.symm.trans h)
+    subst hc
+    have hQ := (realize_vnatListNthQF 0 (qf := unitAtVnatF)
+      (Q := fun v w => (w = (empty : W) ∧ v = (pt : W)) ∨
+        (¬ w = (empty : W) ∧ v = (empty : W)))
+      (fun v w => realize_unitAtVnatF) us huc).mp hN
+    exact unitAtVnatF_apply _
+      ((realize_unitAtVnatF (v := v) (w := vnat (us.getD 0 0))).mpr hQ) rfl
+
 end ConLeche.Semantics
