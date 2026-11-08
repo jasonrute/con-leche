@@ -542,7 +542,7 @@ example (hw : w ≠ 0) : piSetAppNF (twoS V) unitSet ∈ˢ (tg w : V) :=
 example (hw : w ≠ 0) : appImageF (twoS V) unitSet ∈ˢ (tg w : V) :=
   (tg_isUniverse hw).appImageF_val_mem (unitSet_mem_tg w) (twoS_val_tg hw)
 
-example (hw : w ≠ 0) : sUnion (image (app (twoS V)) (unitSet : V)) ∈ˢ (tg w : V) :=
+example (hw : w ≠ 0) : sUnion (appImageF (twoS V) (unitSet : V)) ∈ˢ (tg w : V) :=
   (tg_isUniverse hw).sUnion_appImageF_val_mem (unitSet_mem_tg w) (twoS_val_tg hw)
 
 example (hw : w ≠ 0) : graphAppF (twoS V) unitSet ∈ˢ (tg w : V) :=
@@ -1282,6 +1282,12 @@ example {x v F a m : V} :
       app3EqRepF ↔
       v = app (app (app F a) m) x :=
   realize_app3EqRepF
+
+
+example {U g A : V} (hU : ConLeche.IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → app g x ∈ˢ U) :
+    sUnion (appImageF g A) ∈ˢ U :=
+  hU.sUnion_appImageF_val_mem hA hval
 
 
 end ConLeche.SetTheory.DefinableAppEx

@@ -340,12 +340,12 @@ theorem _root_.ConLeche.IsUniverse.appImageF_val_mem {U g A : V}
 
 /-- Definable union-of-app-image closure (clause 6) at the value level:
 the first-order twin of `famUnion_mem` at `F = app g` with member
-values `app g x`. -/
+values `app g x` — stated at the definable `appImageF` twin
+(stage 86: no meta `image`). -/
 theorem _root_.ConLeche.IsUniverse.sUnion_appImageF_val_mem {U g A : V}
     (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
-    (hval : ∀ x, x ∈ˢ A → app g x ∈ˢ U) : sUnion (image (app g) A) ∈ˢ U := by
-  rw [image_app_eq]
-  exact hU.sUnion_mem (hU.appImageF_val_mem hA hval)
+    (hval : ∀ x, x ∈ˢ A → app g x ∈ˢ U) : sUnion (appImageF g A) ∈ˢ U :=
+  hU.sUnion_mem (hU.appImageF_val_mem hA hval)
 
 /-- The definable function space with fibres `app S j` over `A`: the
 first-order twin of `piSet A (fun j => app S j)`, available when `S`
