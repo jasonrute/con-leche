@@ -2279,4 +2279,31 @@ theorem realize_powerEqF {v a : W} :
     exact mem_power
 
 
+/-! ## Stage 55: the truth-value-universe reader `univZeroEqF` -/
+
+/-- The `univZero` reader (variables `0 ↦ v`, `1 ↦ pt`): `v = univZero`,
+via extensionality — `univZero = power unitSet`, so
+`∀ z, z ∈ˢ v ↔ (∀ w, w ∈ˢ z → w = pt)`. -/
+def univZeroEqF : Form 2 :=
+  .all (.iff (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+    (.all (.imp (.mem ⟨3, by omega⟩ ⟨2, by omega⟩) (.equal ⟨3, by omega⟩ ⟨1, by omega⟩))))
+
+theorem realize_univZeroEqF {v : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : W)) univZeroEqF ↔
+      v = (univZero : W) := by
+  have key : ∀ z : W, z ∈ˢ (univZero : W) ↔ ∀ w, w ∈ˢ z → w = (pt : W) := by
+    intro z
+    rw [mem_univZero]
+    exact ⟨fun hz w hw => mem_unitSet_iff.mp (hz w hw),
+      fun hz w hw => mem_unitSet_iff.mpr (hz w hw)⟩
+  simp only [univZeroEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_imp, Form.realize_equal, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (key z).symm
+  · intro h z
+    rw [h]
+    exact key z
+
+
 end ConLeche.Semantics

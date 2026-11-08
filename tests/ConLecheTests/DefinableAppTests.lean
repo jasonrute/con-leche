@@ -939,4 +939,9 @@ example {v a : V} (h : v = power a) : Form.Realize Mem
   (ConLeche.Semantics.realize_powerEqF).mpr h
 
 
+example {v : V} (h : v = univZero) : Form.Realize Mem
+    (Form.snoc (fun _ : Fin 1 => v) (pt : V)) ConLeche.Semantics.univZeroEqF :=
+  (ConLeche.Semantics.realize_univZeroEqF).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx
