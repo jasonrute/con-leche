@@ -993,4 +993,10 @@ example {v X i : V} (h : i = ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 
     (Or.inl ⟨⟨_, by rw [h]; rfl⟩, hv⟩)
 
 
+example {v a b : V} (h : v = upair a b) : Form.Realize Mem
+    (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) b)
+    ConLeche.Semantics.upairEqF :=
+  (ConLeche.Semantics.realize_upairEqF).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx

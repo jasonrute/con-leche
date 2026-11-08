@@ -2858,4 +2858,26 @@ theorem realize_interpStepF {v X i : W} :
     realize_sndStepF, realize_prfStepF]
 
 
+/-! ## Stage 63: the unordered-pair reader `upairEqF` -/
+
+/-- The unordered-pair reader (variables `0 ↦ v`, `1 ↦ a`, `2 ↦ b`):
+`v = upair a b`, via extensionality + `mem_upair` —
+`∀ z, z ∈ v ↔ (z = a ∨ z = b)`. -/
+def upairEqF : Form 3 :=
+  .all (.iff (.mem ⟨3, by omega⟩ ⟨0, by omega⟩)
+    (.or (.equal ⟨3, by omega⟩ ⟨1, by omega⟩) (.equal ⟨3, by omega⟩ ⟨2, by omega⟩)))
+
+theorem realize_upairEqF {v a b : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) b) upairEqF ↔
+      v = upair a b := by
+  simp only [upairEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_or, Form.realize_equal, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans mem_upair.symm
+  · intro h z
+    rw [h]
+    exact mem_upair
+
+
 end ConLeche.Semantics
