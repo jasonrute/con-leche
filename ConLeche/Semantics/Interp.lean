@@ -3921,7 +3921,7 @@ theorem interpStepF2_apply_sortZero {v X i : W}
 def omegaIMap : Fin 1 → Fin 4 := fun _ => ⟨3, by omega⟩
 
 /-- The `omega` equality reader (variables `0 ↦ v`, `1 ↦ pt`): `v = omega`,
-by extensionality and `mem_omega` (`z ∈ᵉ omega ↔ ∀ I, Inductive I → z ∈ᵉ I`,
+by extensionality and `mem_omega` (`z ∈ˢ omega ↔ ∀ I, Inductive I → z ∈ˢ I`,
 itself the definable `omegaF`) — no `univChain` involved. -/
 def omegaEqF : Form 2 :=
   .all (.iff (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
@@ -3952,5 +3952,102 @@ theorem realize_omegaEqF {v : W} :
   · intro h z
     rw [h]
     exact mem_omega
+
+
+
+/-! ## Stage 79: the `natSuccV` equality reader `natSuccEqF` -/
+
+/-- Map of the `omegaF` conjunct (var `0 ↦ x`) into the bound context
+`(v, pt, p, x, y)`: `0 ↦ 3`. -/
+def nsOmMap : Fin 1 → Fin 5 := fun _ => ⟨3, by omega⟩
+
+/-- Map of the `vsuccEqF` conjunct (vars `0 ↦ e`, `1 ↦ m`) into the bound
+context `(v, pt, p, x, y)`: `0 ↦ 4`, `1 ↦ 3`. -/
+def nsVsMap : Fin 2 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of the `kpairEqF` conjunct (vars `0 ↦ z`, `1 ↦ x`, `2 ↦ y`) into the
+bound context `(v, pt, p, x, y)`: `0 ↦ 2`, `1 ↦ 3`, `2 ↦ 4`. -/
+def nsKpMap : Fin 3 → Fin 5 :=
+  fun k => match k.val with
+  | 0 => ⟨2, by omega⟩
+  | 1 => ⟨3, by omega⟩
+  | _ => ⟨4, by omega⟩
+
+/-- The `natSuccV` equality reader (variables `0 ↦ v`, `1 ↦ pt`):
+`v = natSuccV` — i.e. `v = graph vsucc omega` (via
+`natSuccV_eq_lamR` + `lamR_pos`), by extensionality + `mem_graph`,
+with `x ∈ˢ omega` read by `omegaF`, `y = vsucc x` by `vsuccEqF` and
+`p = kpair x y` by `kpairEqF`. -/
+def natSuccEqF : Form 2 :=
+  .all (.iff (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.ex (.and (Form.relabel nsOmMap omegaF)
+      (.and (Form.relabel nsVsMap vsuccEqF) (Form.relabel nsKpMap kpairEqF))))))
+
+theorem realize_natSuccEqF {v : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : W)) natSuccEqF ↔
+      v = natSuccV W := by
+  have hOm : ∀ p x y : W,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) p) x) y)
+          (Form.relabel nsOmMap omegaF) ↔ ∀ I : W, Inductive I → x ∈ˢ I := by
+    intro p x y
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) p) x) y)
+        ∘ nsOmMap = Form.snoc Form.nil x := by
+      funext ⟨k, hk⟩
+      have hk0 : k = 0 := by omega
+      subst hk0; rfl
+    rw [hcomp]
+    exact realize_omegaF
+  have hVs : ∀ p x y : W,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) p) x) y)
+          (Form.relabel nsVsMap vsuccEqF) ↔ y = vsucc x := by
+    intro p x y
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) p) x) y)
+        ∘ nsVsMap = Form.snoc (fun _ : Fin 1 => y) x := by
+      funext ⟨k, hk⟩
+      have hk2 : k = 0 ∨ k = 1 := by omega
+      rcases hk2 with rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_vsuccEqF
+  have hKp : ∀ p x y : W,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) p) x) y)
+          (Form.relabel nsKpMap kpairEqF) ↔ p = kpair x y := by
+    intro p x y
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) p) x) y)
+        ∘ nsKpMap = Form.snoc (Form.snoc (fun _ : Fin 1 => p) x) y := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_kpairEqF
+  have hg : natSuccV W = graph vsucc (omega : W) := by
+    rw [natSuccV_eq_lamR, lamR_pos Nat.one_ne_zero]
+    unfold natsucc
+    rfl
+  simp only [natSuccEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hOm, hVs, hKp, Form.snoc_mk]
+  have key : ∀ p : W, p ∈ˢ graph vsucc (omega : W) ↔
+      ∃ x y : W, (∀ I : W, Inductive I → x ∈ˢ I) ∧ y = vsucc x ∧ p = kpair x y := by
+    intro p
+    rw [mem_graph]
+    constructor
+    · rintro ⟨x, hx, hp⟩
+      exact ⟨x, vsucc x, (mem_omega (n := x)).mp hx, rfl, hp⟩
+    · rintro ⟨x, y, hx, hy, hp⟩
+      exact ⟨x, (mem_omega (n := x)).mpr hx, hp.trans (congrArg (kpair x) hy)⟩
+  constructor
+  · intro h
+    have hvg : v = graph vsucc (omega : W) :=
+      SetTheory.ext fun p => (h p).trans (key p).symm
+    rw [hvg, hg]
+  · intro h p
+    rw [h, hg]
+    exact key p
 
 end ConLeche.Semantics

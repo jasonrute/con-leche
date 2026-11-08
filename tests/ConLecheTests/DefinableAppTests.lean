@@ -1184,4 +1184,11 @@ example {v : V} :
   ConLeche.Semantics.realize_omegaEqF
 
 
+example {v : V} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : V))
+      ConLeche.Semantics.natSuccEqF ↔
+      v = ConLeche.SetModel.natSuccV V :=
+  ConLeche.Semantics.realize_natSuccEqF
+
+
 end ConLeche.SetTheory.DefinableAppEx
