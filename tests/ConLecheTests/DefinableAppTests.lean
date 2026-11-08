@@ -955,4 +955,11 @@ example {x : V} (h : x = ConLeche.Semantics.bconstCode ConLeche.Term.BConst.prop
   (ConLeche.Semantics.realize_bconstCodeEqF ConLeche.Term.BConst.propext).mpr h
 
 
+example {i : V} (h : i = ConLeche.Semantics.tmCode (ConLeche.Term.Term.const
+    ConLeche.Term.BConst.propext [])) : Form.Realize Mem
+    (Form.snoc (fun _ : Fin 1 => i) (pt : V))
+    (ConLeche.Semantics.constCodeF ConLeche.Term.BConst.propext []) :=
+  (ConLeche.Semantics.realize_constCodeF ConLeche.Term.BConst.propext []).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx

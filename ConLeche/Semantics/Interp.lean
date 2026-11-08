@@ -2498,4 +2498,83 @@ theorem realize_bconstCodeEqF (c : Term.BConst) {x : W} :
     | exact realize_vnatKpairVnatF _ _
 
 
+/-! ## Stage 58: the `const` tmCode reader `constCodeF` -/
+
+/-- The payload reader (variables `0 ↦ y`, `1 ↦ pt`):
+`y = kpair (bconstCode c) (vnatListCode us)`, via `bconstCodeEqF c`,
+`kpairEqF` and `vnatListEqF us`. -/
+def constPayloadF (c : Term.BConst) (us : List Nat) : Form 2 :=
+  .ex (.and (Form.relabel bcPairA (bconstCodeEqF c))
+    (.ex (.and (Form.relabel bcPairK kpairEqF) (Form.relabel bcPairV (vnatListEqF us)))))
+
+theorem realize_constPayloadF (c : Term.BConst) (us : List Nat) {y : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => y) (pt : W)) (constPayloadF c us) ↔
+      y = kpair (bconstCode c : W) (vnatListCode us : W) := by
+  have hA : ∀ a : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => y) (pt : W)) a) ∘ bcPairA =
+        (Form.snoc (fun _ : Fin 1 => a) (pt : W) : Fin 2 → W) := by
+    intro a; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hK : ∀ a b : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => y) (pt : W)) a) b) ∘ bcPairK =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => y) a) b := by
+    intro a b; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV : ∀ a b : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => y) (pt : W)) a) b) ∘ bcPairV =
+        (Form.snoc (fun _ : Fin 1 => b) (pt : W) : Fin 2 → W) := by
+    intro a b; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [constPayloadF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hA, hK, hV, realize_bconstCodeEqF, realize_kpairEqF, realize_vnatListEqF]
+  constructor
+  · rintro ⟨a, ha, b, hy', hb⟩
+    rw [ha] at hy'; rw [hb] at hy'
+    exact hy'
+  · intro h
+    exact ⟨bconstCode c, rfl, vnatListCode us, h, rfl⟩
+
+/-- The `const` tmCode reader (variables `0 ↦ i`, `1 ↦ pt`):
+`i = tmCode (.const c us)`, i.e.
+`i = kpair (vnat 2) (kpair (bconstCode c) (vnatListCode us))`. -/
+def constCodeF (c : Term.BConst) (us : List Nat) : Form 2 :=
+  .ex (.and (Form.relabel bcPairA (vnatEqF 2))
+    (.ex (.and (Form.relabel bcPairK kpairEqF) (Form.relabel bcPairV (constPayloadF c us)))))
+
+theorem realize_constCodeF (c : Term.BConst) (us : List Nat) {i : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => i) (pt : W)) (constCodeF c us) ↔
+      i = (tmCode (Term.Term.const c us) : W) := by
+  have hA : ∀ a : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => i) (pt : W)) a) ∘ bcPairA =
+        (Form.snoc (fun _ : Fin 1 => a) (pt : W) : Fin 2 → W) := by
+    intro a; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hK : ∀ a b : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => i) (pt : W)) a) b) ∘ bcPairK =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => i) a) b := by
+    intro a b; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV : ∀ a b : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => i) (pt : W)) a) b) ∘ bcPairV =
+        (Form.snoc (fun _ : Fin 1 => b) (pt : W) : Fin 2 → W) := by
+    intro a b; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [constCodeF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hA, hK, hV, realize_vnatEqF, realize_kpairEqF, realize_constPayloadF]
+  rw [show (tmCode (Term.Term.const c us) : W) =
+      kpair (vnat 2 : W) (kpair (bconstCode c : W) (vnatListCode us : W)) from rfl]
+  constructor
+  · rintro ⟨a, ha, b, hi, hb⟩
+    rw [ha] at hi; rw [hb] at hi
+    exact hi
+  · intro h
+    exact ⟨vnat 2, rfl, kpair (bconstCode c : W) (vnatListCode us : W), h, rfl⟩
+
+
 end ConLeche.Semantics
