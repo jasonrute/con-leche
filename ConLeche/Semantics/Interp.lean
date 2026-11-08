@@ -2803,4 +2803,59 @@ theorem realize_tagDispatchF {v X i : W} :
     · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨y, h⟩)))))))))
 
 
+/-! ## Stage 62: the combined definable interp step `interpStepF` -/
+
+/-- The combined definable interp step (variables `0 ↦ v`, `1 ↦ X`, `2 ↦ i`,
+`3 ↦ pt`): the disjunction over the nine covered constructor tags
+(`bvar 0`, `app 3`, `lam 4`, `pi 5`, `letE 6`, `eqE 7`, `fst 8`, `snd 9`,
+`prf 10`), each guarded by its `tagDisjF t` and paired with the case's
+step reader.  The `sort 1` and `const 2` cases are not yet covered
+(`sort` needs a `univ` reader — the `univChain` primitive; `const` needs
+a `bval` reader). -/
+def interpStepF : Form 4 :=
+  .or (.and (tagDisjF 0) bvarStepF)
+  (.or (.and (tagDisjF 3) appStepF)
+  (.or (.and (tagDisjF 4) lamStepF)
+  (.or (.and (tagDisjF 5) piStepF)
+  (.or (.and (tagDisjF 6) letEStepF)
+  (.or (.and (tagDisjF 7) eqEStepF)
+  (.or (.and (tagDisjF 8) fstStepF)
+  (.or (.and (tagDisjF 9) sndStepF)
+        (.and (tagDisjF 10) prfStepF))))))))
+
+theorem realize_interpStepF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+        interpStepF ↔
+      ((∃ y, i = kpair (vnat 0 : W) y) ∧ v = app X (ssnd i)) ∨
+      ((∃ y, i = kpair (vnat 3 : W) y) ∧
+        v = app (app X (kpair (sfst (ssnd (sfst i))) (ssnd i)))
+          (app X (kpair (ssnd (ssnd (sfst i))) (ssnd i)))) ∨
+      ((∃ y, i = kpair (vnat 4 : W) y) ∧
+        v = lamV (app X (kpair (sfst (ssnd (sfst i))) (ssnd i)))
+          (fun x => app X (kpair (ssnd (ssnd (sfst i))) (consGraph x (ssnd i))))) ∨
+      ((∃ y, i = kpair (vnat 5 : W) y) ∧
+        v = piV (app X (kpair (sfst (ssnd (sfst i))) (ssnd i)))
+          (fun x => app X (kpair (ssnd (ssnd (sfst i))) (consGraph x (ssnd i))))) ∨
+      ((∃ y, i = kpair (vnat 6 : W) y) ∧
+        v = app X (kpair (ssnd (ssnd (sfst i)))
+          (consGraph (app X (kpair (sfst (ssnd (sfst i))) (ssnd i))) (ssnd i)))) ∨
+      ((∃ y, i = kpair (vnat 7 : W) y) ∧
+        v = eqv (app X (kpair (sfst (ssnd (sfst i))) (ssnd i)))
+          (app X (kpair (ssnd (ssnd (sfst i))) (ssnd i)))) ∨
+      ((∃ y, i = kpair (vnat 8 : W) y) ∧ v = sfst (app X (kpair (ssnd (sfst i)) (ssnd i)))) ∨
+      ((∃ y, i = kpair (vnat 9 : W) y) ∧ v = ssnd (app X (kpair (ssnd (sfst i)) (ssnd i)))) ∨
+      ((∃ y, i = kpair (vnat 10 : W) y) ∧ v = pt) := by
+  have hM : ∀ y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) y) ∘
+          tagDispatchMap =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => i) y) (pt : W) : Fin 3 → W) := by
+    intro y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [interpStepF, tagDisjF, Form.realize_or, Form.realize_and, Form.realize_ex,
+    Form.realize_relabel, hM, realize_vnatKpairEqF, realize_bvarStepF, realize_appStepF,
+    realize_lamStepF, realize_piStepF, realize_letEStepF, realize_eqEStepF, realize_fstStepF,
+    realize_sndStepF, realize_prfStepF]
+
+
 end ConLeche.Semantics

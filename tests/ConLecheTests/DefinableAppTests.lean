@@ -985,4 +985,12 @@ example {v X i : V} (h : i = ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 
     ⟨0, by omega, _, by rw [h]; rfl⟩
 
 
+example {v X i : V} (h : i = ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 2))
+    (hv : v = app X (ssnd i)) : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V))
+    ConLeche.Semantics.interpStepF :=
+  (ConLeche.Semantics.realize_interpStepF).mpr
+    (Or.inl ⟨⟨_, by rw [h]; rfl⟩, hv⟩)
+
+
 end ConLeche.SetTheory.DefinableAppEx
