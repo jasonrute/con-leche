@@ -2740,4 +2740,67 @@ theorem realize_tmCodeEqF (t : Term.Term) {x : W} :
       fun h => ⟨tmCode e, h, rfl⟩⟩
 
 
+/-! ## Stage 61: the tmCode tag dispatch `tagDispatchF` -/
+
+/-- Map of a tag disjunct's `vnatKpairEqF t` (vars `0 ↦ z`, `1 ↦ y`, `2 ↦ pt`)
+into the dispatch bound context `(v, X, i, pt, y)`: `z ↦ i`, `y ↦ y`, `pt ↦ pt`. -/
+def tagDispatchMap : Fin 3 → Fin 5 :=
+  fun k => match k.val with
+    | 0 => ⟨2, by omega⟩ | 1 => ⟨4, by omega⟩ | 2 => ⟨3, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The `t`-th tag disjunct (variables `0 ↦ v`, `1 ↦ X`, `2 ↦ i`, `3 ↦ pt`):
+`∃ y, i = kpair (vnat t) y`. -/
+def tagDisjF (t : Nat) : Form 4 := .ex (Form.relabel tagDispatchMap (vnatKpairEqF t))
+
+/-- The tmCode tag dispatch (variables `0 ↦ v`, `1 ↦ X`, `2 ↦ i`, `3 ↦ pt`):
+the disjunction over the 11 constructor tags `0..10` of `∃ y, i = kpair (vnat t) y`. -/
+def tagDispatchF : Form 4 :=
+  .or (tagDisjF 0) (.or (tagDisjF 1) (.or (tagDisjF 2) (.or (tagDisjF 3) (.or (tagDisjF 4)
+    (.or (tagDisjF 5) (.or (tagDisjF 6) (.or (tagDisjF 7) (.or (tagDisjF 8)
+      (.or (tagDisjF 9) (tagDisjF 10))))))))))
+
+theorem realize_tagDispatchF {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+        tagDispatchF ↔
+      ∃ t : Nat, t < 11 ∧ ∃ y, i = kpair (vnat t : W) y := by
+  have hM : ∀ y : W,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W)) y) ∘
+          tagDispatchMap =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => i) y) (pt : W) : Fin 3 → W) := by
+    intro y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [tagDispatchF, tagDisjF, Form.realize_or, Form.realize_ex, Form.realize_relabel,
+    hM, realize_vnatKpairEqF]
+  constructor
+  · intro h
+    rcases h with ⟨y, h⟩ | ⟨y, h⟩ | ⟨y, h⟩ | ⟨y, h⟩ | ⟨y, h⟩ | ⟨y, h⟩ | ⟨y, h⟩ | ⟨y, h⟩
+      | ⟨y, h⟩ | ⟨y, h⟩ | ⟨y, h⟩
+    · exact ⟨0, by omega, y, h⟩
+    · exact ⟨1, by omega, y, h⟩
+    · exact ⟨2, by omega, y, h⟩
+    · exact ⟨3, by omega, y, h⟩
+    · exact ⟨4, by omega, y, h⟩
+    · exact ⟨5, by omega, y, h⟩
+    · exact ⟨6, by omega, y, h⟩
+    · exact ⟨7, by omega, y, h⟩
+    · exact ⟨8, by omega, y, h⟩
+    · exact ⟨9, by omega, y, h⟩
+    · exact ⟨10, by omega, y, h⟩
+  · rintro ⟨t, ht, y, h⟩
+    have h_cases : t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3 ∨ t = 4 ∨ t = 5 ∨ t = 6 ∨ t = 7 ∨ t = 8 ∨ t = 9 ∨ t = 10 := by omega
+    rcases h_cases with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    · exact Or.inl ⟨y, h⟩
+    · exact Or.inr (Or.inl ⟨y, h⟩)
+    · exact Or.inr (Or.inr (Or.inl ⟨y, h⟩))
+    · exact Or.inr (Or.inr (Or.inr (Or.inl ⟨y, h⟩)))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨y, h⟩))))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨y, h⟩)))))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨y, h⟩))))))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨y, h⟩)))))))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨y, h⟩))))))))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨y, h⟩)))))))))
+    · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨y, h⟩)))))))))
+
+
 end ConLeche.Semantics

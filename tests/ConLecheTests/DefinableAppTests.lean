@@ -977,4 +977,12 @@ example {x : V} (h : x = ConLeche.Semantics.tmCode (ConLeche.Term.Term.app
   (ConLeche.Semantics.realize_tmCodeEqF _).mpr h
 
 
+example {v X i : V} (h : i = ConLeche.Semantics.tmCode (ConLeche.Term.Term.bvar 2)) :
+    Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V))
+    ConLeche.Semantics.tagDispatchF :=
+  (ConLeche.Semantics.realize_tagDispatchF).mpr
+    ⟨0, by omega, _, by rw [h]; rfl⟩
+
+
 end ConLeche.SetTheory.DefinableAppEx
