@@ -1098,4 +1098,15 @@ example {v X i : V}
   ConLeche.Semantics.sortZeroStepF_apply hR hi
 
 
+
+example {v X i : V}
+    (hR' : Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V))
+      ConLeche.Semantics.constStepF) :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V))
+      ConLeche.Semantics.interpStepF2 :=
+  ConLeche.Semantics.realize_interpStepF2.mpr (Or.inr (Or.inl hR'))
+
+
 end ConLeche.SetTheory.DefinableAppEx

@@ -3773,4 +3773,26 @@ theorem realize_sortZeroStepF_tmCode {X : W} :
   realize_sortZeroStepF.mpr
     ⟨⟨vnat 0, rfl⟩, ⟨vnat 0, by rw [tmCode, ssnd_kpair], rfl, univ_zero⟩⟩
 
+/-! ## Stage 74: the combined definable interp step with `const`/`sort 0` `interpStepF2` -/
+
+/-- The combined definable interp step, extended (variables `0 ↦ v`, `1 ↦ X`,
+`2 ↦ i`, `3 ↦ pt`): `interpStepF` (the nine covered tags) plus the
+`const 2` easy-`bval` case (`constStepF`) and the `sort 0` case
+(`sortZeroStepF`).  The remaining gap is `sort u` for `u ≥ 1` and the
+twelve `univChain`-dependent `const` cases. -/
+def interpStepF2 : Form 4 :=
+  .or interpStepF (.or constStepF sortZeroStepF)
+
+theorem realize_interpStepF2 {v X i : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+        interpStepF2 ↔
+      (Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+          interpStepF) ∨
+      (Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+          constStepF) ∨
+      (Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+          sortZeroStepF) := by
+  simp only [interpStepF2, Form.realize_or, realize_interpStepF, realize_constStepF,
+    realize_sortZeroStepF]
+
 end ConLeche.Semantics
