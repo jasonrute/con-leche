@@ -1445,4 +1445,12 @@ example {v S A : V} (h : Form.Realize Mem
     piSetAppNFEqF) : v = piSetAppNF S A :=
   realize_piSetAppNFEqF.mp h
 
+
+/-! ## Stage 105 example: the `sigmaConstGraphF` equality reader -/
+
+example {v A D : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) A) D) (pt : V))
+    sigmaConstGraphEqF) : v = sigmaConstGraphF A D :=
+  realize_sigmaConstGraphEqF.mp h
+
 end ConLeche.SetTheory.DefinableAppEx

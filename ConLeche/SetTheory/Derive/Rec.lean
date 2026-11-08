@@ -2764,4 +2764,83 @@ theorem realize_piSetAppNFEqF {v S A : V} :
     exact key z
 
 
+
+/-! ## Stage 105: the `sigmaConstGraphF` equality reader `sigmaConstGraphEqF` -/
+
+/-- Map of the `kpairEqF` conjunct (vars `0 ↦ z'`, `1 ↦ x'`, `2 ↦ y'`)
+into the bound context `(v, A, D, pt, z, x, w)`: `0 ↦ 4`, `1 ↦ 5`,
+`2 ↦ 6` (reads `z = kpair x w`). -/
+def scgKpMap : Fin 3 → Fin 7 :=
+  fun k => match k.val with
+  | 0 => ⟨4, by omega⟩ | 1 => ⟨5, by omega⟩ | _ => ⟨6, by omega⟩
+
+/-- Map of the `sigmaConstEqF` conjunct (vars `0 ↦ x'`, `1 ↦ z'`, `2 ↦ A'`)
+into the bound context `(v, A, D, pt, z, x, w)`: `0 ↦ 5`, `1 ↦ 6`,
+`2 ↦ 1` (reads `w = sigmaConstF A x`). -/
+def scgScMap : Fin 3 → Fin 7 :=
+  fun k => match k.val with
+  | 0 => ⟨5, by omega⟩ | 1 => ⟨6, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- The `sigmaConstGraphF` equality reader (variables `0 ↦ v`, `1 ↦ A`,
+`2 ↦ D`, `3 ↦ pt`): `v = sigmaConstGraphF A D`, by extensionality +
+`mem_sigmaConstGraphF`, with `z = kpair x w` read by `kpairEqF` and
+`w = sigmaConstF A x` by `sigmaConstEqF`. -/
+def sigmaConstGraphEqF : Form 4 :=
+  .all (.iff (.mem ⟨4, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨5, by omega⟩ ⟨2, by omega⟩)
+      (.ex (.and (Form.relabel scgKpMap kpairEqF) (Form.relabel scgScMap sigmaConstEqF))))))
+
+theorem realize_sigmaConstGraphEqF {v A D : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) A) D) (pt : V))
+        sigmaConstGraphEqF ↔
+      v = sigmaConstGraphF A D := by
+  have hKp : ∀ z x w : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) A) D) (pt : V)) z) x) w)
+          (Form.relabel scgKpMap kpairEqF) ↔ z = kpair x w := by
+    intro z x w
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) A) D) (pt : V)) z) x) w : Fin 7 → V) ∘ scgKpMap =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => z) x) w := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_kpairEqF
+  have hSc : ∀ z x w : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) A) D) (pt : V)) z) x) w)
+          (Form.relabel scgScMap sigmaConstEqF) ↔ w = sigmaConstF A x := by
+    intro z x w
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) A) D) (pt : V)) z) x) w : Fin 7 → V) ∘ scgScMap =
+        Form.cons2 x w (fun _ : Fin 1 => A) := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_sigmaConstEqF
+  have key : ∀ z : V, z ∈ˢ sigmaConstGraphF A D ↔
+      ∃ x, x ∈ˢ D ∧ ∃ w, z = kpair x w ∧ w = sigmaConstF A x := by
+    intro z
+    rw [mem_sigmaConstGraphF]
+    constructor
+    · rintro ⟨x, hx, rfl⟩
+      exact ⟨x, hx, sigmaConstF A x, rfl, rfl⟩
+    · rintro ⟨x, hx, w, rfl, rfl⟩
+      exact ⟨x, hx, rfl⟩
+  simp only [sigmaConstGraphEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hKp, hSc, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (key z).symm
+  · intro h z
+    rw [h]
+    exact key z
+
+
 end ConLeche.SetTheory
