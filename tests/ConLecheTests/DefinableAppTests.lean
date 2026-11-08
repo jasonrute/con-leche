@@ -1309,4 +1309,12 @@ example {v a b : V} (h : Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 =
   ConLeche.Semantics.realize_binUnionEqF.mp h
 
 
+
+/-! ## Stage 90 example: the `empty` equality reader -/
+
+example {v : V} (h : Form.Realize Mem (Form.snoc Form.nil v)
+    ConLeche.Semantics.emptyEqF) : v = (empty : V) :=
+  ConLeche.Semantics.realize_emptyEqF.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx

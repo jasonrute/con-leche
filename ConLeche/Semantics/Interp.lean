@@ -4168,4 +4168,25 @@ theorem realize_binUnionEqF {v a b : W} :
     exact mem_binUnion
 
 
+
+/-! ## Stage 90: the `empty` equality reader `emptyEqF` -/
+
+/-- The `empty` equality reader (variable `0 ↦ v`): `v = empty`,
+i.e. `∀ z, z ∉ v` (`emptyF`), read back via extensionality +
+`not_mem_empty`. -/
+def emptyEqF : Form 1 := emptyF
+
+theorem realize_emptyEqF {v : W} :
+    Form.Realize Mem (Form.snoc Form.nil v) emptyEqF ↔ v = (empty : W) := by
+  simp only [emptyEqF]
+  rw [realize_emptyF]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z =>
+      ⟨fun hz => (h z hz).elim, fun hz => (not_mem_empty z hz).elim⟩
+  · intro h z
+    rw [h]
+    exact not_mem_empty z
+
+
 end ConLeche.Semantics
