@@ -1127,4 +1127,23 @@ example {X : V} :
   ConLeche.Semantics.realize_interpStepF2_sortZero_tmCode
 
 
+
+example {v X i : V}
+    (hR : Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V))
+      ConLeche.Semantics.interpStepF2)
+    (hi : i = (ConLeche.Semantics.tmCode (Term.Term.const Term.BConst.quotInd []) : V)) :
+    v = ConLeche.SetModel.bval V Term.BConst.quotInd [] :=
+  ConLeche.Semantics.interpStepF2_apply_const hR hi
+
+
+example {v X i : V}
+    (hR : Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V))
+      ConLeche.Semantics.interpStepF2)
+    (hi : i = (ConLeche.Semantics.tmCode (Term.Term.sort 0) : V)) :
+    v = (univ 0 : V) :=
+  ConLeche.Semantics.interpStepF2_apply_sortZero hR hi
+
+
 end ConLeche.SetTheory.DefinableAppEx

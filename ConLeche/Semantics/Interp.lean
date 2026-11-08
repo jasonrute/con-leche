@@ -3872,4 +3872,46 @@ theorem realize_interpStepF2_sortZero_tmCode {X : W} :
       (tmCode (Term.Term.sort 0))) (pt : W)) interpStepF2 :=
   realize_interpStepF2.mpr (Or.inr (Or.inr realize_sortZeroStepF_tmCode))
 
+/-! ## Stage 76: the mp corollaries of `interpStepF2` at concrete codes -/
+
+/-- A tag-`2` code cannot realize the nine covered tags or the `sort 0` tag. -/
+theorem not_tag_of_tmCode_const {i : W} {c : Term.BConst} {us : List Nat} {t : Nat}
+    (ht : t ≠ 2) (hi : i = (tmCode (Term.Term.const c us) : W)) (y : W)
+    (hy : i = kpair (vnat t : W) y) : False := by
+  rw [hi, tmCode] at hy
+  exact absurd (vnat_inj (kpair_inj hy).1) (by omega)
+
+/-- At a `const` code, `interpStepF2` forces `v = bval W c us`. -/
+theorem interpStepF2_apply_const {v X i : W} {c : Term.BConst} {us : List Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+      interpStepF2)
+    (hi : i = (tmCode (Term.Term.const c us) : W)) :
+    v = bval W c us := by
+  rcases realize_interpStepF2.mp hR with h | h | h
+  · rcases (realize_interpStepF.mp h) with
+      (⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ |
+        ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩)
+    all_goals exact absurd (not_tag_of_tmCode_const (by omega) hi y hy) id
+  · exact constStepF_apply h hi
+  · obtain ⟨y, hy⟩ := (realize_sortZeroStepF.mp h).1
+    exact absurd (not_tag_of_tmCode_const (by omega) hi y hy) id
+
+/-- At a `sort 0` code, `interpStepF2` forces `v = univ 0`. -/
+theorem interpStepF2_apply_sortZero {v X i : W}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : W))
+      interpStepF2)
+    (hi : i = (tmCode (Term.Term.sort 0) : W)) :
+    v = (univ 0 : W) := by
+  rcases realize_interpStepF2.mp hR with h | h | h
+  · rcases (realize_interpStepF.mp h) with
+      (⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ |
+        ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩)
+    all_goals
+      rw [hi, tmCode] at hy
+      exact absurd (vnat_inj (kpair_inj hy).1) (by omega)
+  · rcases (realize_constStepF.mp h).1 with ⟨y, hy⟩
+    rw [hi, tmCode] at hy
+    exact absurd (vnat_inj (kpair_inj hy).1) (by omega)
+  · exact sortZeroStepF_apply h hi
+
 end ConLeche.Semantics
