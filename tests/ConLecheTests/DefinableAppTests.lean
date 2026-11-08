@@ -1357,4 +1357,16 @@ example {F m i A z : V} (h : z ∈ˢ sUnionApp3sImageF F m i A) :
   mem_sUnionApp3sImageF'.mp h
 
 
+
+/-! ## Stage 95 example: the swapped double-application image `app2sImageF` -/
+
+example {g m A : V} :
+    image (fun a => app (app g a) m) A = app2sImageF g m A :=
+  image_app2s_eq
+
+example {g m A z : V} (h : z ∈ˢ app2sImageF g m A) :
+    ∃ a, a ∈ˢ A ∧ z = app (app g a) m :=
+  mem_app2sImageF.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx
