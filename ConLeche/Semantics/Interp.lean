@@ -4189,4 +4189,49 @@ theorem realize_emptyEqF {v : W} :
     exact not_mem_empty z
 
 
+
+/-! ## Stage 91: the `kpairImage` equality reader `kpairImageEqF` -/
+
+/-- Map of the `kpairEqF` conjunct (vars `0 ↦ z`, `1 ↦ x`, `2 ↦ y`) into the
+bound context `(v, a, X, z, x)`: `0 ↦ 3`, `1 ↦ 1`, `2 ↦ 4`. -/
+def kpImKpMap : Fin 3 → Fin 5 :=
+  fun k => match k.val with
+  | 0 => ⟨3, by omega⟩
+  | 1 => ⟨1, by omega⟩
+  | _ => ⟨4, by omega⟩
+
+/-- The `kpairImage` equality reader (variables `0 ↦ v`, `1 ↦ a`, `2 ↦ X`):
+`v = kpairImage a X`, by extensionality + `mem_kpairImage`, with
+`z = kpair a x` read by `kpairEqF`. -/
+def kpairImageEqF : Form 3 :=
+  .all (.iff (.mem ⟨3, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨4, by omega⟩ ⟨2, by omega⟩)
+      (Form.relabel kpImKpMap kpairEqF))))
+
+theorem realize_kpairImageEqF {v a X : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X) kpairImageEqF ↔
+      v = kpairImage a X := by
+  have hKp : ∀ z x : W,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X) z) x)
+          (Form.relabel kpImKpMap kpairEqF) ↔ z = kpair a x := by
+    intro z x
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X) z) x)
+        ∘ kpImKpMap = Form.snoc (Form.snoc (fun _ : Fin 1 => z) a) x := by
+      funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_kpairEqF
+  simp only [kpairImageEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hKp, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_kpairImage (a := a) (X := X)).symm
+  · intro h z
+    rw [h]
+    exact mem_kpairImage
+
+
 end ConLeche.Semantics

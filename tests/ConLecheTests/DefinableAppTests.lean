@@ -1317,4 +1317,12 @@ example {v : V} (h : Form.Realize Mem (Form.snoc Form.nil v)
   ConLeche.Semantics.realize_emptyEqF.mp h
 
 
+
+/-! ## Stage 91 example: the `kpairImage` equality reader -/
+
+example {v a X : V} (h : Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) X)
+    ConLeche.Semantics.kpairImageEqF) : v = kpairImage a X :=
+  ConLeche.Semantics.realize_kpairImageEqF.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx
