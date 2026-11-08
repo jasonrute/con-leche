@@ -4124,4 +4124,26 @@ theorem constValueF_apply {v cc uc : W} {c : Term.BConst} {us : List Nat}
   · exact constValueEasyF_apply h hcc huc
   · exact constValueNatF_apply h hcc huc
 
+
+/-! ## Stage 88: the `sUnion` equality reader `sUnionEqF` -/
+
+/-- The `sUnion` equality reader (variables `0 ↦ v`, `1 ↦ a`):
+`v = sUnion a`, by extensionality + `mem_sUnion`. -/
+def sUnionEqF : Form 2 :=
+  .all (.iff (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨3, by omega⟩ ⟨1, by omega⟩) (.mem ⟨2, by omega⟩ ⟨3, by omega⟩))))
+
+theorem realize_sUnionEqF {v a : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) a) sUnionEqF ↔
+      v = sUnion a := by
+  simp only [sUnionEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_sUnion (x := a)).symm
+  · intro h z
+    rw [h]
+    exact mem_sUnion
+
+
 end ConLeche.Semantics

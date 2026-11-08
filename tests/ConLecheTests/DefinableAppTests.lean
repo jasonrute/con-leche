@@ -1290,4 +1290,15 @@ example {U g A : V} (hU : ConLeche.IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
   hU.sUnion_appImageF_val_mem hA hval
 
 
+
+/-! ## Stage 88 example: the `sUnion` equality reader -/
+
+example {v a : V} (h : Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) a)
+    ConLeche.Semantics.sUnionEqF) : v = sUnion a :=
+  ConLeche.Semantics.realize_sUnionEqF.mp h
+
+example {a z : V} (h : z ∈ˢ sUnion a) : ∃ y, y ∈ˢ a ∧ z ∈ˢ y :=
+  mem_sUnion.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx
