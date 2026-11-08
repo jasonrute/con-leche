@@ -1345,4 +1345,16 @@ example {F m i A z : V} (h : z ∈ˢ app3sImageF F m i A) :
   mem_app3sImageF.mp h
 
 
+
+/-! ## Stage 94 example: `sUnionApp3sImageF` -/
+
+example {F m i A : V} :
+    sUnion (image (fun a => app (app (app F a) m) i) A) = sUnionApp3sImageF F m i A :=
+  sUnion_image_app3s_eq
+
+example {F m i A z : V} (h : z ∈ˢ sUnionApp3sImageF F m i A) :
+    ∃ a, a ∈ˢ A ∧ ∃ s, s = app (app (app F a) m) i ∧ z ∈ˢ s :=
+  mem_sUnionApp3sImageF'.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx

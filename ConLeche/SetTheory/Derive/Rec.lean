@@ -2095,4 +2095,36 @@ theorem image_app3s_eq {F m i A : V} :
   ext fun z => by rw [mem_image, mem_app3sImageF]
 
 
+
+/-! ## Stage 94: the definable `sUnion`-of-`app3sImageF` wrapper `sUnionApp3sImageF` -/
+
+/-- The definable `sUnion (app3sImageF F m i A)`: the first-order twin of
+`sUnion (image (fun a => app (app (app F a) m) i) A)`. -/
+noncomputable def sUnionApp3sImageF (F m i A : V) : V := sUnion (app3sImageF F m i A)
+
+theorem mem_sUnionApp3sImageF {F m i A z : V} :
+    z ∈ˢ sUnionApp3sImageF F m i A ↔ ∃ s, s ∈ˢ app3sImageF F m i A ∧ z ∈ˢ s :=
+  mem_sUnion
+
+/-- Unpacked form: `z` is in some fibre `app (app (app F a) m) i` at
+`a ∈ˢ A`. -/
+theorem mem_sUnionApp3sImageF' {F m i A z : V} :
+    z ∈ˢ sUnionApp3sImageF F m i A ↔
+      ∃ a, a ∈ˢ A ∧ ∃ s, s = app (app (app F a) m) i ∧ z ∈ˢ s := by
+  rw [mem_sUnionApp3sImageF]
+  constructor
+  · rintro ⟨s, hs, hz⟩
+    obtain ⟨a, ha, hs'⟩ := mem_app3sImageF.mp hs
+    exact ⟨a, ha, s, hs', hz⟩
+  · rintro ⟨a, ha, s, hs, hz⟩
+    exact ⟨s, mem_app3sImageF.mpr ⟨a, ha, hs⟩, hz⟩
+
+/-- The meta-level `sUnion (image (fun a => app (app (app F a) m) i) A)` is
+exactly the definable `sUnionApp3sImageF F m i A`. -/
+theorem sUnion_image_app3s_eq {F m i A : V} :
+    sUnion (image (fun a => app (app (app F a) m) i) A) = sUnionApp3sImageF F m i A := by
+  unfold sUnionApp3sImageF
+  rw [image_app3s_eq]
+
+
 end ConLeche.SetTheory
