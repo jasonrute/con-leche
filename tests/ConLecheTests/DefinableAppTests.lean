@@ -962,4 +962,11 @@ example {i : V} (h : i = ConLeche.Semantics.tmCode (ConLeche.Term.Term.const
   (ConLeche.Semantics.realize_constCodeF ConLeche.Term.BConst.propext []).mpr h
 
 
+example {x : V} (h : x = kpair (vnat 7) (vnat 2)) : Form.Realize Mem
+    (Form.snoc (fun _ : Fin 1 => x) (pt : V))
+    (ConLeche.Semantics.vnatKpairPF 7 (ConLeche.Semantics.vnatEqF 2)) :=
+  (ConLeche.Semantics.realize_vnatKpairPF 7 (pf := ConLeche.Semantics.vnatEqF 2) (P := fun p => p = (vnat 2 : V)) (fun p => ConLeche.Semantics.realize_vnatEqF 2 (x := p))).mpr
+    ⟨vnat 2, h, rfl⟩
+
+
 end ConLeche.SetTheory.DefinableAppEx

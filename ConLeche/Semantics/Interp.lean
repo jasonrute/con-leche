@@ -2577,4 +2577,81 @@ theorem realize_constCodeF (c : Term.BConst) (us : List Nat) {i : W} :
     exact ⟨vnat 2, rfl, kpair (bconstCode c : W) (vnatListCode us : W), h, rfl⟩
 
 
+/-! ## Stage 59: generic coded-payload readers `vnatKpairPF` / `kpairCodeF` -/
+
+/-- Generic single-payload code reader (variables `0 ↦ x`, `1 ↦ pt`):
+`∃ r, x = kpair (vnat t) r ∧ P r`, where `pf` realizes `P` on `r`. -/
+def vnatKpairPF (t : Nat) (pf : Form 2) : Form 2 :=
+  .ex (.and (Form.relabel bcPairA (vnatEqF t))
+    (.ex (.and (Form.relabel bcPairK kpairEqF) (Form.relabel bcPairV pf))))
+
+theorem realize_vnatKpairPF (t : Nat) {pf : Form 2} {P : W → Prop}
+    (hpf : ∀ p, Form.Realize Mem (Form.snoc (fun _ : Fin 1 => p) (pt : W)) pf ↔ P p) {x : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => x) (pt : W)) (vnatKpairPF t pf) ↔
+      ∃ r, x = kpair (vnat t : W) r ∧ P r := by
+  have hA : ∀ a : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) ∘ bcPairA =
+        (Form.snoc (fun _ : Fin 1 => a) (pt : W) : Fin 2 → W) := by
+    intro a; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hK : ∀ a r : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) r) ∘ bcPairK =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => x) a) r := by
+    intro a r; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV : ∀ a r : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => x) (pt : W)) a) r) ∘ bcPairV =
+        (Form.snoc (fun _ : Fin 1 => r) (pt : W) : Fin 2 → W) := by
+    intro a r; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [vnatKpairPF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hA, hK, hV, realize_vnatEqF, realize_kpairEqF, hpf]
+  constructor
+  · rintro ⟨a, ha, r, hx, hr⟩
+    rw [ha] at hx
+    exact ⟨r, hx, hr⟩
+  · rintro ⟨r, hx, hr⟩
+    exact ⟨vnat t, rfl, r, hx, hr⟩
+
+/-- Generic pair-payload code reader (variables `0 ↦ r`, `1 ↦ pt`):
+`∃ p q, r = kpair p q ∧ P p ∧ Q q`, where `pf`/`qf` realize `P`/`Q`. -/
+def kpairCodeF (pf qf : Form 2) : Form 2 :=
+  .ex (.and (Form.relabel bcPairA pf)
+    (.ex (.and (Form.relabel bcPairK kpairEqF) (Form.relabel bcPairV qf))))
+
+theorem realize_kpairCodeF {pf qf : Form 2} {P Q : W → Prop}
+    (hpf : ∀ p, Form.Realize Mem (Form.snoc (fun _ : Fin 1 => p) (pt : W)) pf ↔ P p)
+    (hqf : ∀ q, Form.Realize Mem (Form.snoc (fun _ : Fin 1 => q) (pt : W)) qf ↔ Q q) {r : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => r) (pt : W)) (kpairCodeF pf qf) ↔
+      ∃ p q, r = kpair p q ∧ P p ∧ Q q := by
+  have hA : ∀ p : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => r) (pt : W)) p) ∘ bcPairA =
+        (Form.snoc (fun _ : Fin 1 => p) (pt : W) : Fin 2 → W) := by
+    intro p; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hK : ∀ p q : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => r) (pt : W)) p) q) ∘ bcPairK =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => r) p) q := by
+    intro p q; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hV : ∀ p q : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => r) (pt : W)) p) q) ∘ bcPairV =
+        (Form.snoc (fun _ : Fin 1 => q) (pt : W) : Fin 2 → W) := by
+    intro p q; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [kpairCodeF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hA, hK, hV, realize_kpairEqF, hpf, hqf]
+  constructor
+  · rintro ⟨p, hp, q, hr, hq⟩
+    exact ⟨p, q, hr, hp, hq⟩
+  · rintro ⟨p, q, hr, hp, hq⟩
+    exact ⟨p, hp, q, hr, hq⟩
+
+
 end ConLeche.Semantics
