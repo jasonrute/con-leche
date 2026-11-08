@@ -2569,4 +2569,53 @@ theorem realize_constGraphEqF {v c A : V} :
     exact mem_constGraphF
 
 
+
+/-! ## Stage 103: the `app2sImageF` equality reader `app2sImageEqF` -/
+
+/-- Map of the `app2EqF` conjunct (vars `0 ↦ pt`, `1 ↦ v'`, `2 ↦ g`,
+`3 ↦ a`, `4 ↦ b`) into the bound context `(v, g, m, A, pt, z, a)`:
+`0 ↦ 4`, `1 ↦ 5`, `2 ↦ 1`, `3 ↦ 6`, `4 ↦ 2`. -/
+def a2sImMap : Fin 5 → Fin 7 :=
+  fun k => match k.val with
+  | 0 => ⟨4, by omega⟩ | 1 => ⟨5, by omega⟩ | 2 => ⟨1, by omega⟩
+  | 3 => ⟨6, by omega⟩ | _ => ⟨2, by omega⟩
+
+/-- The `app2sImageF` equality reader (variables `0 ↦ v`, `1 ↦ g`,
+`2 ↦ m`, `3 ↦ A`, `4 ↦ pt`): `v = app2sImageF g m A`, by extensionality +
+`mem_app2sImageF`, with `z = app (app g a) m` read by `app2EqF`. -/
+def app2sImageEqF : Form 5 :=
+  .all (.iff (.mem ⟨5, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨6, by omega⟩ ⟨3, by omega⟩)
+      (Form.relabel a2sImMap app2EqF))))
+
+theorem realize_app2sImageEqF {v g m A : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) g) m) A) (pt : V))
+        app2sImageEqF ↔
+      v = app2sImageF g m A := by
+  have hApp : ∀ z a : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+            (fun _ : Fin 1 => v) g) m) A) (pt : V)) z) a)
+          (Form.relabel a2sImMap app2EqF) ↔ z = app (app g a) m := by
+    intro z a
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc
+        (fun _ : Fin 1 => v) g) m) A) (pt : V)) z) a : Fin 7 → V) ∘ a2sImMap =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) z) g) a) m := by
+      funext ⟨k, hk⟩
+      have hk5 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 := by omega
+      rcases hk5 with rfl | rfl | rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_app2EqF
+  simp only [app2sImageEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hApp, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_app2sImageF (g := g) (m := m) (A := A)).symm
+  · intro h z
+    rw [h]
+    exact mem_app2sImageF
+
+
 end ConLeche.SetTheory
