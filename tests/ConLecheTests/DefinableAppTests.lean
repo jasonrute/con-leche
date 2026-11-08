@@ -1234,4 +1234,12 @@ example {v cc uc : V} :
   ConLeche.Semantics.realize_constValueF
 
 
+example {v g a b : V} :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v) g) a) b)
+      app2EqF ↔
+      v = app (app g a) b :=
+  realize_app2EqF
+
+
 end ConLeche.SetTheory.DefinableAppEx

@@ -1829,4 +1829,53 @@ theorem _root_.ConLeche.IsUniverse.recGraph_mem {U z s : V} (hU : IsUniverse (Me
   refine hU.sUnion_mem (hU.imageF_mem ho fun x hx y hy => ?_)
   exact hU.attempt_mem hz ho hstep hx (realize_attemptRelF.mp hy)
 
+
+
+/-! ## Stage 82: the double-application equality reader `app2EqF` -/
+
+/-- Map of `appEqF`'s `(pt, v, g, u)` into the bound context
+`(pt, v, g, a, b, w)` reading `(pt, w, g, a)`: `0 ↦ 0`, `1 ↦ 5`, `2 ↦ 2`,
+`3 ↦ 3`. -/
+def app2M1 : Fin 4 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨0, by omega⟩ | 1 => ⟨5, by omega⟩ | 2 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `appEqF`'s `(pt, v, g, u)` into the bound context
+`(pt, v, g, a, b, w)` reading `(pt, v, w, b)`: `0 ↦ 0`, `1 ↦ 1`, `2 ↦ 5`,
+`3 ↦ 4`. -/
+def app2M2 : Fin 4 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨0, by omega⟩ | 1 => ⟨1, by omega⟩ | 2 => ⟨5, by omega⟩ | _ => ⟨4, by omega⟩
+
+/-- The double-application equality reader (variables `0 ↦ pt`, `1 ↦ v`,
+`2 ↦ g`, `3 ↦ a`, `4 ↦ b`): `v = app (app g a) b`, by an existential
+witness `w = app g a`. -/
+def app2EqF : Form 5 :=
+  .ex (.and (Form.relabel app2M1 appEqF) (Form.relabel app2M2 appEqF))
+
+theorem realize_app2EqF {v g a b : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v) g) a) b)
+        app2EqF ↔
+      v = app (app g a) b := by
+  have h1 : ∀ w : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v) g) a)
+          b) w) ∘ app2M1 =
+        Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) w) g) a := by
+    intro w; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have h2 : ∀ w : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v) g) a)
+          b) w) ∘ app2M2 =
+        Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v) w) b := by
+    intro w; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [app2EqF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    h1, h2, realize_appEqF]
+  constructor
+  · rintro ⟨w, hw, hv⟩; rw [hv, hw]
+  · intro h; exact ⟨app g a, rfl, h⟩
+
 end ConLeche.SetTheory
