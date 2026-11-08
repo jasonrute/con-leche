@@ -2323,4 +2323,52 @@ theorem realize_sigmaPairsAppEqF {v S A : V} :
     exact mem_sigmaPairsAppF
 
 
+
+/-! ## Stage 98: the `appImageF` equality reader `appImageEqF` -/
+
+/-- Map of the `appEqF` conjunct (vars `0 ↦ pt`, `1 ↦ v'`, `2 ↦ g`, `3 ↦ u`)
+into the bound context `(v, g, A, pt, z, x)`: `0 ↦ 3`, `1 ↦ 4`, `2 ↦ 1`,
+`3 ↦ 5`. -/
+def aImAppMap : Fin 4 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨3, by omega⟩ | 1 => ⟨4, by omega⟩ | 2 => ⟨1, by omega⟩
+  | _ => ⟨5, by omega⟩
+
+/-- The `appImageF` equality reader (variables `0 ↦ v`, `1 ↦ g`,
+`2 ↦ A`, `3 ↦ pt`): `v = appImageF g A`, by extensionality +
+`mem_appImageF`, with `z = app g x` read by `appEqF`. -/
+def appImageEqF : Form 4 :=
+  .all (.iff (.mem ⟨4, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨5, by omega⟩ ⟨2, by omega⟩)
+      (Form.relabel aImAppMap appEqF))))
+
+theorem realize_appImageEqF {v g A : V} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) g) A) (pt : V))
+        appImageEqF ↔
+      v = appImageF g A := by
+  have hApp : ∀ z x : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) g) A)
+            (pt : V)) z) x)
+          (Form.relabel aImAppMap appEqF) ↔ z = app g x := by
+    intro z x
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) g) A)
+        (pt : V)) z) x : Fin 6 → V) ∘ aImAppMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) z) g) x := by
+      funext ⟨k, hk⟩
+      have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+      rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_appEqF
+  simp only [appImageEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hApp, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_appImageF (g := g) (A := A)).symm
+  · intro h z
+    rw [h]
+    exact mem_appImageF
+
+
 end ConLeche.SetTheory

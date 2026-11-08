@@ -1387,4 +1387,13 @@ example {v S A : V} (h : Form.Realize Mem
   realize_sigmaPairsAppEqF.mp h
 
 
+
+/-! ## Stage 98 example: the `appImageF` equality reader -/
+
+example {v g A : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) g) A) (pt : V))
+    appImageEqF) : v = appImageF g A :=
+  realize_appImageEqF.mp h
+
+
 end ConLeche.SetTheory.DefinableAppEx
