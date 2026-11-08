@@ -2880,4 +2880,45 @@ theorem realize_upairEqF {v a b : W} :
     exact mem_upair
 
 
+/-! ## Stage 64: the singleton readers `singEqF` / `singEmptyF` -/
+
+/-- The singleton reader (variables `0 ↦ v`, `1 ↦ a`): `v = sing a`,
+via extensionality + `mem_sing` — `∀ z, z ∈ v ↔ z = a`. -/
+def singEqF : Form 2 :=
+  .all (.iff (.mem ⟨2, by omega⟩ ⟨0, by omega⟩) (.equal ⟨2, by omega⟩ ⟨1, by omega⟩))
+
+theorem realize_singEqF {v a : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) a) singEqF ↔ v = sing a := by
+  simp only [singEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_equal, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans mem_sing.symm
+  · intro h z
+    rw [h]
+    exact mem_sing
+
+/-- The `sing empty` reader (variable `0 ↦ v`): `v = sing empty`,
+via extensionality — `∀ z, z ∈ v ↔ z = empty` (`emptyF` at `z`). -/
+def singEmptyF : Form 1 :=
+  .all (.iff (.mem ⟨1, by omega⟩ ⟨0, by omega⟩)
+    (Form.relabel (fun _ : Fin 1 => ⟨1, by omega⟩) emptyF))
+
+theorem realize_singEmptyF {v : W} :
+    Form.Realize Mem (Form.snoc Form.nil v) singEmptyF ↔ v = sing (empty : W) := by
+  have hm : ∀ z : W, (Form.snoc (Form.snoc Form.nil v) z) ∘ (fun _ : Fin 1 => ⟨1, by omega⟩) =
+      Form.snoc Form.nil z := by
+    intro z; funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  simp only [singEmptyF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_relabel, hm, realize_emptyF_eq, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans mem_sing.symm
+  · intro h z
+    rw [h]
+    exact mem_sing
+
+
 end ConLeche.Semantics

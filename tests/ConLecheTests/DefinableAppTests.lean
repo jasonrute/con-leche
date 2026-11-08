@@ -998,5 +998,9 @@ example {v a b : V} (h : v = upair a b) : Form.Realize Mem
     ConLeche.Semantics.upairEqF :=
   (ConLeche.Semantics.realize_upairEqF).mpr h
 
+example {v : V} (h : v = sing (empty : V)) : Form.Realize Mem
+    (Form.snoc Form.nil v) ConLeche.Semantics.singEmptyF :=
+  (ConLeche.Semantics.realize_singEmptyF).mpr h
+
 
 end ConLeche.SetTheory.DefinableAppEx
