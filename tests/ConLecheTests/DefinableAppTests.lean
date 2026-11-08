@@ -1003,4 +1003,10 @@ example {v : V} (h : v = sing (empty : V)) : Form.Realize Mem
   (ConLeche.Semantics.realize_singEmptyF).mpr h
 
 
+example {v : V} (h : v = ptTag) : Form.Realize Mem
+    (Form.snoc (fun _ : Fin 1 => v) (pt : V))
+    ConLeche.Semantics.ptTagEqF :=
+  (ConLeche.Semantics.realize_ptTagEqF).mpr h
+
+
 end ConLeche.SetTheory.DefinableAppEx

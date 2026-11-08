@@ -2921,4 +2921,88 @@ theorem realize_singEmptyF {v : W} :
     exact mem_sing
 
 
+
+/-! ## Stage 65: the `sing (sing empty)` and `ptTag` readers -/
+
+/-- Map of the `singEmptyF` conjunct (var `0 ↦ a`) into the bound context `(v, a)`. -/
+def singSingA : Fin 1 → Fin 2 := fun _ => ⟨1, by omega⟩
+
+/-- Map of the `singEqF` conjunct (vars `0 ↦ v`, `1 ↦ a`) into the bound context `(v, a)`. -/
+def singSingS : Fin 2 → Fin 2 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- The `sing (sing empty)` reader (variable `0 ↦ v`): `v = sing (sing empty)`,
+via an existential `a = sing empty` with `v = sing a`. -/
+def singSingEmptyF : Form 1 :=
+  .ex (.and (Form.relabel singSingA singEmptyF) (Form.relabel singSingS singEqF))
+
+theorem realize_singSingEmptyF {v : W} :
+    Form.Realize Mem (Form.snoc Form.nil v) singSingEmptyF ↔ v = sing (sing (empty : W)) := by
+  have hA : ∀ a : W, (Form.snoc (Form.snoc Form.nil v) a) ∘ singSingA = Form.snoc Form.nil a := by
+    intro a; funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  have hS : ∀ a : W, (Form.snoc (Form.snoc Form.nil v) a) ∘ singSingS =
+      (Form.snoc (fun _ : Fin 1 => v) a : Fin 2 → W) := by
+    intro a; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [singSingEmptyF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hA, hS, realize_singEmptyF, realize_singEqF]
+  constructor
+  · rintro ⟨a, ha, hv⟩
+    rw [ha] at hv
+    exact hv
+  · intro h
+    exact ⟨sing (empty : W), rfl, h⟩
+
+/-- Map of the `emptyF` conjunct (var `0 ↦ a`) into the bound context `(v, pt, a)`. -/
+def ptTagA : Fin 1 → Fin 3 := fun _ => ⟨2, by omega⟩
+
+/-- Map of the `singSingEmptyF` conjunct (var `0 ↦ b`) into the bound context `(v, pt, a, b)`. -/
+def ptTagB : Fin 1 → Fin 4 := fun _ => ⟨3, by omega⟩
+
+/-- Map of the `upairEqF` conjunct (vars `0 ↦ v`, `1 ↦ a`, `2 ↦ b`) into the
+bound context `(v, pt, a, b)`. -/
+def ptTagU : Fin 3 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The proof-tag reader (variables `0 ↦ v`, `1 ↦ pt`): `v = ptTag`,
+i.e. `v = upair empty (sing (sing empty))`, via `emptyF` at the first
+component, `singSingEmptyF` at the second, and `upairEqF`. -/
+def ptTagEqF : Form 2 :=
+  .ex (.and (Form.relabel ptTagA emptyF)
+    (.ex (.and (Form.relabel ptTagB singSingEmptyF) (Form.relabel ptTagU upairEqF))))
+
+theorem realize_ptTagEqF {v : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : W)) ptTagEqF ↔
+      v = (ptTag : W) := by
+  have hA : ∀ a : W,
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) a) ∘ ptTagA =
+        Form.snoc Form.nil a := by
+    intro a; funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  have hB : ∀ a b : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) a) b) ∘ ptTagB =
+        Form.snoc Form.nil b := by
+    intro a b; funext ⟨k, hk⟩
+    have hk0 : k = 0 := by omega
+    subst hk0; rfl
+  have hU : ∀ a b : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) a) b) ∘ ptTagU =
+        Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) b := by
+    intro a b; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [ptTagEqF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hA, hB, hU, realize_emptyF_eq, realize_singSingEmptyF, realize_upairEqF]
+  rw [show (ptTag : W) = upair (empty : W) (sing (sing empty)) from by unfold ptTag; rfl]
+  constructor
+  · rintro ⟨a, ha, b, hb, hv⟩
+    rw [ha, hb] at hv
+    exact hv
+  · intro h
+    exact ⟨empty, rfl, sing (sing empty), rfl, h⟩
+
 end ConLeche.Semantics
