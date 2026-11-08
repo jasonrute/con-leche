@@ -1930,4 +1930,55 @@ theorem image_app2_eq {g a A : V} :
     image (fun x => app (app g a) x) A = app2ImageF g a A :=
   ext fun z => by rw [mem_image, mem_app2ImageF]
 
+
+
+/-! ## Stage 84: the triple-application equality reader `app3EqF` -/
+
+/-- Map of `app2EqF`'s `(pt, v, g, a, b)` into the bound context
+`(pt, v, F, a, m, i, w)` reading `(pt, w, F, a, m)`: `0 ↦ 0`, `1 ↦ 6`,
+`2 ↦ 2`, `3 ↦ 3`, `4 ↦ 4`. -/
+def app3M1 : Fin 5 → Fin 7 :=
+  fun k => match k.val with
+  | 0 => ⟨0, by omega⟩ | 1 => ⟨6, by omega⟩ | 2 => ⟨2, by omega⟩
+  | 3 => ⟨3, by omega⟩ | _ => ⟨4, by omega⟩
+
+/-- Map of `appEqF`'s `(pt, v, g, u)` into the bound context
+`(pt, v, F, a, m, i, w)` reading `(pt, v, w, i)`: `0 ↦ 0`, `1 ↦ 1`,
+`2 ↦ 6`, `3 ↦ 5`. -/
+def app3M2 : Fin 4 → Fin 7 :=
+  fun k => match k.val with
+  | 0 => ⟨0, by omega⟩ | 1 => ⟨1, by omega⟩ | 2 => ⟨6, by omega⟩ | _ => ⟨5, by omega⟩
+
+/-- The triple-application equality reader (variables `0 ↦ pt`, `1 ↦ v`,
+`2 ↦ F`, `3 ↦ a`, `4 ↦ m`, `5 ↦ i`): `v = app (app (app F a) m) i`, by an
+existential witness `w = app (app F a) m`. -/
+def app3EqF : Form 6 :=
+  .ex (.and (Form.relabel app3M1 app2EqF) (Form.relabel app3M2 appEqF))
+
+theorem realize_app3EqF {v F a m i : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v)
+          F) a) m) i)
+        app3EqF ↔
+      v = app (app (app F a) m) i := by
+  have h1 : ∀ w : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 =>
+          (pt : V)) v) F) a) m) i) w) ∘ app3M1 =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) w) F) a) m := by
+    intro w; funext ⟨k, hk⟩
+    have hk5 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 := by omega
+    rcases hk5 with rfl | rfl | rfl | rfl | rfl <;> rfl
+  have h2 : ∀ w : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 =>
+          (pt : V)) v) F) a) m) i) w) ∘ app3M2 =
+        Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v) w) i := by
+    intro w; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [app3EqF, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    h1, h2, realize_app2EqF, realize_appEqF]
+  constructor
+  · rintro ⟨w, hw, hv⟩; rw [hv, hw]
+  · intro h; exact ⟨app (app F a) m, rfl, h⟩
+
 end ConLeche.SetTheory

@@ -1258,4 +1258,13 @@ example {x v g a : V} :
   realize_app2EqRepF
 
 
+example {v F a m i : V} :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => (pt : V)) v)
+        F) a) m) i)
+      app3EqF ↔
+      v = app (app (app F a) m) i :=
+  realize_app3EqF
+
+
 end ConLeche.SetTheory.DefinableAppEx
