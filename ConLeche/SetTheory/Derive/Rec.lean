@@ -362,12 +362,6 @@ theorem piSetApp_eq_piSet {S A : V}
     piSetApp S A hfun = piSet A (fun j => app S j) :=
   piSetD_eq_piSet (fun _ _ => realize_appMemRepF)
 
-theorem mem_piSetApp {S A f : V}
-    (hfun : ∀ x, x ∈ˢ A → ∃ y, y ∈ˢ app S x ∧ ∀ y', y' ∈ˢ app S x → y' = y) :
-    f ∈ˢ piSetApp S A hfun ↔ f ⊆ˢ sigmaPairs A (fun j => app S j) ∧
-      ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
-  rw [piSetApp_eq_piSet hfun, mem_piSet]
-
 /-- Definable app-fibre function-space closure (clause 6): the
 first-order twin of `piSet_mem` at an `app S`-family. -/
 theorem _root_.ConLeche.IsUniverse.piSetApp_mem {U S A : V} (hU : IsUniverse (Mem (V := V)) U)
@@ -541,6 +535,14 @@ theorem sigmaPairsAppF_eq {S A : V} :
     sigmaPairsAppF S A = sigmaPairs A (fun j => app S j) := by
   refine SetTheory.ext fun z => ?_
   rw [mem_sigmaPairsAppF, mem_sigmaPairs]
+
+/-- Stage 87: `mem_piSetApp` restated with the definable `sigmaPairsAppF` RHS
+(no meta `sigmaPairs` in the statement). -/
+theorem mem_piSetApp {S A f : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ y, y ∈ˢ app S x ∧ ∀ y', y' ∈ˢ app S x → y' = y) :
+    f ∈ˢ piSetApp S A hfun ↔ f ⊆ˢ sigmaPairsAppF S A ∧
+      ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
+  rw [piSetApp_eq_piSet hfun, mem_piSet, ← sigmaPairsAppF_eq]
 
 /-- Definable app-fibre function space WITHOUT a functionality hypothesis:
 the first-order twin of `piSet A (fun j => app S j)` at any family graph

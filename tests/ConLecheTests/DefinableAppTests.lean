@@ -88,7 +88,7 @@ example : (sing (kpair pt pt) : V) ∈ˢ piSetApp (testS V) unitSet testS_hfun :
   · intro p hp
     rw [mem_sing] at hp
     subst hp
-    rw [mem_sigmaPairs]
+    rw [mem_sigmaPairsAppF]
     exact ⟨pt, pt_mem_unitSet, pt,
       by show pt ∈ˢ app (testS V) pt; rw [app_testS_pt]; exact pt_mem_unitSet, rfl⟩
   · intro x hx
