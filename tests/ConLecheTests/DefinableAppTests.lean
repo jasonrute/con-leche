@@ -1177,4 +1177,11 @@ example {A : V} {B : V → V} {n : Nat} {φ : Form (n + 2)} {p : Fin n → V}
   sigmaPairs_eq_sigmaPairsF hfun h
 
 
+example {v : V} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : V))
+      ConLeche.Semantics.omegaEqF ↔
+      v = (omega : V) :=
+  ConLeche.Semantics.realize_omegaEqF
+
+
 end ConLeche.SetTheory.DefinableAppEx

@@ -3914,4 +3914,43 @@ theorem interpStepF2_apply_sortZero {v X i : W}
     exact absurd (vnat_inj (kpair_inj hy).1) (by omega)
   · exact sortZeroStepF_apply h hi
 
+/-! ## Stage 78: the `omega` equality reader `omegaEqF` -/
+
+/-- Map of the `inductiveF` conjunct (var `0 ↦ I`) into the bound context
+`(v, pt, z, I)`: `0 ↦ 3`. -/
+def omegaIMap : Fin 1 → Fin 4 := fun _ => ⟨3, by omega⟩
+
+/-- The `omega` equality reader (variables `0 ↦ v`, `1 ↦ pt`): `v = omega`,
+by extensionality and `mem_omega` (`z ∈ᵉ omega ↔ ∀ I, Inductive I → z ∈ᵉ I`,
+itself the definable `omegaF`) — no `univChain` involved. -/
+def omegaEqF : Form 2 :=
+  .all (.iff (.mem ⟨2, by omega⟩ ⟨0, by omega⟩)
+    (.all (.imp (Form.relabel omegaIMap inductiveF)
+      (.mem ⟨2, by omega⟩ ⟨3, by omega⟩))))
+
+theorem realize_omegaEqF {v : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => v) (pt : W)) omegaEqF ↔
+      v = (omega : W) := by
+  have hrel : ∀ z I : W,
+      Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) z) I)
+          (Form.relabel omegaIMap inductiveF) ↔ Inductive I := by
+    intro z I
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) (pt : W)) z) I) ∘ omegaIMap =
+        Form.snoc Form.nil I := by
+      funext ⟨k, hk⟩
+      have hk0 : k = 0 := by omega
+      subst hk0
+      rfl
+    rw [hcomp]
+    exact inductive_iff_realize.symm
+  simp only [omegaEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_imp, hrel, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_omega (n := z)).symm
+  · intro h z
+    rw [h]
+    exact mem_omega
+
 end ConLeche.Semantics
