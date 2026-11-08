@@ -4050,4 +4050,51 @@ theorem realize_natSuccEqF {v : W} :
     rw [h, hg]
     exact key p
 
+
+
+/-! ## Stage 80: the `nat`/`natSucc` `bval` value reader `constValueNatF` -/
+
+/-- The `nat`/`natSucc` `bval` value reader (variables `0 ↦ v`, `1 ↦ cc`,
+`2 ↦ uc`, `3 ↦ pt`): the disjunction over the two `omega`-based constant
+cases — `nat` (`v = omega` via `omegaEqF`) and `natSucc`
+(`v = natSuccV` via `natSuccEqF`) — each guarded by `cc = bconstCode c`. -/
+def constValueNatF : Form 4 :=
+  .or (.and (Form.relabel cveC (bconstCodeEqF .nat)) (Form.relabel cveP omegaEqF))
+    (.and (Form.relabel cveC (bconstCodeEqF .natSucc)) (Form.relabel cveP natSuccEqF))
+
+theorem realize_constValueNatF {v cc uc : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W))
+        constValueNatF ↔
+      (cc = (bconstCode .nat : W) ∧ v = (omega : W)) ∨
+      (cc = (bconstCode .natSucc : W) ∧ v = natSuccV W) := by
+  have hC : ∀ v cc uc : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W)) ∘ cveC =
+        (Form.snoc (fun _ : Fin 1 => cc) (pt : W) : Fin 2 → W) := by
+    intro v cc uc; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hP : ∀ v cc uc : W,
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W)) ∘ cveP =
+        (Form.snoc (fun _ : Fin 1 => v) (pt : W) : Fin 2 → W) := by
+    intro v cc uc; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [constValueNatF, Form.realize_or, Form.realize_and, Form.realize_relabel,
+    hC, hP, realize_bconstCodeEqF, realize_omegaEqF, realize_natSuccEqF]
+
+theorem constValueNatF_apply {v cc uc : W} {c : Term.BConst} {us : List Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) cc) uc) (pt : W))
+      constValueNatF)
+    (hcc : cc = (bconstCode c : W)) (_huc : uc = (vnatListCode us : W)) :
+    v = bval W c us := by
+  rcases realize_constValueNatF.mp hR with ⟨h, hv⟩ | ⟨h, hv⟩
+  · have hc : c = .nat := bconstCode_inj (hcc.symm.trans h)
+    subst hc
+    have hb : bval W .nat us = (omega : W) := by simp only [bval]
+    rw [hb]; exact hv
+  · have hc : c = .natSucc := bconstCode_inj (hcc.symm.trans h)
+    subst hc
+    have hb : bval W .natSucc us = natSuccV W := by simp only [bval]
+    rw [hb]; exact hv
+
 end ConLeche.Semantics
