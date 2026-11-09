@@ -4329,4 +4329,38 @@ theorem realize_sortStepF_tmCode {X : W} {u : Nat} {G : W}
     ⟨⟨vnat u, rfl⟩, vnat u, by rw [tmCode, ssnd_kpair], hG.symm⟩
 
 
+/-! ## Stage 109: the universe-at-a-numeral reader `univAppEqF` -/
+
+/-- Map of `appEqF`'s `(pt, v, g, u)` into `(v, w, G, pt)`:
+`pt ↦ pt`, `v ↦ v`, `g ↦ G`, `u ↦ w`. -/
+def univAppMap : Fin 4 → Fin 4 :=
+  fun k => match k.val with
+  | 0 => ⟨3, by omega⟩ | 1 => ⟨0, by omega⟩ | 2 => ⟨2, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- The universe-at-a-numeral reader (variables `0 ↦ v`, `1 ↦ w`, `2 ↦ G`,
+`3 ↦ pt`): `v = app G w` — with `w = vnat k` and the tower law
+`app G (vnat k) = univ k`, this reads `v = univ k`. -/
+def univAppEqF : Form 4 := Form.relabel univAppMap appEqF
+
+theorem realize_univAppEqF {v w G : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G) (pt : W))
+        univAppEqF ↔
+      v = app G w := by
+  have hA : (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G) (pt : W)) ∘ univAppMap =
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) v) G) w : Fin 4 → W) := by
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [univAppEqF, Form.realize_relabel, hA, realize_appEqF]
+
+/-- At `w = vnat k`, the reader forces `v = app G (vnat k)`; with the
+universe-tower law, `v = univ k`. -/
+theorem univAppEqF_apply {v w G : W} {k : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G)
+      (pt : W)) univAppEqF)
+    (hw : w = (vnat k : W)) (hG : app G (vnat k) = (univ k : W)) :
+    v = (univ k : W) := by
+  rw [realize_univAppEqF.mp hR, hw, hG]
+
+
 end ConLeche.Semantics

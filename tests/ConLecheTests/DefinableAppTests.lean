@@ -1484,4 +1484,13 @@ example {v X i G : V} (h : Form.Realize Mem
     (∃ y, i = kpair (vnat 1 : V) y) ∧ (∃ w, w = ssnd i ∧ v = app G w) :=
   realize_sortStepF.mp h
 
+
+/-! ## Stage 109 example: the `univAppEqF` universe-at-a-numeral reader -/
+
+open ConLeche.Semantics in
+example {v w G : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G) (pt : V)) univAppEqF) :
+    v = app G w :=
+  realize_univAppEqF.mp h
+
 end ConLeche.SetTheory.DefinableAppEx
