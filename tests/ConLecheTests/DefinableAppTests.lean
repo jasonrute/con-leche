@@ -1541,4 +1541,15 @@ example {v a U _p : V} (h : Form.Realize Mem
     v = sepF a tyF (Form.snoc (fun _ => U) (pt : V)) :=
   realize_sepTyFEqF.mp h
 
+
+/-! ## Stage 114 example: the `tyU`-at-a-numeral reader -/
+
+open ConLeche.Semantics in
+example {v w G : V} {k : Nat} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G) (pt : V)) tyUVnatF)
+    (hw : w = (vnat k : V))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : V)) :
+    v = (tyU k : V) :=
+  tyUVnatF_apply h hw hG
+
 end ConLeche.SetTheory.DefinableAppEx
