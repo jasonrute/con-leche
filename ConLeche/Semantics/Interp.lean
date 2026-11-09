@@ -5068,4 +5068,41 @@ theorem realize_isTyF_of_isTy {X : W} (h : IsTy X) :
   · exact realize_isTyF.mpr (Or.inr hS)
 
 
+/-! ## Stage 120: the `univ`-membership-at-a-numeral reader `memUnivVnatF` -/
+
+/-- Map of `isTyF`'s `(X, pt)` into the context `(z, w, G, pt)`:
+`X ↦ z`, `pt ↦ pt`. -/
+def muT : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The `univ`-membership-at-a-numeral reader (variables `0 ↦ z`, `1 ↦ w`,
+`2 ↦ G`, `3 ↦ pt`): `memTgVnatF ∧ isTyF z pt` — at `w = vnat k`,
+`z ∈ˢ tg k ∧ IsTy z`. -/
+def memUnivVnatF : Form 4 :=
+  .and memTgVnatF (Form.relabel muT isTyF)
+
+theorem realize_memUnivVnatF {z w G : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) memUnivVnatF ↔
+      (Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) memTgVnatF) ∧
+      (Form.Realize Mem (Form.snoc (fun _ : Fin 1 => z) (pt : W)) isTyF) := by
+  have hT : (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) ∘ muT =
+      (Form.snoc (fun _ : Fin 1 => z) (pt : W) : Fin 2 → W) := by
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [memUnivVnatF, Form.realize_and, Form.realize_relabel, hT]
+
+/-- At `w = vnat k`, the reader forces `z ∈ˢ univ k`, given the tower law
+`app G (vnat n) = univChain n`. -/
+theorem memUnivVnatF_apply {z w G : W} {k : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) memUnivVnatF)
+    (hw : w = (vnat k : W))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : W)) :
+    z ∈ˢ (univ k : W) := by
+  have h := realize_memUnivVnatF.mp hR
+  show z ∈ˢ (tyU k : W)
+  rw [mem_tyU]
+  exact ⟨memTgVnatF_apply h.1 hw hG, isTyF_apply h.2⟩
+
+
 end ConLeche.Semantics

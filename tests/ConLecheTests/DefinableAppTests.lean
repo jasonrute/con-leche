@@ -1619,4 +1619,15 @@ example {X : V} (h : IsTy X) :
     Form.Realize Mem (Form.snoc (fun _ : Fin 1 => X) (pt : V)) isTyF :=
   realize_isTyF_of_isTy h
 
+
+/-! ## Stage 120 example: the `univ`-membership-at-a-numeral reader -/
+
+open ConLeche.Semantics in
+example {z w G : V} {k : Nat} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => z) w) G) (pt : V)) memUnivVnatF)
+    (hw : w = (vnat k : V))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : V)) :
+    z ∈ˢ (univ k : V) :=
+  memUnivVnatF_apply h hw hG
+
 end ConLeche.SetTheory.DefinableAppEx
