@@ -4776,4 +4776,62 @@ theorem univChainAppEqF_apply {v w G : W} {k : Nat}
   exact hG k
 
 
+/-! ## Stage 116: the `sort u` case in the `univChain`-graph context
+`sortStepG` -/
+
+/-- Map of `tyUVnatF`'s `(v, w, G, pt)` into the bound context
+`(v, X, i, pt, G, w)`: `v ↦ v`, `w ↦ w`, `G ↦ G`, `pt ↦ pt`. -/
+def tyUMapS : Fin 4 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨0, by omega⟩ | 1 => ⟨5, by omega⟩ | 2 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The `sort u` step of the definable interpretation in the `univChain`-graph
+context (variables `0 ↦ v`, `1 ↦ X`, `2 ↦ i`, `3 ↦ pt`, `4 ↦ G`, where `G` is the
+graph of `univChain`): the `vnatKpairEqF 1` guard paired with
+`∃ w, w = ssnd i ∧ tyUVnatF` — since `tmCode (.sort u) = kpair (vnat 1) (vnat u)`,
+`ssnd i = vnat u`, and `tyUVnatF` reads `v = tyU u = univ u` from the tower
+law `app G (vnat n) = univChain n`. -/
+def sortStepG : Form 5 :=
+  .and (.ex (Form.relabel tagDispatchMapS (vnatKpairEqF 1)))
+    (.ex (.and (Form.relabel ssndMapS ssndEqF) (Form.relabel tyUMapS tyUVnatF)))
+
+theorem realize_sortStepG {v X i G : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) sortStepG ↔
+      (∃ y, i = kpair (vnat 1 : W) y) ∧
+      (∃ w, w = ssnd i ∧
+        ((w = (vnat 0 : W) ∧ v = (univZero : W)) ∨
+         (¬ w = (vnat 0 : W) ∧
+          ∃ u1, u1 = vsucc w ∧
+            ∃ t, t = app G u1 ∧
+              ∃ U0, U0 = (univZero : W) ∧ v = sepF t tyF (Form.snoc (fun _ => U0) (pt : W))))) := by
+  have hM : ∀ y : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) y) ∘ tagDispatchMapS =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => i) y) (pt : W) : Fin 3 → W) := by
+    intro y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hN : ∀ w : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) w) ∘ ssndMapS =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => w) i) (pt : W) : Fin 3 → W) := by
+    intro w; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hY : ∀ w : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) w) ∘ tyUMapS =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G) (pt : W) : Fin 4 → W) := by
+    intro w; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [sortStepG, Form.realize_and, Form.realize_ex, Form.realize_relabel,
+    hM, hN, hY, realize_vnatKpairEqF, realize_ssndEqF, realize_tyUVnatF]
+
+/-- At a `sort u` code, `sortStepG` forces `v = univ u`, given the tower law
+`app G (vnat n) = univChain n`. -/
+theorem sortStepG_apply {v X i G : W} {u : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) sortStepG)
+    (hi : i = (tmCode (Term.Term.sort u) : W))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : W)) :
+    v = (univ u : W) := by
+  rcases (realize_sortStepG.mp hR).2 with ⟨w, hw, hR'⟩
+  rw [hi, tmCode, ssnd_kpair] at hw
+  exact tyUVnatF_apply (realize_tyUVnatF.mpr hR') hw hG
+
+
 end ConLeche.Semantics

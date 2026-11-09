@@ -1571,4 +1571,16 @@ example {v w G : V} {k : Nat} (h : Form.Realize Mem
     v = (univChain k : V) :=
   univChainAppEqF_apply h hw hG
 
+
+/-! ## Stage 116 example: the `sort u` step in the `univChain`-graph context -/
+
+open ConLeche.Semantics in
+example {v X i G : V} {u : Nat} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V)) G)
+    sortStepG)
+    (hi : i = (tmCode (Term.Term.sort u) : V))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : V)) :
+    v = (univ u : V) :=
+  sortStepG_apply h hi hG
+
 end ConLeche.SetTheory.DefinableAppEx
