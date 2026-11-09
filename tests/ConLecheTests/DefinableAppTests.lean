@@ -1606,4 +1606,17 @@ example {z w G : V} {k : Nat} (h : Form.Realize Mem
     z ∈ˢ (tg k : V) :=
   memTgVnatF_apply h hw hG
 
+
+/-! ## Stage 119 example: the `IsTy` reader -/
+
+open ConLeche.Semantics in
+example {X : V} (h : Form.Realize Mem (Form.snoc (fun _ : Fin 1 => X) (pt : V)) isTyF) :
+    IsTy X :=
+  isTyF_apply h
+
+open ConLeche.Semantics in
+example {X : V} (h : IsTy X) :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => X) (pt : V)) isTyF :=
+  realize_isTyF_of_isTy h
+
 end ConLeche.SetTheory.DefinableAppEx

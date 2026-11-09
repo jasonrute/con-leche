@@ -5006,4 +5006,66 @@ theorem memTgVnatF_apply {z w G : W} {k : Nat}
     exact hz
 
 
+/-! ## Stage 119: the `IsTy` reader `isTyF` -/
+
+/-- Map of `univZeroEqF`'s `(v, pt)` into the bound context
+`(X, pt, u)`: `v ↦ u`, `pt ↦ pt`. -/
+def isTyU : Fin 2 → Fin 3 :=
+  fun k => match k.val with | 0 => ⟨2, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- Map of `memPF`'s `(b, z)` into the bound context `(X, pt, u)`:
+`b ↦ u`, `z ↦ X`. -/
+def isTyM : Fin 2 → Fin 3 :=
+  fun k => match k.val with | 0 => ⟨2, by omega⟩ | _ => ⟨0, by omega⟩
+
+/-- The variable swap `Fin 2 → Fin 2` mapping `strictF`'s `(pt, X)` onto
+`isTyF`'s `(X, pt)`: `pt ↦ pt`, `X ↦ X`. -/
+def isTySwap : Fin 2 → Fin 2 :=
+  fun k => match k.val with | 0 => ⟨1, by omega⟩ | _ => ⟨0, by omega⟩
+
+/-- The `IsTy` reader (variables `0 ↦ X`, `1 ↦ pt`): `X ∈ˢ univZero ∨ Strict X`,
+the first disjunct via `∃ u, u = univZero ∧ X ∈ˢ u`, the second by relabeling
+`strictF` with the variable swap. -/
+def isTyF : Form 2 :=
+  .or (.ex (.and (Form.relabel isTyU univZeroEqF) (Form.relabel isTyM memPF)))
+    (Form.relabel isTySwap strictF)
+
+theorem realize_isTyF {X : W} :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => X) (pt : W)) isTyF ↔
+      (∃ u, u = (univZero : W) ∧ X ∈ˢ u) ∨ (X ≠ pt ∧ ¬ pt ∈ˢ X) := by
+  have hU : ∀ u : W, (Form.snoc (Form.snoc (fun _ : Fin 1 => X) (pt : W)) u) ∘ isTyU =
+      (Form.snoc (fun _ : Fin 1 => u) (pt : W) : Fin 2 → W) := by
+    intro u; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hM : ∀ u : W, (Form.snoc (Form.snoc (fun _ : Fin 1 => X) (pt : W)) u) ∘ isTyM =
+      (Form.snoc (fun _ : Fin 1 => u) X : Fin 2 → W) := by
+    intro u; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hS : (Form.snoc (fun _ : Fin 1 => X) (pt : W)) ∘ isTySwap =
+      (Form.snoc (fun _ : Fin 1 => pt) X : Fin 2 → W) := by
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [isTyF, Form.realize_or, Form.realize_ex, Form.realize_and,
+    Form.realize_relabel, hU, hM, hS,
+    realize_univZeroEqF, realize_memPF, realize_strictF]
+
+/-- The reader forces `IsTy X`. -/
+theorem isTyF_apply {X : W}
+    (hR : Form.Realize Mem (Form.snoc (fun _ : Fin 1 => X) (pt : W)) isTyF) :
+    IsTy X := by
+  rcases realize_isTyF.mp hR with ⟨u, rfl, h⟩ | hS
+  · exact Or.inl h
+  · exact Or.inr hS
+
+/-- Conversely, `IsTy X` realizes the reader. -/
+theorem realize_isTyF_of_isTy {X : W} (h : IsTy X) :
+    Form.Realize Mem (Form.snoc (fun _ : Fin 1 => X) (pt : W)) isTyF := by
+  rcases h with h | hS
+  · exact realize_isTyF.mpr (Or.inl ⟨univZero, rfl, h⟩)
+  · exact realize_isTyF.mpr (Or.inr hS)
+
+
 end ConLeche.Semantics
