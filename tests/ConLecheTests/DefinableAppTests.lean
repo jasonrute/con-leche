@@ -1461,4 +1461,17 @@ example {v F m i A : V} (h : Form.Realize Mem
     app3sImageEqF) : v = app3sImageF F m i A :=
   realize_app3sImageEqF.mp h
 
+
+/-! ## Stage 107 example: the `interF` and `constImageF` equality readers -/
+
+example {v a c : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) a) c)
+    interFEqF) : v = interF a c :=
+  realize_interFEqF.mp h
+
+example {v c A : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) c) A)
+    constImageEqF) : v = constImageF c A :=
+  realize_constImageEqF.mp h
+
 end ConLeche.SetTheory.DefinableAppEx

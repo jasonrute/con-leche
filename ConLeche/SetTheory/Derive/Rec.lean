@@ -2889,4 +2889,47 @@ theorem realize_app3sImageEqF {v F m i A : V} :
     rw [h]
     exact mem_app3sImageF
 
+/-! ## Stage 107: the `interF` and `constImageF` equality readers -/
+
+/-- The `interF` equality reader (variables `0 → v`, `1 → a`,
+`2 → c`): `v = interF a c`, by extensionality + `mem_interF`. -/
+def interFEqF : Form 3 :=
+  .all (.iff (.mem ⟨3, by omega⟩ ⟨0, by omega⟩)
+    (.and (.mem ⟨3, by omega⟩ ⟨1, by omega⟩) (.mem ⟨3, by omega⟩ ⟨2, by omega⟩)))
+
+theorem realize_interFEqF {v a c : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) a) c)
+        interFEqF ↔
+      v = interF a c := by
+  simp only [interFEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_and, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_interF (a := a) (c := c)).symm
+  · intro h z
+    rw [h]
+    exact mem_interF
+
+/-- The `constImageF` equality reader (variables `0 → v`, `1 → c`,
+`2 → A`): `v = constImageF c A`, by extensionality + `mem_constImageF`,
+with `z = c` read by `.equal`. -/
+def constImageEqF : Form 3 :=
+  .all (.iff (.mem ⟨3, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨4, by omega⟩ ⟨2, by omega⟩) (.equal ⟨3, by omega⟩ ⟨1, by omega⟩))))
+
+theorem realize_constImageEqF {v c A : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) c) A)
+        constImageEqF ↔
+      v = constImageF c A := by
+  simp only [constImageEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, Form.realize_equal, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_constImageF (c := c) (A := A)).symm
+  · intro h z
+    rw [h]
+    exact mem_constImageF
+
 end ConLeche.SetTheory
