@@ -1521,4 +1521,15 @@ example (j : Nat) (us : List Nat) {x w : V} (hx : x = vnatListCode us)
     w = (vnat (us.getD j 0) : V) :=
   (realize_vnatListGetF j us hx).mp h
 
+
+/-! ## Stage 112 example: the `tg`-at-a-numeral reader -/
+
+open ConLeche.Semantics in
+example {v w G : V} {k : Nat} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G) (pt : V)) tgVnatF)
+    (hw : w = (vnat k : V))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : V)) :
+    v = (tg k : V) :=
+  tgVnatF_apply h hw hG
+
 end ConLeche.SetTheory.DefinableAppEx

@@ -4551,4 +4551,80 @@ theorem realize_vnatListGetF (j : Nat) (us : List Nat) {x w : W} (hx : x = vnatL
         exact Or.inr ⟨vnat u, vnatListCode us, rfl, (ih us).mpr h⟩
 
 
+/-! ## Stage 112: the `tg`-at-a-numeral reader `tgVnatF` -/
+
+/-- Map of `vnatEqF 0`'s `(x, pt)` into `(v, w, G, pt)`: `x ↦ w`, `pt ↦ pt`. -/
+def tv0 : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨1, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `univZeroEqF`'s `(v, pt)` into `(v, w, G, pt)`: `v ↦ v`, `pt ↦ pt`. -/
+def tvU : Fin 2 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `vsuccEqF`'s `(e, m)` into the bound context `(v, w, G, pt, u1)`:
+`e ↦ u1`, `m ↦ w`. -/
+def tvS : Fin 2 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- Map of `appEqF`'s `(pt, v, g, u)` into the bound context
+`(v, w, G, pt, u1)`: `pt ↦ pt`, `v ↦ v`, `g ↦ G`, `u ↦ u1`. -/
+def tvA1 : Fin 4 → Fin 5 :=
+  fun k => match k.val with
+  | 0 => ⟨3, by omega⟩ | 1 => ⟨0, by omega⟩ | 2 => ⟨2, by omega⟩ | _ => ⟨4, by omega⟩
+
+/-- The `tg`-at-a-numeral reader (variables `0 ↦ v`, `1 ↦ w`, `2 ↦ G`,
+`3 ↦ pt`, with `G` the graph of `univChain`): at `w = vnat 0`,
+`v = univZero = tg 0`; at `w = vnat k` with `k ≠ 0`,
+`v = app G (vsucc w) = app G (vnat (k+1)) = univChain (k+1) = tg k`. -/
+def tgVnatF : Form 4 :=
+  .or (.and (Form.relabel tv0 (vnatEqF 0)) (Form.relabel tvU univZeroEqF))
+    (.and (.not (Form.relabel tv0 (vnatEqF 0)))
+      (.ex (.and (Form.relabel tvS vsuccEqF) (Form.relabel tvA1 appEqF))))
+
+theorem realize_tgVnatF {v w G : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) w) G) (pt : W)) tgVnatF ↔
+      (w = (vnat 0 : W) ∧ v = (univZero : W)) ∨
+      (¬ w = (vnat 0 : W) ∧
+        ∃ u1, u1 = vsucc w ∧ v = app G u1) := by
+  have h0 : (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) w) G) (pt : W)) ∘ tv0 = (Form.snoc (fun _ : Fin 1 => w) (pt : W) : Fin 2 → W) := by
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hU : (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) w) G) (pt : W)) ∘ tvU = (Form.snoc (fun _ : Fin 1 => v) (pt : W) : Fin 2 → W) := by
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hS : ∀ u1 : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) w) G) (pt : W)) u1) ∘ tvS =
+      (Form.snoc (fun _ : Fin 1 => u1) w : Fin 2 → W) := by
+    intro u1; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hA : ∀ u1 : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) w) G) (pt : W)) u1) ∘ tvA1 =
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) v) G) u1 : Fin 4 → W) := by
+    intro u1; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [tgVnatF, Form.realize_or, Form.realize_and, Form.realize_not,
+    Form.realize_ex, Form.realize_relabel, h0, hU, hS, hA,
+    realize_vnatEqF, realize_univZeroEqF, realize_vsuccEqF, realize_appEqF]
+
+/-- At `w = vnat k`, the reader forces `v = tg k`, given the tower law
+`app G (vnat n) = univChain n`. -/
+theorem tgVnatF_apply {v w G : W} {k : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) w) G) (pt : W)) tgVnatF)
+    (hw : w = (vnat k : W))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : W)) :
+    v = (tg k : W) := by
+  rcases realize_tgVnatF.mp hR with ⟨h0, hv⟩ | ⟨hne, u1, h1, hv⟩
+  · have hk : k = 0 := vnat_inj (hw.symm.trans h0)
+    subst hk; rw [tg_zero]; exact hv
+  · have hk : k ≠ 0 := fun hk => hne (hw ▸ congrArg vnat hk)
+    obtain ⟨n, rfl⟩ : ∃ n, k = n + 1 := ⟨k - 1, by omega⟩
+    rw [show (vnat (n + 1) : W) = vsucc (vnat n) from rfl] at hw
+    rw [hw] at h1
+    have hu1 : u1 = (vnat (n + 2) : W) := h1
+    rw [hv, hu1, hG (n + 2)]
+    simp only [tg]
+
+
 end ConLeche.Semantics
