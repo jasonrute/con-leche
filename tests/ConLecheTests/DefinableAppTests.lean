@@ -1474,4 +1474,14 @@ example {v c A : V} (h : Form.Realize Mem
     constImageEqF) : v = constImageF c A :=
   realize_constImageEqF.mp h
 
+
+/-! ## Stage 108 example: the `sortStepF` reader with a universe-graph parameter -/
+
+open ConLeche.Semantics in
+example {v X i G : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V)) G)
+    sortStepF) :
+    (∃ y, i = kpair (vnat 1 : V) y) ∧ (∃ w, w = ssnd i ∧ v = app G w) :=
+  realize_sortStepF.mp h
+
 end ConLeche.SetTheory.DefinableAppEx

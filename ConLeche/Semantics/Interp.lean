@@ -4255,4 +4255,78 @@ theorem realize_unitSetEqF {v : W} :
     exact mem_unitSet_iff
 
 
+/-! ## Stage 108: the `sort u` case of the definable interp step `sortStepF`,
+with the universe-tower graph as a parameter -/
+
+/-- Map of `vnatKpairEqF t`'s `(z, y, pt)` into the bound context
+`(v, X, i, pt, G, y)`: `z ↦ i`, `y ↦ y`, `pt ↦ pt`. -/
+def tagDispatchMapS : Fin 3 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨2, by omega⟩ | 1 => ⟨5, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `ssndEqF`'s `(y, x, pt)` into the bound context
+`(v, X, i, pt, G, w)`: `y ↦ w`, `x ↦ i`, `pt ↦ pt`. -/
+def ssndMapS : Fin 3 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨5, by omega⟩ | 1 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `appEqF`'s `(pt, v, g, u)` into the bound context
+`(v, X, i, pt, G, w)`: `pt ↦ pt`, `v ↦ v`, `g ↦ G`, `u ↦ w`. -/
+def appMapS : Fin 4 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨3, by omega⟩ | 1 => ⟨0, by omega⟩ | 2 => ⟨4, by omega⟩ | _ => ⟨5, by omega⟩
+
+/-- The `sort u` step of the definable interpretation (variables
+`0 ↦ v`, `1 ↦ X`, `2 ↦ i`, `3 ↦ pt`, `4 ↦ G`, where `G` is the universe-tower
+graph parameter): the `tagDisjF 1` guard paired with
+`∃ w, w = ssnd i ∧ v = app G w` — since `tmCode (.sort u) = kpair (vnat 1) (vnat u)`,
+`ssnd i = vnat u`, and with `app G (vnat u) = univ u` this reads `v = univ u`. -/
+def sortStepF : Form 5 :=
+  .and (.ex (Form.relabel tagDispatchMapS (vnatKpairEqF 1)))
+    (.ex (.and (Form.relabel ssndMapS ssndEqF) (Form.relabel appMapS appEqF)))
+
+theorem realize_sortStepF {v X i G : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) sortStepF ↔
+      (∃ y, i = kpair (vnat 1 : W) y) ∧
+      (∃ w, w = ssnd i ∧ v = app G w) := by
+  have hM : ∀ y : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) y) ∘ tagDispatchMapS =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => i) y) (pt : W) : Fin 3 → W) := by
+    intro y; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hN : ∀ w : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) w) ∘ ssndMapS =
+        (Form.snoc (Form.snoc (fun _ : Fin 1 => w) i) (pt : W) : Fin 3 → W) := by
+    intro w; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hA : ∀ w : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) w) ∘ appMapS =
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) v) G) w : Fin 4 → W) := by
+    intro w; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [sortStepF, Form.realize_and, Form.realize_ex, Form.realize_relabel,
+    hM, hN, hA, realize_vnatKpairEqF, realize_ssndEqF, realize_appEqF]
+
+/-- At a `sort u` code, `sortStepF` forces `v = app G (vnat u)`; with the
+universe-tower law `app G (vnat u) = univ u`, `v = univ u`. -/
+theorem sortStepF_apply {v X i G : W} {u : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) sortStepF)
+    (hi : i = (tmCode (Term.Term.sort u) : W))
+    (hG : app G (vnat u) = (univ u : W)) :
+    v = (univ u : W) := by
+  rcases (realize_sortStepF.mp hR).2 with ⟨w, hw, hv⟩
+  rw [hi, tmCode, ssnd_kpair] at hw
+  rw [hv, hw, hG]
+
+/-- The `sort u` code realizes the step at `v = univ u`, given the
+universe-tower law. -/
+theorem realize_sortStepF_tmCode {X : W} {u : Nat} {G : W}
+    (hG : app G (vnat u) = (univ u : W)) :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => univ u) X)
+        (tmCode (Term.Term.sort u))) (pt : W)) G) sortStepF :=
+  realize_sortStepF.mpr
+    ⟨⟨vnat u, rfl⟩, vnat u, by rw [tmCode, ssnd_kpair], hG.symm⟩
+
+
 end ConLeche.Semantics
