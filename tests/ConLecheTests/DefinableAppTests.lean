@@ -1552,4 +1552,23 @@ example {v w G : V} {k : Nat} (h : Form.Realize Mem
     v = (tyU k : V) :=
   tyUVnatF_apply h hw hG
 
+
+/-! ## Stage 115 example: the `univ`/`univChain`-at-a-numeral corollaries -/
+
+open ConLeche.Semantics in
+example {v w G : V} {k : Nat} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G) (pt : V)) tyUVnatF)
+    (hw : w = (vnat k : V))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : V)) :
+    v = (univ k : V) :=
+  univVnatF_apply h hw hG
+
+open ConLeche.Semantics in
+example {v w G : V} {k : Nat} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G) (pt : V)) univAppEqF)
+    (hw : w = (vnat k : V))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : V)) :
+    v = (univChain k : V) :=
+  univChainAppEqF_apply h hw hG
+
 end ConLeche.SetTheory.DefinableAppEx

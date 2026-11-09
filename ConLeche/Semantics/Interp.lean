@@ -4754,4 +4754,26 @@ theorem tyUVnatF_apply {v w G : W} {k : Nat}
     simp only [tg]
 
 
+/-! ## Stage 115: the `univ`- and `univChain`-at-a-numeral corollaries -/
+
+/-- At `w = vnat k`, the `tyUVnatF` reader forces `v = univ k` (since
+`univ = tyU`), given the tower law `app G (vnat n) = univChain n`. -/
+theorem univVnatF_apply {v w G : W} {k : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) w) G) (pt : W)) tyUVnatF)
+    (hw : w = (vnat k : W))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : W)) :
+    v = (univ k : W) :=
+  tyUVnatF_apply hR hw hG
+
+/-- At `w = vnat k`, the `univAppEqF` reader forces `v = univChain k`,
+given the tower law. -/
+theorem univChainAppEqF_apply {v w G : W} {k : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) w) G) (pt : W)) univAppEqF)
+    (hw : w = (vnat k : W))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : W)) :
+    v = (univChain k : W) := by
+  rw [realize_univAppEqF.mp hR, hw]
+  exact hG k
+
+
 end ConLeche.Semantics
