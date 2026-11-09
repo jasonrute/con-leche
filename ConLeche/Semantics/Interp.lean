@@ -4627,4 +4627,37 @@ theorem tgVnatF_apply {v w G : W} {k : Nat}
     simp only [tg]
 
 
+/-! ## Stage 113: the `sepF`-with-`tyF` equality reader `sepTyFEqF` -/
+
+/-- Map of `tyF`'s `(U, p, X)` into the bound context `(v, a, U, p, z)`:
+`U ↦ U`, `p ↦ p`, `X ↦ z`. -/
+def sepTyMap : Fin 3 → Fin 5 :=
+  fun k => match k.val with
+  | 0 => ⟨2, by omega⟩ | 1 => ⟨3, by omega⟩ | _ => ⟨4, by omega⟩
+
+/-- The `sepF`-with-`tyF` equality reader (variables `0 ↦ v`, `1 ↦ a`,
+`2 ↦ U`, `3 ↦ p`): `v = sepF a tyF (snoc (fun _ => U) p)`, by extensionality
+and `mem_sepF`. -/
+def sepTyFEqF : Form 4 :=
+  .all (.iff (.mem ⟨4, by omega⟩ ⟨0, by omega⟩)
+    (.and (.mem ⟨4, by omega⟩ ⟨1, by omega⟩) (Form.relabel sepTyMap tyF)))
+
+theorem realize_sepTyFEqF {v a U p : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) U) p) sepTyFEqF ↔
+      v = sepF a tyF (Form.snoc (fun _ => U) p) := by
+  have hM : ∀ z : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) U) p) z) ∘ sepTyMap =
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => U) p) z : Fin 3 → W) := by
+    intro z; funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  simp only [sepTyFEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_and, Form.realize_relabel, hM, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans mem_sepF.symm
+  · intro h z
+    rw [h]
+    exact mem_sepF
+
+
 end ConLeche.Semantics

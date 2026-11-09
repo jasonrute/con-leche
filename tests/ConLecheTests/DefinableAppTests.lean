@@ -1532,4 +1532,13 @@ example {v w G : V} {k : Nat} (h : Form.Realize Mem
     v = (tg k : V) :=
   tgVnatF_apply h hw hG
 
+
+/-! ## Stage 113 example: the `sepF`-with-`tyF` equality reader -/
+
+open ConLeche.Semantics in
+example {v a U _p : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) a) U) (pt : V)) sepTyFEqF) :
+    v = sepF a tyF (Form.snoc (fun _ => U) (pt : V)) :=
+  realize_sepTyFEqF.mp h
+
 end ConLeche.SetTheory.DefinableAppEx
