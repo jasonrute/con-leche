@@ -1595,4 +1595,15 @@ example {v X i G : V} {u : Nat} (h : Form.Realize Mem
     v = (univ u : V) :=
   interpStepG_apply_sort h hi hG
 
+
+/-! ## Stage 118 example: the `tg`-membership-at-a-numeral reader -/
+
+open ConLeche.Semantics in
+example {z w G : V} {k : Nat} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => z) w) G) (pt : V)) memTgVnatF)
+    (hw : w = (vnat k : V))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : V)) :
+    z ∈ˢ (tg k : V) :=
+  memTgVnatF_apply h hw hG
+
 end ConLeche.SetTheory.DefinableAppEx

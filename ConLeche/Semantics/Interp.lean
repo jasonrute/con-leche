@@ -4914,4 +4914,96 @@ theorem realize_interpStepG_tmCode_sort {X : W} {u : Nat} {G : W}
   realize_interpStepG.mpr (Or.inr (Or.inr (Or.inl (realize_sortStepG_tmCode hG))))
 
 
+/-! ## Stage 118: the `tg`-membership-at-a-numeral reader `memTgVnatF` -/
+
+/-- Map of `univZeroEqF`'s `(v, pt)` into the bound context
+`(z, w, G, pt, u)`: `v ↦ u`, `pt ↦ pt`. -/
+def mtgU : Fin 2 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `memPF`'s `(b, z)` into the bound context `(z, w, G, pt, u)`:
+`b ↦ u`, `z ↦ z`. -/
+def mtgM : Fin 2 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | _ => ⟨0, by omega⟩
+
+/-- Map of `appEqF`'s `(pt, v, g, u)` into the bound context
+`(z, w, G, pt, u1, t)`: `pt ↦ pt`, `v ↦ t`, `g ↦ G`, `u ↦ u1`. -/
+def mtgA : Fin 4 → Fin 6 :=
+  fun k => match k.val with
+  | 0 => ⟨3, by omega⟩ | 1 => ⟨5, by omega⟩ | 2 => ⟨2, by omega⟩ | _ => ⟨4, by omega⟩
+
+/-- Map of `memPF`'s `(b, z)` into the bound context `(z, w, G, pt, u1, t)`:
+`b ↦ t`, `z ↦ z`. -/
+def mtgM2 : Fin 2 → Fin 6 :=
+  fun k => match k.val with | 0 => ⟨5, by omega⟩ | _ => ⟨0, by omega⟩
+
+/-- The `tg`-membership-at-a-numeral reader (variables `0 ↦ z`, `1 ↦ w`,
+`2 ↦ G`, `3 ↦ pt`, with `G` the graph of `univChain`): at `w = vnat k`,
+`z ∈ˢ tg k` — at `k = 0`, `z ∈ˢ univZero = tg 0`; at `k ≠ 0`,
+`z ∈ˢ app G (vsucc w) = univChain (k+1) = tg k`. -/
+def memTgVnatF : Form 4 :=
+  .or (.and (Form.relabel tv0 (vnatEqF 0))
+      (.ex (.and (Form.relabel mtgU univZeroEqF) (Form.relabel mtgM memPF))))
+    (.and (.not (Form.relabel tv0 (vnatEqF 0)))
+      (.ex (.and (Form.relabel tvS vsuccEqF)
+        (.ex (.and (Form.relabel mtgA appEqF) (Form.relabel mtgM2 memPF))))))
+
+theorem realize_memTgVnatF {z w G : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) memTgVnatF ↔
+      (w = (vnat 0 : W) ∧ ∃ u, u = (univZero : W) ∧ z ∈ˢ u) ∨
+      (¬ w = (vnat 0 : W) ∧
+        ∃ u1, u1 = vsucc w ∧ ∃ t, t = app G u1 ∧ z ∈ˢ t) := by
+  have h0 : (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) ∘ tv0 = (Form.snoc (fun _ : Fin 1 => w) (pt : W) : Fin 2 → W) := by
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hU : ∀ u : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) u) ∘ mtgU =
+      (Form.snoc (fun _ : Fin 1 => u) (pt : W) : Fin 2 → W) := by
+    intro u; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hM : ∀ u : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) u) ∘ mtgM =
+      (Form.snoc (fun _ : Fin 1 => u) z : Fin 2 → W) := by
+    intro u; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hS : ∀ u1 : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) u1) ∘ tvS =
+      (Form.snoc (fun _ : Fin 1 => u1) w : Fin 2 → W) := by
+    intro u1; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hA : ∀ u1 t : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) u1) t) ∘ mtgA =
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) t) G) u1 : Fin 4 → W) := by
+    intro u1 t; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hM2 : ∀ u1 t : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) u1) t) ∘ mtgM2 =
+      (Form.snoc (fun _ : Fin 1 => t) z : Fin 2 → W) := by
+    intro u1 t; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [memTgVnatF, Form.realize_or, Form.realize_and, Form.realize_not,
+    Form.realize_ex, Form.realize_relabel, h0, hU, hM, hS, hA, hM2,
+    realize_vnatEqF, realize_univZeroEqF, realize_memPF, realize_vsuccEqF, realize_appEqF]
+
+/-- At `w = vnat k`, the reader forces `z ∈ˢ tg k`, given the tower law
+`app G (vnat n) = univChain n`. -/
+theorem memTgVnatF_apply {z w G : W} {k : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) memTgVnatF)
+    (hw : w = (vnat k : W))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : W)) :
+    z ∈ˢ (tg k : W) := by
+  rcases realize_memTgVnatF.mp hR with ⟨h0, u, rfl, hz⟩ | ⟨hne, u1, h1, t, ht, hz⟩
+  · have hk : k = 0 := vnat_inj (hw.symm.trans h0)
+    subst hk; rw [tg_zero]; exact hz
+  · have hk : k ≠ 0 := fun hk => hne (hw ▸ congrArg vnat hk)
+    obtain ⟨n, rfl⟩ : ∃ n, k = n + 1 := ⟨k - 1, by omega⟩
+    rw [show (vnat (n + 1) : W) = vsucc (vnat n) from rfl] at hw
+    rw [hw] at h1
+    have hu1 : u1 = (vnat (n + 2) : W) := h1
+    rw [ht, hu1, hG (n + 2)] at hz
+    rw [show (tg (n + 1) : W) = (univChain (n + 2) : W) from by simp only [tg]]
+    exact hz
+
+
 end ConLeche.Semantics
