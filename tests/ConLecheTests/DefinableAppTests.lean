@@ -1583,4 +1583,16 @@ example {v X i G : V} {u : Nat} (h : Form.Realize Mem
     v = (univ u : V) :=
   sortStepG_apply h hi hG
 
+
+/-! ## Stage 117 example: the combined `interpStepG` in the `univChain`-graph context -/
+
+open ConLeche.Semantics in
+example {v X i G : V} {u : Nat} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V)) G)
+    interpStepG)
+    (hi : i = (tmCode (Term.Term.sort u) : V))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : V)) :
+    v = (univ u : V) :=
+  interpStepG_apply_sort h hi hG
+
 end ConLeche.SetTheory.DefinableAppEx
