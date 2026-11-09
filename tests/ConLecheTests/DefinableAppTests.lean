@@ -1493,4 +1493,22 @@ example {v w G : V} (h : Form.Realize Mem
     v = app G w :=
   realize_univAppEqF.mp h
 
+
+/-! ## Stage 110 example: the combined `interpStepF3` in the tower-graph context -/
+
+open ConLeche.Semantics in
+example {v X i G : V} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V)) G)
+    interpStepF3) :
+    (Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V)) interpStepF) ∨
+    (Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V)) constStepF) ∨
+    (Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V)) G)
+      sortStepF) ∨
+    (Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V)) sortZeroStepF) :=
+  realize_interpStepF3.mp h
+
 end ConLeche.SetTheory.DefinableAppEx

@@ -4363,4 +4363,67 @@ theorem univAppEqF_apply {v w G : W} {k : Nat}
   rw [realize_univAppEqF.mp hR, hw, hG]
 
 
+/-! ## Stage 110: the combined definable interp step with the tower graph
+`interpStepF3` -/
+
+/-- The inclusion `Fin 4 → Fin 5` relabeling the `(v, X, i, pt)` readers into
+the `(v, X, i, pt, G)` context. -/
+def emb45 : Fin 4 → Fin 5 := fun k => ⟨k.val, by omega⟩
+
+/-- The combined definable interp step in the tower-graph context (variables
+`0 ↦ v`, `1 ↦ X`, `2 ↦ i`, `3 ↦ pt`, `4 ↦ G`): the nine covered tags of
+`interpStepF`, the easy-`const` case `constStepF`, the `sort u` case
+`sortStepF` (via the tower graph `G`), and the `sort 0` case
+`sortZeroStepF`. -/
+def interpStepF3 : Form 5 :=
+  .or (Form.relabel emb45 interpStepF)
+  (.or (Form.relabel emb45 constStepF)
+  (.or sortStepF (Form.relabel emb45 sortZeroStepF)))
+
+theorem realize_interpStepF3 {v X i G : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) interpStepF3 ↔
+      (Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) interpStepF) ∨
+      (Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) constStepF) ∨
+      (Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) sortStepF) ∨
+      (Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) sortZeroStepF) := by
+  have hE : (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) ∘ emb45 = (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W) : Fin 4 → W) := by
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [interpStepF3, Form.realize_or, Form.realize_relabel, hE]
+
+/-- At a `sort u` code, `interpStepF3` forces `v = univ u` (given the
+tower law `app G (vnat u) = univ u`). -/
+theorem interpStepF3_apply_sort {v X i G : W} {u : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) X) i) (pt : W)) G) interpStepF3)
+    (hi : i = (tmCode (Term.Term.sort u) : W))
+    (hG : app G (vnat u) = (univ u : W)) :
+    v = (univ u : W) := by
+  rcases realize_interpStepF3.mp hR with h | h | h | h
+  · rcases realize_interpStepF.mp h with
+      (⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ |
+        ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩ | ⟨⟨y, hy⟩, _⟩)
+    all_goals
+      rw [hi, tmCode] at hy
+      exact absurd (vnat_inj (kpair_inj hy).1) (by omega)
+  · rcases (realize_constStepF.mp h).1 with ⟨y, hy⟩
+    rw [hi, tmCode] at hy
+    exact absurd (vnat_inj (kpair_inj hy).1) (by omega)
+  · exact sortStepF_apply h hi hG
+  · rcases (realize_sortZeroStepF.mp h).2 with ⟨w, hw, hw0, -⟩
+    rw [hi, tmCode, ssnd_kpair] at hw
+    have hu : u = 0 := vnat_inj (hw ▸ hw0)
+    subst hu
+    exact sortZeroStepF_apply h hi
+
+/-- The `sort u` code realizes `interpStepF3` at `v = univ u`, given the
+tower law. -/
+theorem realize_interpStepF3_tmCode_sort {X : W} {u : Nat} {G : W}
+    (hG : app G (vnat u) = (univ u : W)) :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => univ u) X)
+        (tmCode (Term.Term.sort u))) (pt : W)) G) interpStepF3 :=
+  realize_interpStepF3.mpr (Or.inr (Or.inr (Or.inl (realize_sortStepF_tmCode hG))))
+
+
 end ConLeche.Semantics
