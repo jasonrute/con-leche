@@ -1630,4 +1630,15 @@ example {z w G : V} {k : Nat} (h : Form.Realize Mem
     z ∈ˢ (univ k : V) :=
   memUnivVnatF_apply h hw hG
 
+
+/-! ## Stage 121 example: the `univChain`-membership-at-a-numeral reader -/
+
+open ConLeche.Semantics in
+example {z w G : V} {k : Nat} (h : Form.Realize Mem
+    (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => z) w) G) (pt : V)) memUnivChainVnatF)
+    (hw : w = (vnat k : V))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : V)) :
+    z ∈ˢ (univChain k : V) :=
+  memUnivChainVnatF_apply h hw hG
+
 end ConLeche.SetTheory.DefinableAppEx

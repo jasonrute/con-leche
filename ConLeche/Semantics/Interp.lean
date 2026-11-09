@@ -5105,4 +5105,52 @@ theorem memUnivVnatF_apply {z w G : W} {k : Nat}
   exact ⟨memTgVnatF_apply h.1 hw hG, isTyF_apply h.2⟩
 
 
+/-! ## Stage 121: the `univChain`-membership-at-a-numeral reader `memUnivChainVnatF` -/
+
+/-- Map of `appEqF`'s `(pt, v, g, u)` into the bound context
+`(z, w, G, pt, t)`: `pt ↦ pt`, `v ↦ t`, `g ↦ G`, `u ↦ w`. -/
+def mcA : Fin 4 → Fin 5 :=
+  fun k => match k.val with
+  | 0 => ⟨3, by omega⟩ | 1 => ⟨4, by omega⟩ | 2 => ⟨2, by omega⟩ | _ => ⟨1, by omega⟩
+
+/-- Map of `memPF`'s `(b, z)` into the bound context `(z, w, G, pt, t)`:
+`b ↦ t`, `z ↦ z`. -/
+def mcM : Fin 2 → Fin 5 :=
+  fun k => match k.val with | 0 => ⟨4, by omega⟩ | _ => ⟨0, by omega⟩
+
+/-- The `univChain`-membership-at-a-numeral reader (variables `0 ↦ z`,
+`1 ↦ w`, `2 ↦ G`, `3 ↦ pt`): `∃ t, t = app G w ∧ z ∈ˢ t` — at `w = vnat k`,
+`z ∈ˢ univChain k`. -/
+def memUnivChainVnatF : Form 4 :=
+  .ex (.and (Form.relabel mcA appEqF) (Form.relabel mcM memPF))
+
+theorem realize_memUnivChainVnatF {z w G : W} :
+    Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) memUnivChainVnatF ↔
+      ∃ t, t = app G w ∧ z ∈ˢ t := by
+  have hA : ∀ t : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) t) ∘ mcA =
+      (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => pt) t) G) w : Fin 4 → W) := by
+    intro t; funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hM : ∀ t : W, (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) t) ∘ mcM =
+      (Form.snoc (fun _ : Fin 1 => t) z : Fin 2 → W) := by
+    intro t; funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  simp only [memUnivChainVnatF, Form.realize_ex, Form.realize_and,
+    Form.realize_relabel, hA, hM, realize_appEqF, realize_memPF]
+
+/-- At `w = vnat k`, the reader forces `z ∈ˢ univChain k`, given the tower
+law `app G (vnat n) = univChain n`. -/
+theorem memUnivChainVnatF_apply {z w G : W} {k : Nat}
+    (hR : Form.Realize Mem (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => z)) w) G) (pt : W)) memUnivChainVnatF)
+    (hw : w = (vnat k : W))
+    (hG : ∀ n : Nat, app G (vnat n) = (univChain n : W)) :
+    z ∈ˢ (univChain k : W) := by
+  obtain ⟨t, ht, hz⟩ := realize_memUnivChainVnatF.mp hR
+  rw [hw] at ht
+  rw [ht, hG k] at hz
+  exact hz
+
+
 end ConLeche.Semantics
