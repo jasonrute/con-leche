@@ -4426,4 +4426,129 @@ theorem realize_interpStepF3_tmCode_sort {X : W} {u : Nat} {G : W}
   realize_interpStepF3.mpr (Or.inr (Or.inr (Or.inl (realize_sortStepF_tmCode hG))))
 
 
+/-! ## Stage 111: the list-code element reader `vnatListGetF` -/
+
+/-- Map of `emptyF`'s var into the `(x, w, pt)` context: `0 ↦ x`. -/
+def getE0 : Fin 1 → Fin 3 := fun _ => ⟨0, by omega⟩
+
+/-- Map of `vnatEqF 0`'s `(x, pt)` into `(x, w, pt)`: `x ↦ w`, `pt ↦ pt`. -/
+def getV0 : Fin 2 → Fin 3 :=
+  fun k => match k.val with | 0 => ⟨1, by omega⟩ | _ => ⟨2, by omega⟩
+
+/-- Map of `kpairEqF`'s `(z, x, y)` into the bound context `(x, w, pt, r)`:
+`z ↦ x`, `x ↦ w`, `y ↦ r` (reading `x = kpair w r`). -/
+def getK0 : Fin 3 → Fin 4 :=
+  fun k => match k.val with | 0 => ⟨0, by omega⟩ | 1 => ⟨1, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- Map of `kpairEqF`'s `(z, x, y)` into the doubly bound context
+`(x, w, pt, a, r)`: `z ↦ x`, `x ↦ a`, `y ↦ r` (reading `x = kpair a r`). -/
+def getK : Fin 3 → Fin 5 :=
+  fun k => match k.val with
+  | 0 => ⟨0, by omega⟩ | 1 => ⟨3, by omega⟩ | _ => ⟨4, by omega⟩
+
+/-- Map of `vnatListGetF j`'s `(x, w, pt)` into the doubly bound context
+`(x, w, pt, a, r)`: `x ↦ r`, `w ↦ w`, `pt ↦ pt`. -/
+def getR : Fin 3 → Fin 5 :=
+  fun k => match k.val with
+  | 0 => ⟨4, by omega⟩ | 1 => ⟨1, by omega⟩ | _ => ⟨2, by omega⟩
+
+/-- The list-code `j`-th-element reader (variables `0 ↦ x`, `1 ↦ w`,
+`2 ↦ pt`): `x = vnatListCode us` with `w = vnat (us.getD j 0)`, by recursion
+on `j` — the empty list contributes the default via `emptyF` +
+`vnatEqF 0`; a cons contributes its head (`x = kpair w r`) at `j = 0` and
+recurses into the tail `r` at `j + 1`. -/
+def vnatListGetF : Nat → Form 3
+  | 0 => .or (.and (Form.relabel getE0 emptyF) (Form.relabel getV0 (vnatEqF 0)))
+      (.ex (Form.relabel getK0 kpairEqF))
+  | j + 1 => .or (.and (Form.relabel getE0 emptyF) (Form.relabel getV0 (vnatEqF 0)))
+      (.ex (.ex (.and (Form.relabel getK kpairEqF) (Form.relabel getR (vnatListGetF j)))))
+
+theorem realize_vnatListGetF (j : Nat) (us : List Nat) {x w : W} (hx : x = vnatListCode us) :
+    Form.Realize Mem (Form.snoc (Form.snoc (fun _ : Fin 1 => x) w) (pt : W)) (vnatListGetF j) ↔
+      w = (vnat (us.getD j 0) : W) := by
+  subst hx
+  induction j generalizing us w with
+  | zero =>
+    have hE0 : (Form.snoc (Form.snoc (fun _ : Fin 1 => vnatListCode us) w) (pt : W)) ∘ getE0 =
+        Form.snoc Form.nil (vnatListCode us) := by
+      funext ⟨k, hk⟩
+      have hk0 : k = 0 := by omega
+      subst hk0; rfl
+    have hV0 : (Form.snoc (Form.snoc (fun _ : Fin 1 => vnatListCode us) w) (pt : W)) ∘ getV0 =
+        (Form.snoc (fun _ : Fin 1 => w) (pt : W) : Fin 2 → W) := by
+      funext ⟨k, hk⟩
+      have hk2 : k = 0 ∨ k = 1 := by omega
+      rcases hk2 with rfl | rfl <;> rfl
+    have hK0 : ∀ r : W,
+        (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => vnatListCode us) w) (pt : W)) r) ∘ getK0 =
+          (Form.snoc (Form.snoc (fun _ : Fin 1 => vnatListCode us) w) r : Fin 3 → W) := by
+      intro r; funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    simp only [vnatListGetF, Form.realize_or, Form.realize_and, Form.realize_ex,
+      Form.realize_relabel, hE0, hV0, hK0, realize_emptyF_eq, realize_vnatEqF,
+      realize_kpairEqF]
+    cases us with
+    | nil =>
+      simp only [List.getD_nil]
+      constructor
+      · rintro (⟨-, rfl⟩ | ⟨r, h⟩)
+        · rfl
+        · rw [vnatListCode_nil] at h; exact absurd h.symm (kpair_ne_empty _ _)
+      · intro h; exact Or.inl ⟨vnatListCode_nil, h⟩
+    | cons u us =>
+      rw [vnatListCode_cons]
+      simp only [List.getD_cons_zero]
+      constructor
+      · rintro (⟨h, -⟩ | ⟨r, h⟩)
+        · exact absurd h (kpair_ne_empty _ _)
+        · exact (kpair_inj h).1.symm
+      · intro h; exact Or.inr ⟨vnatListCode us, by rw [h]⟩
+  | succ j ih =>
+    have hE0 : (Form.snoc (Form.snoc (fun _ : Fin 1 => vnatListCode us) w) (pt : W)) ∘ getE0 =
+        Form.snoc Form.nil (vnatListCode us) := by
+      funext ⟨k, hk⟩
+      have hk0 : k = 0 := by omega
+      subst hk0; rfl
+    have hV0 : (Form.snoc (Form.snoc (fun _ : Fin 1 => vnatListCode us) w) (pt : W)) ∘ getV0 =
+        (Form.snoc (fun _ : Fin 1 => w) (pt : W) : Fin 2 → W) := by
+      funext ⟨k, hk⟩
+      have hk2 : k = 0 ∨ k = 1 := by omega
+      rcases hk2 with rfl | rfl <;> rfl
+    have hK : ∀ a r : W,
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => vnatListCode us) w)
+            (pt : W)) a) r) ∘ getK =
+          (Form.snoc (Form.snoc (fun _ : Fin 1 => vnatListCode us) a) r : Fin 3 → W) := by
+      intro a r; funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    have hR : ∀ a r : W,
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => vnatListCode us) w)
+            (pt : W)) a) r) ∘ getR =
+          (Form.snoc (Form.snoc (fun _ : Fin 1 => r) w) (pt : W) : Fin 3 → W) := by
+      intro a r; funext ⟨k, hk⟩
+      have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+      rcases hk3 with rfl | rfl | rfl <;> rfl
+    simp only [vnatListGetF, Form.realize_or, Form.realize_and, Form.realize_ex,
+      Form.realize_relabel, hE0, hV0, hK, hR, realize_emptyF_eq, realize_vnatEqF,
+      realize_kpairEqF]
+    cases us with
+    | nil =>
+      simp only [List.getD_nil]
+      constructor
+      · rintro (⟨-, rfl⟩ | ⟨a, r, h, -⟩)
+        · rfl
+        · rw [vnatListCode_nil] at h; exact absurd h.symm (kpair_ne_empty _ _)
+      · intro h; exact Or.inl ⟨vnatListCode_nil, h⟩
+    | cons u us =>
+      rw [vnatListCode_cons]
+      simp only [List.getD_cons_succ]
+      constructor
+      · rintro (⟨h, -⟩ | ⟨a, r, h, hr⟩)
+        · exact absurd h (kpair_ne_empty _ _)
+        · rw [← (kpair_inj h).2] at hr; exact (ih us).mp hr
+      · intro h
+        exact Or.inr ⟨vnat u, vnatListCode us, rfl, (ih us).mpr h⟩
+
+
 end ConLeche.Semantics

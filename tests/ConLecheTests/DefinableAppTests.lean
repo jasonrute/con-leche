@@ -1511,4 +1511,14 @@ example {v X i G : V} (h : Form.Realize Mem
       (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => v) X) i) (pt : V)) sortZeroStepF) :=
   realize_interpStepF3.mp h
 
+
+/-! ## Stage 111 example: the `vnatListGetF` list-code element reader -/
+
+open ConLeche.Semantics in
+example (j : Nat) (us : List Nat) {x w : V} (hx : x = vnatListCode us)
+    (h : Form.Realize Mem
+      (Form.snoc (Form.snoc (fun _ : Fin 1 => x) w) (pt : V)) (vnatListGetF j)) :
+    w = (vnat (us.getD j 0) : V) :=
+  (realize_vnatListGetF j us hx).mp h
+
 end ConLeche.SetTheory.DefinableAppEx
