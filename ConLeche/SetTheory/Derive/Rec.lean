@@ -2843,4 +2843,50 @@ theorem realize_sigmaConstGraphEqF {v A D : V} :
     exact key z
 
 
+/-! ## Stage 106: the `app3sImageF` equality reader `app3sImageEqF` -/
+
+/-- Map of the `app3EqF` conjunct (vars `0 → pt`, `1 → v'`, `2 → F`,
+`3 → a`, `4 → m`, `5 → i`) into the bound context `(v, F, m, i, A, pt, z, a)`:
+`0 → 5`, `1 → 6`, `2 → 1`, `3 → 7`, `4 → 2`, `5 → 3`. -/
+def a3sImMap : Fin 6 → Fin 8 :=
+  fun k => match k.val with
+  | 0 => ⟨5, by omega⟩ | 1 => ⟨6, by omega⟩ | 2 => ⟨1, by omega⟩
+  | 3 => ⟨7, by omega⟩ | 4 => ⟨2, by omega⟩ | _ => ⟨3, by omega⟩
+
+/-- The `app3sImageF` equality reader (variables `0 → v`, `1 → F`,
+`2 → m`, `3 → i`, `4 → A`, `5 → pt`): `v = app3sImageF F m i A`, by
+extensionality + `mem_app3sImageF`, with `z = app (app (app F a) m) i` read by
+`app3EqF`. -/
+def app3sImageEqF : Form 6 :=
+  .all (.iff (.mem ⟨6, by omega⟩ ⟨0, by omega⟩)
+    (.ex (.and (.mem ⟨7, by omega⟩ ⟨4, by omega⟩)
+      (Form.relabel a3sImMap app3EqF))))
+
+theorem realize_app3sImageEqF {v F m i A : V} :
+    Form.Realize Mem
+        (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) F) m) i) A) (pt : V))
+        app3sImageEqF ↔
+      v = app3sImageF F m i A := by
+  have hApp : ∀ z a : V,
+      Form.Realize Mem
+          (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) F) m) i) A) (pt : V)) z) a)
+          (Form.relabel a3sImMap app3EqF) ↔ z = app (app (app F a) m) i := by
+    intro z a
+    rw [Form.realize_relabel]
+    have hcomp : (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => v)) F) m) i) A) (pt : V)) z) a : Fin 8 → V) ∘ a3sImMap =
+        Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc ((fun _ : Fin 1 => (pt : V))) z) F) a) m) i := by
+      funext ⟨k, hk⟩
+      have hk5 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 := by omega
+      rcases hk5 with rfl | rfl | rfl | rfl | rfl | rfl <;> rfl
+    rw [hcomp]
+    exact realize_app3EqF
+  simp only [app3sImageEqF, Form.realize_all, Form.realize_iff, Form.realize_mem,
+    Form.realize_ex, Form.realize_and, hApp, Form.snoc_mk]
+  constructor
+  · intro h
+    exact SetTheory.ext fun z => (h z).trans (mem_app3sImageF (F := F) (m := m) (i := i) (A := A)).symm
+  · intro h z
+    rw [h]
+    exact mem_app3sImageF
+
 end ConLeche.SetTheory
