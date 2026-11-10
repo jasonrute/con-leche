@@ -120,7 +120,7 @@ noncomputable def graphKitR
     have hgB : ∀ v, v ∈ˢ graphPredG Is Cr K call xs (c, j, fs) →
         app g v ∈ˢ blockRecMot K concl uX nIdxX ρ xs v := by
       intro v hv
-      have h1 := app_mem_of_mem_piSet hg hv
+      have h1 := app_mem_of_mem_piSetAppNF hg hv
       exact gGraph_mem_B (blockRecMot_mem_univ hconclTy) (fun _ _ _ _ => sep_subset)
         (mem_graphPredG.mp hv).1 h1
     exact hstep c hc j hj i fs hi hfit g hgB
@@ -209,10 +209,15 @@ theorem graphRecPre_coreR {es ihs : Nat → Nat → List Term} {mk : Nat → Nat
   · intro c hc j hj xs fs hxl hsp
     have hlen : (xs ++ fs).length = (pdoms c).length + (fdoms c j).length := by
       rw [hsp.length_eq, List.length_append]
+    have hrg : graph (fun v => (D.kit xs).recAt v) (graphPredG Is Cr K call xs (c, j, fs))
+        = recGraphF (D.kit xs).G (graphPredG Is Cr K call xs (c, j, fs)) :=
+      ((D.kit xs).recGraphF_eq_graph_recAt_of_subset
+        (fun v hv => (mem_graphPredG.mp hv).1)).symm
     have hch := hchain (famCandG D) xs (fun v => (D.kit xs).recAt v)
       (fun c' hc' is x hxl' hsp' => (famCandG_fold D hxl' hsp').symm) c hc j hj fs hxl hsp
+    rw [hrg] at hch
     show interp V (consList (ihv xs c j fs
-        (graph (fun v => (D.kit xs).recAt v) (graphPredG Is Cr K call xs (c, j, fs))))
+        (recGraphF (D.kit xs).G (graphPredG Is Cr K call xs (c, j, fs))))
         (consList (xs ++ fs) ρ)) (Rb0 c j) = _
     rw [hch,
       show (pdoms c).length + (fdoms c j).length + (ihs c j).length

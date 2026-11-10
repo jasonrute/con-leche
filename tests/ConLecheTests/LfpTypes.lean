@@ -44,13 +44,13 @@ the point: the closed fibres of `F X i = if ∅ ∈ X i then {ptTag, ∅} else
 {ptTag, {∅}}`, whose raw least fibre is therefore not a type. -/
 theorem countermodel :
     Strict (upair ptTag empty : V) ∧ Strict (upair ptTag (sing empty) : V) ∧
-      sep (upair ptTag empty : V) (fun x => x ∈ˢ upair ptTag (sing empty)) = pt := by
+      interF (upair ptTag empty : V) (upair ptTag (sing empty)) = pt := by
   have hs0 : (sing empty : V) ≠ ptTag := fun h => ptTag_ne_sing empty h.symm
   have hspt : (sing empty : V) ≠ pt := fun h =>
     ptTag_ne_empty (mem_sing.mp (h ▸ ptTag_mem_pt : (ptTag : V) ∈ˢ sing empty))
   refine ⟨strict_pair ptTag_ne_empty.symm pt_ne_empty.symm, strict_pair hs0 hspt, ?_⟩
   refine Subset.antisymm (fun x hx => ?_) (fun x hx => ?_)
-  · obtain ⟨h1, h2⟩ := mem_sep.mp hx
+  · obtain ⟨h1, h2⟩ := mem_interF.mp hx
     rcases mem_upair.mp h1 with rfl | rfl
     · exact ptTag_mem_pt
     · rcases mem_upair.mp h2 with h | h
@@ -59,11 +59,11 @@ theorem countermodel :
         rw [← h] at h0
         exact absurd h0 (not_mem_empty _)
   · rw [mem_pt.mp hx]
-    exact mem_sep.mpr ⟨mem_upair.mpr (Or.inl rfl), mem_upair.mpr (Or.inl rfl)⟩
+    exact mem_interF.mpr ⟨mem_upair.mpr (Or.inl rfl), mem_upair.mpr (Or.inl rfl)⟩
 
 /-- At a positive level the drop sends that intersection to `∅`. -/
 example {w : Nat} (hw : w ≠ 0) :
-    dropTo (strictU w) (sep (upair ptTag empty : V) (fun x => x ∈ˢ upair ptTag (sing empty)))
+    dropTo (strictU w) (interF (upair ptTag empty : V) (upair ptTag (sing empty)))
       = empty := by
   rw [countermodel.2.2]
   unfold dropTo

@@ -235,7 +235,7 @@ noncomputable def KT (b : Nat) : Nat → V := (K.cl b).carrier (K.fr b)
 
 /-- **The majors**: the tagged elements of every true class. -/
 noncomputable def U : V :=
-  sigmaPairs (sep omega fun a => ∃ n, n < K.nC ∧ a = vnat n)
+  sigmaPairs (sepF omega memPF (fun _ => vnat K.nC))
     (natFibre fun b => unionSet (K.cl b).N (K.cl b).Is (K.KT b))
 
 theorem mem_U {u : V} :
@@ -245,12 +245,14 @@ theorem mem_U {u : V} :
   rw [mem_sigmaPairs]
   constructor
   · rintro ⟨a, ha, p, hp, rfl⟩
-    obtain ⟨-, n, hn, rfl⟩ := mem_sep.mp ha
+    obtain ⟨-, haS⟩ := mem_sepF.mp ha
+    obtain ⟨n, hn, rfl⟩ := mem_vnat_iff.mp (realize_memPF.mp haS)
     rw [natFibre_vnat] at hp
     obtain ⟨c, hc, t, ht, x, hx, rfl⟩ := mem_unionSet.mp hp
     exact ⟨n, c, t, x, hn, hc, ht, hx, rfl⟩
   · rintro ⟨b, c, t, x, hb, hc, ht, hx, rfl⟩
-    refine ⟨vnat b, mem_sep.mpr ⟨vnat_mem_omega b, b, hb, rfl⟩, tagged c t x, ?_, rfl⟩
+    refine ⟨vnat b, mem_sepF.mpr ⟨vnat_mem_omega b,
+      realize_memPF.mpr (mem_vnat_iff.mpr ⟨b, hb, rfl⟩)⟩, tagged c t x, ?_, rfl⟩
     rw [natFibre_vnat]
     exact tagged_mem_unionSet hc ht hx
 

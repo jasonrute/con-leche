@@ -10,6 +10,7 @@ import ConLecheTests.FileTests
 import ConLecheTests.NestedTests
 import ConLecheTests.RecCheckTests
 import ConLecheTests.AccessTests
+import ConLecheTests.DefinableAppTests
 import ConLecheTests.LfpTypes
 import ConLecheTests.CondCompare
 import ConLecheTests.LetDenotes

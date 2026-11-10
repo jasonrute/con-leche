@@ -398,7 +398,7 @@ theorem univ_uf_mem_blockS {m : Nat} (hm : m < k) :
 
 theorem famSpace_mem_blockR {m : Nat} (hm : m < k) {I : V} (hI : I ∈ˢ (univ (uf m) : V)) :
     lfpFamSpace V w I ∈ˢ (univ (blockR k w uf) : V) := by
-  have h := piV_mem_univ (u := uf m) (v := w + 1) hI (fun _ _ => univ_mem_univ w)
+  have h := piV_mem_univ_const (u := uf m) (v := w + 1) hI (univ_mem_univ w)
   rw [ite_eq_right (Nat.succ_ne_zero _)] at h
   refine univ_mono ?_ _ h
   refine Nat.max_le_of_le_of_le (Nat.le_trans (uf_le_levMax hm) (Nat.le_max_left _ _)) ?_

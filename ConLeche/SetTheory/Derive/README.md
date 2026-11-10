@@ -42,10 +42,11 @@ asserted — see Core.lean's module doc.
   regime off the values.  Resolvable in git history.
 - [x] `Derive/Omega.lean` — von Neumann naturals: `omega` separated
   from the inductive universe `univChain 1`, `vnat : Nat → V`
-  (injective), `mem_omega_iff`; `omega ∈ U` for any universe with
-  `univChain 1` as a member.
+  (injective), `mem_vnat_iff` (members of a numeral are smaller
+  numerals); `omega ∈ U` for any universe with `univChain 1` as a
+  member.
 - [x] `Derive/Natrec.lean` — recursion on `omega` through the
-  meta-level `Nat` (each member of `omega` is a unique `vnat k`).
+  meta-level `Nat` (`natrec_vnat`).
 - [x] `Derive/Tg.lean` — the axiomatic tower `tg 0 = univZero`,
   `tg (n+1) = univChain (n+2)` (shifted so `univChain 1`, the first
   chain member known inductive, is a member of every positive level);

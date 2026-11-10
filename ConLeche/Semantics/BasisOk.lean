@@ -146,7 +146,7 @@ theorem bval_mem_psigma (us : List Nat) (ρ : Nat → V) :
 theorem IsTy_psigmaV_app {u v : Nat} {A B : V} (hA : A ∈ˢ (univ u : V))
     (hB : B ∈ˢ psigmaFibreSpace V v A) : IsTy (app (app (psigmaV V u v) A) B) := by
   rw [psigmaV_app V hA hB]
-  exact IsTy_of_mem_univ (sigma_mem_univ hA fun x hx => psigmaFibre_apply V hB hx)
+  exact IsTy_of_mem_univ (sigma_mem_univ_app hA fun x hx => psigmaFibre_apply V hB hx)
 
 /-- **`.psigmaMk`**: four abstractions; the pair is the point where its
 type is a truth value (`max u v = 0`). -/
@@ -314,13 +314,13 @@ theorem projNV_interp :
     rfl
 
 /-- The `[r, r]` instance of the pinned pair former's function-space
-membership (`sigma_mem_univ` at the joint level `max r r = r`). -/
+membership (`sigma_mem_univ_app` at the joint level `max r r = r`). -/
 theorem psigmaV_rr_mem (r : Nat) :
     psigmaV V r r ∈ˢ piR (r + 1) (univ r : V)
       (fun A => piR (r + 1) (psigmaFibreSpace V r A) fun _ => (univ r : V)) := by
   rw [psigmaV_eq_lamR, show Nat.max r r = r from Nat.max_self r]
   exact lamR_mem fun A hA => lamR_mem fun B hB => by
-    have h := sigma_mem_univ (u := r) (v := r) hA
+    have h := sigma_mem_univ_app (u := r) (v := r) hA
       (fun x hx => psigmaFibre_apply V hB hx)
     rwa [show Nat.max r r = r from Nat.max_self r] at h
 
@@ -456,8 +456,8 @@ theorem famComp_mem_univ {k : Nat} {us : List Nat} {Is : V}
   have hproj : projS m Is ∈ˢ (univ (lv us m) : V) := by
     have := projS_mem_ndTowerSet V (tupleIdxSort_ne_zero us) k 0 hIs m hm
     rwa [Nat.zero_add] at this
-  have h := piV_mem_univ (u := lv us m) (v := lv us k + 1) hproj
-    (fun _ _ => univ_mem_univ (lv us k))
+  have h := piV_mem_univ_const (u := lv us m) (v := lv us k + 1) hproj
+    (univ_mem_univ (lv us k))
   rw [ite_eq_right (Nat.succ_ne_zero _)] at h
   refine univ_mono ?_ _ h
   refine Nat.max_le_of_le_of_le ?_ ?_

@@ -1,6 +1,7 @@
 module
 
 public import ConLeche.SetTheory.Derive.Pt
+public import ConLeche.SetTheory.Derive.FormOps
 
 @[expose] public section
 
@@ -61,7 +62,132 @@ open Classical in
 with `a` in `f` — except at the proof point, which applies to `pt`
 again. -/
 noncomputable def app (f a : V) : V :=
-  if f = pt then pt else sUnion (sep (sUnion (sUnion f)) (fun y => kpair a y ∈ˢ f))
+  if f = pt then pt else
+    sUnion (sepF (sUnion (sUnion f)) kpairMemF (Form.snoc (fun _ => a) f))
+
+/-- Membership in the definable separation defining `app`: the predicate
+`kpair a y ∈ˢ f` is the `Form` `kpairMemF` with parameters `a`, `f`. -/
+theorem mem_appSep {f a y : V} :
+    y ∈ˢ sepF (sUnion (sUnion f)) kpairMemF (Form.snoc (fun _ => a) f) ↔
+      y ∈ˢ sUnion (sUnion f) ∧ kpair a y ∈ˢ f := by
+  rw [mem_sepF, realize_kpairMemF]
+
+/-- The definable image under `vsucc`: `{vsucc x | x ∈ˢ S}`. -/
+noncomputable def vsuccImage (S : V) : V :=
+  imageF vsuccF Form.nil S
+    (fun x _ => ⟨vsucc x, realize_vsuccF.mpr rfl, fun _ hy => realize_vsuccF.mp hy⟩)
+
+theorem mem_vsuccImage {S z : V} :
+    z ∈ˢ vsuccImage S ↔ ∃ x, x ∈ˢ S ∧ z = vsucc x := by
+  unfold vsuccImage
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    exact ⟨x, hx, realize_vsuccF.mp h⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, realize_vsuccF.mpr rfl⟩
+
+/-- The definable image under `kpair a`: `{kpair a x | x ∈ˢ X}`. -/
+noncomputable def kpairImage (a X : V) : V :=
+  imageF kpairEqF' (fun _ => a) X
+    (fun x _ => ⟨kpair a x, realize_kpairEqF'.mpr rfl, fun _ hy => realize_kpairEqF'.mp hy⟩)
+
+theorem mem_kpairImage {a X z : V} :
+    z ∈ˢ kpairImage a X ↔ ∃ x, x ∈ˢ X ∧ z = kpair a x := by
+  unfold kpairImage
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    exact ⟨x, hx, realize_kpairEqF'.mp h⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, realize_kpairEqF'.mpr rfl⟩
+
+/-- The meta-level `image (kpair a) X` is exactly the definable
+`kpairImage a X`. -/
+theorem image_kpair_eq {a X : V} : image (kpair a) X = kpairImage a X :=
+  ext fun z => by rw [mem_image, mem_kpairImage]
+
+/-- The definable intersection of `a` and `c`, separated from `a` by
+the membership formula `memPF` with parameter `c`. -/
+noncomputable def interF (a c : V) : V := sepF a memPF (fun _ => c)
+
+theorem mem_interF {a c z : V} : z ∈ˢ interF a c ↔ z ∈ˢ a ∧ z ∈ˢ c := by
+  unfold interF
+  rw [mem_sepF, realize_memPF]
+
+/-- Definable intersection closure: the first-order twin of a
+`sep`-based intersection at a member parameter. -/
+theorem _root_.ConLeche.IsUniverse.interF_mem {U a c : V} (hU : IsUniverse (Mem (V := V)) U)
+    (ha : a ∈ˢ U) (_hc : c ∈ˢ U) : interF a c ∈ˢ U := by
+  unfold interF
+  exact hU.sepF_mem ha
+
+/-- Definable tag-image closure (clause 6): the definable image of a
+member under the tag function `kpair a` is a member — the first-order
+twin of `image_mem` at `kpair a`. -/
+theorem _root_.ConLeche.IsUniverse.kpairImage_mem {U a X : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (ha : a ∈ˢ U) (hX : X ∈ˢ U) : kpairImage a X ∈ˢ U := by
+  unfold kpairImage
+  exact hU.imageF_mem hX fun x hx z hz => by
+    rw [realize_kpairEqF'.mp hz]
+    exact hU.kpair_mem he ha (hU.transitive hX hx)
+
+/-- A pair ⟨x, y⟩ with `x ∈ˢ A` and `y ∈ˢ c` lies in
+`power (power (binUnion A c))`. -/
+theorem kpair_mem_power_power_binUnion {A c x y : V} (hx : x ∈ˢ A) (hy : y ∈ˢ c) :
+    kpair x y ∈ˢ power (power (binUnion A c)) := by
+  rw [mem_power_iff_subset]
+  intro w hw
+  rw [mem_power_iff_subset]
+  rcases mem_upair.mp hw with rfl | rfl
+  · intro z hz
+    rw [mem_sing.mp hz]
+    exact mem_binUnion.mpr (Or.inl hx)
+  · intro z hz
+    rcases mem_upair.mp hz with rfl | rfl
+    · exact mem_binUnion.mpr (Or.inl hx)
+    · exact mem_binUnion.mpr (Or.inr hy)
+
+/-- The definable constant product `A × c = {⟨x, y⟩ : x ∈ˢ A, y ∈ˢ c}`:
+`sepF` over `power (power (binUnion A c))` — the first-order twin of
+`sigmaPairs A (fun _ => c)`. -/
+noncomputable def sigmaConstF (A c : V) : V :=
+  sepF (power (power (binUnion A c))) sigmaConstForm (Form.snoc (fun _ => A) c)
+
+theorem mem_sigmaConstF {A c z : V} :
+    z ∈ˢ sigmaConstF A c ↔ ∃ x, x ∈ˢ A ∧ ∃ y, y ∈ˢ c ∧ z = kpair x y := by
+  unfold sigmaConstF
+  rw [mem_sepF, realize_sigmaConstForm]
+  constructor
+  · rintro ⟨-, h⟩; exact h
+  · rintro ⟨x, hx, y, hy, rfl⟩
+    exact ⟨kpair_mem_power_power_binUnion hx hy, x, hx, y, hy, rfl⟩
+
+/-- The definable constant image `{c | x ∈ˢ A}`: the `imageF` of the
+relation `z = c` (variable `1 ↦ z`, parameter `0 ↦ c`) — the
+first-order twin of `image (fun _ => c) A`. -/
+noncomputable def constImageF (c A : V) : V :=
+  imageF (n := 1) (Form.equal (⟨1, by omega⟩ : Fin 3) (⟨2, by omega⟩ : Fin 3))
+    (fun _ => c) A
+    (fun _ _ => ⟨c, by simp [Form.cons2], fun y hy => by simpa [Form.cons2] using hy⟩)
+
+theorem mem_constImageF {c A z : V} :
+    z ∈ˢ constImageF c A ↔ ∃ x, x ∈ˢ A ∧ z = c := by
+  unfold constImageF
+  rw [mem_imageF]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    exact ⟨x, hx, by simpa [Form.cons2] using h⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, by simp [Form.cons2]⟩
+
+theorem constImageF_eq_sing {c A x : V} (hx : x ∈ˢ A) :
+    constImageF c A = sing c := by
+  apply ext fun z => ?_
+  rw [mem_constImageF, mem_sing]
+  constructor
+  · rintro ⟨_, -, rfl⟩; rfl
+  · intro rfl; exact ⟨x, hx, rfl⟩
 
 theorem app_pt (a : V) : app (pt : V) a = pt := by
   unfold app; exact ite_eq_left rfl
@@ -71,9 +197,9 @@ theorem app_eq_of_unique {f a b : V} (hf : f ≠ pt) (hab : kpair a b ∈ˢ f)
     (huniq : ∀ y, kpair a y ∈ˢ f → y = b) : app f a = b := by
   unfold app
   rw [ite_eq_right hf]
-  have : sep (sUnion (sUnion f)) (fun y => kpair a y ∈ˢ f) = sing b := by
+  have : sepF (sUnion (sUnion f)) kpairMemF (Form.snoc (fun _ => a) f) = sing b := by
     apply ext fun z => ?_
-    rw [mem_sep, mem_sing]
+    rw [mem_appSep, mem_sing]
     constructor
     · exact fun ⟨_, hz⟩ => huniq z hz
     · rintro rfl
@@ -91,9 +217,133 @@ theorem app_graph {F : V → V} {A a : V} (ha : a ∈ˢ A) :
   obtain ⟨rfl, rfl⟩ := kpair_inj hx
   rfl
 
+/-! ## Definable function graphs (`graphF`, `sigmaPairsF`)
+
+The first-order twins of `graph`/`sigmaPairs`: the graph of a
+*definable* functional relation `φ` (replacement convention:
+`Form.Realize Mem (Form.cons2 x z p) φ` means `z = F x`) is
+`{⟨x, z⟩ : x ∈ˢ A, φ(x, z; p)}`, built by `imageF` from `replF` — no
+meta-level `image` (the `repl` field) involved.  Since `graph F A` and
+`sigmaPairs A B` coincide at `B x = sing (F x)`, one relation
+`pairRelF` serves both. -/
+
+/-- Variable map `Fin 3 → Fin (n+3)` reading `kpairEqF'` in the pair-relation
+body: `(z, pair, x) ↦ (n+2, 1, 0)`, asserting `pair = ⟨x, z⟩`. -/
+def pairRelMapK (n : Nat) : Fin 3 → Fin (n + 3) := fun i =>
+  match i.val with
+  | 0 => ⟨n + 2, by omega⟩
+  | 1 => ⟨1, by omega⟩
+  | _ => ⟨0, by omega⟩
+
+/-- Variable map `Fin (n+2) → Fin (n+3)` reading the fibre formula `φ` in the
+pair-relation body: `x ↦ 0`, `z ↦ n+2`, parameters unchanged. -/
+def pairRelMapF (n : Nat) : Fin (n + 2) → Fin (n + 3) := fun i =>
+  if i.val = 1 then ⟨n + 2, by omega⟩ else ⟨i.val, by omega⟩
+
+/-- The pair-relation body: `y = ⟨x, z⟩ ∧ φ(x, z; p)` (variables `0 ↦ x`,
+`1 ↦ y`, `2..n+1 ↦ p`, last ↦ bound `z`). -/
+def pairRelBody (n : Nat) (φ : Form (n + 2)) : Form (n + 3) :=
+  Form.and (Form.relabel (pairRelMapK n) kpairEqF') (Form.relabel (pairRelMapF n) φ)
+
+/-- The pair relation `y = ⟨x, z⟩` for some `z` with `φ(x, z; p)`, in the
+replacement convention (variables `0 ↦ x`, `1 ↦ y`, `i+2 ↦ p i`). -/
+def pairRelF (n : Nat) (φ : Form (n + 2)) : Form (n + 2) :=
+  Form.ex (pairRelBody n φ)
+
+theorem realize_pairRelF {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {x y : V} :
+    Form.Realize Mem (Form.cons2 x y p) (pairRelF n φ) ↔
+      ∃ z, y = kpair x z ∧ Form.Realize Mem (Form.cons2 x z p) φ := by
+  have hK : ∀ z : V, (Form.snoc (Form.cons2 x y p) z) ∘ pairRelMapK n =
+      Form.cons2 z y (fun _ => x) := by
+    intro z
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;>
+      simp [pairRelMapK, Form.snoc, Form.cons2]
+  have hF : ∀ z : V, (Form.snoc (Form.cons2 x y p) z) ∘ pairRelMapF n =
+      Form.cons2 x z p := by
+    intro z
+    funext ⟨k, hk⟩
+    by_cases hk0 : k = 0
+    · subst hk0; simp [pairRelMapF, Form.snoc, Form.cons2]
+    by_cases hk1 : k = 1
+    · subst hk1; simp [pairRelMapF, Form.snoc, Form.cons2]
+    · have hk2 : 2 ≤ k := by omega
+      simp [pairRelMapF, Form.snoc, Form.cons2, hk0, hk1, hk]
+  simp only [pairRelF, pairRelBody, Form.realize_ex, Form.realize_and, Form.realize_relabel,
+    hK, hF, realize_kpairEqF']
+
+theorem pairRelF_fun {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) :
+    ∀ x, x ∈ˢ A → ∃ y, Form.Realize Mem (Form.cons2 x y p) (pairRelF n φ) ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) (pairRelF n φ) → y' = y := by
+  intro x hx
+  obtain ⟨z, hφ, huniq⟩ := hfun x hx
+  refine ⟨kpair x z, realize_pairRelF.mpr ⟨z, rfl, hφ⟩, fun y' hy' => ?_⟩
+  obtain ⟨z', hz', hφ'⟩ := realize_pairRelF.mp hy'
+  rw [hz', huniq z' hφ']
+
+/-- The definable function graph `{⟨x, z⟩ : x ∈ˢ A, φ(x, z; p)}` — the
+first-order twin of `graph`, from `replF` via `imageF`. -/
+noncomputable def graphF {n : Nat} (φ : Form (n + 2)) (p : Fin n → V) (A : V)
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) : V :=
+  imageF (pairRelF n φ) p A (pairRelF_fun hfun)
+
+theorem mem_graphF {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A z : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) :
+    z ∈ˢ graphF φ p A hfun ↔
+      ∃ x, x ∈ˢ A ∧ ∃ w, z = kpair x w ∧ Form.Realize Mem (Form.cons2 x w p) φ := by
+  unfold graphF
+  rw [mem_imageF (pairRelF_fun hfun)]
+  constructor
+  · rintro ⟨x, hx, h⟩
+    obtain ⟨w, h1, h2⟩ := realize_pairRelF.mp h
+    exact ⟨x, hx, w, h1, h2⟩
+  · rintro ⟨x, hx, w, h1, h2⟩
+    exact ⟨x, hx, realize_pairRelF.mpr ⟨w, h1, h2⟩⟩
+
+theorem graphF_ne_pt {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) :
+    graphF φ p A hfun ≠ (pt : V) := by
+  intro h
+  obtain ⟨x, -, w, hx, -⟩ := (mem_graphF hfun).mp (h ▸ ptTag_mem_pt)
+  exact ptTag_ne_kpair x w hx
+
+/-- Beta on definable graphs. -/
+theorem app_graphF {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A a w : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z)
+    (ha : a ∈ˢ A) (hw : Form.Realize Mem (Form.cons2 a w p) φ) :
+    app (graphF φ p A hfun) a = w := by
+  refine app_eq_of_unique (graphF_ne_pt hfun) (mem_graphF hfun |>.mpr ⟨a, ha, w, rfl, hw⟩) ?_
+  intro y hy
+  obtain ⟨z₀, -, huniq⟩ := hfun a ha
+  obtain ⟨x, -, z, hx, hφ⟩ := (mem_graphF hfun).mp hy
+  obtain ⟨rfl, rfl⟩ := kpair_inj hx
+  rw [huniq y hφ, huniq w hw]
+
+/-- The raw dependent pair set `{⟨x, y⟩ : x ∈ˢ A, φ(x, y; p)}` — the
+first-order twin of `sigmaPairs` (the same set as `graphF φ p A`). -/
+noncomputable def sigmaPairsF {n : Nat} (φ : Form (n + 2)) (p : Fin n → V) (A : V)
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) : V :=
+  graphF φ p A hfun
+
+theorem mem_sigmaPairsF {n : Nat} {φ : Form (n + 2)} {p : Fin n → V} {A z : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z) :
+    z ∈ˢ sigmaPairsF φ p A hfun ↔
+      ∃ x, x ∈ˢ A ∧ ∃ y, z = kpair x y ∧ Form.Realize Mem (Form.cons2 x y p) φ :=
+  mem_graphF hfun
+
 /-- The raw dependent pair set `{⟨x, y⟩ : x ∈ A, y ∈ B x}`. -/
+
 noncomputable def sigmaPairs (A : V) (B : V → V) : V :=
-  sUnion (image (fun x => image (fun y => kpair x y) (B x)) A)
+  sUnion (image (fun x => kpairImage x (B x)) A)
 
 theorem mem_sigmaPairs {A p : V} {B : V → V} :
     p ∈ˢ sigmaPairs A B ↔ ∃ x, x ∈ˢ A ∧ ∃ y, y ∈ˢ B x ∧ p = kpair x y := by
@@ -102,11 +352,11 @@ theorem mem_sigmaPairs {A p : V} {B : V → V} :
   constructor
   · rintro ⟨s, hs, hps⟩
     obtain ⟨x, hx, rfl⟩ := mem_image.mp hs
-    obtain ⟨y, hy, rfl⟩ := mem_image.mp hps
+    obtain ⟨y, hy, rfl⟩ := mem_kpairImage.mp hps
     exact ⟨x, hx, y, hy, rfl⟩
   · rintro ⟨x, hx, y, hy, rfl⟩
-    exact ⟨image (fun y => kpair x y) (B x), mem_image.mpr ⟨x, hx, rfl⟩,
-      mem_image.mpr ⟨y, hy, rfl⟩⟩
+    exact ⟨kpairImage x (B x), mem_image.mpr ⟨x, hx, rfl⟩,
+      mem_kpairImage.mpr ⟨y, hy, rfl⟩⟩
 
 theorem sigmaPairs_congr {A : V} {B B' : V → V}
     (h : ∀ x, x ∈ˢ A → B x = B' x) : sigmaPairs A B = sigmaPairs A B' := by
@@ -118,20 +368,84 @@ theorem _root_.ConLeche.IsUniverse.sigmaPairs_mem {U A : V} {B : V → V}
     (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
     (hB : ∀ x, x ∈ˢ A → B x ∈ˢ U) : sigmaPairs A B ∈ˢ U :=
   hU.famUnion_mem hA fun x hx =>
-    hU.image_mem (hB x hx) fun _y hy =>
-      hU.kpair_mem hA (hU.transitive hA hx) (hU.transitive (hB x hx) hy)
+    hU.kpairImage_mem (hU.empty_mem hA) (hU.transitive hA hx) (hB x hx)
+
+/-- Definable constant-product closure (clause 6 via the subset
+clause): the first-order twin of `sigmaPairs_mem` at a constant
+family. -/
+theorem _root_.ConLeche.IsUniverse.sigmaConstF_mem {U A c : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hA : A ∈ˢ U) (hc : c ∈ˢ U) : sigmaConstF A c ∈ˢ U := by
+  unfold sigmaConstF
+  exact hU.sepF_mem (hU.power_mem (hU.power_mem (hU.binUnion_mem he hA hc)))
+
+theorem sigmaConstF_eq {A c : V} : sigmaConstF A c = sigmaPairs A (fun _ => c) :=
+  ext fun z => by rw [mem_sigmaConstF, mem_sigmaPairs]
+
+/-- The two-tag product `Σ t " + M2 + " {" + EMP + ", pt}, (if t = " + EMP + " then c0 else c1)` as a
+definable union of two constant products — the first-order twin of
+`sigmaPairs (upair empty pt) (fun t => if t = empty then c0 else c1)`. -/
+noncomputable def sigmaTag2 (c0 c1 : V) : V :=
+  binUnion (sigmaConstF (sing empty) c0) (sigmaConstF (sing pt) c1)
+
+theorem mem_sigmaTag2 {c0 c1 z : V} :
+    z ∈ˢ sigmaTag2 c0 c1 ↔ (∃ y, y ∈ˢ c0 ∧ z = kpair empty y) ∨ (∃ y, y ∈ˢ c1 ∧ z = kpair pt y) := by
+  unfold sigmaTag2
+  rw [mem_binUnion, mem_sigmaConstF, mem_sigmaConstF]
+  constructor
+  · rintro (⟨x, hx, y, hy, rfl⟩ | ⟨x, hx, y, hy, rfl⟩)
+    · obtain rfl : x = empty := mem_sing.mp hx
+      exact Or.inl ⟨y, hy, rfl⟩
+    · obtain rfl : x = pt := mem_sing.mp hx
+      exact Or.inr ⟨y, hy, rfl⟩
+  · rintro (⟨y, hy, rfl⟩ | ⟨y, hy, rfl⟩)
+    · exact Or.inl ⟨empty, mem_sing.mpr rfl, y, hy, rfl⟩
+    · exact Or.inr ⟨pt, mem_sing.mpr rfl, y, hy, rfl⟩
+
+
+/-- Definable two-tag-product closure (clause 6 via `binUnion`/`sing`/
+`sigmaConstF`): the first-order twin of the dite-family `sigmaPairs_mem`. -/
+theorem _root_.ConLeche.IsUniverse.sigmaTag2_mem {U c0 c1 : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (h0 : c0 ∈ˢ U) (h1 : c1 ∈ˢ U) : sigmaTag2 c0 c1 ∈ˢ U :=
+  hU.binUnion_mem he (hU.sigmaConstF_mem he (hU.sing_mem he he) h0)
+    (hU.sigmaConstF_mem he (hU.sing_mem he (hU.pt_mem he)) h1)
+
+/-- Definable graph closure (clause 6): the definable graph of a member
+under a functional definable relation with member-valued pairs is a
+member.  First-order twin of `image_mem` for `graph`. -/
+theorem _root_.ConLeche.IsUniverse.graphF_mem {U A : V} {n : Nat} {φ : Form (n + 2)}
+    {p : Fin n → V}
+    {hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → ∀ w, Form.Realize Mem (Form.cons2 x w p) φ → kpair x w ∈ˢ U) :
+    graphF φ p A hfun ∈ˢ U := by
+  unfold graphF
+  refine hU.imageF_mem hA (fun x hx y hy => ?_)
+  obtain ⟨w, h1, h2⟩ := realize_pairRelF.mp hy
+  rw [h1]
+  exact hval x hx w h2
+
+/-- Definable sigma-pair closure (clause 6): first-order twin of
+`sigmaPairs_mem`. -/
+theorem _root_.ConLeche.IsUniverse.sigmaPairsF_mem {U A : V} {n : Nat} {φ : Form (n + 2)}
+    {p : Fin n → V}
+    {hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → ∀ y, Form.Realize Mem (Form.cons2 x y p) φ → kpair x y ∈ˢ U) :
+    sigmaPairsF φ p A hfun ∈ˢ U :=
+  hU.graphF_mem hA hval
 
 /-- The set of total single-valued dependent graphs on `A` with fibres
 `B`: the `v ≠ 0` dependent function space. -/
 noncomputable def piSet (A : V) (B : V → V) : V :=
-  sep (power (sigmaPairs A B))
-    (fun f => ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y)
+  sepF (power (sigmaPairs A B)) piSetF (fun _ => A)
 
 theorem mem_piSet {A f : V} {B : V → V} :
     f ∈ˢ piSet A B ↔ f ⊆ˢ sigmaPairs A B ∧
       ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
   unfold piSet
-  rw [mem_sep, mem_power_iff_subset]
+  rw [mem_sepF, mem_power_iff_subset, realize_piSetF]
 
 theorem piSet_congr {A : V} {B B' : V → V}
     (h : ∀ x, x ∈ˢ A → B x = B' x) : piSet A B = piSet A B' := by
@@ -141,7 +455,7 @@ theorem piSet_congr {A : V} {B B' : V → V}
 theorem _root_.ConLeche.IsUniverse.piSet_mem {U A : V} {B : V → V}
     (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
     (hB : ∀ x, x ∈ˢ A → B x ∈ˢ U) : piSet A B ∈ˢ U :=
-  hU.mem_of_subset_mem (hU.power_mem (hU.sigmaPairs_mem hA hB)) sep_subset
+  hU.mem_of_subset_mem (hU.power_mem (hU.sigmaPairs_mem hA hB)) sepF_subset
 
 theorem graph_mem_piSet {A : V} {B F : V → V}
     (hF : ∀ x, x ∈ˢ A → F x ∈ˢ B x) : graph F A ∈ˢ piSet A B := by
@@ -199,6 +513,53 @@ theorem graph_dom_of_mem_piSet {A A' : V} {B F : V → V}
   obtain ⟨rfl, rfl⟩ := kpair_inj hp
   exact hx'
 
+/-- The definable dependent function space: total single-valued graphs
+over `A` whose fibres are picked out by the `Form` `ψ` — the
+first-order twin of `piSet A B` when `Realize (cons2 x y p) ψ ↔
+y ∈ˢ B x`. -/
+noncomputable def piSetD {n : Nat} (ψ : Form (n + 2)) (p : Fin n → V) (A : V)
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) ψ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) ψ → z' = z) : V :=
+  sepF (power (sigmaPairsF ψ p A hfun)) piSetF (fun _ => A)
+
+theorem mem_piSetD {n : Nat} {ψ : Form (n + 2)} {p : Fin n → V} {A f : V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) ψ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) ψ → z' = z) :
+    f ∈ˢ piSetD ψ p A hfun ↔ f ⊆ˢ sigmaPairsF ψ p A hfun ∧
+      ∀ x, x ∈ˢ A → ∃ y, kpair x y ∈ˢ f ∧ ∀ y', kpair x y' ∈ˢ f → y' = y := by
+  unfold piSetD
+  rw [mem_sepF, mem_power_iff_subset, realize_piSetF]
+
+/-- A definable function space at a family given by a `Form` is the
+meta `piSet` at the corresponding meta family. -/
+theorem piSetD_eq_piSet {A : V} {B : V → V} {n : Nat} {ψ : Form (n + 2)} {p : Fin n → V}
+    {hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) ψ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) ψ → z' = z}
+    (hψ : ∀ x y, Form.Realize Mem (Form.cons2 x y p) ψ ↔ y ∈ˢ B x) :
+    piSetD ψ p A hfun = piSet A B := by
+  have hsig : sigmaPairsF ψ p A hfun = sigmaPairs A B := by
+    refine SetTheory.ext fun z => ?_
+    rw [mem_sigmaPairsF hfun, mem_sigmaPairs]
+    constructor
+    · rintro ⟨x, hx, y, rfl, h⟩
+      exact ⟨x, hx, y, (hψ x y).mp h, rfl⟩
+    · rintro ⟨x, hx, y, hy, rfl⟩
+      exact ⟨x, hx, y, rfl, (hψ x y).mpr hy⟩
+  unfold piSetD piSet
+  rw [hsig]
+
+/-- Definable function-space closure (clause 6): the definable `piSet`
+of a member under member-valued pairs is a member — the first-order
+twin of `piSet_mem`. -/
+theorem _root_.ConLeche.IsUniverse.piSetD_mem {U A : V} {n : Nat} {ψ : Form (n + 2)}
+    {p : Fin n → V}
+    {hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) ψ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) ψ → z' = z}
+    (hU : IsUniverse (Mem (V := V)) U) (hA : A ∈ˢ U)
+    (hval : ∀ x, x ∈ˢ A → ∀ y, Form.Realize Mem (Form.cons2 x y p) ψ → kpair x y ∈ˢ U) :
+    piSetD ψ p A hfun ∈ˢ U :=
+  hU.sepF_mem (hU.power_mem (hU.sigmaPairsF_mem hA hval))
+
 /-! ### Off-domain and junk behavior of `app`
 
 `app` is total: on a non-`pt` value with no pair at the argument —
@@ -215,7 +576,7 @@ theorem app_eq_empty_of_not_mem {f a : V} (hf : f ≠ pt)
   rw [ite_eq_right hf]
   refine eq_empty fun z hz => ?_
   obtain ⟨y, hy, -⟩ := mem_sUnion.mp hz
-  exact h y (mem_sep.mp hy).2
+  exact h y (mem_appSep.mp hy).2
 
 /-- `app` off a graph's domain is the canonical junk value. -/
 theorem app_graph_of_not_mem {F : V → V} {A a : V} (ha : ¬ a ∈ˢ A) :
@@ -246,7 +607,190 @@ theorem eq_of_mem_piSet_app_eq {A f g : V} {B B' : V → V}
   rw [← eq_graph_app_of_mem_piSet hf, ← eq_graph_app_of_mem_piSet hg]
   exact graph_congr h
 
+/-! ## Definable constant graphs and constant-product graphs
+
+`constGraphF c A` is the first-order twin of `graph (fun _ => c) A`, and
+`sigmaConstGraphF A D` of `graph (fun x => sigmaConstF A x) D` — both
+built from `graphF` with the definable relations `w = c` and
+`z = sigmaConstF A x`. -/
+
+/-- The constant relation `w = c` in the replacement convention
+(variables `0 ↦ x`, `1 ↦ w`, parameter `2 ↦ c`). -/
+def constRelF : Form 3 := .equal (⟨1, by omega⟩ : Fin 3) (⟨2, by omega⟩ : Fin 3)
+
+theorem realize_constRelF {x w c : V} :
+    Form.Realize Mem (Form.cons2 x w (fun _ => c)) constRelF ↔ w = c := by
+  simp [constRelF, Form.cons2]
+
+/-- The definable constant graph `{⟨x, c⟩ : x ∈ˢ A}` — the first-order
+twin of `graph (fun _ => c) A`. -/
+noncomputable def constGraphF (c A : V) : V :=
+  graphF constRelF (fun _ => c) A
+    (fun _ _ => ⟨c, realize_constRelF.mpr rfl, fun _ h => realize_constRelF.mp h⟩)
+
+theorem mem_constGraphF {c A z : V} :
+    z ∈ˢ constGraphF c A ↔ ∃ x, x ∈ˢ A ∧ z = kpair x c := by
+  unfold constGraphF
+  rw [mem_graphF]
+  constructor
+  · rintro ⟨x, hx, w, rfl, hw⟩
+    rw [realize_constRelF.mp hw]
+    exact ⟨x, hx, rfl⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, c, rfl, realize_constRelF.mpr rfl⟩
+
+/-- Beta on the definable constant graph. -/
+theorem app_constGraphF {c A x : V} (hx : x ∈ˢ A) : app (constGraphF c A) x = c :=
+  app_graphF (fun _ _ => ⟨c, realize_constRelF.mpr rfl, fun _ h => realize_constRelF.mp h⟩)
+    hx (realize_constRelF.mpr rfl)
+
+/-- The definable constant graph is the meta constant graph. -/
+theorem constGraphF_eq_graph (c A : V) : constGraphF c A = graph (fun _ => c) A := by
+  refine ext fun z => ?_
+  rw [mem_constGraphF, mem_graph]
+
+/-- Definable constant-graph closure (clause 6): the first-order twin of
+`image_mem` at `fun x => kpair x c`. -/
+theorem _root_.ConLeche.IsUniverse.constGraphF_mem {U c A : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hc : c ∈ˢ U) (hA : A ∈ˢ U) : constGraphF c A ∈ˢ U := by
+  unfold constGraphF
+  exact hU.graphF_mem hA fun x hx w hw => by
+    rw [realize_constRelF.mp hw]
+    exact hU.kpair_mem he (hU.transitive hA hx) hc
+
+/-- Variable map `Fin 3 → Fin 6`, `i ↦ i + 3` (reads `kpairEqF`'s
+`(z, x, y)` as `(w, u, y)` out of the context `(x, z, A, w, u, y)`). -/
+def scEqKMap : Fin 3 → Fin 6 := fun i => ⟨i.val + 3, by omega⟩
+
+/-- `z = sigmaConstF A x` in the replacement convention (variables
+`0 ↦ x`, `1 ↦ z`, parameter `2 ↦ A`): every member of `z` is a pair
+⟨u, y⟩ with `u ∈ˢ A`, `y ∈ˢ x`, and conversely. -/
+def sigmaConstEqF : Form 3 :=
+  .all (.iff (.mem ⟨3, by omega⟩ ⟨1, by omega⟩)
+    (.ex (.ex (.and (Form.relabel scEqKMap kpairEqF)
+      (.and (.mem ⟨4, by omega⟩ ⟨2, by omega⟩) (.mem ⟨5, by omega⟩ ⟨0, by omega⟩))))))
+
+theorem realize_sigmaConstEqF {x z A : V} :
+    Form.Realize Mem (Form.cons2 x z (fun _ => A)) sigmaConstEqF ↔ z = sigmaConstF A x := by
+  have hEq : (Form.cons2 x z (fun _ => A) : Fin 3 → V) =
+      Form.snoc (Form.snoc (fun _ => x) z) A := by
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hComp : ∀ w u y : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ => x) z) A) w) u) y
+        ∘ scEqKMap) = Form.snoc (Form.snoc (fun _ => w) u) y := by
+    intro w u y
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  rw [hEq]
+  simp only [sigmaConstEqF, Form.realize_all, Form.realize_iff, Form.realize_ex,
+    Form.realize_and, Form.realize_relabel, hComp, realize_kpairEqF, Form.realize_mem,
+    Form.snoc_mk]
+  constructor
+  · intro h
+    refine SetTheory.ext fun w => ?_
+    rw [mem_sigmaConstF]
+    constructor
+    · intro hw
+      obtain ⟨u, y, h1, h2, h3⟩ := (h w).mp hw
+      exact ⟨u, h2, y, h3, h1⟩
+    · intro hq
+      obtain ⟨u, hu, y, hy, hEq⟩ := hq
+      rw [hEq]
+      exact (h (kpair u y)).mpr ⟨u, y, rfl, hu, hy⟩
+  · intro h w
+    rw [h]
+    show w ∈ˢ sigmaConstF A x ↔ ∃ u, ∃ y, w = kpair u y ∧ u ∈ˢ A ∧ y ∈ˢ x
+    rw [mem_sigmaConstF]
+    exact ⟨fun ⟨u, hu, y, hy, hEq⟩ => ⟨u, y, hEq, hu, hy⟩,
+      fun ⟨u, y, hEq, hu, hy⟩ => ⟨u, hu, y, hy, hEq⟩⟩
+
+/-- The definable constant-product graph `{⟨x, sigmaConstF A x⟩ : x ∈ˢ D}`
+— the first-order twin of `graph (fun x => sigmaConstF A x) D`. -/
+noncomputable def sigmaConstGraphF (A D : V) : V :=
+  graphF sigmaConstEqF (fun _ => A) D
+    (fun x _ => ⟨sigmaConstF A x, realize_sigmaConstEqF.mpr rfl,
+      fun _ h => realize_sigmaConstEqF.mp h⟩)
+
+theorem mem_sigmaConstGraphF {A D z : V} :
+    z ∈ˢ sigmaConstGraphF A D ↔ ∃ x, x ∈ˢ D ∧ z = kpair x (sigmaConstF A x) := by
+  unfold sigmaConstGraphF
+  rw [mem_graphF]
+  constructor
+  · rintro ⟨x, hx, w, rfl, hw⟩
+    rw [realize_sigmaConstEqF.mp hw]
+    exact ⟨x, hx, rfl⟩
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, sigmaConstF A x, rfl, realize_sigmaConstEqF.mpr rfl⟩
+
+/-- Beta on the definable constant-product graph. -/
+theorem app_sigmaConstGraphF {A D y : V} (hy : y ∈ˢ D) :
+    app (sigmaConstGraphF A D) y = sigmaConstF A y :=
+  app_graphF (fun x _ => ⟨sigmaConstF A x, realize_sigmaConstEqF.mpr rfl,
+      fun _ h => realize_sigmaConstEqF.mp h⟩) hy (realize_sigmaConstEqF.mpr rfl)
+
+/-- The definable constant-product graph is the meta one. -/
+theorem sigmaConstGraphF_eq_graph (A D : V) :
+    sigmaConstGraphF A D = graph (fun x => sigmaConstF A x) D := by
+  refine ext fun z => ?_
+  rw [mem_sigmaConstGraphF, mem_graph]
+
+/-- Definable constant-product-graph closure (clause 6): the
+first-order twin of `image_mem` at `fun x => kpair x (sigmaConstF A x)`. -/
+theorem _root_.ConLeche.IsUniverse.sigmaConstGraphF_mem {U A D : V}
+    (hU : IsUniverse (Mem (V := V)) U) (he : (empty : V) ∈ˢ U) (hA : A ∈ˢ U) (hD : D ∈ˢ U) :
+    sigmaConstGraphF A D ∈ˢ U := by
+  unfold sigmaConstGraphF
+  exact hU.graphF_mem hD fun x hx w hw => by
+    rw [realize_sigmaConstEqF.mp hw]
+    exact hU.kpair_mem he (hU.transitive hD hx) (hU.sigmaConstF_mem he hA (hU.transitive hD hx))
+
 /- Opaque interface operator (see `Derive/Empty.lean`). -/
 attribute [irreducible] app
+
+/-- Constant-fibre function-space closure (clause 6 via the subset
+clause): the first-order twin of `piSet_mem` at a constant family
+`fun _ => c`, using `sigmaPairs A (fun _ => c) = sigmaConstF A c`. -/
+theorem _root_.ConLeche.IsUniverse.piSet_const_mem {U A c : V} (hU : IsUniverse (Mem (V := V)) U)
+    (he : (empty : V) ∈ˢ U) (hA : A ∈ˢ U) (hc : c ∈ˢ U) : piSet A (fun _ => c) ∈ˢ U := by
+  unfold piSet
+  rw [← sigmaConstF_eq]
+  exact hU.sepF_mem (hU.power_mem (hU.sigmaConstF_mem he hA hc))
+
+/-! ## Stage 77: the meta-to-definable bridge lemmas -/
+
+/-- If `f` is definable on `A` by `φ` with parameters `p`, then
+`graph f A = graphF φ p A hfun`. -/
+theorem graph_eq_graphF {f : V → V} {A : V} {n : Nat} {φ : Form (n + 2)} {p : Fin n → V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z)
+    (h : ∀ x w, x ∈ˢ A → (Form.Realize Mem (Form.cons2 x w p) φ ↔ w = f x)) :
+    graph f A = graphF φ p A hfun := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_graph, mem_graphF hfun]
+  constructor
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, f x, rfl, (h x (f x) hx).mpr rfl⟩
+  · rintro ⟨x, hx, w, rfl, hφ⟩
+    exact ⟨x, hx, by rw [(h x w hx).mp hφ]⟩
+
+/-- If `B` is definable on `A` by `φ` with parameters `p`, then
+`sigmaPairs A B = sigmaPairsF φ p A hfun`. -/
+theorem sigmaPairs_eq_sigmaPairsF {A : V} {B : V → V} {n : Nat} {φ : Form (n + 2)}
+    {p : Fin n → V}
+    (hfun : ∀ x, x ∈ˢ A → ∃ z, Form.Realize Mem (Form.cons2 x z p) φ ∧
+      ∀ z', Form.Realize Mem (Form.cons2 x z' p) φ → z' = z)
+    (h : ∀ x y, x ∈ˢ A → (y ∈ˢ B x ↔ Form.Realize Mem (Form.cons2 x y p) φ)) :
+    sigmaPairs A B = sigmaPairsF φ p A hfun := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_sigmaPairs, mem_sigmaPairsF hfun]
+  constructor
+  · rintro ⟨x, hx, y, hy, rfl⟩
+    exact ⟨x, hx, y, rfl, (h x y hx).mp hy⟩
+  · rintro ⟨x, hx, y, rfl, hφ⟩
+    exact ⟨x, hx, y, (h x y hx).mpr hφ, rfl⟩
+
 
 end ConLeche.SetTheory

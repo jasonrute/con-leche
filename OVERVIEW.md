@@ -910,7 +910,7 @@ values. That the fixed point is a member of the universe follows from
 one abstract theorem about *accessible* operators, those where every
 element of the output needs only elements of the input indexed by one
 fixed set of the universe
-([theorem `closed_of_acc` in `ConLeche/SetModel/Access.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/SetModel/Access.lean#L243)):
+([theorem `closed_of_acc` in `ConLeche/SetModel/Access.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/SetModel/Access.lean#L262)):
 such an operator has a closed tuple in the universe. The run of the
 positivity check shows the block's operator accessible, for finitary,
 reflexive and nested fields alike. Each recursor is read as the unique
@@ -1202,11 +1202,11 @@ instead of trusting the operation's name.
 ## 7. The set-theory assumption
 
 Everything is parametric in a class
-([class `SetTheory` in `ConLeche/SetTheory/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/SetTheory/Core.lean#L95-L156)):
+([class `SetTheory` in `ConLeche/SetTheory/Core.lean`](https://github.com/leanprover/con-leche/blob/master/ConLeche/SetTheory/Core.lean#L117-L195)):
 membership, extensionality, pairing, union, power set, regularity,
 replacement for arbitrary Lean functions, and an ω-chain of universes,
 each a Tarski–Grothendieck universe
-([predicate `IsTGUniverse` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/SetTheory/Core.lean#L89))
+([predicate `IsUniverse` in the same file](https://github.com/leanprover/con-leche/blob/master/ConLeche/SetTheory/Core.lean#L104))
 and a member of the next. Infinity is derivable; choice is inherited
 from the meta-logic. The derived operations the model uses live in
 `ConLeche/SetTheory/Derive/*`.
@@ -1215,7 +1215,7 @@ The interface is instantiated in a separate Lake package,
 `bridge/lean4lean-model`, on Mathlib's `ZFSet` from the ω-many
 inaccessible cardinals hypothesis of Carneiro's consistency analysis of
 Lean
-([theorem `carneiro_implies_conleche` in `bridge/lean4lean-model/ConLecheBridge/Carneiro.lean`](https://github.com/leanprover/con-leche/blob/master/bridge/lean4lean-model/ConLecheBridge/Carneiro.lean#L200-L202)).
+([theorem `carneiro_implies_conleche` in `bridge/lean4lean-model/ConLecheBridge/Carneiro.lean`](https://github.com/leanprover/con-leche/blob/master/bridge/lean4lean-model/ConLecheBridge/Carneiro.lean#L245-L247)).
 So the assumption is no stronger than the one already accepted for
 Lean's own consistency. The main repository does not depend on Mathlib;
 the bridge builds in its own CI job.

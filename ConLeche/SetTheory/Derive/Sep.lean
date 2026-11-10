@@ -93,4 +93,173 @@ theorem image_congr {a : V} {f g : V → V} (h : ∀ x, x ∈ˢ a → f x = g x)
     exact ⟨fun ⟨w, hw, hz⟩ => ⟨w, hw, hz.trans (h w hw)⟩,
            fun ⟨w, hw, hz⟩ => ⟨w, hw, hz.trans (h w hw).symm⟩⟩
 
+/-! ## Definable (first-order) separation and image
+
+The same operators over `Form`s, derived from the definable
+replacement scheme `replF` (the scheme a first-order model `M ⊨ ZFC`
+actually supplies — `ConLecheBridge.replF_of_ZFC_model`).  Migrating
+the `sep`/`image` call sites to `sepF`/`imageF` is what removes the
+`replScheme_of_ZFC_model` bridge axiom. -/
+
+/-- The image of `a` under the *functional* definable relation `ψ`
+(first two free variables the related pair `(x, y)`, the remaining `n`
+the parameters `p`): the definable replacement scheme `replF` applied
+to `ψ`. -/
+noncomputable def imageF {n : Nat} (ψ : Form (n + 2)) (p : Fin n → V) (a : V)
+    (hfun : ∀ x, x ∈ˢ a → ∃ y, Form.Realize Mem (Form.cons2 x y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ → y' = y) : V :=
+  Classical.choose (replF n ψ p a hfun)
+
+theorem mem_imageF {n : Nat} {ψ : Form (n + 2)} {p : Fin n → V} {a z : V}
+    (hfun : ∀ x, x ∈ˢ a → ∃ y, Form.Realize Mem (Form.cons2 x y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ → y' = y) :
+    z ∈ˢ imageF ψ p a hfun ↔ ∃ x, x ∈ˢ a ∧ Form.Realize Mem (Form.cons2 x z p) ψ :=
+  Classical.choose_spec (replF n ψ p a hfun) z
+
+/-- Maps a separation formula's variables into the replacement
+convention: the bound variable `n` ↦ `0` (the `x` of `cons2`), and
+parameter `i < n` ↦ `i + 2`. -/
+def sepLift (n : Nat) : Fin (n + 1) → Fin (n + 2) :=
+  fun i => if h : i.val = n then ⟨0, by omega⟩ else ⟨i.val + 2, by omega⟩
+
+theorem cons2_sepLift {V : Type u} {n : Nat} (x y : V) (q : Fin n → V) :
+    (Form.cons2 x y q) ∘ sepLift n = Form.snoc q x := by
+  funext i
+  by_cases h : i.val = n
+  · simp [Form.cons2, sepLift, Form.snoc, h]
+  · have hlt : i.val < n := by omega
+    simp [Form.cons2, sepLift, Form.snoc, h, hlt]
+
+/-- The definable relation used for separation, with one extra
+parameter `w` (the last): `ψ(x, y; q, w) := (φ(x, q) ∧ x = y) ∨
+(¬φ(x, q) ∧ y = w)` — total and functional in `y` for every `x`
+(classically). -/
+def sepRel {n : Nat} (φ : Form (n + 1)) : Form (n + 1 + 2) :=
+  let φx := Form.relabel (fun i => Fin.castSucc (sepLift n i)) φ
+  Form.or (Form.and φx (Form.equal ⟨0, by omega⟩ ⟨1, by omega⟩))
+    (Form.and φx.not (Form.equal ⟨1, by omega⟩ ⟨n + 2, by omega⟩))
+
+theorem cons2_sepRel_lift {V : Type u} {n : Nat} (x y w : V) (q : Fin n → V) :
+    (Form.cons2 x y (Form.snoc q w)) ∘ (fun i => Fin.castSucc (sepLift n i))
+      = Form.snoc q x := by
+  funext i
+  by_cases h : i.val = n
+  · simp [Form.cons2, sepLift, Form.snoc, h]
+  · have hlt : i.val < n := by omega
+    simp [Form.cons2, sepLift, Form.snoc, h, hlt]
+
+theorem realize_sepRel {n : Nat} {φ : Form (n + 1)} {q : Fin n → V} {w x y : V} :
+    Form.Realize Mem (Form.cons2 x y (Form.snoc q w)) (sepRel φ) ↔
+      (Form.Realize Mem (Form.snoc q x) φ ∧ x = y) ∨
+      (¬ Form.Realize Mem (Form.snoc q x) φ ∧ y = w) := by
+  have hφx : Form.Realize Mem (Form.cons2 x y (Form.snoc q w))
+      (Form.relabel (fun i => Fin.castSucc (sepLift n i)) φ)
+      ↔ Form.Realize Mem (Form.snoc q x) φ := by
+    rw [Form.realize_relabel, cons2_sepRel_lift]
+  have e1 : (Form.cons2 x y (Form.snoc q w)) ⟨0, by omega⟩ = x := by simp [Form.cons2]
+  have e2 : (Form.cons2 x y (Form.snoc q w)) ⟨1, by omega⟩ = y := by simp [Form.cons2]
+  have e3 : (Form.cons2 x y (Form.snoc q w)) ⟨n + 2, by omega⟩ = w := by
+    simp [Form.cons2, Form.snoc]
+  simp only [sepRel, Form.realize_or, Form.realize_and, Form.realize_not, hφx,
+    Form.realize_equal, e1, e2, e3]
+
+/-- The separation relation is total and functional in `y` on any
+`a`. -/
+theorem sepRel_fun {n : Nat} {φ : Form (n + 1)} {q : Fin n → V} {a w : V} :
+    ∀ x, x ∈ˢ a → ∃ y, Form.Realize Mem (Form.cons2 x y (Form.snoc q w)) (sepRel φ) ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' (Form.snoc q w)) (sepRel φ) → y' = y := by
+  intro x _
+  by_cases hp : Form.Realize Mem (Form.snoc q x) φ
+  · exact ⟨x, by rw [realize_sepRel]; exact Or.inl ⟨hp, rfl⟩, fun y' hy' => by
+      rw [realize_sepRel] at hy'
+      rcases hy' with ⟨_, h2⟩ | ⟨h1, _⟩
+      · exact h2.symm
+      · exact absurd hp h1⟩
+  · exact ⟨w, by rw [realize_sepRel]; exact Or.inr ⟨hp, rfl⟩, fun y' hy' => by
+      rw [realize_sepRel] at hy'
+      rcases hy' with ⟨h1, _⟩ | ⟨_, h2⟩
+      · exact absurd h1 hp
+      · exact h2⟩
+
+open Classical in
+/-- Separation for a definable predicate: `{x ∈ a | φ(x, q)}`, where
+`φ : Form (n + 1)` has the bound variable as its LAST variable and `q`
+the `n` parameters — the image of `a` under the total functional
+definable relation `sepRel φ` with witness parameter
+`Classical.choose h` (mirroring `sep`). -/
+noncomputable def sepF (a : V) {n : Nat} (φ : Form (n + 1)) (q : Fin n → V) : V :=
+  if h : ∃ x, x ∈ˢ a ∧ Form.Realize Mem (Form.snoc q x) φ then
+    imageF (sepRel φ) (Form.snoc q (Classical.choose h)) a (sepRel_fun (w := Classical.choose h))
+  else empty
+
+open Classical in
+theorem mem_sepF {a z : V} {n : Nat} {φ : Form (n + 1)} {q : Fin n → V} :
+    z ∈ˢ sepF a φ q ↔ z ∈ˢ a ∧ Form.Realize Mem (Form.snoc q z) φ := by
+  unfold sepF
+  split
+  · next h =>
+    obtain ⟨hw₀a, hw₀φ⟩ := Classical.choose_spec h
+    have hspec := mem_imageF (ψ := sepRel φ) (p := Form.snoc q (Classical.choose h))
+      (sepRel_fun (w := Classical.choose h)) (a := a) (z := z)
+    constructor
+    · intro hz
+      obtain ⟨x, hx, hψ⟩ := hspec.mp hz
+      rw [realize_sepRel] at hψ
+      rcases hψ with ⟨hφ, hxz⟩ | ⟨_, hzw⟩
+      · rw [← hxz]
+        exact ⟨hx, hφ⟩
+      · rw [hzw]
+        exact ⟨hw₀a, hw₀φ⟩
+    · rintro ⟨hz, hφ⟩
+      exact hspec.mpr ⟨z, hz, by rw [realize_sepRel]; exact Or.inl ⟨hφ, rfl⟩⟩
+  · next h =>
+    constructor
+    · intro hz; exact absurd hz (not_mem_empty z)
+    · intro ⟨hz, hφ⟩; exact absurd ⟨z, hz, hφ⟩ h
+
+theorem sepF_subset {a : V} {n : Nat} {φ : Form (n + 1)} {q : Fin n → V} :
+    sepF a φ q ⊆ˢ a :=
+  fun _ hz => (mem_sepF.mp hz).1
+
+/-- Definable image congruence. -/
+theorem imageF_congr {n : Nat} {ψ ψ' : Form (n + 2)} {p : Fin n → V} {a : V}
+    (hfun : ∀ x, x ∈ˢ a → ∃ y, Form.Realize Mem (Form.cons2 x y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ → y' = y)
+    (hfun' : ∀ x, x ∈ˢ a → ∃ y, Form.Realize Mem (Form.cons2 x y p) ψ' ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ' → y' = y)
+    (h : ∀ x y, x ∈ˢ a →
+      (Form.Realize Mem (Form.cons2 x y p) ψ ↔ Form.Realize Mem (Form.cons2 x y p) ψ')) :
+    imageF ψ p a hfun = imageF ψ' p a hfun' :=
+  ext fun z => by
+    rw [mem_imageF hfun, mem_imageF hfun']
+    exact ⟨fun ⟨x, hx, hψ⟩ => ⟨x, hx, (h x z hx).mp hψ⟩,
+           fun ⟨x, hx, hψ'⟩ => ⟨x, hx, (h x z hx).mpr hψ'⟩⟩
+
+/-! ## Stage 77: the meta-to-definable bridge lemmas -/
+
+/-- If the meta predicate `p` is definable by `φ` with parameters `q`,
+then `sep a p = sepF a φ q`. -/
+theorem sep_eq_sepF {a : V} {p : V → Prop} {n : Nat} {φ : Form (n + 1)} {q : Fin n → V}
+    (h : ∀ z, p z ↔ Form.Realize Mem (Form.snoc q z) φ) :
+    sep a p = sepF a φ q := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_sep, mem_sepF]
+  exact ⟨fun ⟨hz, hp⟩ => ⟨hz, (h z).mp hp⟩, fun ⟨hz, hφ⟩ => ⟨hz, (h z).mpr hφ⟩⟩
+
+/-- If `f` is definable on `a` by `ψ` with parameters `p`, then
+`image f a = imageF ψ p a hfun`. -/
+theorem image_eq_imageF {f : V → V} {a : V} {n : Nat} {ψ : Form (n + 2)} {p : Fin n → V}
+    (hfun : ∀ x, x ∈ˢ a → ∃ y, Form.Realize Mem (Form.cons2 x y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 x y' p) ψ → y' = y)
+    (h : ∀ x y, x ∈ˢ a → (Form.Realize Mem (Form.cons2 x y p) ψ ↔ y = f x)) :
+    image f a = imageF ψ p a hfun := by
+  refine SetTheory.ext fun z => ?_
+  rw [mem_image, mem_imageF hfun]
+  constructor
+  · rintro ⟨x, hx, rfl⟩
+    exact ⟨x, hx, (h x (f x) hx).mpr rfl⟩
+  · rintro ⟨x, hx, hψ⟩
+    exact ⟨x, hx, (h x z hx).mp hψ⟩
+
+
 end ConLeche.SetTheory

@@ -2,6 +2,7 @@ module
 
 public import ConLeche.SetTheory.Derive.Univ
 import ConLeche.SetTheory.Derive.Lfp
+public import ConLeche.SetTheory.Derive.Rec
 @[expose] public section
 
 /-!
@@ -201,15 +202,242 @@ theorem famSpaceIn_mono {C D I : V} (h : C ⊆ˢ D) : famSpaceIn C I ⊆ˢ famSp
     rw [← famOf_app_eq hX]
     exact famOf_mem_famSpaceIn fun i hi => h _ (famSpaceIn_app hX hi)
 
+/-! ## The definable closed-family predicate (bridge-axiom track, stage 33)
+
+`IsClosedFamIn C I F X` is first-order in the parameters `(C, I, F, pt)`
+and the family variable `X`: membership in the family space is a
+bounded formula (the `piSet` shape over an inhabited `I`, the point
+over an empty one), and the pre-fixed-point clause reads `app F X`
+pointwise through the definable `appEqF`/`appMemF`.  So the fibrewise
+intersection of the closed families in `lfpFamIn` below is a `sepF`
+over `lfpFibreF` — no meta-level `sep`/`repl` anywhere. -/
+
+/-- Parameters `(C, I, F, pt)` of `closedFamF` (variables `0..3`), with
+the family `X` at variable `4`. -/
+noncomputable def closedFamParam (C I F : V) : Fin 4 → V :=
+  fun k => match k.val with
+  | 0 => C
+  | 1 => I
+  | 2 => F
+  | _ => (pt : V)
+
+/-- Variable map reading `equalF`'s `(a, b)` as `(X, pt)`. -/
+def cfPtMap : Fin 2 → Fin 5 :=
+  fun k => if k.val = 0 then ⟨4, by omega⟩ else ⟨3, by omega⟩
+
+/-- Variable map reading `kpairEqF`'s `(z, x, y)` as `(p, j, y)` out of
+the bound `(p, j, y)` at variables `5, 6, 7`. -/
+def cfKZMap : Fin 3 → Fin 8 := fun k =>
+  match k.val with
+  | 0 => ⟨5, by omega⟩
+  | 1 => ⟨6, by omega⟩
+  | _ => ⟨7, by omega⟩
+
+/-- Variable map reading `kpairMemF`'s `(a, f, y)` as `(j, X, y)` at
+variables `5, 4, 6`. -/
+def cfKMMap : Fin 3 → Fin 7 := fun k =>
+  match k.val with
+  | 0 => ⟨5, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | _ => ⟨6, by omega⟩
+
+/-- Variable map reading `kpairMemF`'s `(a, f, y)` as `(j, X, y')` at
+variables `5, 4, 7`. -/
+def cfKMap' : Fin 3 → Fin 8 := fun k =>
+  match k.val with
+  | 0 => ⟨5, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | _ => ⟨7, by omega⟩
+
+/-- Variable map reading `appEqF`'s `(v, g, u, pt)` as `(G, F, X, pt)`
+at variables `7, 2, 4, 3`. -/
+def cfAEGMap : Fin 4 → Fin 8 := fun k =>
+  match k.val with
+  | 0 => ⟨3, by omega⟩
+  | 1 => ⟨7, by omega⟩
+  | 2 => ⟨2, by omega⟩
+  | _ => ⟨4, by omega⟩
+
+/-- Variable map reading `appMemF`'s `(w, g, u, pt)` as `(z, G, j, pt)`
+at variables `6, 7, 5, 3`. -/
+def cfAMGMap : Fin 4 → Fin 8 := fun k =>
+  match k.val with
+  | 0 => ⟨6, by omega⟩
+  | 1 => ⟨7, by omega⟩
+  | 2 => ⟨5, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- Variable map reading `appMemF`'s `(w, g, u, pt)` as `(z, X, j, pt)`
+at variables `6, 4, 5, 3`. -/
+def cfAMXMap : Fin 4 → Fin 7 := fun k =>
+  match k.val with
+  | 0 => ⟨6, by omega⟩
+  | 1 => ⟨4, by omega⟩
+  | 2 => ⟨5, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- `X ⊆ˢ sigmaPairs I (fun _ => C)` in raw form: every member `p` of
+`X` (bound `5`) is `kpair j y` with `j ∈ˢ I` (bound `6`) and `y ∈ˢ C`
+(bound `7`).  Variables `0 ↦ C`, `1 ↦ I`, `2 ↦ F`, `3 ↦ pt`, `4 ↦ X`. -/
+def closedSubsetF : Form 5 :=
+  .all (.imp (.mem ⟨5, by omega⟩ ⟨4, by omega⟩)
+    (.ex (.and (.mem ⟨6, by omega⟩ ⟨1, by omega⟩)
+      (.ex (.and (.mem ⟨7, by omega⟩ ⟨0, by omega⟩)
+        (Form.relabel cfKZMap kpairEqF))))))
+
+/-- Totality and single-valuedness of `X` on `I`: for every `j ∈ˢ I`
+(bound `5`) some `y` (bound `6`) has `kpair j y ∈ˢ X`, uniquely
+(bound `7`).  The `y ∈ˢ C` side is already forced by `closedSubsetF`. -/
+def closedTotalF : Form 5 :=
+  .all (.imp (.mem ⟨5, by omega⟩ ⟨1, by omega⟩)
+    (.ex (.and (Form.relabel cfKMMap kpairMemF)
+      (.all (.imp (Form.relabel cfKMap' kpairMemF) (.equal ⟨7, by omega⟩ ⟨6, by omega⟩))))))
+
+/-- `X` is in the family space: the `piSet` shape over an inhabited `I`,
+the point over an empty one. -/
+def closedSpaceF : Form 5 :=
+  .and (.imp (Form.ex (.mem ⟨5, by omega⟩ ⟨1, by omega⟩)) (.and closedSubsetF closedTotalF))
+    (.imp (Form.not (Form.ex (.mem ⟨5, by omega⟩ ⟨1, by omega⟩)))
+      (Form.relabel cfPtMap equalF))
+
+/-- The pre-fixed-point clause `FamLe I (app F X) X`, in raw form: for
+every `j ∈ˢ I` (bound `5`) and `z ∈ˢ app (app F X) j` (bound `6`, with
+the graph `app F X` witnessed at bound `7`), `z ∈ˢ app X j`. -/
+def closedFamLeF : Form 5 :=
+  .all (.imp (.mem ⟨5, by omega⟩ ⟨1, by omega⟩)
+    (.all (.imp (.ex (.and (Form.relabel cfAEGMap appEqF) (Form.relabel cfAMGMap appMemF)))
+      (Form.relabel cfAMXMap appMemF))))
+
+/-- **`IsClosedFamIn C I F X` as a first-order formula**: variables
+`0 ↦ C`, `1 ↦ I`, `2 ↦ F`, `3 ↦ pt`, `4 ↦ X`. -/
+def closedFamF : Form 5 := .and closedSpaceF closedFamLeF
+
+theorem realize_closedFamF {C I F X : V} :
+    Form.Realize Mem (Form.snoc (closedFamParam C I F) X) closedFamF ↔
+      IsClosedFamIn C I F X := by
+  have hPt : (Form.snoc (closedFamParam C I F) X) ∘ cfPtMap =
+      Form.snoc (fun _ => X) (pt : V) := by
+    funext ⟨k, hk⟩
+    have hk2 : k = 0 ∨ k = 1 := by omega
+    rcases hk2 with rfl | rfl <;> rfl
+  have hKZ : ∀ p j y : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (closedFamParam C I F) X) p) j) y) ∘ cfKZMap =
+        Form.snoc (Form.snoc (fun _ => p) j) y := by
+    intro p j y
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hKM : ∀ j y : V,
+      (Form.snoc (Form.snoc (Form.snoc (closedFamParam C I F) X) j) y) ∘ cfKMMap =
+        Form.snoc (Form.snoc (fun _ => j) X) y := by
+    intro j y
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hKM' : ∀ j y y' : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (closedFamParam C I F) X) j) y) y') ∘ cfKMap' =
+        Form.snoc (Form.snoc (fun _ => j) X) y' := by
+    intro j y y'
+    funext ⟨k, hk⟩
+    have hk3 : k = 0 ∨ k = 1 ∨ k = 2 := by omega
+    rcases hk3 with rfl | rfl | rfl <;> rfl
+  have hAEG : ∀ j z G : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (closedFamParam C I F) X) j) z) G) ∘ cfAEGMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => (pt : V)) G) F) X := by
+    intro j z G
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hAMG : ∀ j z G : V,
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (closedFamParam C I F) X) j) z) G) ∘ cfAMGMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => z) G) j) (pt : V) := by
+    intro j z G
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  have hAMX : ∀ j z : V,
+      (Form.snoc (Form.snoc (Form.snoc (closedFamParam C I F) X) j) z) ∘ cfAMXMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => z) X) j) (pt : V) := by
+    intro j z
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [closedFamF, closedSpaceF, closedFamLeF, closedSubsetF, closedTotalF,
+    Form.realize_and, Form.realize_imp, Form.realize_all, Form.realize_ex,
+    Form.realize_relabel, Form.realize_not, Form.realize_mem, Form.realize_equal,
+    hPt, hKZ, hKM, hKM', hAEG, hAMG, hAMX,
+    realize_kpairEqF, realize_kpairMemF, realize_appEqF, realize_appMemF, Form.snoc_mk]
+  simp only [IsClosedFamIn, FamLe, SetTheory.Subset, closedFamParam]
+  by_cases hI : ∃ i, i ∈ˢ I
+  · rw [famSpaceIn_of_ne hI]
+    simp [SetTheory.Subset, mem_piSet, mem_sigmaPairs, hI]
+  · rw [famSpaceIn_of_empty hI, mem_unitSet_iff]
+    simp [hI, realize_equalF]
+
+/-- Parameters `(C, I, F, pt, i)` of `lfpFibreF` (variables `0..4`),
+with the fibre element `x` at variable `5`. -/
+noncomputable def lfpParam (C I F i : V) : Fin 5 → V :=
+  fun k => match k.val with
+  | 0 => C
+  | 1 => I
+  | 2 => F
+  | 3 => (pt : V)
+  | _ => i
+
+/-- Variable map reading `closedFamF`'s `(C, I, F, pt, X)` out of
+`(C, I, F, pt, i, x, X)` at variables `0..3, 6`. -/
+def lfCfMap : Fin 5 → Fin 7 := fun k =>
+  match k.val with
+  | 0 => ⟨0, by omega⟩
+  | 1 => ⟨1, by omega⟩
+  | 2 => ⟨2, by omega⟩
+  | 3 => ⟨3, by omega⟩
+  | _ => ⟨6, by omega⟩
+
+/-- Variable map reading `appMemF`'s `(w, g, u, pt)` as `(x, X, i, pt)`
+at variables `5, 6, 4, 3`. -/
+def lfAXMap : Fin 4 → Fin 7 := fun k =>
+  match k.val with
+  | 0 => ⟨5, by omega⟩
+  | 1 => ⟨6, by omega⟩
+  | 2 => ⟨4, by omega⟩
+  | _ => ⟨3, by omega⟩
+
+/-- The fibre predicate of the least pre-fixed family, as a first-order
+formula: `∀ X, IsClosedFamIn C I F X → x ∈ˢ app X i`.  Variables
+`0 ↦ C`, `1 ↦ I`, `2 ↦ F`, `3 ↦ pt`, `4 ↦ i`, `5 ↦ x`; bound `6 ↦ X`. -/
+def lfpFibreF : Form 6 :=
+  .all (.imp (Form.relabel lfCfMap closedFamF) (Form.relabel lfAXMap appMemF))
+
+theorem realize_lfpFibreF {C I F i x : V} :
+    Form.Realize Mem (Form.snoc (lfpParam C I F i) x) lfpFibreF ↔
+      (∀ X, IsClosedFamIn C I F X → x ∈ˢ app X i) := by
+  have hCf : ∀ x X : V,
+      (Form.snoc (Form.snoc (lfpParam C I F i) x) X) ∘ lfCfMap =
+        Form.snoc (closedFamParam C I F) X := by
+    intro x X
+    funext ⟨k, hk⟩
+    have hk5 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 := by omega
+    rcases hk5 with rfl | rfl | rfl | rfl | rfl <;> rfl
+  have hAX : ∀ x X : V,
+      (Form.snoc (Form.snoc (lfpParam C I F i) x) X) ∘ lfAXMap =
+        Form.snoc (Form.snoc (Form.snoc (fun _ => x) X) i) (pt : V) := by
+    intro x X
+    funext ⟨k, hk⟩
+    have hk4 : k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 := by omega
+    rcases hk4 with rfl | rfl | rfl | rfl <;> rfl
+  simp only [lfpFibreF, Form.realize_all, Form.realize_imp, Form.realize_relabel,
+    hCf, hAX, realize_closedFamF, realize_appMemF]
+
 open Classical in
 /-- **The least pre-fixed family of `F` over `I`** — fibrewise the
 intersection of the closed families when there is one (separated from
-a chosen closed family), dropped to `∅` if it left `C`; the empty
-family otherwise. -/
+a chosen closed family by the definable `lfpFibreF`), dropped to `∅`
+if it left `C`; the empty family otherwise. -/
 noncomputable def lfpFamIn (C I F : V) : V :=
   if h : ∃ L, IsClosedFamIn C I F L then
-    famOf (fun i => dropTo C (sep (app (Classical.choose h) i)
-      (fun x => ∀ X, IsClosedFamIn C I F X → x ∈ˢ app X i))) I
+    famOf (fun i => dropTo C (sepF (app (Classical.choose h) i) lfpFibreF
+      (lfpParam C I F i))) I
   else famOf (fun _ => empty) I
 
 variable {C I F : V}
@@ -218,7 +446,9 @@ theorem forall_of_mem_app_lfpFamIn (h : ∃ L, IsClosedFamIn C I F L) {i x : V} 
     (hx : x ∈ˢ app (lfpFamIn C I F) i) : ∀ X, IsClosedFamIn C I F X → x ∈ˢ app X i := by
   unfold lfpFamIn at hx
   rw [dite_eq_left h, app_famOf hi] at hx
-  exact (mem_sep.mp (mem_of_mem_dropTo hx)).2
+  have h2 := (mem_sepF.mp (mem_of_mem_dropTo hx)).2
+  rw [realize_lfpFibreF] at h2
+  exact h2
 
 /-- A member of `C` below every closed family's fibre is below the
 least family's. -/
@@ -227,10 +457,11 @@ theorem subset_app_lfpFamIn (hD : DropClosed C) (h : ∃ L, IsClosedFamIn C I F 
     Y ⊆ˢ app (lfpFamIn C I F) i := by
   unfold lfpFamIn
   rw [dite_eq_left h, app_famOf hi]
-  refine subset_dropTo hD (famSpaceIn_app (Classical.choose_spec h).1 hi) sep_subset hY
-    fun x hx => mem_sep.mpr ⟨?_, fun X hX => hYX X hX x hx⟩
+  refine subset_dropTo hD (famSpaceIn_app (Classical.choose_spec h).1 hi) sepF_subset hY
+    fun x hx => mem_sepF.mpr ⟨?_, by
+      rw [realize_lfpFibreF]
+      exact fun X hX => hYX X hX x hx⟩
   exact hYX _ (Classical.choose_spec h) x hx
-
 /-- **Leastness**: the least pre-fixed family lies in every closed
 family. -/
 theorem lfpFamIn_le {X : V} (hX : IsClosedFamIn C I F X) : FamLe I (lfpFamIn C I F) X :=
@@ -327,6 +558,27 @@ theorem strictU_famUnion_mem {w : Nat} (hw : w ≠ 0) {A : V} {F : V → V} (hA 
   · obtain ⟨y, hy, hpy⟩ := mem_sUnion.mp hp
     obtain ⟨a, ha, rfl⟩ := mem_image.mp hy
     exact ((mem_strictU_pos hw).mp (hF a ha)).2.2 hpy
+
+/-- **Definable twin of `strictU_famUnion_mem` (clause 6)**: a union of
+strict types of a positive level, indexed by a definable functional
+relation over a set of the axiomatic level, is strict. -/
+theorem strictU_famUnionF_mem {w : Nat} (hw : w ≠ 0) {A : V} {n : Nat} {ψ : Form (n + 2)}
+    {p : Fin n → V}
+    {hfun : ∀ a, a ∈ˢ A → ∃ y, Form.Realize Mem (Form.cons2 a y p) ψ ∧
+      ∀ y', Form.Realize Mem (Form.cons2 a y' p) ψ → y' = y}
+    (hA : A ∈ˢ (tg w : V))
+    (hF : ∀ a, a ∈ˢ A → ∀ y, Form.Realize Mem (Form.cons2 a y p) ψ → y ∈ˢ (strictU w : V)) :
+    sUnion (imageF ψ p A hfun) ∈ˢ (strictU w : V) := by
+  refine (mem_strictU_pos hw).mpr ⟨(tg_isUniverse hw).famUnionF_mem hA fun a ha y hy =>
+    ((mem_strictU_pos hw).mp (hF a ha y hy)).1, fun he => ?_, fun hp => ?_⟩
+  · have : (ptTag : V) ∈ˢ sUnion (imageF ψ p A hfun) := he ▸ ptTag_mem_pt
+    obtain ⟨y, hy, hty⟩ := mem_sUnion.mp this
+    obtain ⟨a, ha, hy'⟩ := (mem_imageF hfun).mp hy
+    exact ((mem_strictU_pos hw).mp (hF a ha y hy')).2.1
+      (eq_pt_of_subset_pt (fun z hz => he ▸ mem_sUnion.mpr ⟨_, hy, hz⟩) hty)
+  · obtain ⟨y, hy, hpy⟩ := mem_sUnion.mp hp
+    obtain ⟨a, ha, hy'⟩ := (mem_imageF hfun).mp hy
+    exact ((mem_strictU_pos hw).mp (hF a ha y hy')).2.2 hpy
 
 /-! ## Families of a level -/
 

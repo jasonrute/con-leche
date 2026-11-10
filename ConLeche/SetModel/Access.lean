@@ -41,7 +41,6 @@ small}` has the universe's ordinals as its least fixed point.
 
 namespace ConLeche.SetTheory
 
-open ConLeche.SetTheory.Tower (natUnion mem_natUnion natUnion_mem_tg_pos)
 
 universe u
 
@@ -67,26 +66,46 @@ def AccTuple (w kI : Nat) (IsI : Nat → V) (kO : Nat) (IsO : Nat → V)
 /-- Paths of length `n` over `A`: nested pairs, `pt` the empty path. -/
 noncomputable def accPathsN (A : V) : Nat → V
   | 0 => unitSet
-  | n + 1 => sigmaPairs A fun _ => accPathsN A n
+  | n + 1 => sigmaConstF A (accPathsN A n)
 
-/-- All finite paths over `A`. -/
-noncomputable def accPaths (A : V) : V := natUnion (accPathsN A)
+/-- All finite paths over `A` at level `w`: the definable path set
+`accPathsF A (tg w)` → the first-order twin of the meta
+`natUnion (accPathsN A)` (stage 26). -/
+noncomputable def accPaths (w : Nat) (A : V) : V := Tower.accPathsF A (tg w)
 
-theorem pt_mem_accPaths (A : V) : (pt : V) ∈ˢ accPaths A :=
-  mem_natUnion.mpr ⟨0, pt_mem_unitSet⟩
+theorem pt_mem_accPaths (w : Nat) (A : V) : (pt : V) ∈ˢ accPaths w A :=
+  Tower.pt_mem_accPathsF A (tg w)
 
-theorem kpair_mem_accPaths {A a p : V} (ha : a ∈ˢ A) (hp : p ∈ˢ accPaths A) :
-    kpair a p ∈ˢ accPaths A := by
-  obtain ⟨n, hn⟩ := mem_natUnion.mp hp
-  exact mem_natUnion.mpr ⟨n + 1, mem_sigmaPairs.mpr ⟨a, ha, p, hn, rfl⟩⟩
+/-- The definable iteration graph over `ω` stays in a positive axiomatic
+level containing `A` (stage 25's `IsUniverse.recGraph_mem`). -/
+theorem iterGraphF_mem_tg {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
+    Tower.iterGraphF A (tg w) ∈ˢ (tg w : V) := by
+  obtain ⟨w', rfl⟩ : ∃ w', w = w' + 1 := ⟨w - 1, by omega⟩
+  have hU := tg_isUniverse (V := V) (Nat.succ_ne_zero w')
+  refine hU.recGraph_mem (z := unitSet) (s := Tower.iterStepGraphF A (tg (w' + 1)))
+    (hU.unitSet_mem (empty_mem_tg _)) (omega_mem_tg_succ w') ?_
+  intro m hm u hu
+  show app (app (constGraphF (sigmaConstGraphF A (tg (w' + 1))) omega) m) u ∈ˢ _
+  rw [app_constGraphF hm, app_sigmaConstGraphF hu]
+  exact hU.sigmaConstF_mem (empty_mem_tg _) hA hu
+
+theorem kpair_mem_accPaths {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) {a p : V}
+    (ha : a ∈ˢ A) (hp : p ∈ˢ accPaths w A) : kpair a p ∈ˢ accPaths w A :=
+  Tower.kpair_mem_accPathsF ha hp fun _ hc =>
+    Tower.iterGraphF_app_mem (tg_isUniverse hw) (empty_mem_tg w) hA hc
 
 theorem accPaths_mem {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
-    accPaths A ∈ˢ (tg w : V) := by
+    accPaths w A ∈ˢ (tg w : V) :=
+  Tower.natUnionF_mem_tg_pos hw (iterGraphF_mem_tg hw hA)
+
+/-- Every finite stage is a member of a positive axiomatic level
+containing `A`. -/
+theorem accPathsN_mem_tg {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) (n : Nat) :
+    accPathsN A n ∈ˢ (tg w : V) := by
   have hU := tg_isUniverse (V := V) hw
-  refine natUnion_mem_tg_pos hw fun n => ?_
   induction n with
   | zero => exact unitSet_mem_tg w
-  | succ n ih => exact hU.sigmaPairs_mem hA fun _ _ => ih
+  | succ n ih => exact hU.sigmaConstF_mem (empty_mem_tg w) hA ih
 
 /-! ## Brouwer trees and stages -/
 
@@ -116,7 +135,7 @@ noncomputable def stage : BT V → Nat → V
 /-- A tree's code: its set of `A`-paths. -/
 noncomputable def code : BT V → V
   | .leaf => empty
-  | .node f => binUnion unitSet (sUnion (image (fun a => image (kpair a) (code (f a))) A))
+  | .node f => binUnion unitSet (sUnion (image (fun a => kpairImage a (code (f a))) A))
 
 /-- The chosen tree of a code. -/
 noncomputable def pick (c : V) : BT V :=
@@ -125,7 +144,7 @@ noncomputable def pick (c : V) : BT V :=
 /-- **The limit tuple**: the union of the stages over all codes. -/
 noncomputable def limTup : Nat → V :=
   fun m => famOf (fun i => sUnion (image (fun c => app (stage Is Φ A (pick A c) m) i)
-    (power (accPaths A)))) (Is m)
+    (power (accPaths w A)))) (Is m)
 
 variable {w k Is Φ A}
 
@@ -137,19 +156,19 @@ theorem mem_code_node {f : V → BT V} {p : V} :
   · rintro (h | ⟨s, hs, hp⟩)
     · exact Or.inl h
     · obtain ⟨a, ha, rfl⟩ := mem_image.mp hs
-      obtain ⟨q, hq, rfl⟩ := mem_image.mp hp
+      obtain ⟨q, hq, rfl⟩ := mem_kpairImage.mp hp
       exact Or.inr ⟨a, ha, q, hq, rfl⟩
   · rintro (h | ⟨a, ha, q, hq, rfl⟩)
     · exact Or.inl h
-    · exact Or.inr ⟨_, mem_image.mpr ⟨a, ha, rfl⟩, mem_image.mpr ⟨q, hq, rfl⟩⟩
+    · exact Or.inr ⟨_, mem_image.mpr ⟨a, ha, rfl⟩, mem_kpairImage.mpr ⟨q, hq, rfl⟩⟩
 
-theorem code_sub : ∀ T : BT V, code A T ⊆ˢ accPaths A
+theorem code_sub (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) : ∀ T : BT V, code A T ⊆ˢ accPaths w A
   | .leaf => by simp only [code]; exact empty_subset _
   | .node f => by
     intro p hp
     rcases mem_code_node.mp hp with rfl | ⟨a, ha, q, hq, rfl⟩
-    · exact pt_mem_accPaths A
-    · exact kpair_mem_accPaths ha (code_sub (f a) q hq)
+    · exact pt_mem_accPaths w A
+    · exact kpair_mem_accPaths hw hA ha (code_sub hw hA (f a) q hq)
 
 /-- The stage depends on the tree only through its code. -/
 theorem stage_eq_of_code : ∀ T T' : BT V, code A T = code A T' →
@@ -204,8 +223,8 @@ theorem stage_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w 
     exact strictU_famUnion_mem hw hA fun a _ =>
       famSpace_app (stage_mem hw hA hmaps (f a) m hm) hi
 
-theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
-    y ∈ˢ app (limTup Is Φ A m) i ↔ ∃ T : BT V, y ∈ˢ app (stage Is Φ A T m) i := by
+theorem mem_limTup (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
+    y ∈ˢ app (limTup w Is Φ A m) i ↔ ∃ T : BT V, y ∈ˢ app (stage Is Φ A T m) i := by
   unfold limTup
   rw [app_famOf hi, mem_sUnion]
   constructor
@@ -213,14 +232,14 @@ theorem mem_limTup {m : Nat} {i y : V} (hi : i ∈ˢ Is m) :
     obtain ⟨c, -, rfl⟩ := mem_image.mp hs
     exact ⟨_, hy⟩
   · rintro ⟨T, hT⟩
-    refine ⟨_, mem_image.mpr ⟨code A T, mem_power.mpr (code_sub T), rfl⟩, ?_⟩
+    refine ⟨_, mem_image.mpr ⟨code A T, mem_power.mpr (code_sub hw hA T), rfl⟩, ?_⟩
     have hex : ∃ T', code A T' = code A T := ⟨T, rfl⟩
     have : pick A (code A T) = Classical.choose hex := by unfold pick; exact dite_eq_left hex
     rw [this, stage_eq_of_code _ _ (Classical.choose_spec hex)]
     exact hT
 
 theorem limTup_mem (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ) :
-    InTupleSpace w k Is (limTup Is Φ A) := by
+    InTupleSpace w k Is (limTup w Is Φ A) := by
   intro m hm
   refine famOf_mem_famSpace fun i hi => ?_
   exact strictU_famUnion_mem hw ((tg_isUniverse hw).power_mem (accPaths_mem hw hA)) fun c _ =>
@@ -242,12 +261,12 @@ maps the tuple space into itself and is `A`-accessible for a set `A` of
 the level has a closed tuple.  No monotonicity is used. -/
 theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
     (hacc : AccTuple w k Is k Is Φ A) : ∃ L, IsClosedTuple w k Is Φ L := by
-  refine ⟨limTup Is Φ A, limTup_mem hw hA hmaps, ?_⟩
+  refine ⟨limTup w Is Φ A, limTup_mem hw hA hmaps, ?_⟩
   intro m hm i hi x hx
   obtain ⟨B, g, hBA, hgL, hsupp⟩ := hacc _ (limTup_mem hw hA hmaps) m hm i hi x hx
   -- every support element lies in some stage: choose its tree
   have hT : ∀ a, a ∈ˢ B → ∃ T : BT V, (g a).2.2 ∈ˢ app (stage Is Φ A T (g a).1) (g a).2.1 :=
-    fun a ha => (mem_limTup (hgL a ha).2.1).mp (hgL a ha).2.2
+    fun a ha => (mem_limTup hw hA (hgL a ha).2.1).mp (hgL a ha).2.2
   classical
   let f : V → BT V := fun a => if h : a ∈ˢ B then Classical.choose (hT a h) else .leaf
   have hstage : x ∈ˢ app (stage Is Φ A (.node f) m) i := by
@@ -262,7 +281,7 @@ theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTupl
       have : f a = Classical.choose (hT a ha) := dite_eq_left ha
       rw [this]
       exact Classical.choose_spec (hT a ha)
-  exact (mem_limTup hi).mpr ⟨_, hstage⟩
+  exact (mem_limTup hw hA hi).mpr ⟨_, hstage⟩
 
 end Iter
 
@@ -363,13 +382,24 @@ theorem accRead_binUnion {A : V} {G H : (Nat → V) → V} (hG : AccRead w kI Is
   · obtain ⟨B, g, hB, hg, hs⟩ := hH X hX x h
     exact ⟨B, g, hB, hg, fun X' hX' h' => mem_binUnion.mpr (Or.inr (hs X' hX' h'))⟩
 
-/-- **Images** (constructor tags, injections). -/
-theorem accRead_image {A : V} {G : (Nat → V) → V} (h : V → V) (hG : AccRead w kI IsI G A) :
-    AccRead w kI IsI (fun X => image h (G X)) A := by
+/-- **Definable tag images** (constructor tags, injections): the
+definable `kpairImage a` of a readable set is readable, at the
+tag function `kpair a`. -/
+theorem accRead_kpairImage {A : V} {G : (Nat → V) → V} {a : V} (hG : AccRead w kI IsI G A) :
+    AccRead w kI IsI (fun X => kpairImage a (G X)) A := by
   intro X hX x hx
-  obtain ⟨y, hy, rfl⟩ := mem_image.mp hx
+  obtain ⟨y, hy, rfl⟩ := mem_kpairImage.mp hx
   obtain ⟨B, g, hB, hg, hs⟩ := hG X hX y hy
-  exact ⟨B, g, hB, hg, fun X' hX' h' => mem_image.mpr ⟨y, hs X' hX' h', rfl⟩⟩
+  exact ⟨B, g, hB, hg, fun X' hX' h' => mem_kpairImage.mpr ⟨y, hs X' hX' h', rfl⟩⟩
+
+/-- **Congruence**: readings transport along pointwise equal
+operators. -/
+theorem accRead_congr {A : V} {F G : (Nat → V) → V} (h : ∀ X, F X = G X)
+    (hF : AccRead w kI IsI F A) : AccRead w kI IsI G A := by
+  intro X hX x hx
+  rw [← h X] at hx
+  obtain ⟨B, g, hB, hg, hs⟩ := hF X hX x hx
+  exact ⟨B, g, hB, hg, fun X' hX' h' => by rw [← h X']; exact hs X' hX' h'⟩
 
 /-- **A hole-free first component** (Σ over a constant set). -/
 theorem accRead_sigma {C A : V} {G : V → (Nat → V) → V} (hG : ∀ c, c ∈ˢ C → AccRead w kI IsI (G c) A) :
@@ -383,7 +413,7 @@ theorem accRead_sigma {C A : V} {G : V → (Nat → V) → V} (hG : ∀ c, c ∈
 support of `f` is the glued supports of its values, indexed by
 `Σ d ∈ D, A`. -/
 theorem accRead_pi {D A : V} {G : V → (Nat → V) → V} (hG : ∀ d, d ∈ˢ D → AccRead w kI IsI (G d) A) :
-    AccRead w kI IsI (fun X => piSet D fun d => G d X) (sigmaPairs D fun _ => A) := by
+    AccRead w kI IsI (fun X => piSet D fun d => G d X) (sigmaConstF D A) := by
   intro X hX f hf
   obtain ⟨Bf, gf, hsk⟩ := skolem_supp (S := D)
     (Q := fun d B g => B ⊆ˢ A ∧ (∀ a, a ∈ˢ B → InTup kI IsI X (g a)) ∧
@@ -392,7 +422,7 @@ theorem accRead_pi {D A : V} {G : V → (Nat → V) → V} (hG : ∀ d, d ∈ˢ 
   refine ⟨sigmaPairs D Bf, fun p => gf (sfst p) (ssnd p), ?_, ?_, ?_⟩
   · intro p hp
     obtain ⟨d, hd, q, hq, rfl⟩ := mem_glue.mp hp
-    exact mem_sigmaPairs.mpr ⟨d, hd, q, (hsk d hd).1 q hq, rfl⟩
+    exact mem_sigmaConstF.mpr ⟨d, hd, q, (hsk d hd).1 q hq, rfl⟩
   · intro p hp
     obtain ⟨d, hd, q, hq, rfl⟩ := mem_glue.mp hp
     simp only [sfst_kpair, ssnd_kpair]
@@ -407,33 +437,31 @@ open Classical in
 /-- **A pair of two hole-reading components** (a non-dependent product),
 supports tagged by `∅`/`pt`. -/
 theorem accRead_prod {A1 A2 : V} {G H : (Nat → V) → V} (hG : AccRead w kI IsI G A1) (hH : AccRead w kI IsI H A2) :
-    AccRead w kI IsI (fun X => sigmaPairs (G X) fun _ => H X)
-      (sigmaPairs (upair empty pt) fun t => if t = empty then A1 else A2) := by
+    AccRead w kI IsI (fun X => sigmaConstF (G X) (H X))
+      (sigmaTag2 A1 A2) := by
   classical
   intro X hX x hx
-  obtain ⟨y, hy, z, hz, rfl⟩ := mem_sigmaPairs.mp hx
+  obtain ⟨y, hy, z, hz, rfl⟩ := mem_sigmaConstF.mp hx
   obtain ⟨B1, g1, hB1, hg1, hs1⟩ := hG X hX y hy
   obtain ⟨B2, g2, hB2, hg2, hs2⟩ := hH X hX z hz
   have hne : (pt : V) ≠ empty := pt_ne_empty
-  refine ⟨sigmaPairs (upair empty pt) (fun t => if t = empty then B1 else B2),
+  refine ⟨sigmaTag2 B1 B2,
     fun p => if sfst p = empty then g1 (ssnd p) else g2 (ssnd p), ?_, ?_, ?_⟩
   · intro p hp
-    obtain ⟨t, ht, q, hq, rfl⟩ := mem_sigmaPairs.mp hp
-    refine mem_sigmaPairs.mpr ⟨t, ht, q, ?_, rfl⟩
-    by_cases h : t = empty
-    · simp only [h, ite_true] at hq ⊢; exact hB1 q hq
-    · simp only [h, ite_false] at hq ⊢; exact hB2 q hq
+    rcases mem_sigmaTag2.mp hp with ⟨q, hq, rfl⟩ | ⟨q, hq, rfl⟩
+    · exact mem_sigmaTag2.mpr (Or.inl ⟨q, hB1 q hq, rfl⟩)
+    · exact mem_sigmaTag2.mpr (Or.inr ⟨q, hB2 q hq, rfl⟩)
   · intro p hp
-    obtain ⟨t, ht, q, hq, rfl⟩ := mem_sigmaPairs.mp hp
-    simp only [sfst_kpair, ssnd_kpair]
-    by_cases h : t = empty
-    · simp only [h, ite_true] at hq ⊢; exact hg1 q hq
-    · simp only [h, ite_false] at hq ⊢; exact hg2 q hq
+    rcases mem_sigmaTag2.mp hp with ⟨q, hq, rfl⟩ | ⟨q, hq, rfl⟩
+    · simp only [sfst_kpair, ssnd_kpair, ite_true]
+      exact hg1 q hq
+    · simp only [sfst_kpair, ssnd_kpair, pt_ne_empty, ite_false]
+      exact hg2 q hq
   · intro X' hX' h'
-    refine mem_sigmaPairs.mpr ⟨y, hs1 X' hX' fun q hq => ?_, z, hs2 X' hX' fun q hq => ?_, rfl⟩
-    · have := h' (kpair empty q) (mem_sigmaPairs.mpr ⟨empty, mem_upair_left _ _, q, by simpa using hq, rfl⟩)
+    refine mem_sigmaConstF.mpr ⟨y, hs1 X' hX' fun q hq => ?_, z, hs2 X' hX' fun q hq => ?_, rfl⟩
+    · have := h' (kpair empty q) (mem_sigmaTag2.mpr (Or.inl ⟨q, hq, rfl⟩))
       simpa only [sfst_kpair, ssnd_kpair, ite_true] using this
-    · have := h' (kpair pt q) (mem_sigmaPairs.mpr ⟨pt, mem_upair.mpr (Or.inr rfl), q, by simpa [hne] using hq, rfl⟩)
+    · have := h' (kpair pt q) (mem_sigmaTag2.mpr (Or.inr ⟨q, hq, rfl⟩))
       simpa only [sfst_kpair, ssnd_kpair, hne, ite_false] using this
 
 /-- **Composition**: a reading of an accessible operator's output is
@@ -442,7 +470,7 @@ theorem accRead_comp {kY : Nat} {IsY : Nat → V} {Ψ : (Nat → V) → Nat → 
     {G : (Nat → V) → V}
     (hΨ : AccTuple w kI IsI kY IsY Ψ A1) (hmaps : ∀ X, InTupleSpace w kI IsI X → InTupleSpace w kY IsY (Ψ X))
     (hG : AccRead w kY IsY G A2) :
-    AccRead w kI IsI (fun X => G (Ψ X)) (sigmaPairs A2 fun _ => A1) := by
+    AccRead w kI IsI (fun X => G (Ψ X)) (sigmaConstF A2 A1) := by
   intro X hX x hx
   obtain ⟨B2, g2, hB2, hg2, hs2⟩ := hG (Ψ X) (hmaps X hX) x hx
   obtain ⟨Bf, gf, hsk⟩ := skolem_supp (S := B2)
@@ -453,7 +481,7 @@ theorem accRead_comp {kY : Nat} {IsY : Nat → V} {Ψ : (Nat → V) → Nat → 
   refine ⟨sigmaPairs B2 Bf, fun p => gf (sfst p) (ssnd p), ?_, ?_, ?_⟩
   · intro p hp
     obtain ⟨b, hb, q, hq, rfl⟩ := mem_glue.mp hp
-    exact mem_sigmaPairs.mpr ⟨b, hB2 b hb, q, (hsk b hb).1 q hq, rfl⟩
+    exact mem_sigmaConstF.mpr ⟨b, hB2 b hb, q, (hsk b hb).1 q hq, rfl⟩
   · intro p hp
     obtain ⟨b, hb, q, hq, rfl⟩ := mem_glue.mp hp
     simp only [sfst_kpair, ssnd_kpair]
@@ -533,11 +561,11 @@ If the joint operator `Θ` (parameter components first, then its own) is
 is `accPaths A`-accessible — no key, no wide operator, no container
 presentation.  (W) of each section and its monotonicity come from
 `closed_of_acc` / `AccTuple.monoTuple`. -/
-theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A ∈ˢ (tg w : V))
+theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hw : w ≠ 0) (hA : w ≠ 0 → A ∈ˢ (tg w : V))
     (hmaps : ∀ X Y, InTupleSpace w kX IsX X → InTupleSpace w kY IsY Y →
       InTupleSpace w kY IsY (Θ (catT kX X Y)))
     (hacc : AccTuple w (kX + kY) (catT kX IsX IsY) kY IsY Θ A) :
-    AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths A) := by
+    AccTuple w kX IsX kY IsY (lfpP w kX kY IsY Θ) (accPaths w A) := by
   -- (W) and monotonicity of every section
   have hcl : ∀ X, InTupleSpace w kX IsX X → ∃ L, IsClosedTuple w kY IsY (fun Y => Θ (catT kX X Y)) L :=
     fun X hX => AccW.closed ⟨A, hA, hacc.section hX⟩ fun Y hY => hmaps X Y hX hY
@@ -546,7 +574,7 @@ theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A �
   intro X hX
   -- the property proved by induction over the least tuple at `X`
   let P : Nat → V → V → Prop := fun m i y =>
-    ∃ (B : V) (g : V → Nat × V × V), B ⊆ˢ accPaths A ∧ (∀ a, a ∈ˢ B → InTup kX IsX X (g a)) ∧
+    ∃ (B : V) (g : V → Nat × V × V), B ⊆ˢ accPaths w A ∧ (∀ a, a ∈ˢ B → InTup kX IsX X (g a)) ∧
       ∀ X', InTupleSpace w kX IsX X' → (∀ a, a ∈ˢ B → InTup kX IsX X' (g a)) →
         y ∈ˢ app (lfpP w kX kY IsY Θ X' m) i
   have hind := lfpTuple_induction (hcl X hX) (hmono X hX) (fun Y hY => hmaps X Y hX hY) P ?_
@@ -557,14 +585,14 @@ theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A �
   obtain ⟨B0, g0, hB0, hg0, hs0⟩ := hacc _ (catT_mem hX hS) m hm i hi y hy
   -- the sub-support of every support position: a leaf in `X`, or `P`'s
   obtain ⟨Bf, gf, hsk⟩ := skolem_supp (S := B0)
-    (Q := fun a B g => B ⊆ˢ accPaths A ∧ (∀ q, q ∈ˢ B → InTup kX IsX X (g q)) ∧
+    (Q := fun a B g => B ⊆ˢ accPaths w A ∧ (∀ q, q ∈ˢ B → InTup kX IsX X (g q)) ∧
       ∀ X', InTupleSpace w kX IsX X' → (∀ q, q ∈ˢ B → InTup kX IsX X' (g q)) →
         InTup (kX + kY) (catT kX IsX IsY) (catT kX X' (lfpP w kX kY IsY Θ X')) (g0 a))
     (by
       intro a ha
       rcases inTup_catT.mp (hg0 a ha) with ⟨h1, h2⟩ | ⟨h1, h2⟩
       · refine ⟨unitSet, fun _ => g0 a, fun q hq => ?_, fun _ _ => h2, fun X' _ h' => ?_⟩
-        · rw [mem_unitSet_iff.mp hq]; exact pt_mem_accPaths A
+        · rw [mem_unitSet_iff.mp hq]; exact pt_mem_accPaths w A
         · exact inTup_catT.mpr (Or.inl ⟨h1, h' pt pt_mem_unitSet⟩)
       · obtain ⟨h2a, h2b, h2c⟩ := h2
         obtain ⟨B, g, hB, hg, hs⟩ := (mem_app_sepTuple_imp h2b h2c).2
@@ -573,7 +601,7 @@ theorem lfpP_acc {Θ : (Nat → V) → Nat → V} {A : V} (hA : w ≠ 0 → A �
   refine ⟨sigmaPairs B0 Bf, fun p => gf (sfst p) (ssnd p), ?_, ?_, ?_⟩
   · intro p hp
     obtain ⟨a, ha, q, hq, rfl⟩ := mem_glue.mp hp
-    exact kpair_mem_accPaths (hB0 a ha) ((hsk a ha).1 q hq)
+    exact kpair_mem_accPaths hw (hA hw) (hB0 a ha) ((hsk a ha).1 q hq)
   · intro p hp
     obtain ⟨a, ha, q, hq, rfl⟩ := mem_glue.mp hp
     simp only [sfst_kpair, ssnd_kpair]
@@ -632,6 +660,7 @@ least tuple's laws read every component) — as in `lfpP_acc`. -/
 theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat → V}
     {Sp : P → Prop} {Rp : P → P → Prop} {HasP : P → O → Prop} {G : Nat → Prop}
     {Θ : P → (Nat → V) → Nat → V} {A : P → V}
+    (hw : w ≠ 0) (hAsz : ∀ p, Sp p → w ≠ 0 → A p ∈ˢ (tg w : V))
     (hIs : ∀ p p', Rp p p' → ∀ m, G m → IsY p m = IsY p' m)
     (hcl : ∀ p, Sp p → ∃ L, IsClosedTuple w kY (IsY p) (Θ p) L)
     (hmaps : ∀ p, Sp p → MapsTuple w kY (IsY p) (Θ p))
@@ -639,7 +668,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
     (hacc : AccJointG w kY IsY Sp Rp HasP G Θ A) :
     ∀ p, Sp p → ∀ m, m < kY → G m → ∀ i, i ∈ˢ IsY p m →
       ∀ x, x ∈ˢ app (lfpTuple w kY (IsY p) (Θ p) m) i →
-        ∃ (B : V) (g : V → O), B ⊆ˢ accPaths (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
+        ∃ (B : V) (g : V → O), B ⊆ˢ accPaths w (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
           ∀ p', Rp p p' → Sp p' → (∀ b, b ∈ˢ B → HasP p' (g b)) →
             x ∈ˢ app (lfpTuple w kY (IsY p') (Θ p') m) i := by
   have hmono : ∀ p, Sp p → MonoTuple w kY (IsY p) (Θ p) := fun p hp =>
@@ -647,7 +676,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
   intro p hp
   -- the property proved by induction over the least tuple at `p`
   let Q : Nat → V → V → Prop := fun m i y => G m →
-    ∃ (B : V) (g : V → O), B ⊆ˢ accPaths (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
+    ∃ (B : V) (g : V → O), B ⊆ˢ accPaths w (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
       ∀ p', Rp p p' → Sp p' → (∀ b, b ∈ˢ B → HasP p' (g b)) →
         y ∈ˢ app (lfpTuple w kY (IsY p') (Θ p') m) i
   have hind := lfpTuple_induction (hcl p hp) (hmono p hp) (hmaps p hp) Q ?_
@@ -658,7 +687,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
   obtain ⟨B0, g0, hB0, hg0, hs0⟩ := hacc p _ hp hS m hm hG i hi y hy
   -- the sub-support of every support position: a parameter item, or `Q`'s
   obtain ⟨Bf, gf, hsk⟩ := skolem_suppG (β := O) (S := B0)
-    (Q := fun a B g => B ⊆ˢ accPaths (A p) ∧ (∀ q, q ∈ˢ B → HasP p (g q)) ∧
+    (Q := fun a B g => B ⊆ˢ accPaths w (A p) ∧ (∀ q, q ∈ˢ B → HasP p (g q)) ∧
       ∀ p', Rp p p' → Sp p' → (∀ q, q ∈ˢ B → HasP p' (g q)) →
         ItemIn kY G HasP (IsY p') p' (lfpTuple w kY (IsY p') (Θ p')) (g0 a))
     (by
@@ -669,7 +698,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
       | inl o =>
         intro h0
         refine ⟨unitSet, fun _ => o, fun q hq => ?_, fun _ _ => h0, fun p' _ _ h' => ?_⟩
-        · rw [mem_unitSet_iff.mp hq]; exact pt_mem_accPaths (A p)
+        · rw [mem_unitSet_iff.mp hq]; exact pt_mem_accPaths w (A p)
         · exact h' pt pt_mem_unitSet
       | inr t =>
         rintro ⟨hGt, h1, h2, h3⟩
@@ -679,7 +708,7 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
   refine ⟨sigmaPairs B0 Bf, fun q => gf (sfst q) (ssnd q), ?_, ?_, ?_⟩
   · intro r hr
     obtain ⟨a, ha, q, hq, rfl⟩ := mem_glue.mp hr
-    exact kpair_mem_accPaths (hB0 a ha) ((hsk a ha).1 q hq)
+    exact kpair_mem_accPaths hw (hAsz p hp hw) (hB0 a ha) ((hsk a ha).1 q hq)
   · intro r hr
     obtain ⟨a, ha, q, hq, rfl⟩ := mem_glue.mp hr
     simp only [sfst_kpair, ssnd_kpair]
@@ -691,6 +720,133 @@ theorem lfpP_acc_group {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat
     refine hs0 p' _ hR hp' hL' fun a ha => (hsk a ha).2.2 p' hR hp' fun q hq => ?_
     have := h' (kpair a q) (mem_sigmaPairs.mpr ⟨a, ha, q, hq, rfl⟩)
     simpa only [sfst_kpair, ssnd_kpair] using this
+
+
+/-- **The container case at a frame's group, function-cons paths**: the
+twin of `lfpP_acc_group` whose bound is the definable function-cons path
+set `Tower.pathSetF (A p)` — a single power set, so NO level bound is
+needed (this is the `w = 0` escape: `tg 0 = univZero` contains no bound).
+The glue conses each support head `a` onto its sub-support path `q`
+(`Tower.consF`), and the item map reads a path's head and tail back off
+(`Tower.app_consF_empty`, `Tower.tailF_consF`). -/
+theorem lfpP_acc_group_paths {P O : Type _} [Nonempty O] {w kY : Nat} {IsY : P → Nat → V}
+    {Sp : P → Prop} {Rp : P → P → Prop} {HasP : P → O → Prop} {G : Nat → Prop}
+    {Θ : P → (Nat → V) → Nat → V} {A : P → V}
+    (hIs : ∀ p p', Rp p p' → ∀ m, G m → IsY p m = IsY p' m)
+    (hcl : ∀ p, Sp p → ∃ L, IsClosedTuple w kY (IsY p) (Θ p) L)
+    (hmaps : ∀ p, Sp p → MapsTuple w kY (IsY p) (Θ p))
+    (hsacc : ∀ p, Sp p → ∃ A', AccTuple w kY (IsY p) kY (IsY p) (Θ p) A')
+    (hacc : AccJointG w kY IsY Sp Rp HasP G Θ A) :
+    ∀ p, Sp p → ∀ m, m < kY → G m → ∀ i, i ∈ˢ IsY p m →
+      ∀ x, x ∈ˢ app (lfpTuple w kY (IsY p) (Θ p) m) i →
+        ∃ (B : V) (g : V → O), B ⊆ˢ Tower.pathSetF (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
+          ∀ p', Rp p p' → Sp p' → (∀ b, b ∈ˢ B → HasP p' (g b)) →
+            x ∈ˢ app (lfpTuple w kY (IsY p') (Θ p') m) i := by
+  have hmono : ∀ p, Sp p → MonoTuple w kY (IsY p) (Θ p) := fun p hp =>
+    (hsacc p hp).elim fun _ h => h.monoTuple
+  intro p hp
+  -- the property proved by induction over the least tuple at `p`
+  let Q : Nat → V → V → Prop := fun m i y => G m →
+    ∃ (B : V) (g : V → O), B ⊆ˢ Tower.pathSetF (A p) ∧ (∀ b, b ∈ˢ B → HasP p (g b)) ∧
+      ∀ p', Rp p p' → Sp p' → (∀ b, b ∈ˢ B → HasP p' (g b)) →
+        y ∈ˢ app (lfpTuple w kY (IsY p') (Θ p') m) i
+  have hind := lfpTuple_induction (hcl p hp) (hmono p hp) (hmaps p hp) Q ?_
+  · intro m hm hG i hi y hy
+    exact hind m hm i hi y hy hG
+  intro m hm i hi y hy hG
+  have hS := sepTuple_mem w kY (IsY p) (Θ p) Q
+  obtain ⟨B0, g0, hB0, hg0, hs0⟩ := hacc p _ hp hS m hm hG i hi y hy
+  -- the sub-support of every support position: a parameter item, or `Q`'s
+  obtain ⟨Bf, gf, hsk⟩ := skolem_suppG (β := O) (S := B0)
+    (Q := fun a B g => B ⊆ˢ Tower.pathSetF (A p) ∧ (∀ q, q ∈ˢ B → HasP p (g q)) ∧
+      ∀ p', Rp p p' → Sp p' → (∀ q, q ∈ˢ B → HasP p' (g q)) →
+        ItemIn kY G HasP (IsY p') p' (lfpTuple w kY (IsY p') (Θ p')) (g0 a))
+    (by
+      intro a ha
+      have h0 := hg0 a ha
+      revert h0
+      cases g0 a with
+      | inl o =>
+        intro h0
+        refine ⟨sing (Tower.emptyPathF (A p)), fun _ => o, fun q hq => ?_, fun _ _ => h0,
+          fun p' _ _ h' => ?_⟩
+        · rw [mem_sing.mp hq]; exact Tower.emptyPathF_mem_pathSetF (A p)
+        · exact h' _ (mem_sing.mpr rfl)
+      | inr t =>
+        rintro ⟨hGt, h1, h2, h3⟩
+        obtain ⟨B, g, hB, hg, hs⟩ := (mem_app_sepTuple_imp h2 h3).2 hGt
+        exact ⟨B, g, hB, hg, fun p' hR hp' h' =>
+          ⟨hGt, h1, hIs p p' hR t.1 hGt ▸ h2, hs p' hR hp' h'⟩⟩)
+  -- the glued support: cons each support head onto its sub-support path
+  have key : ∀ s, s ∈ˢ sigmaPairs B0 Bf → ssnd s ∈ˢ Tower.pathSetF (A p) := by
+    intro s hs
+    obtain ⟨a, ha, q, hq, rfl⟩ := mem_sigmaPairs.mp hs
+    simpa only [ssnd_kpair] using (hsk a ha).1 q hq
+  classical
+  let B : V := image (fun s => if h : s ∈ˢ sigmaPairs B0 Bf then
+      Tower.consF (sfst s) (ssnd s) (key s h) else Tower.emptyPathF (A p)) (sigmaPairs B0 Bf)
+  have hB : B ⊆ˢ Tower.pathSetF (A p) := by
+    intro z hz
+    obtain ⟨s, hs, rfl⟩ := mem_image.mp hz
+    rw [dite_eq_left hs]
+    obtain ⟨a, ha, q, hq, rfl⟩ := mem_sigmaPairs.mp hs
+    simp only [sfst_kpair, ssnd_kpair]
+    have hkey : q ∈ˢ Tower.pathSetF (A p) := by
+      have h1 := key (kpair a q) hs
+      simpa only [ssnd_kpair] using h1
+    have h2 := Tower.consF_mem_pathSetF (hB0 a ha) hkey
+    simpa only [sfst_kpair, ssnd_kpair] using h2
+  refine ⟨B, fun b => gf (app b (empty : V))
+      (if h : b ∈ˢ Tower.pathSetF (A p) then Tower.tailF b h else Tower.emptyPathF (A p)), hB, ?_, ?_⟩
+  · intro b hb
+    obtain ⟨s, hs, rfl⟩ := mem_image.mp hb
+    rw [dite_eq_left hs]
+    obtain ⟨a, ha, q, hq, rfl⟩ := mem_sigmaPairs.mp hs
+    simp only [sfst_kpair, ssnd_kpair]
+    have hkey : q ∈ˢ Tower.pathSetF (A p) := by
+      have h1 := key (kpair a q) hs
+      simpa only [ssnd_kpair] using h1
+    have hcm : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) := by
+      have h2 := Tower.consF_mem_pathSetF (hB0 a ha) hkey
+      simpa only [sfst_kpair, ssnd_kpair] using h2
+    have happ : app (Tower.consF a q hkey) (empty : V) = a := Tower.app_consF_empty hkey
+    have htail : (if h : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) then
+        Tower.tailF (Tower.consF a q hkey) h else Tower.emptyPathF (A p)) = q := by
+      rw [dite_eq_left hcm]
+      exact Tower.tailF_consF (hB0 a ha) hkey
+    show HasP p (gf (app (Tower.consF a q hkey) (empty : V))
+      (if h : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) then
+        Tower.tailF (Tower.consF a q hkey) h else Tower.emptyPathF (A p)))
+    rw [happ, htail]
+    exact (hsk a ha).2.1 q hq
+  · intro p' hR hp' h'
+    have hL' := lfpTuple_mem w kY (IsY p') (Θ p')
+    have hi' : i ∈ˢ IsY p' m := hIs p p' hR m hG ▸ hi
+    refine lfpTuple_closed (hcl p' hp') (hmono p' hp') (hmaps p' hp') m hm i hi' y ?_
+    refine hs0 p' _ hR hp' hL' fun a ha => (hsk a ha).2.2 p' hR hp' fun q hq => ?_
+    have hkey : q ∈ˢ Tower.pathSetF (A p) := by
+      have h1 := key (kpair a q) (mem_sigmaPairs.mpr ⟨a, ha, q, hq, rfl⟩)
+      simpa only [ssnd_kpair] using h1
+    have hcm : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) := by
+      have h2 := Tower.consF_mem_pathSetF (hB0 a ha) hkey
+      simpa only [sfst_kpair, ssnd_kpair] using h2
+    have happ : app (Tower.consF a q hkey) (empty : V) = a := Tower.app_consF_empty hkey
+    have htail : (if h : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) then
+        Tower.tailF (Tower.consF a q hkey) h else Tower.emptyPathF (A p)) = q := by
+      rw [dite_eq_left hcm]
+      exact Tower.tailF_consF (hB0 a ha) hkey
+    have hb : (if h : kpair a q ∈ˢ sigmaPairs B0 Bf then
+        Tower.consF (sfst (kpair a q)) (ssnd (kpair a q)) (key (kpair a q) h)
+        else Tower.emptyPathF (A p)) ∈ˢ B :=
+      mem_image.mpr ⟨kpair a q, mem_sigmaPairs.mpr ⟨a, ha, q, hq, rfl⟩, rfl⟩
+    have h0 := h' _ hb
+    rw [dite_eq_left (mem_sigmaPairs.mpr ⟨a, ha, q, hq, rfl⟩)] at h0
+    simp only [sfst_kpair, ssnd_kpair] at h0
+    have h0' : HasP p' (gf (app (Tower.consF a q hkey) (empty : V))
+        (if h : Tower.consF a q hkey ∈ˢ Tower.pathSetF (A p) then
+          Tower.tailF (Tower.consF a q hkey) h else Tower.emptyPathF (A p))) := h0
+    rw [happ, htail] at h0'
+    exact h0'
 
 end ParamGroup
 
@@ -804,6 +960,31 @@ theorem lfpTuple_mixT (h : ∃ L, IsClosedTuple w k Is Φ L) (hmono : MonoTuple 
   exact this
 
 end MixGroup
+
+/-! ## Bridges to the finite stages (`accPathsN`)
+
+The levelled path set `accPaths w A = accPathsF A (tg w)` reads off the
+finite stages `accPathsN A` at every standard numeral, at any positive
+level with `A ∈ˢ tg w` (the iteration graph stays in `tg w` by
+`iterGraphF_mem_tg`, so the step equation applies at every `vsucc`). -/
+
+/-- The definable iteration graph reads off `accPathsN` at the standard
+numerals (bound `B = tg w`). -/
+theorem app_iterGraphF_vnat_accPathsN_tg {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) :
+    ∀ n, app (Tower.iterGraphF A (tg w)) (vnat n) = accPathsN A n :=
+  Tower.iterGraphF_vnat_eq A (tg w) (accPathsN A) rfl
+    (fun _ => rfl) (accPathsN_mem_tg hw hA)
+
+/-- Every finite stage is a subset of the levelled path set. -/
+theorem accPathsN_subset_accPaths {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) (n : Nat) :
+    accPathsN A n ⊆ˢ accPaths w A :=
+  fun _ hx => Tower.mem_accPathsF.mpr ⟨vnat n, vnat_mem_omega n, by
+    rw [app_iterGraphF_vnat_accPathsN_tg hw hA n]; exact hx⟩
+
+/-- Every finite stage is a member of `power (accPaths w A)`. -/
+theorem accPathsN_mem_power {w : Nat} (hw : w ≠ 0) {A : V} (hA : A ∈ˢ (tg w : V)) (n : Nat) :
+    accPathsN A n ∈ˢ power (accPaths w A) :=
+  mem_power.mpr (accPathsN_subset_accPaths hw hA n)
 
 
 end ConLeche.SetTheory

@@ -909,8 +909,8 @@
    387  /-- `I → Sort w`, the family space, as the value reading has it. -/
    388  noncomputable def lfpFamSpace (w : Nat) (I : V) : V := piV I fun _ => univ w
 
-== ConLeche/SetModel/Access.lean#L243
-   243  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
+== ConLeche/SetModel/Access.lean#L262
+   262  theorem closed_of_acc (hw : w ≠ 0) (hA : A ∈ˢ (tg w : V)) (hmaps : MapsTuple w k Is Φ)
 
 == ConLeche/Model/Inductives/DeclBlockStep.lean#L70-L75
     70  theorem declBlock (hμ : μ.isVerified = true) {F : Nat} {env env₂ : Env}
@@ -1137,77 +1137,94 @@
    161      ∃ extra : List Declaration, (∀ d ∈ extra, d ∈ pre.decls.toList) ∧
    162        (preparePrelude pre ds).toList.Perm (ds.toList ++ extra) := by
 
-== ConLeche/SetTheory/Core.lean#L95-L156
-    95  /-- A model of set theory of exactly the strength the checker needs:
-    96  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
-    97  set, regularity, Lean-level replacement), and an ω-chain of
-    98  Grothendieck universes.  Infinity is derivable; choice is inherited
-    99  from the meta-logic (`Classical.choice`); see the module docstring. -/
-   100  class SetTheory (V : Type u) where
-   101    /-- Set membership. -/
-   102    Mem : V → V → Prop
-   103    /-- Extensionality: sets with the same members are equal. -/
-   104    ext : ∀ {x y : V}, (∀ z, Mem z x ↔ Mem z y) → x = y
-   105    /-- Pairing: the unordered pair. -/
-   106    upair : V → V → V
-   107    /-- Characterization of the unordered pair. -/
-   108    mem_upair : ∀ {z a b : V}, Mem z (upair a b) ↔ z = a ∨ z = b
-   109    /-- Union: the union of the members. -/
-   110    sUnion : V → V
-   111    /-- Characterization of the union. -/
-   112    mem_sUnion : ∀ {z x : V}, Mem z (sUnion x) ↔ ∃ y, Mem y x ∧ Mem z y
-   113    /-- Power set. -/
-   114    power : V → V
-   115    /-- Characterization of the power set: members are the subsets. -/
-   116    mem_power : ∀ {z x : V}, Mem z (power x) ↔ ∀ w, Mem w z → Mem w x
-   117    /-- Regularity: every nonempty set has an `∈`-minimal member. -/
-   118    regularity : ∀ x : V, (∃ y, Mem y x) → ∃ y, Mem y x ∧ ¬ ∃ z, Mem z y ∧ Mem z x
-   119    /-- Replacement, as a Lean-level scheme: the image of a set under an
-   120    arbitrary function `V → V`. -/
-   121    image : (V → V) → V → V
-   122    /-- Characterization of the replacement image. -/
-   123    mem_image : ∀ {f : V → V} {a z : V}, Mem z (image f a) ↔ ∃ w, Mem w a ∧ z = f w
-   124    /-- An ω-chain of Grothendieck universes: the sets interpreting the
-   125    universe tower (Carneiro's ω-many inaccessibles, op. cit.;
-   126    intended model `V_{κ n}`). -/
-   127    univChain : Nat → V
-   128    /-- The chain increases strictly: each universe is a member of the
-   129    next. -/
-   130    univChain_mem : ∀ n : Nat, Mem (univChain n) (univChain (n + 1))
-   131    /-- Each chain member is a Grothendieck universe (Tarski's Axiom A
-   132    matrix with transitivity, `IsTGUniverse`). -/
-   133    univChain_tg : ∀ n : Nat, IsTGUniverse Mem (univChain n)
-   134  
-   135  namespace SetTheory
-   136  
-   137  @[inherit_doc] scoped infix:50 " ∈ˢ " => Mem
-   138  
-   139  variable {V : Type u} [SetTheory V]
-   140  
-   141  /-- Subset, from membership. -/
-   142  protected def Subset (x y : V) : Prop := ∀ z, z ∈ˢ x → z ∈ˢ y
-   143  
-   144  @[inherit_doc] scoped infix:50 " ⊆ˢ " => SetTheory.Subset
-   145  
-   146  theorem Subset.refl (x : V) : x ⊆ˢ x := fun _ hz => hz
-   147  
-   148  theorem Subset.trans {x y z : V} (h₁ : x ⊆ˢ y) (h₂ : y ⊆ˢ z) : x ⊆ˢ z :=
-   149    fun w hw => h₂ w (h₁ w hw)
-   150  
-   151  theorem Subset.antisymm {x y : V} (h₁ : x ⊆ˢ y) (h₂ : y ⊆ˢ x) : x = y :=
-   152    ext fun z => ⟨h₁ z, h₂ z⟩
-   153  
-   154  theorem mem_power_iff_subset {z x : V} : z ∈ˢ power x ↔ z ⊆ˢ x := mem_power
-   155  
-   156  end SetTheory
+== ConLeche/SetTheory/Core.lean#L117-L195
+   117  /-- A model of set theory of exactly the strength the checker needs:
+   118  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
+   119  set, regularity, the first-order replacement scheme), and an ω-chain of
+   120  Grothendieck universes.  Infinity is derivable; choice is inherited
+   121  from the meta-logic (`Classical.choice`); see the module docstring. -/
+   122  class SetTheory (V : Type u) where
+   123    /-- Set membership. -/
+   124    Mem : V → V → Prop
+   125    /-- Extensionality: sets with the same members are equal. -/
+   126    ext : ∀ {x y : V}, (∀ z, Mem z x ↔ Mem z y) → x = y
+   127    /-- Pairing: the unordered pair. -/
+   128    upair : V → V → V
+   129    /-- Characterization of the unordered pair. -/
+   130    mem_upair : ∀ {z a b : V}, Mem z (upair a b) ↔ z = a ∨ z = b
+   131    /-- Union: the union of the members. -/
+   132    sUnion : V → V
+   133    /-- Characterization of the union. -/
+   134    mem_sUnion : ∀ {z x : V}, Mem z (sUnion x) ↔ ∃ y, Mem y x ∧ Mem z y
+   135    /-- Power set. -/
+   136    power : V → V
+   137    /-- Characterization of the power set: members are the subsets. -/
+   138    mem_power : ∀ {z x : V}, Mem z (power x) ↔ ∀ w, Mem w z → Mem w x
+   139    /-- Regularity: every nonempty set has an `∈`-minimal member. -/
+   140    regularity : ∀ x : V, (∃ y, Mem y x) → ∃ y, Mem y x ∧ ¬ ∃ z, Mem z y ∧ Mem z x
+   141    /-- **Replacement, the first-order scheme**: the image of a set
+   142    under a functional relation `p`, as a relation, is a set.  One
+   143    instance per meta-level relation — the standard encoding of the
+   144    scheme (Mathlib's `ZFSet` carries it the same way, under
+   145    `Classical.allZFSetDefinable`). -/
+   146    repl : ∀ a : V, ∀ p : V → V → Prop,
+   147      (∀ x, Mem x a → ∃ y, p x y ∧ ∀ y', p x y' → y' = y) →
+   148      ∃ b : V, ∀ y, Mem y b ↔ ∃ x, Mem x a ∧ p x y
+   149    /-- **Definable replacement, the first-order scheme over `Form`s**:
+   150    the image of a set under a *functional* relation given by a
+   151    first-order `L = {∈}` formula `φ` (de Bruijn, first two variables the
+   152    related pair `(x, y)`, the remaining `n` the parameters `p`) is a set —
+   153    exactly standard ZF replacement, one instance per formula.  This is
+   154    the scheme the first-order theory `ZFC` actually provides
+   155    (`repSchema`), so a first-order model `M ⊨ ZFC` supplies it with NO
+   156    extra axiom (`ConLecheBridge.replF_of_ZFC_model`), unlike the
+   157    meta-level `repl` above.  Migration of the `sep`/`image` call sites
+   158    from `repl` to `replF` is what removes the `replScheme_of_ZFC_model`
+   159    bridge axiom. -/
+   160    replF : ∀ (n : Nat) (φ : Form (n + 2)) (p : Fin n → V) (a : V),
+   161      (∀ x, Mem x a → ∃ y, Form.Realize Mem (Form.cons2 x y p) φ ∧
+   162        ∀ y', Form.Realize Mem (Form.cons2 x y' p) φ → y' = y) →
+   163      ∃ b : V, ∀ y, Mem y b ↔ ∃ x, Mem x a ∧ Form.Realize Mem (Form.cons2 x y p) φ
+   164    /-- An ω-chain of Grothendieck universes: the sets interpreting the
+   165    universe tower (Carneiro's ω-many inaccessibles, op. cit.;
+   166    intended model `V_{κ n}`). -/
+   167    univChain : Nat → V
+   168    /-- The chain increases strictly: each universe is a member of the
+   169    next. -/
+   170    univChain_mem : ∀ n : Nat, Mem (univChain n) (univChain (n + 1))
+   171    /-- Each chain member is a Grothendieck universe (`IsUniverse`). -/
+   172    univChain_univ : ∀ n : Nat, IsUniverse Mem (univChain n)
+   173  
+   174  namespace SetTheory
+   175  
+   176  @[inherit_doc] scoped infix:50 " ∈ˢ " => Mem
+   177  
+   178  variable {V : Type u} [SetTheory V]
+   179  
+   180  /-- Subset, from membership. -/
+   181  protected def Subset (x y : V) : Prop := ∀ z, z ∈ˢ x → z ∈ˢ y
+   182  
+   183  @[inherit_doc] scoped infix:50 " ⊆ˢ " => SetTheory.Subset
+   184  
+   185  theorem Subset.refl (x : V) : x ⊆ˢ x := fun _ hz => hz
+   186  
+   187  theorem Subset.trans {x y z : V} (h₁ : x ⊆ˢ y) (h₂ : y ⊆ˢ z) : x ⊆ˢ z :=
+   188    fun w hw => h₂ w (h₁ w hw)
+   189  
+   190  theorem Subset.antisymm {x y : V} (h₁ : x ⊆ˢ y) (h₂ : y ⊆ˢ x) : x = y :=
+   191    ext fun z => ⟨h₁ z, h₂ z⟩
+   192  
+   193  theorem mem_power_iff_subset {z x : V} : z ∈ˢ power x ↔ z ⊆ˢ x := mem_power
+   194  
+   195  end SetTheory
 
-== ConLeche/SetTheory/Core.lean#L89
-    89  def IsTGUniverse {V : Type u} (mem : V → V → Prop) (u : V) : Prop :=
+== ConLeche/SetTheory/Core.lean#L104
+   104  def IsUniverse {V : Type u} (mem : V → V → Prop) (u : V) : Prop :=
 
-== bridge/lean4lean-model/ConLecheBridge/Carneiro.lean#L200-L202
-   200  theorem carneiro_implies_conleche :
-   201      OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V) :=
-   202    fun h => ⟨⟨ZFSet.{u}, setTheoryOfCarneiro h⟩⟩
+== bridge/lean4lean-model/ConLecheBridge/Carneiro.lean#L245-L247
+   245  theorem carneiro_implies_conleche :
+   246      OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V) :=
+   247    fun h => ⟨⟨ZFSet.{u}, setTheoryOfCarneiro h⟩⟩
 
 == ConLeche/Kernel/StdAxioms.lean#L33-L37
     33  /-- The name `propext`. -/
@@ -1338,51 +1355,68 @@
    241        c.toConstantVal.levelParams = cv.levelParams ∧
    242        c.toConstantVal.type = cv.type := by
 
-== ConLeche/SetTheory/Core.lean#L95-L133
-    95  /-- A model of set theory of exactly the strength the checker needs:
-    96  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
-    97  set, regularity, Lean-level replacement), and an ω-chain of
-    98  Grothendieck universes.  Infinity is derivable; choice is inherited
-    99  from the meta-logic (`Classical.choice`); see the module docstring. -/
-   100  class SetTheory (V : Type u) where
-   101    /-- Set membership. -/
-   102    Mem : V → V → Prop
-   103    /-- Extensionality: sets with the same members are equal. -/
-   104    ext : ∀ {x y : V}, (∀ z, Mem z x ↔ Mem z y) → x = y
-   105    /-- Pairing: the unordered pair. -/
-   106    upair : V → V → V
-   107    /-- Characterization of the unordered pair. -/
-   108    mem_upair : ∀ {z a b : V}, Mem z (upair a b) ↔ z = a ∨ z = b
-   109    /-- Union: the union of the members. -/
-   110    sUnion : V → V
-   111    /-- Characterization of the union. -/
-   112    mem_sUnion : ∀ {z x : V}, Mem z (sUnion x) ↔ ∃ y, Mem y x ∧ Mem z y
-   113    /-- Power set. -/
-   114    power : V → V
-   115    /-- Characterization of the power set: members are the subsets. -/
-   116    mem_power : ∀ {z x : V}, Mem z (power x) ↔ ∀ w, Mem w z → Mem w x
-   117    /-- Regularity: every nonempty set has an `∈`-minimal member. -/
-   118    regularity : ∀ x : V, (∃ y, Mem y x) → ∃ y, Mem y x ∧ ¬ ∃ z, Mem z y ∧ Mem z x
-   119    /-- Replacement, as a Lean-level scheme: the image of a set under an
-   120    arbitrary function `V → V`. -/
-   121    image : (V → V) → V → V
-   122    /-- Characterization of the replacement image. -/
-   123    mem_image : ∀ {f : V → V} {a z : V}, Mem z (image f a) ↔ ∃ w, Mem w a ∧ z = f w
-   124    /-- An ω-chain of Grothendieck universes: the sets interpreting the
-   125    universe tower (Carneiro's ω-many inaccessibles, op. cit.;
-   126    intended model `V_{κ n}`). -/
-   127    univChain : Nat → V
-   128    /-- The chain increases strictly: each universe is a member of the
-   129    next. -/
-   130    univChain_mem : ∀ n : Nat, Mem (univChain n) (univChain (n + 1))
-   131    /-- Each chain member is a Grothendieck universe (Tarski's Axiom A
-   132    matrix with transitivity, `IsTGUniverse`). -/
-   133    univChain_tg : ∀ n : Nat, IsTGUniverse Mem (univChain n)
+== ConLeche/SetTheory/Core.lean#L117-L172
+   117  /-- A model of set theory of exactly the strength the checker needs:
+   118  membership, the six ZF⁻ axioms (extensionality, pairing, union, power
+   119  set, regularity, the first-order replacement scheme), and an ω-chain of
+   120  Grothendieck universes.  Infinity is derivable; choice is inherited
+   121  from the meta-logic (`Classical.choice`); see the module docstring. -/
+   122  class SetTheory (V : Type u) where
+   123    /-- Set membership. -/
+   124    Mem : V → V → Prop
+   125    /-- Extensionality: sets with the same members are equal. -/
+   126    ext : ∀ {x y : V}, (∀ z, Mem z x ↔ Mem z y) → x = y
+   127    /-- Pairing: the unordered pair. -/
+   128    upair : V → V → V
+   129    /-- Characterization of the unordered pair. -/
+   130    mem_upair : ∀ {z a b : V}, Mem z (upair a b) ↔ z = a ∨ z = b
+   131    /-- Union: the union of the members. -/
+   132    sUnion : V → V
+   133    /-- Characterization of the union. -/
+   134    mem_sUnion : ∀ {z x : V}, Mem z (sUnion x) ↔ ∃ y, Mem y x ∧ Mem z y
+   135    /-- Power set. -/
+   136    power : V → V
+   137    /-- Characterization of the power set: members are the subsets. -/
+   138    mem_power : ∀ {z x : V}, Mem z (power x) ↔ ∀ w, Mem w z → Mem w x
+   139    /-- Regularity: every nonempty set has an `∈`-minimal member. -/
+   140    regularity : ∀ x : V, (∃ y, Mem y x) → ∃ y, Mem y x ∧ ¬ ∃ z, Mem z y ∧ Mem z x
+   141    /-- **Replacement, the first-order scheme**: the image of a set
+   142    under a functional relation `p`, as a relation, is a set.  One
+   143    instance per meta-level relation — the standard encoding of the
+   144    scheme (Mathlib's `ZFSet` carries it the same way, under
+   145    `Classical.allZFSetDefinable`). -/
+   146    repl : ∀ a : V, ∀ p : V → V → Prop,
+   147      (∀ x, Mem x a → ∃ y, p x y ∧ ∀ y', p x y' → y' = y) →
+   148      ∃ b : V, ∀ y, Mem y b ↔ ∃ x, Mem x a ∧ p x y
+   149    /-- **Definable replacement, the first-order scheme over `Form`s**:
+   150    the image of a set under a *functional* relation given by a
+   151    first-order `L = {∈}` formula `φ` (de Bruijn, first two variables the
+   152    related pair `(x, y)`, the remaining `n` the parameters `p`) is a set —
+   153    exactly standard ZF replacement, one instance per formula.  This is
+   154    the scheme the first-order theory `ZFC` actually provides
+   155    (`repSchema`), so a first-order model `M ⊨ ZFC` supplies it with NO
+   156    extra axiom (`ConLecheBridge.replF_of_ZFC_model`), unlike the
+   157    meta-level `repl` above.  Migration of the `sep`/`image` call sites
+   158    from `repl` to `replF` is what removes the `replScheme_of_ZFC_model`
+   159    bridge axiom. -/
+   160    replF : ∀ (n : Nat) (φ : Form (n + 2)) (p : Fin n → V) (a : V),
+   161      (∀ x, Mem x a → ∃ y, Form.Realize Mem (Form.cons2 x y p) φ ∧
+   162        ∀ y', Form.Realize Mem (Form.cons2 x y' p) φ → y' = y) →
+   163      ∃ b : V, ∀ y, Mem y b ↔ ∃ x, Mem x a ∧ Form.Realize Mem (Form.cons2 x y p) φ
+   164    /-- An ω-chain of Grothendieck universes: the sets interpreting the
+   165    universe tower (Carneiro's ω-many inaccessibles, op. cit.;
+   166    intended model `V_{κ n}`). -/
+   167    univChain : Nat → V
+   168    /-- The chain increases strictly: each universe is a member of the
+   169    next. -/
+   170    univChain_mem : ∀ n : Nat, Mem (univChain n) (univChain (n + 1))
+   171    /-- Each chain member is a Grothendieck universe (`IsUniverse`). -/
+   172    univChain_univ : ∀ n : Nat, IsUniverse Mem (univChain n)
 
-== bridge/lean4lean-model/ConLecheBridge/Carneiro.lean#L200-L202
-   200  theorem carneiro_implies_conleche :
-   201      OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V) :=
-   202    fun h => ⟨⟨ZFSet.{u}, setTheoryOfCarneiro h⟩⟩
+== bridge/lean4lean-model/ConLecheBridge/Carneiro.lean#L245-L247
+   245  theorem carneiro_implies_conleche :
+   246      OmegaInaccessibles.{u} → Nonempty (Σ V : Type (u + 1), ConLeche.SetTheory V) :=
+   247    fun h => ⟨⟨ZFSet.{u}, setTheoryOfCarneiro h⟩⟩
 
 == Main.lean#L107
    107    "  --trusted         the unverified mode: the SAME checker bodies as",
