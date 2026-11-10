@@ -5153,4 +5153,19 @@ theorem memUnivChainVnatF_apply {z w G : W} {k : Nat}
   exact hz
 
 
+/-! ## Stage 122: easy `const` codes realize `interpStepG` in the graph context -/
+
+/-- An easy `const` code (`natZero`/`empty`/`quotInd`/`quotSound`/`propext`/
+`punit`/`punitUnit`) realizes `interpStepG` at `v = bval W c us`,
+`i = tmCode (.const c us)` in the `univChain`-graph context — the
+`constStepF` disjunct relabeled by `emb45`. -/
+theorem realize_interpStepG_tmCode_const {X : W} {c : Term.BConst} {us : List Nat} {G : W}
+    (hEasy : c = .natZero ∨ c = .empty ∨ c = .quotInd ∨ c = .quotSound ∨ c = .propext ∨
+      c = .punit ∨ c = .punitUnit) :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => bval W c us) X)
+        (tmCode (Term.Term.const c us))) (pt : W)) G) interpStepG :=
+  realize_interpStepG.mpr (Or.inr (Or.inl (realize_constStepF_tmCode hEasy)))
+
+
 end ConLeche.Semantics

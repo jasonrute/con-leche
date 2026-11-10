@@ -1641,4 +1641,16 @@ example {z w G : V} {k : Nat} (h : Form.Realize Mem
     z ∈ˢ (univChain k : V) :=
   memUnivChainVnatF_apply h hw hG
 
+
+/-! ## Stage 122 example: easy `const` codes realize `interpStepG` in the graph context -/
+
+open ConLeche.Semantics in
+example {X G : V} {c : Term.BConst} {us : List Nat}
+    (hEasy : c = .natZero ∨ c = .empty ∨ c = .quotInd ∨ c = .quotSound ∨ c = .propext ∨
+      c = .punit ∨ c = .punitUnit) :
+    Form.Realize Mem
+      (Form.snoc (Form.snoc (Form.snoc (Form.snoc (fun _ : Fin 1 => ConLeche.SetModel.bval V c us) X)
+        (tmCode (Term.Term.const c us))) (pt : V)) G) interpStepG :=
+  realize_interpStepG_tmCode_const hEasy
+
 end ConLeche.SetTheory.DefinableAppEx
